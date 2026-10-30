@@ -102,13 +102,21 @@ pub struct State {
 const KEEP: usize = 100;
 
 impl State {
-    /// Missing: empty. Unreadable: moved aside to `state.json.bad` and started empty, so a
-    /// broken file never stops the Helper and is not lost.
+    /// Missing: empty. Unreadable or broken: moved aside to `state.json.bad` (or
+    /// `state.json.<time>.bad` when that is taken) and started empty, so a broken file never
+    /// stops the Helper, and saving never writes over it.
     fn load(path: &Path) -> State {
-        let Ok(bytes) = std::fs::read(path) else { return State::default() };
-        serde_json::from_slice(&bytes).unwrap_or_else(|e| {
-            crate::note(format_args!("{} could not be read ({e}): set aside as .bad", path.display()));
-            let _ = std::fs::rename(path, path.with_extension("json.bad"));
+        let read = std::fs::read(path).map_err(|e| e.to_string());
+        if read.as_ref().is_err_and(|_| !path.exists()) {
+            return State::default();
+        }
+        read.and_then(|b| serde_json::from_slice(&b).map_err(|e| e.to_string())).unwrap_or_else(|e| {
+            let mut bad = path.with_extension("json.bad");
+            if bad.exists() {
+                bad = path.with_extension(format!("json.{}.bad", bragd_core::fs::now()));
+            }
+            crate::note(format_args!("{} could not be read ({e}): set aside as {}", path.display(), bad.display()));
+            let _ = std::fs::rename(path, bad);
             State::default()
         })
     }
@@ -614,6 +622,28 @@ pub(crate) mod tests {
 
     fn count(lib: &Path) -> u64 {
         Library::open(lib).unwrap().count().unwrap()
+    }
+
+    #[test]
+    fn a_broken_state_is_set_aside_and_an_earlier_one_kept() {
+        let d = crate::tests::Dir::new("state-bad");
+        let path = d.0.join("state.json");
+        std::fs::write(&path, "first {").unwrap();
+        State::load(&path);
+        std::fs::write(&path, "second {").unwrap();
+        State::load(&path);
+        let mut kept: Vec<String> = std::fs::read_dir(&d.0).unwrap().map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap()).collect();
+        kept.sort();
+        assert_eq!(kept, ["first {", "second {"], "both kept, neither written over");
+        // A file that cannot be read is set aside too, not saved over.
+        #[cfg(unix)]
+        {
+            let d = crate::tests::Dir::new("state-unreadable");
+            let path = d.0.join("state.json");
+            std::fs::create_dir(&path).unwrap();
+            State::load(&path);
+            assert!(!path.exists(), "moved aside");
+        }
     }
 
     #[test]
