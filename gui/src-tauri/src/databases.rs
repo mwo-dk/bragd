@@ -202,8 +202,13 @@ impl OpenFile {
     pub fn rows(&mut self, q: &Query, from: usize, count: usize) -> Rows {
         match &self.reader {
             Reader::Table(t) => {
-                let games = t.progress().games;
-                if !matches!(&self.last, Some((lq, n, _)) if lq == q && *n == games) {
+                let p = t.progress();
+                let games = p.games;
+                // While the file is still being read, filtered and sorted again only once it has
+                // grown by a quarter (or 1000 games), so a big file costs about twice its size
+                // in all, not its size at every poll.
+                let fresh = |n: usize| n == games || (!p.done && games < n + n / 4 + 1000);
+                if !matches!(&self.last, Some((lq, n, _)) if lq == q && fresh(*n)) {
                     self.last = Some((q.clone(), games, t.query(q)));
                 }
                 let ids = self.last.as_ref().map(|l| &l.2[..]).unwrap_or_default();

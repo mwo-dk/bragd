@@ -29,11 +29,21 @@
   let version = $state(0);
 
   let gone = false;
-  // The file open now, and how far it is read: asked again until it is done.
+  let polling = false;
+  // The file open now, and how far it is read: asked again until it is done, by one chain only.
   async function poll() {
-    file = await k.dbCurrent();
-    version++;
-    if (file && !file.done && !gone) setTimeout(poll, 700);
+    if (polling) return;
+    polling = true;
+    try {
+      while (!gone) {
+        file = await k.dbCurrent();
+        version++;
+        if (!file || file.done) break;
+        await new Promise((r) => setTimeout(r, 700));
+      }
+    } finally {
+      polling = false;
+    }
   }
   $effect(() => {
     poll();
@@ -50,7 +60,7 @@
       file = f;
       game = null;
       selected = null;
-      setTimeout(poll, 300);
+      poll();
     } catch (e) {
       fail(e);
     }
