@@ -30,7 +30,7 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 - [x] S8: Helper process, Sources (TWIC, custom URL), schedule (wave 2)
 - [x] S9: GUI for Databases, Analyse, Engines, Tablebases; install wizard; What's new; F1 Features (wave 3)
 - [x] S11: Disk watch and Strip rules: streamed, filtered import of big downloads, pruning of existing downloads and Libraries, a Disk use page with limits and warnings, FICS listed as a Source (wave 3, added by the owner mid-run)
-- [ ] S10: docs tree, screenshots, morning report in the PR body (wave 3)
+- [x] S10: docs tree, screenshots, morning report in the PR body (wave 3)
 
 ## Decisions made alone during the run
 
@@ -220,3 +220,30 @@ Each one is listed here, so the owner can overturn it in the morning.
 - Analyse is the Play page in an analyse mode (same board and record) with an analysis panel; "From the current game" takes the Game last played in Play.
 - No new F1 entry or tour card: `analyse`, `engines` and `tablebases` already have both. New texts are English in every language and listed in `UNTRANSLATED.md`.
 - Screenshots: `engines-chess-*`, `analyse-chess-*`, `tablebases-*` and `review-chess-*` at 390 and 1100 px, with a fake UCI engine script set as Stockfish's path in the demo home.
+
+### S10: Docs
+- 42 feature pages and 7 area indexes under `docs/`, in the order of `docs/README.md`: Getting started (install, the wizard, Game families, the sidebar, F1, What's new), Play (against yourself, against an Engine, one page per Family), Knowledge (Foreign databases, Libraries, Duplicates, Slices, Parquet export, Sources, Strip rules, Disk watch, the Helper), Engines (the page, images, Analyse, review, tablebases, books), Look (Themes, Looks, Board themes, languages), Online (one page, marked not yet available) and Reference (`config.toml`, every setting, the command line, files on disk, privacy). The rules pages stay as they were, behind `rules/README.md`.
+- Game families got a page of their own in Getting started and F1 Help one too, though the slice list did not name them: both are F1 entries or visible on every start.
+- `docs/README.md` lists every page in a table under its area heading, which is what the docs check reads as the reading order. Each page's title in that table is the one Previous and Next use.
+- F1's *Show me* links point at the new pages, and F1 lists the features in the docs' order (the wizard first). `help-*.png` were taken again for it.
+- The docs check's coverage is real: it reads the names from the Rust source with patterns (`config.rs`, `settings.rs`, the catalogue, `themes.rs`, `features.rs`, the two `main.rs` and the shipped crates' `BRAGD_*` variables), not from a `cargo run` example, so it stays standard-library Python and needs no build. A name counts as documented when it is a whole backtick span on some page under `docs/`; `config.toml` keys are written dotted (`look.theme`). It also fails when an F1 page does not exist, and when a pattern stops matching the code.
+- Every Family and Variant switch (`family_go`, `variant_go-9`) is a setting descriptor, so `reference/settings.md` names all 34.
+- The README has two pictures: the GIF and Settings → Look. Its install table follows the systems order (BSDs, Linux, Any, macOS, Windows) and says the channels are empty until the first release.
+- `docs/screenshots/pages.py` takes the pictures that need more than one screen: `board-<family>-<theme>.png` for nine Families in four Board themes (the whole window at 1100 px, so the Theme shows; Match with Nord), `play-chess-self.gif` (7.7 s, 800 px, 12 fps, 125 kB) with its first frame, `play-engine-chess-1100.png`, `play-chess-nord-1100.png`, `look-win95-1100.png`, `settings-look-1100.png`, `settings-privacy-1100.png`, `whats-new-1100.png`, `books-1100.png`, `duplicates-1100.png`, `slice-editor-1100.png` and `strip-rule-1100.png`. It writes the demo home's `config.toml` for each picture and removes it after.
+- `docs/screenshots/fake-uci`, copied into the demo home by `demo-home.sh`, stands in for Stockfish: it answers from one line of the Italian game. No real engine and no container ran.
+- The 390 px pictures that no page shows are kept as the look check `CLAUDE.md` asks for.
+- Bug fixed while capturing: against an Engine, the Engine was asked about the position before your last move, so as Black it answered `e2e4` to 1. e4 ("does not name a legal move here"). `Play.svelte`'s `load` set the new state before the new record, and the Engine's turn read both in between. `load` now takes the record's change and makes it first.
+- Found and documented as it is, not changed (each for an issue):
+  - Castling on 8×8 boards is the king onto its own rook, in standard chess too; dragging the king two squares does nothing.
+  - New game in Chess960 always sets up the standard array; `chess960_start` is not used.
+  - The move list numbers plies (1. e4 2. e5), not moves.
+  - Parquet export has a job in the Helper but no button or command in the app.
+  - *Start with my session* only keeps a running Helper; registering it needs `bragd-helper --service on` by hand.
+  - `install/install.sh` and `install.ps1` copy only `bragd-gui`, not `bragd-helper`.
+  - The banner on a file of a Family that is off is not built, though F1's `families` answer and the spec promise it. F1's `play` line names online play, which does not exist yet.
+  - `settings.update_host` is never shown, so Settings does not name where the update check asks.
+  - Engine image updates and the 90-day prune are written but never run, and `images_used` is never written.
+  - `BRAGD_OFFLINE` is read by the window, not by the Helper.
+  - The Duplicates count stops at 500, a Library's Games list is not limited to the page's Family, and a custom URL Source cannot be removed.
+  - In draughts, *Which move?* names a capture by its two ends, so two routes can read the same.
+  - Seirawan gating works only through *Which move?*; clicking a hawk or elephant in the tray does nothing. Backgammon has no resign button.
