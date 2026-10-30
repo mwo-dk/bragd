@@ -27,7 +27,7 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 - [x] S5: `bragd-engines`: protocols, discovery, images, Syzygy (wave 1, agent "engines")
 - [x] S6: CI, release tooling, docs check, sync workflow, screenshot tooling (wave 1, agent "ci")
 - [ ] S7: GUI shell: branding, splash, sidebar, Themes, Settings with Family toggles, boards for all 25 Variants, play against yourself (wave 2)
-- [ ] S8: Helper process, Sources (TWIC, custom URL), schedule (wave 2)
+- [x] S8: Helper process, Sources (TWIC, custom URL), schedule (wave 2)
 - [ ] S9: GUI for Databases, Analyse, Engines, Tablebases; install wizard; What's new; F1 Features (wave 3)
 - [ ] S10: docs tree, screenshots, morning report in the PR body (wave 3)
 
@@ -87,3 +87,25 @@ Each one is listed here, so the owner can overturn it in the morning.
 - Nix is Linux only.
 - The BSD desktop tarballs are not adapted yet, and neither is the nixpkgs package. Both become issues.
 - `gui/src-tauri` must join the workspace in S7.
+
+### S8: Helper
+
+- The Helper is its own program, `bragd-helper`, beside the app. A window starts the one beside its own program when it finds none. Packaging must ship it in every installer, and that becomes an issue.
+- Windows reach it over a Unix socket in its folder, `<data>/bragd/helper/`. On Windows it is loopback TCP with the token, as upstream does: a named pipe needs a crate or raw Win32 calls.
+- The Helper's lock, address, log, `state.json` and downloads all live in that one folder, in the data folder.
+- The Helper does not leave while a job runs, unless the job is paused on the battery.
+- A newer window makes the Helper leave. An older window that speaks the same protocol is served, and one that does not is refused. A newer Helper never steps down for an older window.
+- "Start with my session" writes a systemd user unit, an XDG autostart entry (the BSDs and the Flatpak), a LaunchAgent, or a Run key on Windows. Task Scheduler is not used. When the registered program is gone after an upgrade, a window registers itself again.
+- Battery readers cover Linux, macOS and Windows. The BSDs and illumos count as on mains.
+- A metered connection is detected through NetworkManager only. Elsewhere the connection counts as unmetered, so "only on unmetered" never blocks a fetch there.
+- Source options and what each fetch remembered (last fetch, last try, last TWIC issue, last error) live in the Helper's `state.json`, not in `config.toml`. They change through the `set_source` request.
+- Every Source starts off. The default schedule is weekly for TWIC and custom URLs, and monthly for the listed big Sources.
+- On its first fetch TWIC takes only the newest issue. It finds that issue by probing upwards from issue 1500, with steps that double and then halve. After that it takes each new issue in order, at most 26 per fetch.
+- A month is 30 days. A failed fetch is not tried again for an hour.
+- Lichess database, PGN Mentor, LumbrasGigaBase, OGS, KGS, pychess and Lishogi are listed with rough sizes and URLs, but cannot be fetched. Their notice is `notice.source_out_of_scope`, in English in every locale.
+- A custom URL Source has the id `custom:<name>`. It must be an http(s) address of a PGN, SGF, KIF, CSA or PDN file, or a zip of them. It is downloaded again in full on each fetch.
+- Downloads are kept, and the oldest go first when the disk cap is passed. Unpacked files are deleted once they are imported. A file inside a zip may unpack to at most 8 GB.
+- Sources go into `main.bragd` in the Library folder from Settings, or in `<data>/bragd/libraries/`. Merges use `[knowledge] source_priority`, read when the Helper starts. A change of settings needs a restart, which the `restart` request does.
+- A job left running when the Helper stopped starts again from the start, which is safe because imports are idempotent. One whose file has gone fails and says so.
+- "Dedupe now" merges again the headers of every Game that has more than one Source, using the current priority (`Library::merge_again`). That makes a change of Source priority reach the Games already merged.
+- helper.log has times in UTC. There is no docs page for the Helper yet (S10).
