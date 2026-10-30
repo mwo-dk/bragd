@@ -204,6 +204,8 @@ mod tests {
         std::fs::remove_dir_all(&root).unwrap();
     }
 
+    // AppImages exist only on Linux, and the test's search paths use its `:` separator.
+    #[cfg(unix)]
     #[test]
     fn an_appimage_environment_is_left_behind() {
         let mut c = Command::new("x");
