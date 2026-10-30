@@ -67,10 +67,10 @@ cipher_suites = [
   { name = "TLS_CHACHA20_POLY1305_SHA256", algorithms = ["chacha20-poly1305", "sha-256"] },
 ]
 uses = ["x25519", "ecdh-p256", "ecdh-p384", "ecdsa-p256", "ecdsa-p384", "ed25519", "rsa-pss", "rsa-pkcs1"]
-purpose = "The update check, Syzygy tablebase downloads and the Lichess tablebase API over HTTPS"
+purpose = "The update check, Source downloads, Syzygy tablebase downloads and the Lichess tablebase API over HTTPS"
 found = [
   { file = "crates/bragd-core/src/update.rs", pattern = "RootCerts::PlatformVerifier" },
-  { file = "crates/bragd-engines/src/fetch.rs", pattern = "ureq::get(url)" },
+  { file = "crates/bragd-engines/src/fetch.rs", pattern = "RootCerts::PlatformVerifier" },
 ]
 
 [[asset]]
@@ -93,7 +93,7 @@ uses = ["x25519", "ecdh-p256", "ecdh-p384"]
 purpose = "The same connections, with servers that do not offer TLS 1.3"
 found = [
   { file = "crates/bragd-core/src/update.rs", pattern = "RootCerts::PlatformVerifier" },
-  { file = "crates/bragd-engines/src/fetch.rs", pattern = "ureq::get(url)" },
+  { file = "crates/bragd-engines/src/fetch.rs", pattern = "RootCerts::PlatformVerifier" },
 ]
 
 [[asset]]
