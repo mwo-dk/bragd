@@ -136,6 +136,7 @@ fn state(game: &Game) -> State {
         check,
         outcome: game.outcome().map(outcome_of),
         board: Board {
+            cells: (0..SQUARES as u8).map(Square::at).map(|s| crate::Cell { x: s.file(), y: s.rank(), square: s.name() }).collect(),
             geometry: info.geometry,
             files: info.files,
             ranks: info.ranks,

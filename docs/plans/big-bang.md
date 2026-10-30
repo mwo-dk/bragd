@@ -111,3 +111,24 @@ Each one is listed here, so the owner can overturn it in the morning.
 - "Dedupe now" merges again the headers of every Game that has more than one Source, using the current priority (`Library::merge_again`). That makes a change of Source priority reach the Games already merged.
 - helper.log has times in UTC. There is no docs page for the Helper yet (S10).
 - Tablebase downloads and the Lichess tablebase API use ureq's bundled Mozilla roots, not the OS trust store that the update check uses. To align them, change `bragd-engines/src/fetch.rs`.
+
+- [x] S7: GUI shell: branding, splash, sidebar, Themes, Settings with Family toggles, boards for all 25 Variants, play against yourself (wave 2)
+- [ ] S8: Helper process, Sources (TWIC, custom URL), schedule (wave 2)
+### S7: GUI
+- `bragd-games` is the one catalogue. `bragd-core/src/families.rs` is deleted; `bragd-core` depends on `bragd-games`, and its Family and Variant switches in Settings are made from the catalogue at start. `Family::from_key` and `Family::has_engine` (false for tafl, Ur and senet) are new in the catalogue.
+- `bragd-games` emits the art slice's ids: `capablanca-*` and `seirawan-*` sheets for those Variants, `janggi-r*`/`janggi-b*`, shogi `shogi-b*` for Sente and `shogi-w*` for Gote with `T*`, `H` and `D` for promoted pieces, tafl `aS`/`dS`/`dK`. A test reads `gui/src/lib/sprites/*.svg` and fails on any id the code can emit that no sheet has.
+- Backgammon, Ur and senet got small sprite sheets in the draughts style (`backgammon-w/-b`, `ur-l/-d`, `senet-e` cones and `senet-o` spools) rather than shapes drawn in Svelte, so every board draws pieces the same way.
+- The render model gained `cells`: every cell with its name, so a click is matched to a legal move's `from` and `to` without the page knowing any notation. A test checks every piece and move end names a cell.
+- The page keeps the record (a list of entries) and nothing else; every change replays it in Rust. Undo drops the last entry, a throw included.
+- Throws are random in `bragd-gui` (`throw.rs`), from the standard library's random hasher seed, not a cryptographic generator: two dice for backgammon, four two-sided dice for Ur, four sticks for senet (none up counts five). A throw the rules refuse (a double on backgammon's opening roll) is thrown again.
+- Several legal moves between the same two cells (promotions, Seirawan gating, draughts capture paths, backgammon turns) are offered as a list by their notation. Ur, senet and backgammon also list every legal move as buttons, since entering from the waiting pieces has no cell.
+- Go's scoring: clicking a stone marks it dead one stone at a time (no group selection yet); *Propose* sends `dead:` with them, then Accept or Resume.
+- The Rules item shows the `docs/rules` pages for the Family, compiled in with `include_str!` and turned into HTML with `pulldown-cmark`, after the teaching positions. Those pages are development records, not how-to-play pages; links in them are not followed.
+- Settings shows Overview, Game families, Look, Engines, Knowledge, Online and Privacy and updates. *Open config.toml*, *Suggest a better translation* and *Run the install wizard again* are not there yet (S9).
+- The sidebar's Analyse, Databases, Engines, Tablebases and Opening books open a page saying they come in a later version. The app opens on Play for the first Family that is on.
+- The outcome banner shows the winner and the rules crate's result text; the reason (checkmate, …) is not shown yet, and backgammon's "N points" is English from Rust.
+- New texts are English in every locale and listed in `UNTRANSLATED.md`.
+- `looks.css` is adapted from the source project's, renamed, without its DOS look.
+- The sidebar's wordmark is the rune outlines of `assets/brand/wordmark-runes.svg`, recoloured, because runes set in the bundled font draw nothing in WebKitGTK (`BASELINE.md`). The font is still bundled and declared in `app.css`.
+- `cap.py` sets the page larger than the window (Emulation.setDeviceMetricsOverride), because Broadway places the window off the page's corner and pictures lost their bottom and right edges.
+- Screenshots in `docs/screenshots/`: `sidebar-*`, `settings-families-*`, `play-<family>-*` at 390 and 1100 px, and `play-<variant>-1100.png` for Seirawan, Capablanca, shatranj, janggi, Go 19×19, international draughts, checkers and brandubh.

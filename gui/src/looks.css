@@ -1,0 +1,821 @@
+/*
+ * Looks: the shapes and chrome of a Theme. A Theme's colours arrive as CSS variables on :root
+ * (--bg, --fg, --accent, ...); its look arrives as <html data-look="...">, with data-crt when the
+ * Theme has the tube and data-dark when it is dark. Components use --r-lg, --r, --r-sm, --r-pill
+ * and --shadow for their corners and shadows; each look below sets those and dresses the chrome
+ * of its era. The look `modern` is the plain one and needs nothing beyond the :root shapes.
+ *
+ * Selectors start with html:root so they outrank the components' scoped styles.
+ * A look that brings its era's font sets --font with !important, over the configured font.
+ * "Window buttons" below are `button:not(nav button)`: the sidebar and area list keep their own
+ * flat rows.
+ */
+
+/* Letters the chosen font may lack, after every font list: the first of these that is installed
+   draws them. Persian (Vazirmatn, Noto Sans Arabic; Geeza Pro on macOS, Segoe UI and Tahoma on
+   Windows), Armenian and Georgian (Noto Sans Armenian and Georgian; Sylfaen on Windows), then
+   Chinese, Japanese and Korean: Korean first for Korean, Traditional or Simplified Chinese first
+   for those, Japanese first otherwise (the same Han letter is drawn differently in each). */
+:root {
+  --scripts: Vazirmatn, "Noto Sans Arabic", "Noto Naskh Arabic", "Geeza Pro", "Noto Sans Armenian", "Noto Sans Georgian", Sylfaen,
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans CJK JP", "Noto Sans JP",
+    "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", "Noto Sans KR",
+    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif;
+}
+:root:lang(zh-TW) {
+  --scripts: Vazirmatn, "Noto Sans Arabic", "Noto Naskh Arabic", "Geeza Pro", "Noto Sans Armenian", "Noto Sans Georgian", Sylfaen,
+    "PingFang TC", "Microsoft JhengHei", "Noto Sans CJK TC", "Noto Sans TC", "Hiragino Sans", "Yu Gothic UI", "Noto Sans CJK JP",
+    sans-serif;
+}
+:root:lang(zh-SG) {
+  --scripts: Vazirmatn, "Noto Sans Arabic", "Noto Naskh Arabic", "Geeza Pro", "Noto Sans Armenian", "Noto Sans Georgian", Sylfaen,
+    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Hiragino Sans", "Yu Gothic UI", "Noto Sans CJK JP",
+    sans-serif;
+}
+:root:lang(ko) {
+  --scripts: Vazirmatn, "Noto Sans Arabic", "Noto Naskh Arabic", "Geeza Pro", "Noto Sans Armenian", "Noto Sans Georgian", Sylfaen,
+    "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", "Noto Sans KR", "Hiragino Sans", "Yu Gothic UI", "Noto Sans CJK JP",
+    sans-serif;
+}
+/* Headings some looks write in spaced capitals: Georgian has no capitals in running text (the
+   Mtavruli that uppercasing gives is missing from most fonts), and spacing pulls Persian's joined
+   letters apart. */
+html:root:is(:lang(ka), :lang(fa)) * {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+:root {
+  --font: system-ui, "Segoe UI", Roboto, sans-serif, var(--scripts);
+  --mono-font: ui-monospace, "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace, var(--scripts);
+  --r-lg: 12px;
+  --r: 7px;
+  --r-sm: 4px;
+  --r-pill: 999px;
+  --shadow: 0 20px 60px rgb(0 0 0 / 0.45);
+  /* Bevels and fills drawn from the Theme, for looks that do not bring their own greys. */
+  --bevel-out: inset -1px -1px color-mix(in srgb, var(--fg) 70%, var(--bg)), inset 1px 1px color-mix(in srgb, var(--raised) 40%, #fff);
+  --bevel-in: inset 1px 1px color-mix(in srgb, var(--fg) 70%, var(--bg)), inset -1px -1px color-mix(in srgb, var(--raised) 40%, #fff);
+  --dither: repeating-linear-gradient(90deg, var(--fg) 0 1px, var(--bg) 1px 2px);
+  --gel: linear-gradient(180deg, color-mix(in srgb, var(--raised) 40%, #fff), var(--raised) 50%, color-mix(in srgb, var(--raised) 85%, #000) 51%, var(--raised));
+}
+
+/* Lit buttons are semibold. */
+html:root .primary {
+  font-weight: 600;
+}
+
+/* Everything square: the terminal and early Windows and Mac. */
+html:root:is([data-look="crt"], [data-look="workbench"], [data-look="gem"], [data-look="win31"], [data-look="win95"], [data-look="win10"], [data-look="system7"], [data-look="next"]) {
+  --r-lg: 0;
+  --r: 0;
+  --r-sm: 0;
+  --r-pill: 0;
+}
+
+/* ------------------------------------------------------------------ the tube (data-crt) */
+/* Scanlines, a glow on the text, rings instead of shadows: over any look. */
+
+html:root[data-crt] {
+  --shadow: 0 0 0 1px var(--border), 0 0 0 4px color-mix(in srgb, var(--fg) 10%, transparent);
+  text-shadow: 0 0 5px color-mix(in srgb, currentColor 55%, transparent);
+  caret-color: var(--fg);
+}
+html:root[data-crt]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  /* Scanlines, one dark line in three, as a tiled 96 px image: a gradient over the whole
+     window made every repaint five times as slow in the WebKit the AppImage brings. */
+  background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAAB3RJTUUH6gkdCi4g6ZbTRQAAAGVJREFUeNrt1AENAAAIA6C/hv2DGsPNQQiaZAJwogoCFAQoCEBBgIIAFAQoCEBBgIIAFAQoCEBBgIIAFAQoCEBBgIIAFAQoCEBBgIIAFAQoCFAQgIIABQEoCFAQgIIABQEoCPhiAdElA2GnMPTwAAAAAElFTkSuQmCC");
+}
+html:root[data-crt] ::selection {
+  color: var(--bg);
+  background: var(--fg);
+}
+/* Lit buttons and the result banner glow on the dark instead of being filled: dark letters on
+   bright green were smeared by the scanlines and the glow, and could hardly be read. */
+html:root[data-crt] :is(.primary, .banner, nav button.current) {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg));
+  box-shadow: inset 0 0 0 1px var(--accent);
+  font-weight: bold;
+}
+
+/* ------------------------------------------------------------------ crt (the phosphors, the home computers) */
+/* A terminal: monospace everywhere, square, capitals in the headings. */
+
+html:root[data-look="crt"] {
+  --font: var(--mono-font) !important;
+}
+html:root[data-look="crt"] :is(h1, h2, .dialog header, nav.sidebar button.family) {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+html:root[data-look="crt"] *::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--fg) 45%, transparent);
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ Windows 3.11 */
+
+html:root[data-look="win31"] {
+  --font: "MS Sans Serif", "Microsoft Sans Serif", Arial, sans-serif !important;
+  --shadow: none;
+  --bevel-out: inset -1px -1px #808080, inset 1px 1px #ffffff;
+}
+html:root[data-look="win31"] body {
+  background: #c0c0c0;
+}
+html:root[data-look="win31"] :is(nav.sidebar, .panel, .moves) {
+  border: 1px solid #000000;
+}
+html:root[data-look="win31"] :is(.dialog, .settings) {
+  border: 1px solid #000000;
+  outline: 3px solid #c0c0c0;
+  box-shadow: 0 0 0 4px #000000;
+}
+html:root[data-look="win31"] button:not(nav button) {
+  background: #c0c0c0;
+  color: #000000;
+  border: 1px solid #000000;
+  border-radius: 2px;
+  box-shadow: var(--bevel-out), inset -2px -2px #808080;
+}
+
+/* ------------------------------------------------------------------ Windows 95 and 98 */
+
+html:root[data-look="win95"] {
+  --font: "MS Sans Serif", "Microsoft Sans Serif", Tahoma, Arial, sans-serif !important;
+  --shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff;
+  --bevel-out: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+  --bevel-in: inset -1px -1px #ffffff, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+}
+html:root[data-look="win95"] body {
+  background: #c0c0c0;
+}
+html:root[data-look="win95"] :is(.moves, input[type="text"], select) {
+  border: 0;
+  box-shadow: var(--bevel-in);
+}
+html:root[data-look="win95"] .panel {
+  border: 0;
+  box-shadow: var(--bevel-out);
+}
+html:root[data-look="win95"] :is(.dialog, .settings) {
+  border: 0;
+  background: #c0c0c0;
+  padding: 3px;
+}
+html:root[data-look="win95"] button:not(nav button) {
+  background: #c0c0c0;
+  color: #000000;
+  border: 0;
+  box-shadow: var(--bevel-out);
+}
+html:root[data-look="win95"] button:not(nav button):active {
+  box-shadow: var(--bevel-in);
+}
+html:root[data-look="win95"] .settings nav.areas button.current {
+  background: #c0c0c0;
+  box-shadow: inset 1px 1px #ffffff, inset -1px 0 #0a0a0a, inset -2px 0 #808080;
+}
+html:root[data-look="win95"] *::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: repeating-conic-gradient(#c0c0c0 0 25%, #ffffff 0 50%) 0 0 / 2px 2px;
+}
+html:root[data-look="win95"] *::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 0;
+  box-shadow: var(--bevel-out);
+}
+
+/* Title bars: navy in 3.11 and 95, a navy-to-blue gradient in 98. */
+html:root:is([data-look="win31"], [data-look="win95"]) .dialog header {
+  padding: 3px 6px;
+  color: #ffffff;
+  font-weight: bold;
+  border: 0;
+}
+html:root[data-look="win31"] .dialog header {
+  background: #000080;
+  justify-content: center;
+  text-align: center;
+}
+html:root[data-look="win95"] .dialog header {
+  background: linear-gradient(90deg, #000080, #1084d0);
+}
+html:root:is([data-look="win31"], [data-look="win95"]) .dialog header :is(h1, h2) {
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------------ Windows XP (Luna) */
+
+html:root[data-look="winxp"] {
+  --font: Tahoma, "Segoe UI", Verdana, sans-serif !important;
+  --r-lg: 8px;
+  --r: 3px;
+  --r-sm: 3px;
+  --r-pill: 3px;
+  --shadow: 0 0 0 1px #0831d9, 4px 4px 12px rgb(0 0 0 / 0.35);
+}
+html:root[data-look="winxp"] body {
+  background: #ece9d8;
+}
+/* The Explorer side bar: a blue gradient down the side. */
+html:root[data-look="winxp"] nav.sidebar {
+  background: linear-gradient(180deg, #7ba2e7, #6375d6);
+  padding: 8px;
+}
+html:root[data-look="winxp"] nav.sidebar button.family {
+  color: #ffffff;
+  font-weight: bold;
+}
+html:root[data-look="winxp"] .dialog header {
+  padding: 6px 10px;
+  color: #ffffff;
+  background: linear-gradient(180deg, #0997ff, #0053ee 8%, #0050ee 40%, #06f 88%, #0053ee);
+  text-shadow: 1px 1px #0f1089;
+  font-weight: bold;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+}
+html:root[data-look="winxp"] .dialog header :is(h1, h2) {
+  color: #ffffff;
+}
+html:root[data-look="winxp"] .dialog {
+  border: 3px solid #0054e3;
+  border-top-width: 0;
+  background: #ece9d8;
+}
+html:root[data-look="winxp"] button:not(nav button) {
+  color: #000000;
+  background: linear-gradient(180deg, #ffffff, #ecebe6 86%, #d6d0c5);
+  border: 1px solid #003c74;
+}
+html:root[data-look="winxp"] button:not(nav button):hover {
+  box-shadow: inset 0 -2px #f8b636, inset 0 2px #ffe8a5;
+}
+html:root[data-look="winxp"] .settings nav.areas button.current {
+  box-shadow: inset 0 3px #ffc83c;
+}
+html:root[data-look="winxp"] *::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #c8d6fb, #b7cafa);
+  border: 1px solid #fff;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------------------ Windows 7 (Aero) */
+
+html:root[data-look="win7"] {
+  --font: "Segoe UI", system-ui, sans-serif !important;
+  --r-lg: 6px;
+  --r: 4px;
+  --r-sm: 3px;
+  --r-pill: 3px;
+  --shadow: 0 0 0 1px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.4);
+}
+html:root[data-look="win7"] body {
+  background: linear-gradient(180deg, #dae6f4, #bcd2ee);
+}
+html:root[data-look="win7"] .dialog header {
+  padding: 6px 10px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.2)), #b9d1ea;
+}
+html:root[data-look="win7"] button:not(nav button) {
+  color: #000000;
+  background: linear-gradient(180deg, #f2f2f2, #ebebeb 50%, #dddddd 51%, #cfcfcf);
+  border: 1px solid #707070;
+}
+html:root[data-look="win7"] button:not(nav button):hover {
+  background: linear-gradient(180deg, #eaf6fd, #d9f0fc 50%, #bee6fd 51%, #a7d9f5);
+  border-color: #3c7fb1;
+}
+html:root[data-look="win7"] nav button.current {
+  color: #000000;
+  background: linear-gradient(180deg, #dcebfc, #c1dbfc);
+  box-shadow: inset 0 0 0 1px #7da2ce;
+}
+
+/* ------------------------------------------------------------------ Windows 10 */
+
+html:root[data-look="win10"] {
+  --font: "Segoe UI", system-ui, sans-serif !important;
+  --shadow: 0 0 0 1px var(--accent), 0 7px 20px rgb(0 0 0 / 0.3);
+}
+html:root[data-look="win10"] button:not(nav button) {
+  color: #000000;
+  background: #e1e1e1;
+  border: 1px solid #adadad;
+}
+html:root[data-look="win10"] button:not(nav button):hover {
+  background: #e5f1fb;
+  border-color: #0078d7;
+}
+html:root[data-look="win10"] button.primary:not(nav button) {
+  background: #0078d7;
+  color: #ffffff;
+  border-color: #0078d7;
+}
+html:root[data-look="win10"] nav button.current {
+  box-shadow: inset 0 0 0 1px #99d1ff;
+}
+
+/* ------------------------------------------------------------------ Windows 11 (Mica) */
+
+html:root[data-look="win11"] {
+  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif !important;
+  --r-lg: 8px;
+  --r: 6px;
+  --r-sm: 4px;
+  --shadow: 0 0 0 1px rgb(0 0 0 / 0.1), 0 32px 64px rgb(0 0 0 / 0.28);
+}
+/* The selected item's short accent stroke at its start edge. */
+html:root[data-look="win11"] nav button.current {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+html:root[data-look="win11"] button:not(nav button) {
+  border-bottom-color: color-mix(in srgb, var(--border) 60%, #000);
+}
+
+/* ------------------------------------------------------------------ Mac System 7 */
+
+html:root[data-look="system7"] {
+  --font: Chicago, ChicagoFLF, Charcoal, Geneva, "Helvetica Neue", sans-serif !important;
+  --shadow: 2px 2px 0 #000000;
+}
+html:root[data-look="system7"] body {
+  background: repeating-conic-gradient(#ffffff 0 25%, #aaaaaa 0 50%) 0 0 / 2px 2px;
+}
+html:root[data-look="system7"] :is(nav.sidebar, .panel, .moves, .dialog, .settings) {
+  border: 1px solid #000000;
+}
+html:root[data-look="system7"] :is(nav.sidebar, .panel) {
+  box-shadow: 1px 1px 0 #000000;
+}
+html:root[data-look="system7"] :is(.dialog, .settings) {
+  outline: 1px solid #000000;
+  outline-offset: -5px;
+}
+/* The striped title bar, the title on a white patch in the middle. */
+html:root[data-look="system7"] .dialog header {
+  justify-content: center;
+  color: #000000;
+  background: repeating-linear-gradient(to bottom, #ffffff 0 2px, #000000 2px 3px) 0 3px / 100% calc(100% - 6px) no-repeat, #ffffff;
+}
+html:root[data-look="system7"] .dialog header :is(h1, h2) {
+  color: #000000;
+  background: #ffffff;
+  padding-inline: 8px;
+}
+html:root[data-look="system7"] button:not(nav button) {
+  color: #000000;
+  background: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 6px;
+}
+html:root[data-look="system7"] button.primary:not(nav button) {
+  box-shadow: 0 0 0 1px #ffffff, 0 0 0 3px #000000;
+}
+html:root[data-look="system7"] nav button.current {
+  color: #ffffff;
+  background: #000000;
+}
+html:root[data-look="system7"] *::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: repeating-conic-gradient(#ffffff 0 25%, #aaaaaa 0 50%) 0 0 / 2px 2px;
+  border-left: 1px solid #000000;
+}
+html:root[data-look="system7"] *::-webkit-scrollbar-thumb {
+  background: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+
+/* ------------------------------------------------------------------ Mac OS 8 and 9 (Platinum) */
+
+html:root[data-look="platinum"] {
+  --font: Charcoal, "Charcoal CY", Geneva, Chicago, "Helvetica Neue", sans-serif !important;
+  --r-lg: 0;
+  --r: 0;
+  --r-sm: 4px;
+  --r-pill: 4px;
+  --shadow: 1px 1px 0 #555555, 3px 3px 8px rgb(0 0 0 / 0.3);
+  --bevel-out: inset 1px 1px #ffffff, inset -1px -1px #888888;
+}
+html:root[data-look="platinum"] body {
+  background: #dddddd;
+}
+html:root[data-look="platinum"] :is(nav.sidebar, .panel, .moves) {
+  border: 1px solid #555555;
+  box-shadow: inset 1px 1px #aaaaaa;
+}
+html:root[data-look="platinum"] .dialog header {
+  justify-content: center;
+  color: #000000;
+  background: repeating-linear-gradient(to bottom, #eeeeee 0 1px, #bbbbbb 1px 2px) 0 4px / 100% calc(100% - 8px) no-repeat, #dddddd;
+}
+html:root[data-look="platinum"] .dialog header :is(h1, h2) {
+  color: #000000;
+  background: #dddddd;
+  padding-inline: 8px;
+}
+html:root[data-look="platinum"] button:not(nav button) {
+  color: #000000;
+  background: linear-gradient(180deg, #eeeeee, #cccccc);
+  border: 1px solid #333333;
+  box-shadow: var(--bevel-out);
+}
+html:root[data-look="platinum"] *::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: #aaaaaa;
+  box-shadow: inset 1px 1px #777777;
+}
+html:root[data-look="platinum"] *::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #ccccff, #9999ff);
+  border: 1px solid #333333;
+  border-radius: 0;
+  box-shadow: var(--bevel-out);
+}
+
+/* ------------------------------------------------------------------ Mac OS X Aqua (10.0 to 10.4) */
+
+html:root[data-look="aqua"] {
+  --font: "Lucida Grande", "Lucida Sans Unicode", Geneva, Verdana, sans-serif !important;
+  --r-lg: 8px;
+  --r: 6px;
+  --r-sm: 5px;
+  --shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+  --gel: linear-gradient(180deg, #ffffff, #e6e6e6 50%, #d2d2d2 51%, #f4f4f4);
+  --gel-blue: linear-gradient(180deg, #cde5fb, #6cb3f5 50%, #3d8fe8 51%, #9dd4ff);
+}
+/* Pinstripes. */
+html:root[data-look="aqua"] body,
+html:root[data-look="aqua"] :is(.dialog, .settings) {
+  background: repeating-linear-gradient(to bottom, #efefef 0 2px, #e4e4e4 2px 4px);
+}
+html:root[data-look="aqua"] .dialog header {
+  color: #000000;
+  background: linear-gradient(180deg, #e9e9e9, #c9c9c9);
+}
+html:root[data-look="aqua"] button:not(nav button) {
+  color: #000000;
+  background: var(--gel);
+  border: 1px solid #8e8e8e;
+  border-radius: var(--r-pill);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+}
+html:root[data-look="aqua"] button.primary:not(nav button) {
+  background: var(--gel-blue);
+  color: #000000;
+  border-color: #3065b8;
+}
+html:root[data-look="aqua"] *::-webkit-scrollbar {
+  width: 15px;
+  height: 15px;
+  background: linear-gradient(90deg, #dddddd, #f4f4f4);
+}
+html:root[data-look="aqua"] *::-webkit-scrollbar-thumb {
+  background: var(--gel-blue);
+  border: 1px solid #3065b8;
+  border-radius: var(--r-pill);
+}
+
+/* ------------------------------------------------------------------ macOS today */
+
+html:root[data-look="macos"] {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Inter, sans-serif !important;
+  --r-lg: 10px;
+  --r: 6px;
+  --r-sm: 5px;
+  --shadow: 0 0 0 0.5px rgb(0 0 0 / 0.25), 0 22px 70px rgb(0 0 0 / 0.35);
+}
+html:root[data-look="macos"] nav button {
+  border-radius: 5px;
+}
+html:root[data-look="macos"] button:not(nav button) {
+  border-color: transparent;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.2), 0 1px 1px rgb(0 0 0 / 0.1);
+}
+html:root[data-look="macos"] button.primary:not(nav button) {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #fff), var(--accent));
+}
+html:root[data-look="macos"] *::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--r-pill);
+}
+
+/* ------------------------------------------------------------------ Amiga Workbench 1.3 */
+/* The four colours of Workbench 1.x's Preferences palette, 12-bit $05A, $FFF, $000, $F80 with
+   each nibble doubled: blue #0055aa (colour 0, the screen), white #ffffff (1, borders and
+   title bars), black #000000 (2, text), orange #ff8800 (3, highlights). Intuition 1.x filled
+   the active window's title bar with the block pen (white) and wrote the title in the detail
+   pen (blue); the close gadget sat at the left, the back and front gadgets at the right. The
+   ROM font was Topaz, 8 or 9 point. */
+
+html:root[data-look="workbench"] {
+  --font: Topaz, "Topaz a500a", "TopazPlus a500a", "Amiga Topaz", "Amiga Forever", var(--mono-font) !important;
+  --shadow: none;
+}
+html:root[data-look="workbench"] body {
+  background: #0055aa;
+}
+/* Window frames: a blue outer line and a white inner line, on any Theme background. */
+html:root[data-look="workbench"] :is(nav.sidebar, .panel, .moves) {
+  border: 2px solid #0055aa;
+  outline: 1px solid #ffffff;
+  outline-offset: -3px;
+}
+html:root[data-look="workbench"] :is(.dialog, .settings) {
+  border: 1px solid #0055aa;
+  outline: 2px solid #ffffff;
+  box-shadow: 0 0 0 3px #0055aa;
+}
+/* Title bars: white with blue text. */
+html:root[data-look="workbench"] .dialog header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  color: #0055aa;
+  background: #ffffff;
+  border: 0;
+}
+html:root[data-look="workbench"] .dialog header :is(h1, h2, button) {
+  color: #0055aa;
+}
+/* The close gadget at the left (a square with a square in it) and, at the right, one pair of
+   overlapping squares for the back and front gadgets, drawn with rings and rectangles. */
+html:root[data-look="workbench"] .dialog header::before {
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  box-shadow: inset 0 0 0 1px #0055aa, inset 0 0 0 4px #ffffff, inset 0 0 0 7px #0055aa;
+}
+html:root[data-look="workbench"] .dialog header::after {
+  content: "";
+  flex: none;
+  width: 22px;
+  height: 16px;
+  margin-inline-start: auto;
+  background:
+    linear-gradient(#ffffff, #ffffff) calc(100% - 1px) calc(100% - 1px) / 11px 8px no-repeat,
+    linear-gradient(#0055aa, #0055aa) 100% 100% / 13px 10px no-repeat,
+    linear-gradient(#ffffff, #ffffff) 1px 1px / 11px 8px no-repeat,
+    linear-gradient(#0055aa, #0055aa) 0 0 / 13px 10px no-repeat;
+}
+/* Gadgets: white boxes with a black line, orange when lit. */
+html:root[data-look="workbench"] button:not(nav button) {
+  color: #000000;
+  background: #ffffff;
+  border: 1px solid #000000;
+}
+html:root[data-look="workbench"] :is(button.primary:not(nav button), nav button.current) {
+  color: #000000;
+  background: #ff8800;
+}
+/* Scroll bars: a blue track, a white knob. */
+html:root[data-look="workbench"] *::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: #0055aa;
+  box-shadow: inset 1px 1px #ffffff;
+}
+html:root[data-look="workbench"] *::-webkit-scrollbar-thumb {
+  background: #ffffff;
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #0055aa;
+}
+
+/* ------------------------------------------------------------------ Atari ST GEM */
+/* TOS on a medium-resolution ST: white windows with one-pixel black frames on the desktop's
+   green, the top window's mover bar in the AES's 50% dither with the title on a white patch,
+   white square buttons, the default one with the thick frame GEM gives it. Black and white are
+   the ST palette's $000 and $777, the green its medium-res default colour 2, $070 (3 bits a
+   channel, 7 = full), so #00ff00. Medium-res pixels are twice as tall as wide, so the checker
+   dither showed as fine vertical lines, which is what is drawn here (axis-aligned, so WebKit
+   keeps it crisp). */
+
+html:root[data-look="gem"] {
+  --font: "Atari ST 8x16 System Font", var(--mono-font) !important;
+  --shadow: none;
+  --dither: repeating-linear-gradient(90deg, #000000 0 1px, #ffffff 1px 2px);
+}
+html:root[data-look="gem"] body {
+  background: #00ff00;
+}
+html:root[data-look="gem"] :is(nav.sidebar, .panel, .moves, .dialog, .settings) {
+  border: 1px solid #000000;
+}
+/* The mover bar, the title on a white patch of its own width. */
+html:root[data-look="gem"] .dialog header {
+  color: #000000;
+  background: var(--dither) 0 3px / 100% calc(100% - 6px) no-repeat, #ffffff;
+}
+html:root[data-look="gem"] .dialog header :is(h1, h2) {
+  flex: none;
+  color: #000000;
+  background: #ffffff;
+  padding-inline: 8px;
+}
+html:root[data-look="gem"] button:not(nav button) {
+  color: #000000;
+  background: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+/* The default button: GEM draws its frame three pixels thick. */
+html:root[data-look="gem"] button.primary:not(nav button) {
+  color: #000000;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px #000000;
+}
+html:root[data-look="gem"] nav button.current {
+  color: #ffffff;
+  background: #000000;
+}
+/* Scroll bars: a white track, a dithered elevator. */
+html:root[data-look="gem"] *::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-left: 1px solid #000000;
+}
+html:root[data-look="gem"] *::-webkit-scrollbar-thumb {
+  background: var(--dither);
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+
+/* ------------------------------------------------------------------ NeXTSTEP 3 */
+/* The four greys of the NeXT MegaPixel Display's 2-bit palette, as AppKit named them: NX_WHITE
+   1.0 (#ffffff), NX_LTGRAY 0.667 (#aaaaaa), NX_DKGRAY 0.333 (#555555) and NX_BLACK 0.0
+   (#000000). Window faces in light grey, bevels white top-left and dark grey bottom-right inside
+   a black edge; the key window's title bar black with white bold text. A pressed button goes
+   white, as NeXT's did. The desktop is the dark grey. */
+
+html:root[data-look="next"] {
+  --font: Helvetica, "Helvetica Neue", Arial, sans-serif !important;
+  --shadow: inset 1px 1px #ffffff, inset -1px -1px #555555;
+  --bevel-out: inset 1px 1px #ffffff, inset -1px -1px #555555;
+  --bevel-in: inset 1px 1px #555555, inset -1px -1px #ffffff;
+}
+html:root[data-look="next"] body {
+  background: #555555;
+}
+html:root[data-look="next"] :is(nav.sidebar, .moves, input[type="text"], select) {
+  border: 1px solid #000000;
+  box-shadow: var(--bevel-in);
+}
+html:root[data-look="next"] .panel {
+  border: 1px solid #000000;
+  box-shadow: var(--bevel-out);
+}
+html:root[data-look="next"] :is(.dialog, .settings) {
+  border: 1px solid #000000;
+  background: #aaaaaa;
+}
+html:root[data-look="next"] .dialog header {
+  padding: 3px 8px;
+  color: #ffffff;
+  background: #000000;
+  font-weight: bold;
+  border: 0;
+  border-bottom: 1px solid #ffffff;
+  justify-content: center;
+  text-align: center;
+}
+html:root[data-look="next"] .dialog header :is(h1, h2, button) {
+  color: #ffffff;
+}
+html:root[data-look="next"] button:not(nav button) {
+  color: #000000;
+  background: #aaaaaa;
+  border: 1px solid #000000;
+  box-shadow: var(--bevel-out);
+}
+html:root[data-look="next"] button:not(nav button):active,
+html:root[data-look="next"] nav button.current {
+  color: #000000;
+  background: #ffffff;
+  box-shadow: var(--bevel-in);
+}
+/* The slot is the dark stipple a 2-bit display made of a mid grey; the knob is the light grey
+   face with its bevel and a dimple. */
+html:root[data-look="next"] *::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: repeating-conic-gradient(#555555 0 25%, #aaaaaa 0 50%) 0 0 / 2px 2px;
+}
+html:root[data-look="next"] *::-webkit-scrollbar-thumb {
+  background: radial-gradient(circle, #555555 2px, #ffffff 3px, #aaaaaa 4px);
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--bevel-out);
+}
+
+/* ------------------------------------------------------------------ BeOS R5 */
+/* Be's interface kit colours (InterfaceDefs.h): panel 216,216,216, window tab 255,203,0, desktop
+   51,102,152. Its other greys are tint_color() of the panel: lighten 1 #dfdfdf, lighten 2
+   #efefef, darken 1 #b8b8b8, darken 2 #989898, darken 3 #787878, darken 4 #585858; of the tab:
+   lighten 2 #ffea9c, darken 1 #d9ad00, darken 3 #8e7100. Swis721 BT is Be's Swiss 721:
+   Helvetica-like, a little wider. */
+
+html:root[data-look="beos"] {
+  --font: "Swis721 BT", "DejaVu Sans", Verdana, sans-serif !important;
+  --r-lg: 0;
+  --r: 0;
+  --r-sm: 3px;
+  --r-pill: 3px;
+  --shadow: inset 1px 1px #ffffff;
+  --bevel-out: inset 1px 1px #ffffff, inset -1px -1px #989898;
+  --bevel-in: inset 1px 1px #989898, inset -1px -1px #ffffff;
+}
+html:root[data-look="beos"] body {
+  background: #336698;
+}
+html:root[data-look="beos"] :is(nav.sidebar, .panel, .moves, .dialog, .settings) {
+  border: 1px solid #989898;
+}
+html:root[data-look="beos"] :is(nav.sidebar, .panel) {
+  box-shadow: var(--shadow);
+}
+html:root[data-look="beos"] .dialog {
+  background: #d8d8d8;
+}
+/* The yellow tab at the start of the window top: close square, title, zoom square. */
+html:root[data-look="beos"] .dialog header {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  width: fit-content;
+  padding: 4px 10px;
+  color: #000000;
+  background: #ffcb00;
+  border: 1px solid #989898;
+  border-width: 0 1px 1px 0;
+  box-shadow: inset 1px 1px #ffea9c, inset -1px -1px #d9ad00;
+}
+html:root[data-look="beos"] .dialog header :is(h1, h2, button) {
+  color: #000000;
+}
+html:root[data-look="beos"] .dialog header::before,
+html:root[data-look="beos"] .dialog header::after {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #8e7100;
+  border-radius: 2px;
+  box-shadow: inset 1px 1px #ffea9c, inset -1px -1px #b38f00;
+}
+html:root[data-look="beos"] .dialog header::after {
+  outline: 1px solid #8e7100;
+  outline-offset: -4px;
+}
+/* Buttons: a lighter face, a dark rounded border, darker still at the bottom and right. */
+html:root[data-look="beos"] button:not(nav button) {
+  color: #000000;
+  background: #dfdfdf;
+  border: 1px solid #989898;
+  border-right-color: #787878;
+  border-bottom-color: #787878;
+  border-radius: 3px;
+  box-shadow: var(--bevel-out);
+}
+html:root[data-look="beos"] button:not(nav button):active {
+  background: #b8b8b8;
+  box-shadow: var(--bevel-in);
+}
+/* The default button: a thicker dark ring round it. */
+html:root[data-look="beos"] button.primary:not(nav button) {
+  box-shadow: var(--bevel-out), 0 0 0 1px #d8d8d8, 0 0 0 3px #585858;
+}
+html:root[data-look="beos"] nav button.current {
+  color: #000000;
+  background: #ffcb00;
+  box-shadow: inset 1px 1px #ffea9c, inset -1px 0 #989898;
+}
+/* Be's scroll bars: 14 px (B_V_SCROLL_BAR_WIDTH), a grey knob with fine ribs across its middle. */
+html:root[data-look="beos"] *::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+  background: #efefef;
+}
+html:root[data-look="beos"] *::-webkit-scrollbar-thumb {
+  background: repeating-linear-gradient(to bottom, #ffffff 0 1px, #989898 1px 2px, #d8d8d8 2px 3px) 50% 50% / 8px 9px no-repeat, #d8d8d8;
+  background-clip: padding-box;
+  border: 1px solid #989898;
+  border-radius: 3px;
+}
+html:root[data-look="beos"] *::-webkit-scrollbar-thumb:horizontal {
+  background: repeating-linear-gradient(to right, #ffffff 0 1px, #989898 1px 2px, #d8d8d8 2px 3px) 50% 50% / 9px 8px no-repeat, #d8d8d8;
+}

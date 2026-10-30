@@ -138,6 +138,17 @@ pub struct Board {
     pub dice: Vec<u8>,
     /// Printed cell labels: draughts square numbers, senet house numbers.
     pub labels: Vec<Label>,
+    /// Every cell a piece can stand on or move to, with its name in the Family's
+    /// notation, so a front end can match a click to a legal move's `from` and `to`.
+    pub cells: Vec<Cell>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Cell {
+    pub x: u8,
+    pub y: u8,
+    pub square: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]

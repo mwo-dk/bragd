@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Bragd",
+  "mainBinaryName": "bragd-gui",
+  "identifier": "dk.mwo.bragd",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Bragd ᛒᚱᛅᚴᚦ",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 360,
+        "minHeight": 400,
+        "create": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' tauri://localhost http://tauri.localhost; style-src 'self' 'unsafe-inline' tauri://localhost http://tauri.localhost; img-src 'self' data:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; form-action 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "../../assets/brand/icons/32x32.png",
+      "../../assets/brand/icons/128x128.png",
+      "../../assets/brand/icons/128x128@2x.png",
+      "../../assets/brand/icons/icon.icns",
+      "../../assets/brand/icons/icon.ico"
+    ],
+    "linux": {
+      "deb": { "desktopTemplate": "bragd.desktop" },
+      "rpm": { "desktopTemplate": "bragd.desktop" }
+    },
+    "windows": {
+      "wix": { "language": "en-GB" }
+    },
+    "macOS": {
+      "signingIdentity": "-"
+    }
+  }
+}

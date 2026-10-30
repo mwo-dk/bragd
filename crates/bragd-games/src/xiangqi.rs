@@ -121,6 +121,7 @@ fn state(variant: Variant, game: &Game) -> State {
         check,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {
+            cells: (0..POINTS as u8).map(Point::at).map(|p| crate::Cell { x: p.file(), y: p.rank(), square: p.to_string() }).collect(),
             geometry: info.geometry,
             files: info.files,
             ranks: info.ranks,

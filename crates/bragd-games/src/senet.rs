@@ -165,6 +165,7 @@ fn state(game: &Game, last: Option<rules_senet::Move>) -> State {
             .to_string(),
         }),
         board: Board {
+            cells: (1..=HOUSES as u8).map(|h| { let (x, y) = xy(h); crate::Cell { x, y, square: h.to_string() } }).collect(),
             geometry: info.geometry,
             files: info.files,
             ranks: info.ranks,

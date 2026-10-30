@@ -169,6 +169,7 @@ fn state(variant: Variant, game: &Game) -> State {
         check: false,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {
+            cells: labels.iter().map(|l| crate::Cell { x: l.x, y: l.y, square: l.text.clone() }).collect(),
             geometry: info.geometry,
             files: info.files,
             ranks: info.ranks,

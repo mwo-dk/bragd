@@ -212,6 +212,7 @@ fn state(game: &Game) -> State {
             result: format!("{} points", outcome.points),
         }),
         board: Board {
+            cells: (1..=POINTS as u8).map(|n| crate::Cell { x: n, y: 0, square: n.to_string() }).chain(Side::ALL.into_iter().map(|side| crate::Cell { x: bar_x(side), y: 0, square: "bar".to_string() })).collect(),
             geometry: info.geometry,
             files: info.files,
             ranks: info.ranks,

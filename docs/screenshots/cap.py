@@ -19,8 +19,6 @@ ffmpeg with palettegen/paletteuse.
     widths("new-game", lambda d: d.keys("Ctrl+n"))        # new-game-390.png and new-game-1100.png
 
 The window takes the display's size, which the app reads from BRAGD_WINDOW_SIZE (`WxH`).
-TODO(window-size): bragd-gui honours BRAGD_WINDOW_SIZE once the GUI shell exists (big-bang S7);
-until then the window opens at its own default size and `widths` pictures are clipped to it.
 
 The demo home is $DEMO_HOME (default <tmp>/bragd-cap-<uid>/demo-home, made with demo-home.sh).
 `SANDBOX_ARGS` (extra bwrap arguments) is passed to sandbox.sh; keep the network, the page is
@@ -153,7 +151,7 @@ class Desktop:
                 time.sleep(0.2)
         self.profile = tempfile.mkdtemp(prefix="cap-chromium-", dir=RUNTIME)
         self.procs.append(subprocess.Popen(["chromium", "--headless=new", *OFFLINE, "--no-sandbox", "--hide-scrollbars", f"--user-data-dir={self.profile}",
-                                            f"--window-size={w},{h}", f"--remote-debugging-port={self.debug}", f"http://127.0.0.1:{self.port}/"],
+                                            f"--window-size={w + 100},{h + 160}", f"--remote-debugging-port={self.debug}", f"http://127.0.0.1:{self.port}/"],
                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
         for _ in range(50):
             try:
@@ -162,6 +160,9 @@ class Desktop:
                 break
             except (OSError, IndexError):
                 time.sleep(0.2)
+        # Room for the window's title bar and its place on the display: a picture is clipped to
+        # the page, and a window larger than the page loses its bottom and right edge.
+        self.call("Emulation.setDeviceMetricsOverride", width=w + 160, height=h + 160, deviceScaleFactor=1, mobile=False)
         time.sleep(1.5)
         go.touch()
 

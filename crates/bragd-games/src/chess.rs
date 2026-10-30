@@ -137,6 +137,7 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
         check,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {
+            cells: (0..64).map(Square::new).map(|s| crate::Cell { x: s.file(), y: s.rank(), square: s.to_string() }).collect(),
             geometry: info.geometry,
             files: info.files,
             ranks: info.ranks,

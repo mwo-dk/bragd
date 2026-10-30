@@ -26,6 +26,7 @@ All piece art in Bragd comes from this one set. The board draws pieces from the 
 | `xiangqi-pieces.svg` | `python3 tools/pieces/cjk-outlines.py TC.otf KR.otf` | Noto Sans CJK TC, OFL 1.1 |
 | `janggi-pieces.svg` | `python3 tools/pieces/cjk-outlines.py TC.otf KR.otf` | Noto Sans CJK KR, OFL 1.1 |
 | `draughts-pieces.svg`, `tafl-pieces.svg`, `go-pieces.svg` | By hand | None needed: ours |
+| `backgammon-pieces.svg`, `ur-pieces.svg`, `senet-pieces.svg` | By hand | None needed: ours |
 
 No sheet holds a `<text>` element. Every character is an outline, so no piece depends on an installed font.
 
@@ -50,6 +51,9 @@ A **helper** (a shared disc, tile or gradient) is `<sheet>-<words>`, all lower c
 | `draughts` | `w`, `b` | `M` man, `K` king | `draughts-wM` |
 | `tafl` | `a` attacker, `d` defender | `S` soldier, `K` king | `tafl-dK` |
 | `go` | `b`, `w` | none: a stone has no role | `go-b` |
+| `backgammon` | `w`, `b` | none: a checker | `backgammon-w` |
+| `ur` | `l` light, `d` dark | none | `ur-l` |
+| `senet` | `e` Evens (cones), `o` Odds (spools) | none | `senet-o` |
 
 Helpers: `xiangqi-disc-red`, `xiangqi-disc-black`, `janggi-tile-{general,major,minor}-{cho,han}`, `go-stone-black`, `go-stone-white`.
 

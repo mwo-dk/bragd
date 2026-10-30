@@ -6,3 +6,4 @@ node_modules
 /gui/src-tauri/gen
 *.swp
 /.claude/worktrees
+__pycache__

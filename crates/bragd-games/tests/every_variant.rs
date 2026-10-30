@@ -51,6 +51,38 @@ fn an_unknown_variant_is_an_error_not_a_fallback() {
     );
 }
 
+/// A front end matches a click to a move through the board's cells: every piece and every
+/// move's `from` and `to` name one, apart from the places off the board.
+#[test]
+fn every_move_and_piece_stands_on_a_named_cell() {
+    let off_board = ["waiting", "home", "off"];
+    for info in &VARIANTS {
+        let key = info.key;
+        // Ur and senet are past their first throw, backgammon past its opening roll.
+        let entries: &[&str] = match key {
+            "ur" => &["2"],
+            "senet" => &["1"],
+            "backgammon" => &["3-1"],
+            _ => &[],
+        };
+        let state = replay(key, None, entries).unwrap_or_else(|e| panic!("{key}: {e}"));
+        let cells = &state.board.cells;
+        let named = |name: &str| off_board.contains(&name) || cells.iter().any(|c| c.square == name);
+        for piece in &state.board.pieces {
+            assert!(
+                cells.iter().any(|c| (c.x, c.y, c.square.as_str()) == (piece.x, piece.y, piece.square.as_str())),
+                "{key}: {piece:?} is on no cell"
+            );
+        }
+        assert!(!state.moves.is_empty(), "{key}");
+        for mv in &state.moves {
+            for end in [&mv.from, &mv.to].into_iter().flatten() {
+                assert!(named(end), "{key}: {} goes through {end}, which is no cell", mv.wire);
+            }
+        }
+    }
+}
+
 #[test]
 fn every_variant_refuses_nonsense() {
     for info in &VARIANTS {

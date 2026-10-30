@@ -163,6 +163,7 @@ fn state(variant: Variant, game: &Game) -> State {
         check: false,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {
+            cells: (0..size).flat_map(|y| (0..size).map(move |x| (x, y))).map(|(x, y)| crate::Cell { x, y, square: Square::from_file_rank(x, y).expect("on the board").to_string() }).collect(),
             geometry: info.geometry,
             files: info.files,
             ranks: info.ranks,

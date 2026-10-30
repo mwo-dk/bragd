@@ -175,6 +175,7 @@ fn state(game: &Game, last: Option<(Side, rules_ur::Move)>) -> State {
             .to_string(),
         }),
         board: Board {
+            cells: (0..SQUARES).map(|s| { let (x, y) = xy(s); crate::Cell { x, y, square: s.to_string() } }).collect(),
             geometry: info.geometry,
             files: info.files,
             ranks: info.ranks,

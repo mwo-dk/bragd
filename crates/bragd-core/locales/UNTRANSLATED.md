@@ -227,3 +227,37 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - **uk**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
 - **zh-SG**: nothing more
 - **zh-TW**: nothing more
+
+219 keys:
+- `move.accept`
+- `move.dead`
+- `move.double`
+- `move.drop`
+- `move.pass`
+- `move.resume`
+- `move.take`
+- `page.later`
+- `play.choose`
+- `play.draw`
+- `play.flip`
+- `play.legal`
+- `play.moves`
+- `play.new_game`
+- `play.off`
+- `play.scoring`
+- `play.throw`
+- `play.thrown`
+- `play.to_move`
+- `play.to_throw`
+- `play.undo`
+- `play.variant`
+- `play.wins`
+- `rules.answer`
+- `rules.positions`
+- `settings.overview`
+- `side.cho`
+- `side.dark`
+- `side.evens`
+- `side.han`
+- `side.light`
+- `side.odds`
