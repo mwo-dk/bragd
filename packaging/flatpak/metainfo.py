@@ -6,6 +6,7 @@ import html
 import os
 import re
 import sys
+import time
 
 HERE = "packaging/flatpak/io.github.mwo_dk.Bragd.metainfo.xml"
 # The pictures Flathub shows, first the default. Empty until the GUI's screenshots are taken
@@ -36,6 +37,10 @@ def main():
         f'      <url>https://github.com/mwo-dk/bragd/releases/tag/v{v}</url>\n    </release>'
         for v, d, t in rows[:KEEP]
     )
+    # Before the first release, this build as a development snapshot: AppStream wants one release.
+    if not rows:
+        day = time.strftime("%Y-%m-%d", time.gmtime(int(os.environ.get("SOURCE_DATE_EPOCH", time.time()))))
+        releases = f'    <release version="{version}" date="{day}" type="development"/>'
     missing = [f for f, _ in SHOTS if not os.path.isfile(f"docs/screenshots/{f}")]
     if missing:
         sys.exit(f"metainfo.py: no {', '.join(missing)} in docs/screenshots")

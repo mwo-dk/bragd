@@ -89,7 +89,7 @@ jobs:
             cat lint.json
             python3 - <<'EOF'
           import json
-          allowed = {"finish-args-home-filesystem-access", "finish-args-flatpak-spawn-access", "appstream-screenshots-not-mirrored-in-ostree", "appstream-missing-screenshots", "appstream-external-screenshot-url"}
+          allowed = {"finish-args-home-filesystem-access", "finish-args-flatpak-spawn-access", "appstream-screenshots-not-mirrored-in-ostree", "appstream-missing-screenshots", "metainfo-missing-screenshots", "appstream-external-screenshot-url"}
           text = open("lint.json").read().strip()
           errors = set(json.loads(text).get("errors", [])) if text else set()
           bad = errors - allowed
