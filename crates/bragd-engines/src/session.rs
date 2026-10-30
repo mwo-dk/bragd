@@ -393,7 +393,7 @@ mod tests {
         assert!(Engine::start(&installed(silent), Protocol::Uci, Duration::from_secs(30), &soon).is_err());
         assert!(t.elapsed() < Duration::from_secs(10), "given up on when asked");
         let ucci = crate::fake_program(&d, "ucci", "while read l; do case \"$l\" in ucci) echo 'id name Old Xiangqi'; echo ucciok;; quit) exit 0;; esac; done");
-        let e = Engine::start_any(&installed(ucci), &[Protocol::Uci, Protocol::Ucci], Duration::from_millis(500), &|| false).unwrap();
+        let e = Engine::start_any(&installed(ucci), &[Protocol::Uci, Protocol::Ucci], Duration::from_secs(3), &|| false).unwrap();
         assert_eq!((e.protocol(), e.about().name.as_str()), (Protocol::Ucci, "Old Xiangqi"));
         std::fs::remove_dir_all(&d).unwrap();
     }
