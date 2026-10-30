@@ -27,6 +27,12 @@ provides = ["tls-1.3", "tls-1.2"]
 crate = "ring"
 provides = ["aes-128-gcm", "aes-256-gcm", "chacha20-poly1305", "sha-256", "sha-384", "x25519", "ecdh-p256", "ecdh-p384", "ecdsa-p256", "ecdsa-p384", "ed25519", "rsa-pss", "rsa-pkcs1"]
 
+# SHA-256 in the desktop app's webview layer: tauri-codegen (at build time) and wry hash the
+# app's own scripts and styles into the Content-Security-Policy. No user data is hashed.
+[[library]]
+crate = "sha2"
+provides = ["sha-256"]
+
 # The operating system's random numbers. ring takes each TLS connection's keys and nonces from
 # it, which the TLS assets cover; ahash (for parquet) seeds its hash tables from it, which is
 # not cryptography. The Helper takes its connection token from it.
