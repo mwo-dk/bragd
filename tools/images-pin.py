@@ -3,7 +3,7 @@
 
 Every image Bragd uses is written as `name:tag@sha256:…` (the multi-arch index digest): its
 defaults in `crates/*/src` (the engine images of `bragd-engines`), and the `FROM` lines of
-`packaging/images/*/Dockerfile`.
+`packaging/images/*/Dockerfile`, and the job containers of the workflows.
 This asks each image's registry (anonymously, as for any public image) which digest its tag has
 now, writes the new ones into those files, and prints a Markdown table of what changed, old to
 new. Nothing changed: no output. Run it before a release, check each image's release notes and
@@ -21,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-FILES = sorted(glob.glob("crates/*/src/**/*.rs", recursive=True) + glob.glob("packaging/images/*/Dockerfile"))
+FILES = sorted(glob.glob("crates/*/src/**/*.rs", recursive=True) + glob.glob("packaging/images/*/Dockerfile") + glob.glob(".github/workflows/*.yml"))
 PINNED = re.compile(r"\b((?:[a-z0-9.-]+\.[a-z]{2,}/)?[a-z0-9._/-]+):([\w.-]+)@(sha256:[0-9a-f]{64})")
 ACCEPT = ", ".join(
     [
