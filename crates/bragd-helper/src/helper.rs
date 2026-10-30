@@ -333,7 +333,7 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, cli
                 clients: clients.load(Ordering::SeqCst),
                 stays,
                 paused: jobs.paused.load(Ordering::Relaxed),
-                active: jobs.list().iter().filter(|j| matches!(j.status, crate::jobs::Status::Queued | crate::jobs::Status::Running)).count(),
+                active: jobs.active(),
                 disk: jobs.crossed(),
             }),
             Request::Jobs => Reply::Jobs { jobs: jobs.list() },

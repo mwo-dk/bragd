@@ -256,8 +256,10 @@ impl Source for CustomUrl {
             return Err(io::Error::other(format!("{}: not a PGN, SGF, KIF, CSA or PDN file, or a zip of them", self.url)));
         }
         let to = cx.dir.join(&name);
-        // Fetched again each time: the file at the address may have grown.
+        // Fetched again each time, from the start: the file at the address may have changed, and
+        // a `.part` of the old one resumed would splice two versions together.
         let _ = std::fs::remove_file(&to);
+        let _ = std::fs::remove_file(net::part_of(&to));
         if !net::download(cx.net, &self.url, &to, cx.options.disk_cap, cx.stop, cx.progress)? {
             return Err(io::Error::other(format!("{} is not there", self.url)));
         }

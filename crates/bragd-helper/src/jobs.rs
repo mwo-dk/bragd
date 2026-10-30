@@ -216,6 +216,11 @@ impl Jobs {
         self.lock().jobs.clone()
     }
 
+    /// How many jobs are queued or running.
+    pub fn active(&self) -> usize {
+        self.lock().jobs.iter().filter(|j| matches!(j.status, Status::Queued | Status::Running)).count()
+    }
+
     /// Whether a job runs now and is not paused: the Helper does not leave in the middle.
     pub fn busy(&self) -> bool {
         !self.paused.load(Ordering::Relaxed) && self.lock().jobs.iter().any(|j| j.status == Status::Running)
@@ -481,15 +486,19 @@ impl Jobs {
 
     fn fetch(&self, id: u64, source: &str) -> Result<u64, String> {
         let now = bragd_core::fs::now();
-        let (options, mut memo) = {
+        let kept = self.lock().sources.get(source).cloned().unwrap_or_default();
+        let (options, mut memo) = (kept.options, kept.memo);
+        // Found before anything is stored: a mistyped id leaves no entry behind for good.
+        let src = (!source.starts_with(sources::CUSTOM) || options.is_some())
+            .then(|| sources::find(source, &options.as_ref().map(|o| o.url.clone()).unwrap_or_default()))
+            .flatten()
+            .ok_or_else(|| format!("no Source {source}"))?;
+        {
             let mut st = self.lock();
-            let kept = st.sources.entry(source.into()).or_default();
-            kept.memo.last_try = Some(now);
-            let kept = kept.clone();
+            st.sources.entry(source.into()).or_default().memo.last_try = Some(now);
             self.save(&st);
-            (kept.options, kept.memo)
-        };
-        let src = sources::find(source, &options.as_ref().map(|o| o.url.clone()).unwrap_or_default()).ok_or_else(|| format!("no Source {source}"))?;
+        }
+        memo.last_try = Some(now);
         let options = options.unwrap_or_else(|| src.about().defaults());
         let dir = self.source_dir(source);
         let stop = || self.should_stop(id);
@@ -608,6 +617,17 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn fetching_an_unknown_source_stores_nothing() {
+        let d = crate::tests::Dir::new("unknown-source");
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
+        let id = jobs.add(Work::Fetch { source: "custom:typo".into() });
+        assert!(jobs.run_next());
+        assert_eq!(jobs.list().into_iter().find(|j| j.id == id).unwrap().status, Status::Failed);
+        assert!(!jobs.lock().sources.contains_key("custom:typo"));
+        assert!(!jobs.sources().iter().any(|(a, _, _)| a.id == "custom:typo"));
+    }
+
+    #[test]
     fn a_custom_url_is_fetched_unpacked_and_imported_into_the_library() {
         let d = crate::tests::Dir::new("custom");
         let url = "https://example.org/club/games.zip?x=1";
@@ -637,6 +657,23 @@ pub(crate) mod tests {
         jobs.add(Work::Fetch { source: "custom:club".into() });
         jobs.run_next();
         assert_eq!(count(&lib), 2);
+    }
+
+    #[test]
+    fn a_custom_url_left_half_fetched_is_fetched_whole_next_time() {
+        let d = crate::tests::Dir::new("custom-part");
+        let url = "https://example.org/club/games.pgn";
+        let net = Recorded { files: [(url.to_string(), PGN.as_bytes().to_vec())].into(), ranges: true, ..Default::default() };
+        let jobs = jobs_in(&d.0, net, Arc::default());
+        let mut o = sources::find("custom:club", url).unwrap().about().defaults();
+        o.url = url.into();
+        jobs.set_source("custom:club", o).unwrap();
+        // What an older version of the file left when its fetch stopped.
+        let src = d.0.join("sources/custom_club");
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(src.join("games.pgn.part"), "[Event \"Old version, longer than the head\"]\n").unwrap();
+        run(&jobs, Work::Fetch { source: "custom:club".into() });
+        assert_eq!(std::fs::read_to_string(src.join("games.pgn")).unwrap(), PGN);
     }
 
     #[test]
