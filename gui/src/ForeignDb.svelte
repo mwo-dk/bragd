@@ -86,7 +86,7 @@
 
   async function saveOver() {
     try {
-      const r = await k.dbSaveTo(confirm.path);
+      const r = await k.dbSaveTo();
       message = t("db.saved", { path: r.path });
     } catch (e) {
       fail(e);

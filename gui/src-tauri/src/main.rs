@@ -285,7 +285,6 @@ fn main() {
             knowledge::helper_retry,
             knowledge::job_cancel,
             knowledge::db_pick,
-            knowledge::db_open,
             knowledge::db_current,
             knowledge::db_close,
             knowledge::db_rows,

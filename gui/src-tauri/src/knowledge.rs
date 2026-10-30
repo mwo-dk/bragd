@@ -5,6 +5,7 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use bragd_core::config::DiskConfig;
 use bragd_core::t;
@@ -26,6 +27,8 @@ use crate::helper_link::{self, HelperView, Link};
 pub struct Knowledge {
     link: Link,
     dbs: Databases,
+    /// The file Save as… chose that waits for the user's yes; only it may be written over.
+    to_confirm: Mutex<Option<PathBuf>>,
 }
 
 type Res<T> = Result<T, String>;
@@ -70,12 +73,11 @@ const GAME_FILES: [&str; 13] = ["pgn", "gz", "zst", "bz2", "si4", "si5", "cbh", 
 #[tauri::command(async)]
 pub fn db_pick(app: AppHandle, k: State<'_, Knowledge>) -> Res<Option<FileView>> {
     let Some(f) = app.dialog().file().add_filter(t!("db.game_files"), &GAME_FILES).blocking_pick_file() else { return Ok(None) };
-    db_open(path_of(f)?.display().to_string(), k).map(Some)
+    db_open(&path_of(f)?, &k).map(Some)
 }
 
-#[tauri::command(async)]
-pub fn db_open(path: String, k: State<'_, Knowledge>) -> Res<FileView> {
-    let f = OpenFile::open(Path::new(&path))?;
+fn db_open(path: &Path, k: &Knowledge) -> Res<FileView> {
+    let f = OpenFile::open(path)?;
     let v = f.view();
     *k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()) = Some(f);
     Ok(v)
@@ -152,13 +154,22 @@ pub fn db_save_as(app: AppHandle, k: State<'_, Knowledge>) -> Res<Option<Saved>>
         d = d.set_directory(dir);
     }
     let Some(to) = d.blocking_save_file() else { return Ok(None) };
-    save_to(&from, &path_of(to)?, false).map(Some)
+    let to = path_of(to)?;
+    let saved = save_to(&from, &to, false)?;
+    *k.to_confirm.lock().unwrap_or_else(|e| e.into_inner()) = saved.confirm.then_some(to);
+    Ok(Some(saved))
 }
 
-/// Writes the open Foreign database over `path`, the user having said yes.
+/// Writes the open Foreign database over the file Save as… asked about, the user having said
+/// yes. The page names no path, so it cannot have any other file written over.
 #[tauri::command(async)]
-pub fn db_save_to(path: String, k: State<'_, Knowledge>) -> Res<Saved> {
-    save_to(&open_path(&k)?, Path::new(&path), true)
+pub fn db_save_to(k: State<'_, Knowledge>) -> Res<Saved> {
+    save_confirmed(&open_path(&k)?, &k.to_confirm)
+}
+
+fn save_confirmed(from: &Path, to_confirm: &Mutex<Option<PathBuf>>) -> Res<Saved> {
+    let to = to_confirm.lock().unwrap_or_else(|e| e.into_inner()).take().ok_or_else(|| t!("db.none_open"))?;
+    save_to(from, &to, true)
 }
 
 // ---------------------------------------------------------------- Libraries and Slices
@@ -490,8 +501,14 @@ mod tests {
         std::fs::write(&to, "old").unwrap();
         assert!(save_to(&from, &to, false).unwrap().confirm);
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "old");
-        assert!(!save_to(&from, &to, true).unwrap().confirm);
+        // Only the file Save as… asked about is written over, and only once.
+        let to_confirm = Mutex::new(None);
+        assert!(save_confirmed(&from, &to_confirm).is_err());
+        assert_eq!(std::fs::read_to_string(&to).unwrap(), "old");
+        *to_confirm.lock().unwrap() = Some(to.clone());
+        assert!(!save_confirmed(&from, &to_confirm).unwrap().confirm);
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "new");
+        assert!(save_confirmed(&from, &to_confirm).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

@@ -14,7 +14,6 @@ export const jobCancel = (/** @type {number} */ id) => invoke("job_cancel", { id
 /** @returns {Promise<any>} */
 export const dbPick = () => invoke("db_pick");
 /** @returns {Promise<any>} */
-export const dbOpen = (/** @type {string} */ path) => invoke("db_open", { path });
 /** @returns {Promise<any>} */
 export const dbCurrent = () => invoke("db_current");
 export const dbClose = () => invoke("db_close");
@@ -27,7 +26,7 @@ export const dbImport = () => invoke("db_import");
 /** @returns {Promise<any>} */
 export const dbSaveAs = () => invoke("db_save_as");
 /** @returns {Promise<any>} */
-export const dbSaveTo = (/** @type {string} */ path) => invoke("db_save_to", { path });
+export const dbSaveTo = () => invoke("db_save_to");
 
 /** @returns {Promise<any[]>} */
 export const libraries = () => invoke("libraries_list");
