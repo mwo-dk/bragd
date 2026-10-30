@@ -381,7 +381,7 @@ pub fn parse(b: &[u8]) -> Game {
                     "B" | "W" if n.mv.is_none() => {
                         let p = point(&values[0]).filter(|&(x, y)| x < w && y < h);
                         n.mv = Some(Move { black: name == "B", at: p });
-                        n.number += 1;
+                        n.number = n.number.saturating_add(1);
                     }
                     "AB" | "AW" | "AE" => {
                         let colour = match name.as_str() {
@@ -820,7 +820,7 @@ mod tests {
     fn whatever_the_bytes() {
         for text in [
             &b""[..], b"(", b")", b"(;", b"(;B[", b"(;B[aa", b"(;AB[aa:zz]", b"((((((", b")))(;", b"(;C[\\", b"(;SZ[1];B[aa];W[aa]",
-            b"[;]", b"(;GM[1](;B[aa])(;W[bb](;B[cc]", b"\xff\xfe(;PB[\xe9]", b"(;AB[ss:aa]AW[aa:ss]AE[jj:jj])", b"(;MN[x]PL[W]B[])",
+            b"[;]", b"(;GM[1](;B[aa])(;W[bb](;B[cc]", b"\xff\xfe(;PB[\xe9]", b"(;AB[ss:aa]AW[aa:ss]AE[jj:jj])", b"(;MN[x]PL[W]B[])", b"(;MN[4294967295]B[aa];W[bb])",
         ] {
             let (games, _) = scan(text);
             for i in 0..games.len() {
