@@ -24,7 +24,7 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 - [x] S2: artwork, sprites, CJK glyphs as paths, brand: icon drafts, splash, rune wordmark (wave 1, agent "art")
 - [x] S3: `bragd-core`: config, state, settings, i18n with every locale, Themes, update check, features, notices (wave 1, agent "core")
 - [x] S4: `bragd-library`: formats, Library, dedupe, Slices, Parquet (wave 1, agent "library")
-- [ ] S5: `bragd-engines`: protocols, discovery, images, Syzygy (wave 1, agent "engines")
+- [x] S5: `bragd-engines`: protocols, discovery, images, Syzygy (wave 1, agent "engines")
 - [ ] S6: CI, release tooling, docs check, sync workflow, screenshot tooling (wave 1, agent "ci")
 - [ ] S7: GUI shell: branding, splash, sidebar, Themes, Settings with Family toggles, boards for all 25 Variants, play against yourself (wave 2)
 - [ ] S8: Helper process, Sources (TWIC, custom URL), schedule (wave 2)
@@ -49,3 +49,21 @@ Each one is listed here, so the owner can overturn it in the morning.
 - The `[%evp]` layout (start ply, then centipawns from White's side) was inferred from a single sample (upstream #615). It needs checking against a real ChessBase export.
 - The reader texts that used translations are plain English constants for now, until the library crate takes texts from `bragd-core`.
 - The Variant ids in `bragd-library` must be aligned with `bragd-games` when S1 lands.
+
+### S5: engines
+
+- `bragd-engines` depends on no other Bragd crate, as S1 and S3 were built at the same time. Variants are string keys (`chess`, `kingofthehill`, `go19`, `international`), to be tied to `bragd-games`' catalogue later.
+- Its texts are plain English until the commands that show them go through `t!`.
+- Moves go to and come from engines in the engine's own notation (`e2e4`, `7g7f`, `D4`, `32-28`). Turning them into a Variant's notation is the rules crates' work.
+- Pikafish is started as UCI, which it speaks. UCCI is there for other xiangqi engines; an engine chosen by its path is tried as UCI, then as UCCI.
+- Fairy-Stockfish speaks USI for shogi, so shogi moves are always in USI notation, and UCI for everything else.
+- GNU Backgammon runs in its own command-line mode over stdin, not in its socket mode (`external`), because a sealed image has no network.
+- Scan plays international draughts only. English, Brazilian and Russian draughts have no engine for now.
+- An image runs only when pinned by digest. Every pin is `None` (unpublished) until the images are pushed, so for now an engine runs only when installed.
+- An image's entrypoint already speaks its protocol (KataGo with its network and config, GNU Go with `--mode gtp`). Arguments such as `gtp` go only to installed programs.
+- Engine containers also get `--pull=never`, `--user 65534:65534`, a 256 MB `/tmp` and `LC_ALL=C`. The tablebase folder is mounted read-only at `/syzygy`.
+- Engine options are kept per engine in their own TOML file (`OptionStore`), not in `config.toml`. The caller chooses where the file goes.
+- A pull tries again after 5 s, 30 s and 2 min on a passing network or registry fault. After that it says "no network" or "the registry is busy". `next_try` gives the app 5 min, then 15 min, then hourly. An unknown fault counts as lasting.
+- The Syzygy plan reads the mirror's `bytes.tsv` (one request) for exact sizes. Downloads check each file's size but not its BLAKE3 sum yet.
+- Reviews mark moves only where engines score in centipawns (chess, xiangqi, shogi, draughts). Go and backgammon reviews show evaluations without marks.
+- The KataGo image uses the g170e b15c192 network (48 MB), which is light enough for the CPU.

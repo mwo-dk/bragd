@@ -64,6 +64,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bragd-engines"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml",
+ "ureq",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "bragd-library"
 version = "0.1.0"
 dependencies = [
