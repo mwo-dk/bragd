@@ -8,6 +8,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use bragd_core::update::FLATPAK_ID;
+
 /// The argument of a Helper that stays when the last window has gone.
 pub const STAY: &str = "--stay";
 
@@ -15,8 +17,6 @@ pub const STAY: &str = "--stay";
 const NAME: &str = "bragd-helper";
 /// The LaunchAgent's label.
 const LABEL: &str = "dk.mwo.bragd.helper";
-/// The Flatpak's app id.
-const FLATPAK_ID: &str = "io.github.mwo_dk.Bragd";
 
 /// How the Helper is registered on a system.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,7 +35,7 @@ pub enum Kind {
 
 /// Inside a Flatpak.
 fn flatpak() -> bool {
-    std::env::var_os("FLATPAK_ID").is_some() || Path::new("/.flatpak-info").exists()
+    bragd_engines::tools::flatpak().is_some()
 }
 
 impl Kind {
