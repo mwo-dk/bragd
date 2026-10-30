@@ -75,6 +75,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "bragd-games"
+version = "0.1.0"
+dependencies = [
+ "rules-backgammon",
+ "rules-capablanca",
+ "rules-chess",
+ "rules-draughts",
+ "rules-go",
+ "rules-senet",
+ "rules-shogi",
+ "rules-tafl",
+ "rules-ur",
+ "rules-xiangqi",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bragd-library"
 version = "0.1.0"
 dependencies = [
@@ -689,6 +707,46 @@ dependencies = [
  "hashbrown 0.16.1",
  "thiserror",
 ]
+
+[[package]]
+name = "rules-backgammon"
+version = "0.1.0"
+
+[[package]]
+name = "rules-capablanca"
+version = "0.1.0"
+
+[[package]]
+name = "rules-chess"
+version = "0.1.0"
+
+[[package]]
+name = "rules-draughts"
+version = "0.1.0"
+
+[[package]]
+name = "rules-go"
+version = "0.1.0"
+
+[[package]]
+name = "rules-senet"
+version = "0.1.0"
+
+[[package]]
+name = "rules-shogi"
+version = "0.1.0"
+
+[[package]]
+name = "rules-tafl"
+version = "0.1.0"
+
+[[package]]
+name = "rules-ur"
+version = "0.1.0"
+
+[[package]]
+name = "rules-xiangqi"
+version = "0.1.0"
 
 [[package]]
 name = "rusqlite"

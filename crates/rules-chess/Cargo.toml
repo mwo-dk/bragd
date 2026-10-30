@@ -1,0 +1,10 @@
+[package]
+name = "rules-chess"
+description = "The rules of chess and its Variants: chess960, shatranj, chaturanga, king of the hill, racing kings and Seirawan. The authority for legal moves in Bragd."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Empty on purpose: a rules crate is pure Rust with no dependencies.
+[dependencies]
