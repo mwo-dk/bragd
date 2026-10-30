@@ -5,7 +5,6 @@
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 /// What a server gave for a URL.
 pub enum Got {
@@ -28,19 +27,9 @@ pub trait Fetcher: Send + Sync {
 /// The real thing, over HTTPS with the system's certificate store.
 pub struct Web(ureq::Agent);
 
-const AGENT: &str = concat!("Bragd/", env!("CARGO_PKG_VERSION"), " (https://github.com/mwo-dk/bragd)");
-
 impl Default for Web {
     fn default() -> Self {
-        let tls = ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build();
-        Web(ureq::Agent::config_builder()
-            .timeout_connect(Some(Duration::from_secs(30)))
-            .timeout_recv_response(Some(Duration::from_secs(60)))
-            .http_status_as_error(false)
-            .tls_config(tls)
-            .user_agent(AGENT)
-            .build()
-            .into())
+        Web(bragd_engines::fetch::agent(false))
     }
 }
 
@@ -114,7 +103,7 @@ pub fn download(net: &dyn Fetcher, url: &str, to: &Path, cap: Option<u64>, stop:
     Ok(true)
 }
 
-fn part_of(p: &Path) -> PathBuf {
+pub(crate) fn part_of(p: &Path) -> PathBuf {
     let mut s = p.as_os_str().to_owned();
     s.push(".part");
     PathBuf::from(s)

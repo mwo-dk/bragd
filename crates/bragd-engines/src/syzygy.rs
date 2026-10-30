@@ -90,7 +90,8 @@ pub fn parse_sizes(tsv: &str) -> Vec<(String, u64)> {
         .filter_map(|l| {
             let (size, name) = l.split_once('\t')?;
             let name = name.trim();
-            let ok = (name.ends_with(".rtbw") || name.ends_with(".rtbz")) && !name.contains(['/', '\\']) && !name.starts_with('.');
+            // Pieces and `v` only, so no name (`C:KQvK.rtbw`, `../x`) can lead out of the folder.
+            let ok = name.strip_suffix(".rtbw").or_else(|| name.strip_suffix(".rtbz")).is_some_and(|p| !p.is_empty() && p.chars().all(|c| "KQRBNPv".contains(c)));
             ok.then(|| Some((name.to_string(), size.trim().parse().ok()?))).flatten()
         })
         .collect()
@@ -150,9 +151,14 @@ pub fn download(plan: &Plan, folder: &Path, fetch: &dyn Fetch, progress: &mut dy
         }
         let part = folder.join(format!("{}.part", f.name));
         let mut out = std::fs::File::create(&part).map_err(|e| format!("{}: {e}", part.display()))?;
-        let got = fetch.download(&f.url, &mut out, &mut |n| progress(bytes + n, plan.total));
+        // Stopped as soon as it passes its size, so a server that keeps sending cannot fill the disk.
+        let got = fetch.download(&f.url, &mut out, &mut |n| n <= f.size && progress(bytes + n, plan.total));
         drop(out);
         match got {
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted && std::fs::metadata(&part).is_ok_and(|m| m.len() > f.size) => {
+                let _ = std::fs::remove_file(&part);
+                return Err(format!("{}: more bytes came than the {} expected.", f.name, f.size));
+            }
             Ok(n) if n == f.size => std::fs::rename(&part, &to).map_err(|e| format!("{}: {e}", to.display()))?,
             Ok(n) => {
                 let _ = std::fs::remove_file(&part);
@@ -176,7 +182,7 @@ pub(crate) mod tests {
     use std::sync::Mutex;
 
     /// Lines of the mirror's `bytes.tsv` as recorded on 2026-10-30.
-    pub const SIZES: &str = "208\tKRvK.rtbw\n7632\tKRvK.rtbz\n272\tKQvK.rtbw\n5392\tKQvK.rtbz\n179408\tKRvKP.rtbw\n193424\tKRvKP.rtbz\n279824\tKQRvKR.rtbw\n3421968\tKQRvKR.rtbz\n175112784\tKQRvKRP.rtbw\n405163472\tKQRvKRP.rtbz\n15078224\tKQRBvKR.rtbw\n33470096\tKQQQQQvK.rtbw\n12\t../evil.rtbw\n";
+    pub const SIZES: &str = "208\tKRvK.rtbw\n7632\tKRvK.rtbz\n272\tKQvK.rtbw\n5392\tKQvK.rtbz\n179408\tKRvKP.rtbw\n193424\tKRvKP.rtbz\n279824\tKQRvKR.rtbw\n3421968\tKQRvKR.rtbz\n175112784\tKQRvKRP.rtbw\n405163472\tKQRvKRP.rtbz\n15078224\tKQRBvKR.rtbw\n33470096\tKQQQQQvK.rtbw\n12\t../evil.rtbw\n12\tC:KQvK.rtbw\n12\t.rtbz\n";
 
     /// A fetcher that serves `files` by URL, as many bytes as asked, and writes down what it
     /// was asked.
@@ -209,7 +215,8 @@ pub(crate) mod tests {
         assert_eq!(p.total, 208 + 7632 + 272 + 5392 + 179408 + 193424 + 279824 + 3421968);
         assert_eq!(p.files[0], Planned { name: "KRvK.rtbw".into(), url: format!("{MIRROR}3-4-5-wdl/KRvK.rtbw"), size: 208 });
         assert_eq!(p.files[1].url, format!("{MIRROR}3-4-5-dtz/KRvK.rtbz"));
-        assert!(!p.files.iter().any(|f| f.name.contains("..")), "a name with a path is refused");
+        assert!(!p.files.iter().any(|f| f.name.contains("..") || f.name.contains(':') || f.name.starts_with('.')), "a name with a path is refused");
+        assert_eq!(parse_sizes(SIZES).len(), 12, "only the twelve real names");
         let six = plan(Set::Six, SIZES).unwrap();
         assert_eq!((six.files.len(), six.files[0].url.as_str()), (3, "https://tablebase.lichess.ovh/tables/standard/6-wdl/KQRvKRP.rtbw"));
         assert!(plan(Set::Seven, SIZES).is_err(), "a folder only");
@@ -252,6 +259,11 @@ pub(crate) mod tests {
         // Stopped: the file under way is not kept.
         std::fs::remove_file(d.join("KQvK.rtbw")).unwrap();
         assert_eq!(download(&p, &d, &fake, &mut |_, _| false).unwrap_err(), "Download stopped.");
+        // A server sending more than the size: stopped there, nothing kept.
+        p.files[2].size = 4;
+        let e = download(&p, &d, &fake, &mut |_, _| true).unwrap_err();
+        assert!(e.contains("more bytes"), "{e}");
+        assert!(!d.join("KQvK.rtbw").exists() && !d.join("KQvK.rtbw.part").exists());
         assert!(!d.join("KQvK.rtbw.part").exists());
         std::fs::remove_dir_all(&d).unwrap();
     }
