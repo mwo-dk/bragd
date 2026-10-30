@@ -13,6 +13,9 @@
   import Wizard from "./Wizard.svelte";
   import Notices from "./Notices.svelte";
   import { guide } from "./guide.svelte.js";
+  import Databases from "./Databases.svelte";
+  import Jobs from "./Jobs.svelte";
+  import * as knowledge from "./knowledge.js";
   import splash from "../../assets/brand/splash.svg";
 
   /** @type {any} */
@@ -52,6 +55,11 @@
     });
   });
 
+  /** Slices by Game family, for the sidebar. @type {Record<string, any[]>} */
+  let slices = $state({});
+  const loadSlices = () => knowledge.slices().then((s) => (slices = s), () => {});
+  loadSlices();
+
   const save = (/** @type {string} */ name, /** @type {any} */ value) => api.saveSetting(name, value).then(apply);
 
   function go(/** @type {any} */ p) {
@@ -74,7 +82,7 @@
 
 {#if snap}
   <div class="shell">
-    <Sidebar {snap} {page} {collapsed} {go} toggle={() => (collapsed = !collapsed)} />
+    <Sidebar {snap} {page} {collapsed} {go} {slices} toggle={() => (collapsed = !collapsed)} />
     <main class="page">
       {#if page.kind === "settings"}
         <Settings {snap} {save} />
@@ -85,6 +93,12 @@
       {:else if family && page.item === "play"}
         {#key family.id}
           <Play {family} />
+        {/key}
+      {:else if page.kind === "jobs"}
+        <Jobs />
+      {:else if family && page.item === "databases"}
+        {#key family.id}
+          <Databases {family} slice={page.slice} onslices={loadSlices} />
         {/key}
       {:else if family && page.item === "rules"}
         <Rules {family} />

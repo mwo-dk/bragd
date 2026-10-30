@@ -1,0 +1,497 @@
+//! The Tauri commands of Knowledge: the Helper and its jobs, Databases (Foreign databases,
+//! Libraries, Slices), Sources with their Strip rules, and Disk use. The work is the Helper's
+//! (`helper_link`) and `bragd-library`'s (`databases`); this module hands the page what it draws,
+//! texts included, and turns what the user typed (sizes, Slice fields) into values.
+
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+
+use bragd_core::config::DiskConfig;
+use bragd_core::t;
+use bragd_helper::disk;
+use bragd_helper::helper::{Reply, Request};
+use bragd_helper::sources::{self, Auto, Options, Schedule};
+use bragd_library::chess::Query;
+use bragd_library::library::Library;
+use serde::Serialize;
+use serde_json::Value;
+use tauri::{AppHandle, Manager, State};
+use tauri_plugin_dialog::DialogExt;
+
+use crate::Ctx;
+use crate::databases::{self, Databases, FileView, LibraryView, OpenFile, Replay, Review, Rows, SliceView};
+use crate::helper_link::{self, HelperView, Link};
+
+#[derive(Default)]
+pub struct Knowledge {
+    link: Link,
+    dbs: Databases,
+}
+
+type Res<T> = Result<T, String>;
+
+/// Reaches the Helper in the background as the window opens, starting it when none runs.
+pub fn start(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let _ = app.state::<Knowledge>().link.ask(&Request::Status);
+    });
+}
+
+fn path_of(f: tauri_plugin_dialog::FilePath) -> Res<PathBuf> {
+    f.into_path().map_err(|e| e.to_string())
+}
+
+// ---------------------------------------------------------------- the Helper and its jobs
+
+#[tauri::command(async)]
+pub fn helper_status(k: State<'_, Knowledge>) -> Res<HelperView> {
+    Ok(helper_link::view(&k.link))
+}
+
+/// Tries to reach the Helper again at once, after it could not be reached.
+#[tauri::command(async)]
+pub fn helper_retry(k: State<'_, Knowledge>) -> Res<HelperView> {
+    k.link.retry();
+    Ok(helper_link::view(&k.link))
+}
+
+#[tauri::command(async)]
+pub fn job_cancel(id: u64, k: State<'_, Knowledge>) -> Res<()> {
+    k.link.ask(&Request::Cancel { id }).map(drop)
+}
+
+// ---------------------------------------------------------------- Foreign databases
+
+/// The extensions of the files Bragd reads in place.
+const GAME_FILES: [&str; 13] = ["pgn", "gz", "zst", "bz2", "si4", "si5", "cbh", "cbv", "sgf", "pdn", "kif", "kifu", "csa"];
+
+/// Asks for a Foreign database with the file dialog and opens it; `None` when none was chosen.
+#[tauri::command(async)]
+pub fn db_pick(app: AppHandle, k: State<'_, Knowledge>) -> Res<Option<FileView>> {
+    let Some(f) = app.dialog().file().add_filter(t!("db.game_files"), &GAME_FILES).blocking_pick_file() else { return Ok(None) };
+    db_open(path_of(f)?.display().to_string(), k).map(Some)
+}
+
+#[tauri::command(async)]
+pub fn db_open(path: String, k: State<'_, Knowledge>) -> Res<FileView> {
+    let f = OpenFile::open(Path::new(&path))?;
+    let v = f.view();
+    *k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()) = Some(f);
+    Ok(v)
+}
+
+/// The Foreign database open now, as far as it is read.
+#[tauri::command(async)]
+pub fn db_current(k: State<'_, Knowledge>) -> Res<Option<FileView>> {
+    Ok(k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()).as_ref().map(OpenFile::view))
+}
+
+#[tauri::command(async)]
+pub fn db_close(k: State<'_, Knowledge>) -> Res<()> {
+    *k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    Ok(())
+}
+
+#[tauri::command(async)]
+pub fn db_rows(query: Query, from: usize, count: usize, k: State<'_, Knowledge>) -> Res<Rows> {
+    let mut f = k.dbs.file.lock().unwrap_or_else(|e| e.into_inner());
+    Ok(f.as_mut().ok_or_else(|| t!("db.none_open"))?.rows(&query, from, count))
+}
+
+#[tauri::command(async)]
+pub fn db_game(id: u32, k: State<'_, Knowledge>) -> Res<Replay> {
+    let f = k.dbs.file.lock().unwrap_or_else(|e| e.into_inner());
+    f.as_ref().ok_or_else(|| t!("db.none_open"))?.game(id)
+}
+
+fn open_path(k: &Knowledge) -> Res<PathBuf> {
+    let f = k.dbs.file.lock().unwrap_or_else(|e| e.into_inner());
+    f.as_ref().map(|f| PathBuf::from(f.view().path)).ok_or_else(|| t!("db.none_open"))
+}
+
+/// Imports the open Foreign database into the default Library, as a Helper job: its id.
+#[tauri::command(async)]
+pub fn db_import(k: State<'_, Knowledge>) -> Res<u64> {
+    let path = open_path(&k)?;
+    k.link.start(&Request::Import { path, library: None, source: None })
+}
+
+/// What Save as… did: saved to `path`, or it waits for the user to confirm writing over a
+/// downloaded file there.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Saved {
+    pub path: String,
+    pub confirm: bool,
+}
+
+fn save_to(from: &Path, to: &Path, confirmed: bool) -> Res<Saved> {
+    if to.exists() && databases::downloaded(to) && !confirmed {
+        return Ok(Saved { path: to.display().to_string(), confirm: true });
+    }
+    if from.canonicalize().ok() != to.canonicalize().ok() || !to.exists() {
+        // Written beside it, then put in place: a failure leaves the old file whole.
+        let tmp = to.with_extension("bragd-saving");
+        std::fs::copy(from, &tmp).and_then(|_| std::fs::rename(&tmp, to)).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            e.to_string()
+        })?;
+    }
+    Ok(Saved { path: to.display().to_string(), confirm: false })
+}
+
+/// Save as…: the open Foreign database written to a file the user picks. Writing over a
+/// downloaded file waits for `db_save_to` with the user's yes.
+#[tauri::command(async)]
+pub fn db_save_as(app: AppHandle, k: State<'_, Knowledge>) -> Res<Option<Saved>> {
+    let from = open_path(&k)?;
+    let name = from.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let mut d = app.dialog().file().set_file_name(name);
+    if let Some(dir) = from.parent() {
+        d = d.set_directory(dir);
+    }
+    let Some(to) = d.blocking_save_file() else { return Ok(None) };
+    save_to(&from, &path_of(to)?, false).map(Some)
+}
+
+/// Writes the open Foreign database over `path`, the user having said yes.
+#[tauri::command(async)]
+pub fn db_save_to(path: String, k: State<'_, Knowledge>) -> Res<Saved> {
+    save_to(&open_path(&k)?, Path::new(&path), true)
+}
+
+// ---------------------------------------------------------------- Libraries and Slices
+
+#[tauri::command(async)]
+pub fn libraries_list(ctx: State<'_, Ctx>) -> Res<Vec<LibraryView>> {
+    Ok(databases::libraries(&ctx.cfg()))
+}
+
+#[tauri::command(async)]
+pub fn library_rows(path: String, query: Value, from: usize, count: usize, k: State<'_, Knowledge>) -> Res<Rows> {
+    k.dbs.library_rows(Path::new(&path), &databases::query_in(query)?, from, count)
+}
+
+#[tauri::command(async)]
+pub fn library_game(path: String, id: i64) -> Res<Replay> {
+    let lib = Library::open(Path::new(&path)).map_err(|e| e.to_string())?;
+    Ok(databases::stored_replay(&lib.stored(id).map_err(|e| e.to_string())?))
+}
+
+#[tauri::command(async)]
+pub fn library_review(path: String) -> Res<Review> {
+    databases::review(Path::new(&path))
+}
+
+/// "Dedupe now": the Helper merges the headers of every merged Game again: its job's id.
+#[tauri::command(async)]
+pub fn library_dedupe(path: String, k: State<'_, Knowledge>) -> Res<u64> {
+    k.link.start(&Request::DedupeNow { library: Some(PathBuf::from(path)) })
+}
+
+#[tauri::command(async)]
+pub fn priority_get(ctx: State<'_, Ctx>) -> Res<Vec<String>> {
+    Ok(ctx.cfg().knowledge.source_priority)
+}
+
+/// Saves the Source priority to `[knowledge] source_priority` and restarts the Helper, which
+/// reads it as it starts; a running job starts again from its beginning, as imports are
+/// idempotent.
+#[tauri::command(async)]
+pub fn priority_save(list: Vec<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Res<Vec<String>> {
+    let list: Vec<String> = list.into_iter().map(|s| s.trim().to_lowercase()).filter(|s| !s.is_empty()).collect();
+    let cfg = bragd_core::settings::save("source_priority", &Value::from(list.clone()))?;
+    *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = cfg;
+    let _ = k.link.ask(&Request::Restart);
+    Ok(list)
+}
+
+/// Every Slice, by the Game family it is about (`""` for any).
+#[tauri::command(async)]
+pub fn slices_list(ctx: State<'_, Ctx>) -> Res<BTreeMap<String, Vec<SliceView>>> {
+    Ok(databases::all_slices(&ctx.cfg()))
+}
+
+#[tauri::command(async)]
+pub fn slice_save(library: String, name: String, query: Value) -> Res<()> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(t!("slice.no_name"));
+    }
+    let lib = Library::open(Path::new(&library)).map_err(|e| e.to_string())?;
+    lib.save_slice(name, &databases::query_in(query)?).map_err(|e| e.to_string())
+}
+
+/// "Keep as a separate copy": the new Library's path.
+#[tauri::command(async)]
+pub fn slice_materialise(library: String, name: String) -> Res<String> {
+    databases::materialise(Path::new(&library), &name)
+}
+
+/// The key a Slice finds the position `fen` of `family` by, as text.
+#[tauri::command(async)]
+pub fn position_key(family: String, fen: String) -> Res<String> {
+    databases::position_key(&family, &fen)
+}
+
+// ---------------------------------------------------------------- Sources
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceView {
+    pub id: String,
+    pub name: String,
+    pub family: String,
+    pub family_name: String,
+    /// About how much one fetch downloads.
+    pub size: String,
+    pub url: String,
+    pub fetchable: bool,
+    pub custom: bool,
+    /// Why it cannot be fetched yet, or empty.
+    pub notice: String,
+    pub options: Options,
+    /// Its disk cap as its field shows it; empty for none.
+    pub disk_cap: String,
+    /// When it was fetched last, and the last error.
+    pub last: String,
+    pub error: String,
+    pub paused: bool,
+}
+
+/// A value and its label, for a `<select>` or a row of checkboxes.
+#[derive(Serialize)]
+pub struct Pick {
+    pub value: Value,
+    pub label: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourcesPage {
+    pub sources: Vec<SourceView>,
+    pub schedules: Vec<Pick>,
+    pub speeds: Vec<Pick>,
+    pub rating_of: Vec<Pick>,
+    pub after_import: Vec<Pick>,
+    pub results: Vec<Pick>,
+}
+
+fn picks(prefix: &str, values: &[&str]) -> Vec<Pick> {
+    values.iter().map(|v| Pick { value: Value::from(*v), label: t!(&format!("{prefix}.{v}")) }).collect()
+}
+
+/// When, as the page says it: today, yesterday, N days ago.
+fn ago(then: Option<u64>, now: u64) -> String {
+    match then.map(|t| now.saturating_sub(t) / 86_400) {
+        None => t!("source.never"),
+        Some(0) => t!("source.today"),
+        Some(d) => bragd_core::tn!("source.days_ago", d),
+    }
+}
+
+fn sources_of(k: &Knowledge) -> Res<Vec<(sources::About, Options, sources::Memo)>> {
+    match k.link.ask(&Request::Sources)? {
+        Reply::Sources { sources } => Ok(sources),
+        _ => Err(t!("helper.odd_reply")),
+    }
+}
+
+#[tauri::command(async)]
+pub fn sources_list(k: State<'_, Knowledge>) -> Res<SourcesPage> {
+    let now = bragd_core::fs::now();
+    let sources = sources_of(&k)?
+        .into_iter()
+        .map(|(a, o, m)| SourceView {
+            family_name: if a.family.is_empty() { t!("source.any_family") } else { t!(&format!("family.{}", a.family)) },
+            size: if a.size == 0 { t!("source.size_unknown") } else { t!("source.size", "size" => disk::bytes(a.size)) },
+            notice: a.notice.as_deref().map(|n| t!(n, "source" => a.name)).unwrap_or_default(),
+            custom: a.id.starts_with(sources::CUSTOM),
+            last: ago(m.last_fetch, now),
+            error: m.last_error.unwrap_or_default(),
+            paused: m.paused,
+            disk_cap: o.disk_cap.map(limit_text).unwrap_or_default(),
+            id: a.id,
+            name: a.name,
+            family: a.family,
+            url: a.url,
+            fetchable: a.fetchable,
+            options: o,
+        })
+        .collect();
+    Ok(SourcesPage {
+        sources,
+        schedules: picks("source.schedule", &["daily", "weekly", "monthly", "off"]),
+        speeds: picks("strip.speed", &["bullet", "blitz", "rapid", "classical", "correspondence"]),
+        rating_of: picks("strip.rating_of", &["both", "either", "average"]),
+        after_import: picks("source.after_import", &["keep", "strip", "delete"]),
+        results: ["1-0", "0-1", "1/2-1/2", "*"].iter().map(|r| Pick { value: Value::from(*r), label: (*r).into() }).collect(),
+    })
+}
+
+/// A Source's options as the page edits them, with its disk cap as typed when it was in sight;
+/// a Strip rule that keeps everything is none.
+#[tauri::command(async)]
+pub fn source_set(id: String, mut options: Options, disk_cap: Option<String>, k: State<'_, Knowledge>) -> Res<()> {
+    options.strip = options.strip.filter(|r| !r.is_empty());
+    if let Some(cap) = disk_cap {
+        options.disk_cap = Some(parse_size(&cap)?).filter(|&c| c > 0);
+    }
+    k.link.ask(&Request::SetSource { source: id, options }).map(drop)
+}
+
+/// A new custom URL Source, on and weekly.
+#[tauri::command(async)]
+pub fn source_add(name: String, url: String, k: State<'_, Knowledge>) -> Res<()> {
+    let name: String = name.trim().chars().filter(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | ' ')).collect();
+    if name.is_empty() {
+        return Err(t!("source.no_name"));
+    }
+    let options = Options { enabled: true, schedule: Schedule::Weekly, only_unmetered: false, disk_cap: None, url: url.trim().into(), strip: None, after_import: Default::default(), auto: Auto::default() };
+    k.link.ask(&Request::SetSource { source: format!("{}{name}", sources::CUSTOM), options }).map(drop)
+}
+
+#[tauri::command(async)]
+pub fn source_fetch(id: String, k: State<'_, Knowledge>) -> Res<u64> {
+    k.link.start(&Request::FetchNow { source: id })
+}
+
+/// The Source's Strip rule as a job: a preview (`dry_run`) that changes nothing, or applied.
+#[tauri::command(async)]
+pub fn source_strip(id: String, dry_run: bool, k: State<'_, Knowledge>) -> Res<u64> {
+    k.link.start(&if dry_run { Request::StripDryRun { source: id } } else { Request::StripApply { source: id } })
+}
+
+// ---------------------------------------------------------------- Disk use
+
+/// `5 GB`, `500MB`, `1.5 TB`, `1200000` (bytes): bytes, in powers of 1000 as `disk::bytes`
+/// writes them. Empty or 0 is no limit.
+pub fn parse_size(text: &str) -> Res<u64> {
+    let s = text.trim().to_ascii_lowercase().replace(',', ".");
+    if s.is_empty() {
+        return Ok(0);
+    }
+    let split = s.find(|c: char| !(c.is_ascii_digit() || c == '.')).unwrap_or(s.len());
+    let (n, unit) = s.split_at(split);
+    let n: f64 = n.parse().map_err(|_| t!("disk.bad_size", "text" => text))?;
+    let mult = match unit.trim() {
+        "" | "b" => 1u64,
+        "k" | "kb" => 1_000,
+        "m" | "mb" => 1_000_000,
+        "g" | "gb" => 1_000_000_000,
+        "t" | "tb" => 1_000_000_000_000,
+        _ => return Err(t!("disk.bad_size", "text" => text)),
+    };
+    Ok((n * mult as f64).round() as u64)
+}
+
+/// A limit as the page shows it in its field: empty for none.
+fn limit_text(n: u64) -> String {
+    if n == 0 { String::new() } else { disk::bytes(n) }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ItemView {
+    pub id: String,
+    pub label: String,
+    pub size: String,
+    pub path: String,
+    pub external: bool,
+    pub limit: String,
+    pub over: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiskView {
+    pub items: Vec<ItemView>,
+    pub total: String,
+    pub total_limit: String,
+    pub free_below: String,
+    /// Each disk Bragd keeps things on, with its free space.
+    pub free: Vec<(String, String)>,
+    pub notices: Vec<String>,
+    /// The Sources that can be fetched, with what Disk watch may do for each by itself.
+    pub sources: Vec<(String, String, Options)>,
+}
+
+#[tauri::command(async)]
+pub fn disk_report(k: State<'_, Knowledge>) -> Res<DiskView> {
+    let r = match k.link.ask(&Request::DiskReport)? {
+        Reply::Disk { report } => report,
+        _ => return Err(t!("helper.odd_reply")),
+    };
+    let sources = sources_of(&k).unwrap_or_default().into_iter().filter(|(a, _, _)| a.fetchable).map(|(a, o, _)| (a.id, a.name, o)).collect();
+    Ok(DiskView {
+        items: r
+            .items
+            .iter()
+            .map(|i| ItemView {
+                label: i.label(),
+                size: disk::bytes(i.bytes),
+                path: i.path.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| t!("disk.runtime")),
+                external: i.external,
+                limit: i.limit.map(limit_text).unwrap_or_default(),
+                over: i.limit.is_some_and(|l| i.bytes > l),
+                id: i.id.clone(),
+            })
+            .collect(),
+        total: disk::bytes(r.total),
+        total_limit: limit_text(r.limits.total),
+        free_below: limit_text(r.limits.free_below),
+        free: r.free.iter().map(|f| (f.path.display().to_string(), f.bytes.map(disk::bytes).unwrap_or_else(|| t!("disk.unknown")))).collect(),
+        notices: r.crossed.iter().map(disk::Crossed::text).collect(),
+        sources,
+    })
+}
+
+/// Disk watch's limits as typed: the total, the free space to keep, and each item's.
+#[tauri::command(async)]
+pub fn disk_limits_set(total: String, free_below: String, items: BTreeMap<String, String>, k: State<'_, Knowledge>) -> Res<()> {
+    let limits = DiskConfig {
+        total: parse_size(&total)?,
+        free_below: parse_size(&free_below)?,
+        items: items.iter().map(|(id, v)| Ok((id.clone(), parse_size(v)?))).collect::<Res<_>>()?,
+    };
+    k.link.ask(&Request::SetDiskLimits { limits }).map(drop)
+}
+
+/// Every Source's Strip rule over the default Library, as a job: a preview, or applied.
+#[tauri::command(async)]
+pub fn library_prune(dry_run: bool, k: State<'_, Knowledge>) -> Res<u64> {
+    k.link.start(&Request::PruneLibrary { library: None, dry_run })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sizes_are_read_as_typed() {
+        assert_eq!(parse_size("5 GB").unwrap(), 5_000_000_000);
+        assert_eq!(parse_size("1.5tb").unwrap(), 1_500_000_000_000);
+        assert_eq!(parse_size("1,5 GB").unwrap(), 1_500_000_000);
+        assert_eq!(parse_size("1200").unwrap(), 1200);
+        assert_eq!(parse_size(" ").unwrap(), 0);
+        assert!(parse_size("lots").is_err());
+        assert!(parse_size("5 parsecs").is_err());
+        // What the page shows reads back as the same limit.
+        assert_eq!(parse_size(&limit_text(30_000_000_000)).unwrap(), 30_000_000_000);
+    }
+
+    #[test]
+    fn save_as_waits_before_writing_over_a_download() {
+        let dir = bragd_helper::folder().unwrap().join("sources").join("save-test");
+        std::fs::create_dir_all(&dir).unwrap();
+        let (from, to) = (dir.join("a.pgn"), dir.join("b.pgn"));
+        std::fs::write(&from, "new").unwrap();
+        std::fs::write(&to, "old").unwrap();
+        assert!(save_to(&from, &to, false).unwrap().confirm);
+        assert_eq!(std::fs::read_to_string(&to).unwrap(), "old");
+        assert!(!save_to(&from, &to, true).unwrap().confirm);
+        assert_eq!(std::fs::read_to_string(&to).unwrap(), "new");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

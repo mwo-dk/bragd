@@ -4,6 +4,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod help;
+mod databases;
+mod helper_link;
+mod knowledge;
 mod rules;
 mod throw;
 mod wizard;
@@ -238,7 +241,10 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(Ctx { cfg: RwLock::new(cfg) })
+        .manage(knowledge::Knowledge::default())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            knowledge::start(app.handle());
             let mut window = app.config().app.windows.first().cloned().ok_or("no window in the config")?;
             if let Some((w, h)) = window_size() {
                 (window.width, window.height) = (w, h);
@@ -268,6 +274,37 @@ fn main() {
             wizard::wizard_seen,
             wizard::tour_seen,
             wizard::whats_new,
+            knowledge::helper_status,
+            knowledge::helper_retry,
+            knowledge::job_cancel,
+            knowledge::db_pick,
+            knowledge::db_open,
+            knowledge::db_current,
+            knowledge::db_close,
+            knowledge::db_rows,
+            knowledge::db_game,
+            knowledge::db_import,
+            knowledge::db_save_as,
+            knowledge::db_save_to,
+            knowledge::libraries_list,
+            knowledge::library_rows,
+            knowledge::library_game,
+            knowledge::library_review,
+            knowledge::library_dedupe,
+            knowledge::library_prune,
+            knowledge::priority_get,
+            knowledge::priority_save,
+            knowledge::slices_list,
+            knowledge::slice_save,
+            knowledge::slice_materialise,
+            knowledge::position_key,
+            knowledge::sources_list,
+            knowledge::source_set,
+            knowledge::source_add,
+            knowledge::source_fetch,
+            knowledge::source_strip,
+            knowledge::disk_report,
+            knowledge::disk_limits_set,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Bragd");

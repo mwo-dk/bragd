@@ -114,7 +114,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 12] = [
+const OTHER_OPTS: [Opt; 14] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -172,6 +172,9 @@ const OTHER_OPTS: [Opt; 12] = [
         Privacy,
         "setting.check_updates",
     ),
+    // Disk watch's limits in bytes; each item's own limit is set on the Disk use page.
+    opt("disk_total", &["disk", "total"], Privacy, "setting.disk_total"),
+    opt("disk_free_below", &["disk", "free_below"], Privacy, "setting.disk_free_below"),
 ];
 
 /// Every option: the Families and Variants, then the rest, each in its area's order.
@@ -204,7 +207,16 @@ pub fn values(cfg: &Config) -> serde_json::Map<String, Value> {
 /// Writes one option's new value to config.toml.
 pub fn save(name: &str, value: &Value) -> Result<Config, String> {
     let o = find(name).ok_or_else(|| format!("no setting {name}"))?;
-    Config::save_value(o.path, to_toml(value)?)
+    Config::save_value(o.path, to_toml(&as_number(o, value)?)?)
+}
+
+/// A number typed into a text field, for an option that holds a number.
+fn as_number(o: &Opt, value: &Value) -> Result<Value, String> {
+    let default = values(&Config::default()).remove(o.name);
+    match (default, value) {
+        (Some(Value::Number(_)), Value::String(s)) => s.trim().parse::<u64>().map(Value::from).map_err(|_| format!("{name}: {s} is not a whole number", name = o.name)),
+        _ => Ok(value.clone()),
+    }
 }
 
 fn to_toml(v: &Value) -> Result<toml_edit::Value, String> {
@@ -343,6 +355,16 @@ mod tests {
         assert_eq!(v["source_priority"], serde_json::json!(["twic", "lichess"]));
         assert_eq!(v.len(), options().count());
         assert!(v.values().all(|x| !x.is_null()));
+        assert_eq!(v["disk_total"], 0);
+    }
+
+    #[test]
+    fn settings_a_number_typed_as_text_is_saved_as_a_number() {
+        let total = find("disk_total").unwrap();
+        assert_eq!(as_number(total, &Value::from(" 5000000000 ")).unwrap(), Value::from(5_000_000_000u64));
+        assert!(as_number(total, &Value::from("5 GB")).is_err());
+        let theme = find("theme").unwrap();
+        assert_eq!(as_number(theme, &Value::from("42")).unwrap(), Value::from("42"));
     }
 
     #[test]

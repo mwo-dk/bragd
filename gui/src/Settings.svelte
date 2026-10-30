@@ -5,6 +5,7 @@
   import { guide } from "./guide.svelte.js";
   import FamilyToggles from "./FamilyToggles.svelte";
   import SettingsExtras from "./SettingsExtras.svelte";
+  import DiskUse from "./DiskUse.svelte";
 
   /** @type {{ snap: any, save: (name: string, value: any) => void }} */
   let { snap, save } = $props();
@@ -14,7 +15,8 @@
     if (guide.area) [area, guide.area] = [guide.area, null];
   });
 
-  const opts = $derived(snap.settings.filter((/** @type {any} */ o) => o.area === area && o.area !== "families"));
+  const opts = $derived(snap.settings.filter((/** @type {any} */ o) => o.area === area && o.area !== "families" && !o.name.startsWith("disk_")));
+  const byName = $derived(new Map(snap.settings.map((/** @type {any} */ o) => [o.name, o])));
   const shown = $derived(snap.families.filter((/** @type {any} */ f) => f.shown));
   const variantsOn = $derived(shown.reduce((/** @type {number} */ n, /** @type {any} */ f) => n + f.variants.filter((/** @type {any} */ v) => v.on).length, 0));
 
@@ -82,6 +84,8 @@
           {#if o.hint}<p class="hint">{o.hint}</p>{/if}
         </div>
       {/each}
+      <!-- Disk watch's limits (disk_total, disk_free_below and each item's) are set here. -->
+      {#if area === "privacy"}<DiskUse />{/if}
     </section>
   </div>
 </section>

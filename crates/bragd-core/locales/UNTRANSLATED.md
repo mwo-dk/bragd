@@ -336,3 +336,248 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - **uk**: nothing more
 - **zh-SG**: nothing more
 - **zh-TW**: nothing more
+
+407 keys:
+- `db.bad_position`
+- `db.capped`
+- `db.col.black`
+- `db.col.black_elo`
+- `db.col.date`
+- `db.col.eco`
+- `db.col.event`
+- `db.col.moves`
+- `db.col.number`
+- `db.col.result`
+- `db.col.white`
+- `db.col.white_elo`
+- `db.downloaded`
+- `db.filter_opening`
+- `db.filter_player`
+- `db.game_files`
+- `db.games`
+- `db.import`
+- `db.no_board`
+- `db.no_game`
+- `db.none_hint`
+- `db.none_open`
+- `db.open`
+- `db.overwrite`
+- `db.overwrite_title`
+- `db.overwrite_yes`
+- `db.read_error`
+- `db.reading`
+- `db.save_as`
+- `db.saved`
+- `db.tab.disk`
+- `db.tab.files`
+- `db.tab.libraries`
+- `db.tab.sources`
+- `db.unplayable`
+- `disk.auto.delete_oldest`
+- `disk.auto.pause`
+- `disk.auto.strip`
+- `disk.auto_hint`
+- `disk.auto_title`
+- `disk.bad_size`
+- `disk.external`
+- `disk.external_hint`
+- `disk.free`
+- `disk.free_below`
+- `disk.intro`
+- `disk.item`
+- `disk.limit`
+- `disk.limit_of`
+- `disk.no_limit`
+- `disk.prune`
+- `disk.prune_hint`
+- `disk.prune_title`
+- `disk.runtime`
+- `disk.save`
+- `disk.saved`
+- `disk.size`
+- `disk.size_hint`
+- `disk.title`
+- `disk.total`
+- `disk.total_limit`
+- `disk.unknown`
+- `disk.where`
+- `helper.active`
+- `helper.connecting`
+- `helper.idle`
+- `helper.lost`
+- `helper.odd_reply`
+- `helper.off`
+- `helper.paused`
+- `helper.retry`
+- `helper.title`
+- `helper.unreachable`
+- `job.count`
+- `job.count_of`
+- `job.dedupe`
+- `job.export`
+- `job.fetch`
+- `job.import`
+- `job.prune`
+- `job.prune_preview`
+- `job.report_files`
+- `job.report_library`
+- `job.report_nothing`
+- `job.report_removed`
+- `job.status.cancelled`
+- `job.status.done`
+- `job.status.failed`
+- `job.status.queued`
+- `job.status.running`
+- `job.strip`
+- `job.strip_preview`
+- `job.waiting`
+- `jobs.none`
+- `jobs.title`
+- `lib.dedupe`
+- `lib.dedupe_hint`
+- `lib.duplicates`
+- `lib.games`
+- `lib.moves`
+- `lib.name`
+- `lib.near`
+- `lib.near_hint`
+- `lib.none`
+- `lib.size`
+- `lib.tab.games`
+- `lib.tab.review`
+- `lib.tab.slice`
+- `priority.add`
+- `priority.add_hint`
+- `priority.down`
+- `priority.hint`
+- `priority.remove`
+- `priority.saved`
+- `priority.title`
+- `priority.up`
+- `replay.back`
+- `replay.evp`
+- `replay.first`
+- `replay.forward`
+- `replay.headers`
+- `replay.keys`
+- `replay.last`
+- `replay.steps`
+- `setting.disk_free_below`
+- `setting.disk_free_below.hint`
+- `setting.disk_total`
+- `setting.disk_total.hint`
+- `slice.any`
+- `slice.clear`
+- `slice.date_from`
+- `slice.date_to`
+- `slice.eco_from`
+- `slice.eco_to`
+- `slice.keep`
+- `slice.keep_hint`
+- `slice.kept`
+- `slice.live`
+- `slice.name`
+- `slice.no_name`
+- `slice.players`
+- `slice.players_hint`
+- `slice.position`
+- `slice.position_hint`
+- `slice.position_set`
+- `slice.rating_min`
+- `slice.result`
+- `slice.save`
+- `slice.saved`
+- `slice.use_position`
+- `slice.variant`
+- `source.add`
+- `source.add_hint`
+- `source.add_name`
+- `source.add_title`
+- `source.after_import.delete`
+- `source.after_import.keep`
+- `source.after_import.strip`
+- `source.after_import_label`
+- `source.any_family`
+- `source.days_ago`
+- `source.disk_cap`
+- `source.fetch_now`
+- `source.intro`
+- `source.last`
+- `source.less`
+- `source.more`
+- `source.never`
+- `source.no_name`
+- `source.only_unmetered`
+- `source.paused`
+- `source.save`
+- `source.saved`
+- `source.schedule`
+- `source.schedule.daily`
+- `source.schedule.monthly`
+- `source.schedule.off`
+- `source.schedule.weekly`
+- `source.size`
+- `source.size_unknown`
+- `source.today`
+- `source.url`
+- `strip.apply`
+- `strip.apply_hint`
+- `strip.clear`
+- `strip.date_from`
+- `strip.date_to`
+- `strip.hint`
+- `strip.min_plies`
+- `strip.min_rating`
+- `strip.players`
+- `strip.players_hint`
+- `strip.preview`
+- `strip.preview_hint`
+- `strip.rated_only`
+- `strip.rating_of.average`
+- `strip.rating_of.both`
+- `strip.rating_of.either`
+- `strip.rating_of_label`
+- `strip.results`
+- `strip.speed.blitz`
+- `strip.speed.bullet`
+- `strip.speed.classical`
+- `strip.speed.correspondence`
+- `strip.speed.rapid`
+- `strip.speeds`
+- `strip.title`
+- `strip.titled_only`
+- `strip.variants`
+- `tour.analyse.text`
+- `tour.analyse.title`
+- `tour.play.text`
+- `tour.play.title`
+- `tour.tablebases.text`
+- `tour.tablebases.title`
+- `tour.update.text`
+- `tour.update.title`
+- **ca**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **cs**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **da**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **de**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **el**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **es-AR**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **et**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **eu**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **fa**: `theme.aqua`, `theme.dark`, `theme.light`, `theme.macos`, `theme.macos-dark`, `theme.midnight`, `theme.nord`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win11-dark`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **fi**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **fr**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **he**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **hy**: `theme.aqua`, `theme.dark`, `theme.light`, `theme.macos`, `theme.macos-dark`, `theme.midnight`, `theme.nord`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win11-dark`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **it**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **ja**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **ka**: `theme.aqua`, `theme.dark`, `theme.light`, `theme.macos`, `theme.macos-dark`, `theme.midnight`, `theme.nord`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win11-dark`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **ko**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **lt**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **lv**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **nb**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **nl**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **nn**: `feature.update.a1`, `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **pl**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **sv**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **uk**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+219 keys:

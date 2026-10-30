@@ -749,6 +749,35 @@ impl Library {
         let rows = st.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
+
+    /// The Games merged from more than one Source, by id, at most `limit` of them: the
+    /// Duplicates found, for review.
+    pub fn merged(&self, limit: usize) -> Result<Vec<i64>> {
+        let mut st = self.conn.prepare("SELECT game_id FROM game_sources GROUP BY game_id HAVING count(*) > 1 ORDER BY game_id LIMIT ?")?;
+        let rows = st.query_map([limit as i64], |r| r.get(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// A Game as kept, to show it: its Family, Variant, start position, main line and result.
+    pub fn stored(&self, id: i64) -> Result<Stored> {
+        let (family, variant, start, moves, result) = self.conn.query_row("SELECT family, variant, start, moves, result FROM games WHERE id = ?", [id], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get::<_, String>(3)?, r.get(4)?))
+        })?;
+        Ok(Stored { id, family, variant, start, moves: moves.split_whitespace().map(String::from).collect(), result, headers: self.headers(id)? })
+    }
+}
+
+/// A Game as a Library keeps it (`Library::stored`).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Stored {
+    pub id: i64,
+    pub family: String,
+    pub variant: String,
+    /// `None` for the Variant's usual start.
+    pub start: Option<String>,
+    pub moves: Vec<String>,
+    pub result: String,
+    pub headers: Map<String, Value>,
 }
 
 /// `Library::add` inside the transaction `tx`; with the Near-duplicate pairs it found.
@@ -932,6 +961,10 @@ pub(crate) mod tests {
         // Importing the same file again records nothing new.
         assert_eq!(import(&mut lib, &twic, "twic").merged, 1);
         assert_eq!(lib.sources(1).unwrap().len(), 2);
+        assert_eq!(lib.merged(10).unwrap(), [1]);
+        let s = lib.stored(1).unwrap();
+        assert_eq!((s.family.as_str(), s.variant.as_str(), s.start.as_deref(), s.moves.len()), ("chess", "standard", None, 82));
+        assert_eq!(&s.moves[..2], ["Nf3", "Nf6"]);
         // With Lichess ranked first, merging again gives Lichess's spelling.
         lib.set_priority(&["lichess", "twic"]);
         assert_eq!(lib.merge_again(&|| false, &mut |_, _| {}).unwrap(), 1);

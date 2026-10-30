@@ -13,7 +13,6 @@ tauri-build = { version = "2", features = [] }
 bragd-core = { path = "../../crates/bragd-core" }
 bragd-games = { path = "../../crates/bragd-games" }
 bragd-engines = { path = "../../crates/bragd-engines" }
-bragd-helper = { path = "../../crates/bragd-helper" }
 # Settings opens config.toml in the system's editor and pages in the browser, from Rust.
 tauri-plugin-opener = "2"
 # No `devtools` feature: a release build has no inspector.
@@ -22,6 +21,12 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # The Rules pages are the Markdown in docs/rules, compiled in and turned into HTML here.
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
+# The Helper: its connection, its requests, Sources and Disk watch (bragd-helper).
+bragd-helper = { path = "../../crates/bragd-helper" }
+# Foreign databases read in place, Libraries and Slices.
+bragd-library = { path = "../../crates/bragd-library" }
+# The file dialog for opening and saving Foreign databases, called from Rust only.
+tauri-plugin-dialog = "2"
 
 [features]
 # Serve the built frontend (gui/dist) from inside the binary. Without it a plain `cargo build`

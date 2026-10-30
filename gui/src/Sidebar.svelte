@@ -3,12 +3,13 @@
   // or more are on, one Family's items at the top when only it is, and always Settings, Help and
   // What's new.
   import { t } from "./i18n.svelte.js";
+  import HelperStatus from "./HelperStatus.svelte";
   // The rune wordmark: outlines from Noto Sans Runic, drawn in the sidebar's gold.
   import wordmark from "../../assets/brand/wordmark-runes.svg?raw";
   const runes = wordmark.replaceAll("#004225", "currentColor");
 
-  /** @type {{ snap: any, page: any, collapsed: boolean, go: (page: any) => void, toggle: () => void }} */
-  let { snap, page, collapsed, go, toggle } = $props();
+  /** @type {{ snap: any, page: any, collapsed: boolean, go: (page: any) => void, toggle: () => void, slices: Record<string, any[]> }} */
+  let { snap, page, collapsed, go, toggle, slices } = $props();
   /** Families folded open. @type {string[]} */
   let open = $state([]);
 
@@ -50,6 +51,17 @@
             >
               {t(`sidebar.${item}`)}
             </button>
+            {#if item === "databases"}
+              {#each [...(slices[f.id] ?? []), ...(slices[""] ?? [])] as sl (sl.library + sl.name)}
+                <button
+                  class="item slice"
+                  class:current={isCurrent(f.id, item) && page.slice?.name === sl.name && page.slice?.library === sl.library}
+                  onclick={() => go({ kind: "item", family: f.id, item, slice: { library: sl.library, name: sl.name } })}
+                >
+                  {sl.name}
+                </button>
+              {/each}
+            {/if}
           {/each}
         {/if}
       {/each}
@@ -60,6 +72,7 @@
       <button class:current={page.kind === "whats_new"} onclick={() => go({ kind: "whats_new" })}>{t("sidebar.whats_new")}</button>
     </div>
   {/if}
+  <HelperStatus {collapsed} current={page.kind === "jobs"} open={() => go({ kind: "jobs" })} />
   <button class="fold" onclick={toggle} title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")} aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}>
     {collapsed ? "»" : "«"}
   </button>
@@ -134,6 +147,10 @@
   }
   .nested {
     padding-inline-start: 1.5rem;
+  }
+  .slice {
+    padding-inline-start: 2.6rem;
+    font-size: 0.9em;
   }
   kbd {
     float: inline-end;

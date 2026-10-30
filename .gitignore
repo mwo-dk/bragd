@@ -7,3 +7,4 @@ node_modules
 *.swp
 /.claude/worktrees
 __pycache__
+/gui/src-tauri/binaries
