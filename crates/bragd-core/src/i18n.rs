@@ -204,12 +204,46 @@ pub fn find(code: &str) -> Option<&'static Language> {
     LANGUAGES.iter().find(|l| l.code == code)
 }
 
+/// The key of the text `shown` in the language `code`: the one that says exactly that (case
+/// and spaces aside), else the shortest that holds it. None for an empty or unknown text.
+pub fn key_of(code: &str, shown: &str) -> Option<String> {
+    let want = shown.trim().to_lowercase();
+    if want.is_empty() {
+        return None;
+    }
+    let all = catalogue(code);
+    let text = |v: &serde_json::Value| match v {
+        serde_json::Value::String(s) => s.to_lowercase(),
+        v => v
+            .get("other")
+            .and_then(|o| o.as_str())
+            .unwrap_or("")
+            .to_lowercase(),
+    };
+    let mut keys: Vec<(&String, String)> = all.iter().map(|(k, v)| (k, text(v))).collect();
+    keys.sort();
+    keys.iter()
+        .find(|(_, t)| t.trim() == want)
+        .or_else(|| {
+            keys.iter()
+                .filter(|(_, t)| t.contains(&want))
+                .min_by_key(|(_, t)| t.len())
+        })
+        .map(|(k, _)| k.to_string())
+}
+
 /// *Suggest a better translation*: a new GitHub issue in the browser, its title and body
-/// naming only the language `code` and this version. Bragd sends nothing itself.
-pub fn suggest_url(code: &str) -> String {
-    let title = format!("Translation ({code}): ");
+/// naming only the language `code`, this version and, when the user typed the text to mend
+/// (`shown`), that text and its key. Bragd sends nothing itself.
+pub fn suggest_url(code: &str, shown: &str) -> String {
+    let key = key_of(code, shown);
+    let title = format!("Translation ({code}): {}", key.as_deref().unwrap_or(""));
+    let now = match &key {
+        Some(k) => format!("Key: {k}\nIt says now: {}\n", tr_in(code, k)),
+        None => String::new(),
+    };
     let body = format!(
-        "Language: {code}\nBragd {}\n\nWhere the text shows, and what it says now:\n\n\nWhat it should say:\n",
+        "Language: {code}\nBragd {}\n{now}\nWhere the text shows, and what it says now:\n\n\nWhat it should say:\n",
         env!("CARGO_PKG_VERSION")
     );
     // Everything but the unreserved characters percent-encoded, byte by byte.
@@ -666,10 +700,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn i18n_suggest_url_names_only_the_language_and_version() {
-        let url = suggest_url("de-CH");
+    fn i18n_suggest_url_names_only_the_language_version_and_text() {
+        let url = suggest_url("de-CH", "");
         assert!(
             url.starts_with("https://github.com/mwo-dk/bragd/issues/new?title=Translation%20%28de-CH%29%3A%20&body=Language%3A%20de-CH%0ABragd%20"),
+            "{url}"
+        );
+        assert_eq!(
+            key_of(REFERENCE, " settings "),
+            Some("settings.title".into())
+        );
+        assert_eq!(
+            key_of(REFERENCE, "fold the sidebar"),
+            Some("sidebar.collapse".into())
+        );
+        assert_eq!(key_of(REFERENCE, "zzzz no such text"), None);
+        let url = suggest_url(REFERENCE, "Settings");
+        assert!(
+            url.contains("title=Translation%20%28en-GB%29%3A%20settings.title&"),
+            "{url}"
+        );
+        assert!(
+            url.contains("Key%3A%20settings.title%0AIt%20says%20now%3A%20Settings"),
             "{url}"
         );
     }

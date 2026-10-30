@@ -11,3 +11,4 @@ pub mod state;
 pub mod themes;
 pub mod tour;
 pub mod update;
+pub mod wizard;

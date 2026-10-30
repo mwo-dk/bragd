@@ -27,7 +27,9 @@ pub const FEATURES: &[Feature] = &[
     f("tablebases", "knowledge/tablebases.md"),
     f("themes", "look/themes.md"),
     f("helper", "knowledge/helper.md"),
+    f("disk", "knowledge/README.md"),
     f("update", "privacy/updates.md"),
+    f("wizard", "getting-started/README.md"),
 ];
 
 /// The feature `id`.
@@ -70,14 +72,34 @@ pub fn entry(f: &Feature) -> Entry {
     }
 }
 
+/// `s` in lower case without accents, so "grunfeld" finds "Grünfeld" and "senet" "sénet".
+/// shortcut: folds Latin letters only (Latin-1 and Latin Extended-A, plus ß); take Unicode
+/// decomposition when a language with other marks needs it.
+pub fn fold(s: &str) -> String {
+    const FROM: &str =
+        "àáâãäåāăąçćĉċčďđèéêëēĕėęěĝğġģĥħìíîïĩīĭįıĵķĺļľŀłñńņňòóôõöøōŏőŕŗřśŝşšţťŧùúûüũūŭůűųŵýÿŷźżž";
+    const TO: &str =
+        "aaaaaaaaacccccddeeeeeeeeegggghhiiiiiiiiijklllllnnnnooooooooorrrsssstttuuuuuuuuuuwyyyzzz";
+    s.to_lowercase()
+        .chars()
+        .flat_map(|c| match c {
+            'ß' => vec!['s', 's'],
+            'æ' => vec!['a', 'e'],
+            'œ' => vec!['o', 'e'],
+            c => vec![
+                FROM.chars()
+                    .position(|f| f == c)
+                    .and_then(|i| TO.chars().nth(i))
+                    .unwrap_or(c),
+            ],
+        })
+        .collect()
+}
+
 /// The features as F1 lists them, filtered by `query`: each whose title, line, questions or
-/// answers hold every word of it, case aside.
+/// answers hold every word of it, case and accents aside.
 pub fn list(query: &str) -> Vec<Entry> {
-    let words: Vec<String> = query
-        .to_lowercase()
-        .split_whitespace()
-        .map(String::from)
-        .collect();
+    let words: Vec<String> = fold(query).split_whitespace().map(String::from).collect();
     FEATURES
         .iter()
         .map(entry)
@@ -89,8 +111,8 @@ pub fn list(query: &str) -> Vec<Entry> {
                 e.qa.iter()
                     .map(|(q, a)| format!("{q} {a}"))
                     .collect::<String>()
-            )
-            .to_lowercase();
+            );
+            let hay = fold(&hay);
             words.iter().all(|w| hay.contains(w.as_str()))
         })
         .collect()
@@ -117,5 +139,18 @@ mod tests {
         assert!(all.iter().all(|e| e.qa.len() >= 2 && !e.title.is_empty()));
         assert!(find("update").is_some());
         assert!(list("zzzz-nothing").is_empty());
+        assert_eq!(list("DUPLICATE").len(), list("duplicate").len());
+        assert!(
+            !list("dúplicaté").is_empty(),
+            "accents in the query are ignored"
+        );
+    }
+
+    #[test]
+    fn features_search_ignores_case_and_accents() {
+        assert_eq!(fold("Grünfeld"), "grunfeld");
+        assert_eq!(fold("ÉCHECS Straße Æsir"), "echecs strasse aesir");
+        assert_eq!(fold("Łódź"), "lodz");
+        assert_eq!(fold("象棋"), "象棋", "other scripts stay as they are");
     }
 }

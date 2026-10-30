@@ -2,13 +2,19 @@
   // Settings, built from bragd-core's option descriptors: each option's area, label, hint, value
   // and choices come from Rust, and each change is saved to config.toml there.
   import { t } from "./i18n.svelte.js";
+  import { guide } from "./guide.svelte.js";
+  import FamilyToggles from "./FamilyToggles.svelte";
+  import SettingsExtras from "./SettingsExtras.svelte";
 
   /** @type {{ snap: any, save: (name: string, value: any) => void }} */
   let { snap, save } = $props();
   let area = $state("overview");
+  // A link elsewhere (the wizard, a notice) names the area to open.
+  $effect(() => {
+    if (guide.area) [area, guide.area] = [guide.area, null];
+  });
 
   const opts = $derived(snap.settings.filter((/** @type {any} */ o) => o.area === area && o.area !== "families"));
-  const byName = $derived(new Map(snap.settings.map((/** @type {any} */ o) => [o.name, o])));
   const shown = $derived(snap.families.filter((/** @type {any} */ f) => f.shown));
   const variantsOn = $derived(shown.reduce((/** @type {number} */ n, /** @type {any} */ f) => n + f.variants.filter((/** @type {any} */ v) => v.on).length, 0));
 
@@ -37,24 +43,11 @@
     <section>
       {#if area === "overview"}
         <p>{t("settings.overview", { version: snap.version, families: shown.length, variants: variantsOn })}</p>
+        <SettingsExtras />
       {/if}
 
       {#if area === "families"}
-        {#each snap.families as f}
-          {@const fo = byName.get(`family_${f.id}`)}
-          <fieldset class="family">
-            <legend>
-              <label><input type="checkbox" checked={fo.value} onchange={(e) => save(fo.name, e.currentTarget.checked)} /> {f.name}</label>
-            </legend>
-            {#each f.variants as v}
-              {@const vo = byName.get(`variant_${v.key}`)}
-              <label class="variant">
-                <input type="checkbox" checked={vo.value} disabled={!fo.value} onchange={(e) => save(vo.name, e.currentTarget.checked)} />
-                {v.name}
-              </label>
-            {/each}
-          </fieldset>
-        {/each}
+        <FamilyToggles {snap} {save} />
       {/if}
 
       {#each opts as o (o.name)}
@@ -133,18 +126,6 @@
     margin: 0;
     color: var(--dim);
     font-size: 0.9em;
-  }
-  .family {
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    margin: 0 0 0.6rem;
-    padding: 0.3rem 0.8rem 0.6rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.2rem 1rem;
-  }
-  .family legend {
-    font-weight: 600;
   }
   @media (max-width: 760px) {
     .frame {

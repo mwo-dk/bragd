@@ -18,7 +18,10 @@ ffmpeg with palettegen/paletteuse.
     gif(frames, "first-move.gif")                         # and first-move.png, its first frame
     widths("new-game", lambda d: d.keys("Ctrl+n"))        # new-game-390.png and new-game-1100.png
 
-The window takes the display's size, which the app reads from BRAGD_WINDOW_SIZE (`WxH`).
+The window takes the display's size, which the app reads from BRAGD_WINDOW_SIZE (`WxH`). The
+app runs with BRAGD_OFFLINE=1, so it checks for no update. A demo home without a state.json gets
+one that has seen the install wizard, the tour cards and the hints (SEEN), so they do not cover
+the screen; `Desktop(state={...})` writes the state given instead, `{}` for a first start.
 
 The demo home is $DEMO_HOME (default <tmp>/bragd-cap-<uid>/demo-home, made with demo-home.sh).
 `SANDBOX_ARGS` (extra bwrap arguments) is passed to sandbox.sh; keep the network, the page is
@@ -88,6 +91,9 @@ NAMED = {"Enter": ("Enter", "Enter", 13), "Esc": ("Escape", "Escape", 27), "Tab"
 NAMED.update({f"F{i}": (f"F{i}", f"F{i}", 111 + i) for i in range(1, 13)})
 MODS = {"Alt": 1, "Ctrl": 2, "Meta": 4, "Shift": 8}
 
+# What a demo home has seen: the install wizard, every tour card, and the hints.
+SEEN = {"guide_seen": True, "seen_version": "999.0.0", "hints_shown": {h: 99 for h in ("sidebar", "features", "wizard")}}
+
 
 # Broadway has no screen resolution (-1), which WebKitGTK turns into a page zoom of -1/96: the
 # page lays out at a negative size. The app is started with this (and only the app: WebKit's own
@@ -107,8 +113,8 @@ def _dpi():
 
 
 class Desktop:
-    def __init__(self, args=(), lang="en_GB.UTF-8", size=(1440, 900)):
-        self.args, self.lang, self.size = list(args), lang, size
+    def __init__(self, args=(), lang="en_GB.UTF-8", size=(1440, 900), state=None):
+        self.args, self.lang, self.size, self.state = list(args), lang, size, state
         self.procs, self.n, self.ws, self.wk, self.target, self.profile = [], 0, None, None, None, None
 
     def __enter__(self):
@@ -133,6 +139,10 @@ class Desktop:
             raise RuntimeError(f"something already answers on 127.0.0.1:{busy}: not starting, so no key or picture goes to its app")
         env = _env()
         _dpi()
+        st = Path(env["DEMO_HOME"]) / ".local/share/bragd/state.json"
+        if self.state is not None or not st.exists():
+            st.parent.mkdir(parents=True, exist_ok=True)
+            st.write_text(json.dumps(SEEN if self.state is None else self.state))
         w, h = self.size
         # broadwayd in the sandbox too: GTK hands it the pictures through /dev/shm, which is the
         # sandbox's own. The app waits for the page, so the display has its size first.
@@ -140,7 +150,7 @@ class Desktop:
         go.unlink(missing_ok=True)
         run = (f"broadwayd --address 127.0.0.1 --port {self.port} {self.display} >/dev/null 2>&1 & until [ -e /home/demo/{go.name} ]; do sleep 0.2; done; rm /home/demo/{go.name}; "
                f"exec env LD_PRELOAD={RUNTIME}/dpi96.so GDK_BACKEND=broadway BROADWAY_DISPLAY={self.display} WEBKIT_DISABLE_DMABUF_RENDERER=1 "
-               f'WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:{self.inspector} BRAGD_WINDOW_SIZE={w}x{h} LANG={self.lang} bragd-gui "$@"')
+               f'WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:{self.inspector} BRAGD_WINDOW_SIZE={w}x{h} BRAGD_OFFLINE=1 LANG={self.lang} bragd-gui "$@"')
         self.log = open(RUNTIME / f"gui-{self.port}.log", "w")
         self.procs.append(subprocess.Popen([str(SANDBOX), "sh", "-c", run, "sh", *self.args], env=env, stdout=self.log, stderr=subprocess.STDOUT))
         for _ in range(100):
@@ -299,12 +309,12 @@ class Desktop:
         return frames
 
 
-def widths(name, setup=lambda d: None, args=(), out=HERE):
+def widths(name, setup=lambda d: None, args=(), out=HERE, state=None):
     """`<name>-390.png` and `<name>-1100.png`: the app started at each width, `setup(d)` run to
     reach the screen, then captured. Look at both before calling a UI change done."""
     made = []
     for w, h in WIDTHS.items():
-        with Desktop(args=args, size=(w, h)) as d:
+        with Desktop(args=args, size=(w, h), state=state) as d:
             setup(d)
             d.wait(1)
             path = Path(out) / f"{name}-{w}.png"

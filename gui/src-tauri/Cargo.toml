@@ -12,6 +12,10 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 bragd-core = { path = "../../crates/bragd-core" }
 bragd-games = { path = "../../crates/bragd-games" }
+bragd-engines = { path = "../../crates/bragd-engines" }
+bragd-helper = { path = "../../crates/bragd-helper" }
+# Settings opens config.toml in the system's editor and pages in the browser, from Rust.
+tauri-plugin-opener = "2"
 # No `devtools` feature: a release build has no inspector.
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }

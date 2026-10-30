@@ -237,7 +237,9 @@ fn answered(mut u: Upgrade, st: &AppState) -> Upgrade {
 /// 5 s a request, so run it on a thread. Offline just means "no news". Off: asks nothing.
 pub fn check(cfg: &Config) -> Option<(String, Upgrade)> {
     let mut st = AppState::load();
+    // BRAGD_OFFLINE: tests and screenshots ask nobody, whatever the setting says.
     if due(cfg, &st)
+        && std::env::var_os("BRAGD_OFFLINE").is_none()
         && let Some(latest) = fetch_latest()
     {
         // Read again: a window may have saved the state during the fetch.

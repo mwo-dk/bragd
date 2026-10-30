@@ -3,8 +3,10 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod help;
 mod rules;
 mod throw;
+mod wizard;
 
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -12,17 +14,17 @@ use std::sync::RwLock;
 use bragd_core::config::Config;
 use bragd_core::settings::{self, Area, Sidebar};
 use bragd_core::themes::{self, Appearance};
-use bragd_core::{features, i18n, tour, update};
+use bragd_core::{i18n, update};
 use bragd_games::{Family, GameError, State};
 use serde::Serialize;
 use serde_json::Value;
 
-struct Ctx {
+pub(crate) struct Ctx {
     cfg: RwLock<Config>,
 }
 
 impl Ctx {
-    fn cfg(&self) -> Config {
+    pub(crate) fn cfg(&self) -> Config {
         self.cfg.read().unwrap_or_else(|e| e.into_inner()).clone()
     }
 }
@@ -216,22 +218,6 @@ fn rules_page(family: String) -> Result<rules::Page, String> {
     Ok(rules::page(family))
 }
 
-/// F1 → Features, filtered by `query`.
-#[tauri::command]
-fn feature_list(query: String) -> Vec<features::Entry> {
-    features::list(&query)
-}
-
-/// What's new: every tour card, newest first, with its texts.
-#[tauri::command]
-fn whats_new() -> Vec<(String, String, &'static str)> {
-    tour::CARDS
-        .iter()
-        .rev()
-        .map(|c| (tr(&format!("tour.{}.title", c.id)), tr(&format!("tour.{}.text", c.id)), c.version))
-        .collect()
-}
-
 /// `BRAGD_WINDOW_SIZE=WxH`: the window's size, for screenshots at a given width.
 fn window_size() -> Option<(f64, f64)> {
     let v = std::env::var("BRAGD_WINDOW_SIZE").ok()?;
@@ -250,6 +236,7 @@ fn main() {
     });
     i18n::set_language(i18n::resolve(&cfg.language));
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .manage(Ctx { cfg: RwLock::new(cfg) })
         .setup(|app| {
             let mut window = app.config().app.windows.first().cloned().ok_or("no window in the config")?;
@@ -267,8 +254,20 @@ fn main() {
             game_play,
             game_throw,
             rules_page,
-            feature_list,
-            whats_new,
+            help::feature_list,
+            help::notice_list,
+            help::notice_dismiss,
+            help::update_check,
+            help::open_config,
+            help::suggest_translation,
+            help::open_url,
+            wizard::guide_due,
+            wizard::wizard_open,
+            wizard::wizard_chosen,
+            wizard::wizard_done,
+            wizard::wizard_seen,
+            wizard::tour_seen,
+            wizard::whats_new,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Bragd");

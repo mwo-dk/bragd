@@ -7,7 +7,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 
 ## In every language of its own
 
-198 keys:
+297 keys:
 
 - `board_theme.match`
 - `board_theme.racing`
@@ -41,6 +41,12 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `feature.databases.q2`
 - `feature.databases.title`
 - `feature.databases.what`
+- `feature.disk.a1`
+- `feature.disk.a2`
+- `feature.disk.q1`
+- `feature.disk.q2`
+- `feature.disk.title`
+- `feature.disk.what`
 - `feature.engines.a1`
 - `feature.engines.a2`
 - `feature.engines.q1`
@@ -79,10 +85,18 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `feature.update.a2`
 - `feature.update.q2`
 - `feature.update.what`
+- `feature.wizard.a1`
+- `feature.wizard.a2`
+- `feature.wizard.q1`
+- `feature.wizard.q2`
+- `feature.wizard.title`
+- `feature.wizard.what`
 - `features.filter`
+- `features.none`
 - `features.show_me`
 - `hint.features`
 - `hint.sidebar`
+- `hint.wizard`
 - `look.aqua`
 - `look.beos`
 - `look.crt`
@@ -100,6 +114,13 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `look.win95`
 - `look.winxp`
 - `look.workbench`
+- `move.accept`
+- `move.dead`
+- `move.double`
+- `move.drop`
+- `move.pass`
+- `move.resume`
+- `move.take`
 - `notice.config_refused`
 - `notice.config_unreadable`
 - `notice.disk_fetch_paused`
@@ -108,7 +129,26 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `notice.disk_total_over`
 - `notice.family_off`
 - `notice.family_turn_on`
+- `notice.open_settings`
 - `notice.source_out_of_scope`
+- `page.later`
+- `play.choose`
+- `play.draw`
+- `play.flip`
+- `play.legal`
+- `play.moves`
+- `play.new_game`
+- `play.off`
+- `play.scoring`
+- `play.throw`
+- `play.thrown`
+- `play.to_move`
+- `play.to_throw`
+- `play.undo`
+- `play.variant`
+- `play.wins`
+- `rules.answer`
+- `rules.positions`
 - `setting.board_theme`
 - `setting.board_theme.hint`
 - `setting.check_updates.hint`
@@ -136,10 +176,19 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `settings.area.knowledge`
 - `settings.area.look`
 - `settings.area.online`
+- `settings.open_failed`
+- `settings.overview`
 - `settings.run_wizard`
+- `settings.suggest_which`
 - `settings.update_host`
 - `side.attackers`
+- `side.cho`
+- `side.dark`
 - `side.defenders`
+- `side.evens`
+- `side.han`
+- `side.light`
+- `side.odds`
 - `sidebar.analyse`
 - `sidebar.collapse`
 - `sidebar.databases`
@@ -149,26 +198,44 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `sidebar.play`
 - `sidebar.rules`
 - `sidebar.tablebases`
+- `theme.aqua`
+- `theme.atarist`
+- `theme.bbc`
+- `theme.beos`
+- `theme.c64`
+- `theme.cpc`
+- `theme.group.mac`
+- `theme.group.windows`
+- `theme.macos`
+- `theme.midnight`
+- `theme.msx`
+- `theme.next`
+- `theme.nord`
+- `theme.os2`
+- `theme.platinum`
 - `theme.racing-green`
 - `theme.racing-green-dark`
-- `tour.analyse.text`
-- `tour.analyse.title`
+- `theme.spectrum`
+- `theme.system7`
+- `theme.win10`
+- `theme.win11`
+- `theme.win31`
+- `theme.win7`
+- `theme.win95`
+- `theme.winxp`
+- `theme.workbench`
 - `tour.databases.text`
 - `tour.databases.title`
+- `tour.disk.text`
+- `tour.disk.title`
 - `tour.engines.text`
 - `tour.engines.title`
 - `tour.families.text`
 - `tour.families.title`
 - `tour.helper.text`
 - `tour.helper.title`
-- `tour.play.text`
-- `tour.play.title`
-- `tour.tablebases.text`
-- `tour.tablebases.title`
 - `tour.themes.text`
 - `tour.themes.title`
-- `tour.update.text`
-- `tour.update.title`
 - `update.download`
 - `update.how`
 - `update.lags`
@@ -198,76 +265,74 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `variant.tablut`
 - `variant.ur`
 - `variant.xiangqi`
+- `whats_new.card`
+- `whats_new.version`
+- `wizard.big`
+- `wizard.close`
+- `wizard.engine_found`
+- `wizard.engine_get`
+- `wizard.engine_missing`
+- `wizard.engines`
+- `wizard.engines_none`
+- `wizard.failed`
+- `wizard.families`
+- `wizard.helper`
+- `wizard.image_ready`
+- `wizard.image_unpublished`
+- `wizard.knowledge`
+- `wizard.languages`
 - `wizard.later`
+- `wizard.no_room`
+- `wizard.nothing`
+- `wizard.online`
+- `wizard.preview`
+- `wizard.recommended`
+- `wizard.size_daily`
+- `wizard.size_monthly`
+- `wizard.size_off`
+- `wizard.size_once`
+- `wizard.size_weekly`
+- `wizard.starting`
 - `wizard.step1`
 - `wizard.step2`
 - `wizard.step3`
 - `wizard.step4`
 - `wizard.step5`
 - `wizard.step6`
+- `wizard.summary`
+- `wizard.syzygy`
 - `wizard.title`
+- `wizard.total`
 - `wizard.welcome`
+- `wizard.will_download`
+- `wizard.will_fetch`
 
 ## Also in English, by locale
 
-- **ca**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **cs**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **da**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **de**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **el**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **es-AR**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **et**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **eu**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **fa**: `theme.aqua`, `theme.dark`, `theme.light`, `theme.macos`, `theme.macos-dark`, `theme.midnight`, `theme.nord`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win11-dark`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **fi**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **fr**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **he**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **hy**: `theme.aqua`, `theme.dark`, `theme.light`, `theme.macos`, `theme.macos-dark`, `theme.midnight`, `theme.nord`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win11-dark`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **it**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **ja**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **ka**: `theme.aqua`, `theme.dark`, `theme.light`, `theme.macos`, `theme.macos-dark`, `theme.midnight`, `theme.nord`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win11-dark`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **ko**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **lt**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **lv**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **nb**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **nl**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **nn**: `feature.update.a1`, `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **pl**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **sv**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
-- **uk**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **ca**: `side.gote`, `side.sente`
+- **cs**: `side.gote`, `side.sente`
+- **da**: `side.gote`, `side.sente`
+- **de**: `side.gote`, `side.sente`
+- **el**: nothing more
+- **es-AR**: `side.gote`, `side.sente`
+- **et**: `side.gote`, `side.sente`
+- **eu**: `side.gote`, `side.sente`
+- **fa**: `theme.dark`, `theme.light`, `theme.macos-dark`, `theme.win11-dark`
+- **fi**: `side.gote`, `side.sente`
+- **fr**: `side.gote`, `side.sente`
+- **he**: nothing more
+- **hy**: `theme.dark`, `theme.light`, `theme.macos-dark`, `theme.win11-dark`
+- **it**: `side.gote`, `side.sente`
+- **ja**: nothing more
+- **ka**: `theme.dark`, `theme.light`, `theme.macos-dark`, `theme.win11-dark`
+- **ko**: nothing more
+- **lt**: `side.gote`, `side.sente`
+- **lv**: `side.gote`, `side.sente`
+- **nb**: `side.gote`, `side.sente`
+- **nl**: `help.title`, `side.gote`, `side.sente`, `sidebar.help`, `theme.amber`
+- **nn**: `feature.update.a1`, `side.gote`, `side.sente`
+- **pl**: `side.gote`, `side.sente`
+- **sv**: `side.gote`, `side.sente`
+- **uk**: nothing more
 - **zh-SG**: nothing more
 - **zh-TW**: nothing more
-
-219 keys:
-- `move.accept`
-- `move.dead`
-- `move.double`
-- `move.drop`
-- `move.pass`
-- `move.resume`
-- `move.take`
-- `page.later`
-- `play.choose`
-- `play.draw`
-- `play.flip`
-- `play.legal`
-- `play.moves`
-- `play.new_game`
-- `play.off`
-- `play.scoring`
-- `play.throw`
-- `play.thrown`
-- `play.to_move`
-- `play.to_throw`
-- `play.undo`
-- `play.variant`
-- `play.wins`
-- `rules.answer`
-- `rules.positions`
-- `settings.overview`
-- `side.cho`
-- `side.dark`
-- `side.evens`
-- `side.han`
-- `side.light`
-- `side.odds`

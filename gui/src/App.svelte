@@ -8,6 +8,11 @@
   import Settings from "./Settings.svelte";
   import Play from "./Play.svelte";
   import Rules from "./Rules.svelte";
+  import Help from "./Help.svelte";
+  import WhatsNew from "./WhatsNew.svelte";
+  import Wizard from "./Wizard.svelte";
+  import Notices from "./Notices.svelte";
+  import { guide } from "./guide.svelte.js";
   import splash from "../../assets/brand/splash.svg";
 
   /** @type {any} */
@@ -16,11 +21,6 @@
   let page = $state({ kind: "settings" });
   let collapsed = $state(window.innerWidth < 760);
   let splashing = $state(true);
-  let query = $state("");
-  /** @type {any[]} */
-  let features = $state([]);
-  /** @type {[string, string, string][]} */
-  let cards = $state([]);
 
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   // At most about a second, and without the fade when motion is reduced.
@@ -43,6 +43,13 @@
     apply(s);
     const first = s.families.find((/** @type {any} */ f) => f.shown);
     if (first) page = { kind: "item", family: first.id, item: "play" };
+    // The wizard on a first start, the tour cards after an upgrade; then notices and hints,
+    // and the update check (which may take a few seconds).
+    api.guideDue().then((d) => ([guide.wizard, guide.cards] = [d.wizard, d.cards]));
+    api.noticeList(true).then((n) => {
+      guide.notices = n;
+      api.updateCheck().then((all) => (guide.notices = [...all, ...guide.notices.filter((x) => /^(hint|local):/.test(x.id))]));
+    });
   });
 
   const save = (/** @type {string} */ name, /** @type {any} */ value) => api.saveSetting(name, value).then(apply);
@@ -51,13 +58,6 @@
     page = p;
     if (window.innerWidth < 760) collapsed = true;
   }
-
-  $effect(() => {
-    if (page.kind === "help") api.featureList(query).then((f) => (features = f));
-  });
-  $effect(() => {
-    if (page.kind === "whats_new") api.whatsNew().then((c) => (cards = c));
-  });
 
   const family = $derived(page.kind === "item" ? snap?.families.find((/** @type {any} */ f) => f.id === page.family) : null);
 </script>
@@ -79,32 +79,9 @@
       {#if page.kind === "settings"}
         <Settings {snap} {save} />
       {:else if page.kind === "help"}
-        <section class="help">
-          <h1>{t("features.title")}</h1>
-          <input type="text" bind:value={query} placeholder={t("features.filter")} aria-label={t("features.filter")} />
-          {#each features as f (f.id)}
-            <article class="panel">
-              <h2>{f.title}</h2>
-              <p>{f.what}</p>
-              <dl>
-                {#each f.qa as [q, a]}
-                  <dt>{q}</dt>
-                  <dd>{a}</dd>
-                {/each}
-              </dl>
-            </article>
-          {/each}
-        </section>
+        <Help />
       {:else if page.kind === "whats_new"}
-        <section class="news">
-          <h1>{t("sidebar.whats_new")}</h1>
-          {#each cards as [title, text, version]}
-            <article class="panel">
-              <h2>{title} <small>{version}</small></h2>
-              <p>{text}</p>
-            </article>
-          {/each}
-        </section>
+        <WhatsNew />
       {:else if family && page.item === "play"}
         {#key family.id}
           <Play {family} />
@@ -119,6 +96,10 @@
       {/if}
     </main>
   </div>
+  {#if guide.wizard || guide.cards.length}
+    <Wizard {snap} {save} {go} />
+  {/if}
+  <Notices {snap} {go} />
 {/if}
 
 <style>
@@ -159,22 +140,5 @@
     100% {
       opacity: 0;
     }
-  }
-  .help,
-  .news {
-    max-width: 48rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-  dt {
-    font-weight: 600;
-  }
-  dd {
-    margin: 0 0 0.5rem;
-  }
-  small {
-    color: var(--dim);
-    font-weight: normal;
   }
 </style>

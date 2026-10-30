@@ -15,18 +15,46 @@ const fn card(version: &'static str, id: &'static str) -> Card {
     Card { version, id }
 }
 
-/// Every card, oldest version first.
+/// Every card, oldest version first. A card may carry the next minor version, the release
+/// being prepared: the version is raised only by the release (`packaging/release-pr.py`).
 pub const CARDS: &[Card] = &[
-    card("0.1.0", "families"),
-    card("0.1.0", "play"),
-    card("0.1.0", "analyse"),
-    card("0.1.0", "databases"),
-    card("0.1.0", "engines"),
-    card("0.1.0", "tablebases"),
-    card("0.1.0", "themes"),
-    card("0.1.0", "helper"),
-    card("0.1.0", "update"),
+    card("0.2.0", "families"),
+    card("0.2.0", "themes"),
+    card("0.2.0", "databases"),
+    card("0.2.0", "engines"),
+    card("0.2.0", "helper"),
+    card("0.2.0", "disk"),
 ];
+
+/// A card as the app shows it, in the current language.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct View {
+    pub id: &'static str,
+    pub version: &'static str,
+    pub title: String,
+    pub text: String,
+}
+
+pub fn view(c: &Card) -> View {
+    View {
+        id: c.id,
+        version: c.version,
+        title: crate::i18n::tr(&format!("tour.{}.title", c.id), &[]),
+        text: crate::i18n::tr(&format!("tour.{}.text", c.id), &[]),
+    }
+}
+
+/// What's new in the sidebar: every version, newest first, with its cards.
+pub fn by_version() -> Vec<(&'static str, Vec<View>)> {
+    let mut out: Vec<(&'static str, Vec<View>)> = vec![];
+    for c in CARDS.iter().rev() {
+        match out.last_mut() {
+            Some((v, list)) if *v == c.version => list.push(view(c)),
+            _ => out.push((c.version, vec![view(c)])),
+        }
+    }
+    out
+}
 
 /// The cards newer than `seen_version`. None on a first start (no version seen): the install
 /// wizard shows instead.
@@ -45,9 +73,18 @@ fn since(cards: &[Card], seen: &str) -> Vec<Card> {
         .collect()
 }
 
-/// The cards have been seen, up to this version.
+/// The cards have been seen, up to this version or the newest card, whichever is later.
 pub fn seen(state: &mut crate::state::AppState) {
-    state.seen_version = crate::update::VERSION.to_string();
+    state.seen_version = newest(CARDS).to_string();
+}
+
+fn newest(cards: &[Card]) -> &'static str {
+    cards
+        .iter()
+        .map(|c| c.version)
+        .fold(crate::update::VERSION, |a, b| {
+            if crate::update::is_newer(a, b) { b } else { a }
+        })
 }
 
 #[cfg(test)]
@@ -66,6 +103,10 @@ mod tests {
         let mut st = crate::state::AppState::default();
         seen(&mut st);
         assert!(cards_since(&st.seen_version).is_empty());
+        assert_eq!(newest(&cards), "0.10.0");
+        assert_eq!(newest(&[]), crate::update::VERSION);
+        let all: usize = by_version().iter().map(|(_, l)| l.len()).sum();
+        assert_eq!(all, CARDS.len());
     }
 
     #[test]
@@ -86,11 +127,13 @@ mod tests {
                 );
             }
         }
-        // No card from the future: a release has its version.
+        // No card from beyond the next release: at most the next minor version.
+        let (major, minor, _) = crate::update::parse(crate::update::VERSION).unwrap();
+        let next = format!("{major}.{}.0", minor + 1);
         assert!(
             CARDS
                 .iter()
-                .all(|c| !crate::update::is_newer(crate::update::VERSION, c.version))
+                .all(|c| !crate::update::is_newer(&next, c.version))
         );
     }
 }
