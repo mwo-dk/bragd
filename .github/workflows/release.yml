@@ -419,8 +419,8 @@ jobs:
         run: |
           f="Bragd_${TAG#v}_x86_64.flatpak"
           mv bragd.flatpak "$f"
-          sha256sum "$f" > "$f.sha256"
-          packaging/retry.sh gh release upload --clobber "$TAG" "$f" "$f.sha256"
+          # Its .sha256 is made by `verify`, as every installer's is.
+          packaging/retry.sh gh release upload --clobber "$TAG" "$f"
 
   # Every file the jobs above make (packaging/release-assets.sh), each installer's .sha256 and
   # one SHA256SUMS over all of them, or no release: on any gap this fails, says what is missing,
