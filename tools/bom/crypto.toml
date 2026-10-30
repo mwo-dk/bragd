@@ -29,9 +29,15 @@ provides = ["aes-128-gcm", "aes-256-gcm", "chacha20-poly1305", "sha-256", "sha-3
 
 # The operating system's random numbers. ring takes each TLS connection's keys and nonces from
 # it, which the TLS assets cover; ahash (for parquet) seeds its hash tables from it, which is
-# not cryptography. Bragd's own code calls nothing in it yet.
+# not cryptography. The Helper takes its connection token from it.
 [[library]]
 crate = "getrandom"
+provides = ["os-random"]
+
+# The Helper's zip reader for downloaded Sources. Without the aes-crypto feature its only cipher is
+# the legacy ZipCrypto decryption, which Bragd never calls: no password is ever given to it.
+[[library]]
+crate = "zip"
 provides = []
 
 # ---------------------------------------------------------------------------- assets
@@ -205,3 +211,12 @@ primitive = "signature"
 oid = "1.2.840.113549.1.1.1"
 functions = ["verify"]
 purpose = "Checking servers' certificates and handshake signatures; the key size is the server's"
+
+[[asset]]
+ref = "os-random"
+name = "OS random source"
+type = "algorithm"
+primitive = "drbg"
+functions = ["generate"]
+purpose = "The token that lets only this user's Bragd windows talk to the Helper"
+found = [{ file = "crates/bragd-helper/src/helper.rs", pattern = "getrandom::fill(&mut bytes)" }]
