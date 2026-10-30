@@ -1,0 +1,228 @@
+# Texts still in English
+
+Each locale below is a language of its own: it holds every key, and a key it has no translation for
+carries the British English text, so the app shows English there until a translator fills it in.
+The variants (en-AU, en-CA, en-NZ, de-AT, de-CH, fr-BE, fr-CA, fr-CH, it-CH, nl-BE and every es-* but
+es-AR) hold only the words they write differently, and take the rest from their base language.
+
+## In every language of its own
+
+187 keys:
+
+- `board_theme.match`
+- `board_theme.racing`
+- `board_theme.slate`
+- `board_theme.walnut`
+- `config.no_folder`
+- `family.backgammon`
+- `family.chess`
+- `family.draughts`
+- `family.go`
+- `family.senet`
+- `family.shogi`
+- `family.tafl`
+- `family.ur`
+- `family.xiangqi`
+- `feature.analyse.a1`
+- `feature.analyse.a2`
+- `feature.analyse.q1`
+- `feature.analyse.q2`
+- `feature.analyse.title`
+- `feature.analyse.what`
+- `feature.databases.a1`
+- `feature.databases.a2`
+- `feature.databases.q1`
+- `feature.databases.q2`
+- `feature.databases.title`
+- `feature.databases.what`
+- `feature.engines.a1`
+- `feature.engines.a2`
+- `feature.engines.q1`
+- `feature.engines.q2`
+- `feature.engines.title`
+- `feature.engines.what`
+- `feature.families.a1`
+- `feature.families.a2`
+- `feature.families.q1`
+- `feature.families.q2`
+- `feature.families.title`
+- `feature.families.what`
+- `feature.helper.a1`
+- `feature.helper.a2`
+- `feature.helper.q1`
+- `feature.helper.q2`
+- `feature.helper.title`
+- `feature.helper.what`
+- `feature.play.a1`
+- `feature.play.a2`
+- `feature.play.q1`
+- `feature.play.q2`
+- `feature.play.title`
+- `feature.play.what`
+- `feature.tablebases.a1`
+- `feature.tablebases.a2`
+- `feature.tablebases.q1`
+- `feature.tablebases.q2`
+- `feature.tablebases.title`
+- `feature.tablebases.what`
+- `feature.themes.a1`
+- `feature.themes.a2`
+- `feature.themes.q1`
+- `feature.themes.q2`
+- `feature.themes.what`
+- `feature.update.a2`
+- `feature.update.q2`
+- `feature.update.what`
+- `features.filter`
+- `features.show_me`
+- `hint.features`
+- `hint.sidebar`
+- `look.aqua`
+- `look.beos`
+- `look.crt`
+- `look.gem`
+- `look.macos`
+- `look.modern`
+- `look.next`
+- `look.platinum`
+- `look.system7`
+- `look.theme`
+- `look.win10`
+- `look.win11`
+- `look.win31`
+- `look.win7`
+- `look.win95`
+- `look.winxp`
+- `look.workbench`
+- `notice.config_refused`
+- `notice.config_unreadable`
+- `notice.family_off`
+- `notice.family_turn_on`
+- `setting.board_theme`
+- `setting.board_theme.hint`
+- `setting.check_updates.hint`
+- `setting.engines_containers`
+- `setting.engines_containers.hint`
+- `setting.engines_runtime`
+- `setting.engines_runtime.hint`
+- `setting.language.hint`
+- `setting.library`
+- `setting.library.hint`
+- `setting.look`
+- `setting.look.hint`
+- `setting.source_priority`
+- `setting.source_priority.hint`
+- `setting.start_with_session`
+- `setting.start_with_session.hint`
+- `setting.tablebases_online`
+- `setting.tablebases_online.hint`
+- `setting.tablebases_path`
+- `setting.tablebases_path.hint`
+- `setting.theme`
+- `setting.theme.hint`
+- `settings.area.engines`
+- `settings.area.families`
+- `settings.area.knowledge`
+- `settings.area.look`
+- `settings.area.online`
+- `settings.run_wizard`
+- `settings.update_host`
+- `side.attackers`
+- `side.defenders`
+- `sidebar.analyse`
+- `sidebar.collapse`
+- `sidebar.databases`
+- `sidebar.engines`
+- `sidebar.expand`
+- `sidebar.opening_books`
+- `sidebar.play`
+- `sidebar.rules`
+- `sidebar.tablebases`
+- `theme.racing-green`
+- `theme.racing-green-dark`
+- `tour.analyse.text`
+- `tour.analyse.title`
+- `tour.databases.text`
+- `tour.databases.title`
+- `tour.engines.text`
+- `tour.engines.title`
+- `tour.families.text`
+- `tour.families.title`
+- `tour.helper.text`
+- `tour.helper.title`
+- `tour.play.text`
+- `tour.play.title`
+- `tour.tablebases.text`
+- `tour.tablebases.title`
+- `tour.themes.text`
+- `tour.themes.title`
+- `tour.update.text`
+- `tour.update.title`
+- `update.download`
+- `update.how`
+- `update.lags`
+- `update.off`
+- `variant.backgammon`
+- `variant.brandubh`
+- `variant.capablanca`
+- `variant.chaturanga`
+- `variant.checkers`
+- `variant.chess`
+- `variant.chess960`
+- `variant.draughts`
+- `variant.draughts-brazilian`
+- `variant.draughts-russian`
+- `variant.go-13`
+- `variant.go-19`
+- `variant.go-9`
+- `variant.hnefatafl`
+- `variant.hnefatafl-fetlar`
+- `variant.janggi`
+- `variant.kingofthehill`
+- `variant.racingkings`
+- `variant.seirawan`
+- `variant.senet`
+- `variant.shatranj`
+- `variant.shogi`
+- `variant.tablut`
+- `variant.ur`
+- `variant.xiangqi`
+- `wizard.later`
+- `wizard.step1`
+- `wizard.step2`
+- `wizard.step3`
+- `wizard.step4`
+- `wizard.step5`
+- `wizard.step6`
+- `wizard.title`
+- `wizard.welcome`
+
+## Also in English, by locale
+
+- **ca**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **cs**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **da**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **de**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **el**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **es-AR**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **et**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **eu**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **fa**: `theme.aqua`, `theme.dark`, `theme.light`, `theme.macos`, `theme.macos-dark`, `theme.midnight`, `theme.nord`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win11-dark`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **fi**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **fr**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **he**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **hy**: `theme.aqua`, `theme.dark`, `theme.light`, `theme.macos`, `theme.macos-dark`, `theme.midnight`, `theme.nord`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win11-dark`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **it**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **ja**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **ka**: `theme.aqua`, `theme.dark`, `theme.light`, `theme.macos`, `theme.macos-dark`, `theme.midnight`, `theme.nord`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win11-dark`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **ko**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **lt**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **lv**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **nb**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **nl**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **nn**: `feature.update.a1`, `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **pl**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **sv**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **uk**: `theme.aqua`, `theme.macos`, `theme.platinum`, `theme.system7`, `theme.win10`, `theme.win11`, `theme.win31`, `theme.win7`, `theme.win95`, `theme.winxp`
+- **zh-SG**: nothing more
+- **zh-TW**: nothing more
