@@ -61,14 +61,24 @@
     } else on = true;
   }
 
+  /** @type {ReturnType<typeof setInterval> | undefined} */
+  let reviewing;
+  // Leaving Analyse stops its engine and its review.
+  $effect(() => () => {
+    clearInterval(reviewing);
+    api.analysisStop();
+    api.reviewStop();
+  });
+
   async function startReview() {
     try {
       await api.reviewStart({ variant: game.variant, initial: game.initial, entries: [...game.entries] }, engine || null);
       error = "";
-      const id = setInterval(async () => {
+      clearInterval(reviewing);
+      reviewing = setInterval(async () => {
         review = await api.reviewNow();
         marks = review?.marks ?? [];
-        if (!review || review.done) clearInterval(id);
+        if (!review || review.done) clearInterval(reviewing);
       }, 500);
     } catch (e) {
       error = String(e);

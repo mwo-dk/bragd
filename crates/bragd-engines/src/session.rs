@@ -122,15 +122,10 @@ impl Engine {
         let mut child = cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn()?;
         let stdin = child.stdin.take().ok_or_else(|| failed(std::io::ErrorKind::BrokenPipe))?;
         let stdout = child.stdout.take().ok_or_else(|| failed(std::io::ErrorKind::BrokenPipe))?;
-        let (tx, out) = std::sync::mpsc::channel();
+        // Bounded, so an engine that talks while nobody listens waits instead of filling memory.
+        let (tx, out) = std::sync::mpsc::sync_channel(4096);
         // Ends when the engine's output closes, at the latest when Drop kills it.
-        std::thread::spawn(move || {
-            for l in BufReader::new(stdout).lines() {
-                if tx.send(l).is_err() {
-                    break;
-                }
-            }
-        });
+        std::thread::spawn(move || read_lines(BufReader::new(stdout), |l| tx.send(l).is_ok()));
         let dialect = protocol.dialect();
         let mut e = Engine { child, stdin, out, dialect, about: About::default(), queued: VecDeque::new(), container };
         let hello = e.dialect.hello();
@@ -331,6 +326,54 @@ pub fn think(s: &mut dyn Session, p: &Position, limit: Limit, lines: u32, stop: 
             }
             Some(Event::Refused(why)) => return Err(std::io::Error::other(format!("The engine refused: {why}"))),
         }
+    }
+}
+
+/// The longest line kept from an engine; the rest of a longer one is dropped.
+const LINE_MAX: u64 = 64 * 1024;
+
+/// Hands each line `r` gives to `send` (false stops), cut at `LINE_MAX` bytes, so an engine that
+/// never writes a newline cannot make Bragd hold all it writes.
+fn read_lines(mut r: impl BufRead, mut send: impl FnMut(std::io::Result<String>) -> bool) {
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        let line = match std::io::Read::take(&mut r, LINE_MAX).read_until(b'\n', &mut buf) {
+            Ok(0) => return,
+            Ok(_) => {
+                if buf.last() != Some(&b'\n') && buf.len() as u64 == LINE_MAX && r.skip_until(b'\n').is_err() {
+                    return;
+                }
+                while matches!(buf.last(), Some(b'\n' | b'\r')) {
+                    buf.pop();
+                }
+                Ok(String::from_utf8_lossy(&buf).into_owned())
+            }
+            Err(e) => Err(e),
+        };
+        let failed = line.is_err();
+        if !send(line) || failed {
+            return;
+        }
+    }
+}
+
+#[cfg(test)]
+mod line_tests {
+    use super::*;
+
+    #[test]
+    fn a_line_without_end_is_cut() {
+        let mut text = vec![b'x'; 1 << 20];
+        text.extend_from_slice(b"\r\nuciok\nlast");
+        let mut got = Vec::new();
+        read_lines(&text[..], |l| {
+            got.push(l.unwrap());
+            true
+        });
+        assert_eq!(got.len(), 3);
+        assert_eq!(got[0].len() as u64, LINE_MAX);
+        assert_eq!(&got[1..], ["uciok", "last"]);
     }
 }
 

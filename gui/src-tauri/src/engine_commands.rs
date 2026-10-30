@@ -107,7 +107,7 @@ pub fn analysis_start(variant: String, initial: Option<String>, entries: Vec<Str
     analyse::start(&ctx.cfg(), &held, &variant, initial, entries, engine, lines)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn analysis_now(held: Managed<'_, analyse::Held>) -> Option<analyse::Now> {
     analyse::now(&held)
 }

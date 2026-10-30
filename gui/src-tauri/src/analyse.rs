@@ -57,7 +57,7 @@ struct Asked {
 }
 
 /// What the engine has said so far.
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct Raw {
     engine: String,
     /// Its lines by number, as it last gave each: side to move's view, engine notation.
@@ -67,6 +67,23 @@ struct Raw {
     second: bool,
     done: bool,
     error: Option<String>,
+}
+
+impl Raw {
+    /// Keeps what the engine said of one of its `wanted` lines.
+    fn heard(&mut self, i: &Info, wanted: u32) {
+        // A line number past the lines asked for is the engine's mistake (or an attack on
+        // memory: `multipv 1000000000`), not a line to make room for.
+        if i.line > wanted as usize {
+            return;
+        }
+        let at = i.line.max(1) - 1;
+        if self.lines.len() <= at {
+            self.lines.resize(at + 1, Info::default());
+        }
+        let keep = self.lines[at].clone();
+        self.lines[at] = Info { score: i.score.or(keep.score), pv: if i.pv.is_empty() { keep.pv } else { i.pv.clone() }, ..i.clone() };
+    }
 }
 
 struct Live {
@@ -124,15 +141,7 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
                 return Ok(());
             }
             // Until stopped, or the engine's own cap (`Limit::cap`).
-            let report = &mut |i: &Info| {
-                let mut raw = r.lock().unwrap_or_else(|e| e.into_inner());
-                let at = i.line.max(1) - 1;
-                if raw.lines.len() <= at {
-                    raw.lines.resize(at + 1, Info::default());
-                }
-                let keep = raw.lines[at].clone();
-                raw.lines[at] = Info { score: i.score.or(keep.score), pv: if i.pv.is_empty() { keep.pv } else { i.pv.clone() }, ..i.clone() };
-            };
+            let report = &mut |i: &Info| r.lock().unwrap_or_else(|e| e.into_inner()).heard(i, wanted);
             let a = think(&mut e, &pos, Limit::Depth(99), wanted, &halt, report).map_err(|e| e.to_string())?;
             // An engine that reports no lines (GNU Go) still names its move.
             let mut raw = r.lock().unwrap_or_else(|e| e.into_inner());
@@ -186,9 +195,13 @@ pub struct Now {
 
 /// The analysis as far as it has come; None when none was started.
 pub fn now(held: &Held) -> Option<Now> {
-    let live = held.live.lock().unwrap_or_else(|e| e.into_inner());
-    let l = live.as_ref()?;
-    let raw = l.raw.lock().unwrap_or_else(|e| e.into_inner());
+    // Copied out, so the replays below hold neither lock and the engine's reports never wait.
+    let (asked, raw) = {
+        let live = held.live.lock().unwrap_or_else(|e| e.into_inner());
+        let l = live.as_ref()?;
+        let raw = l.raw.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        (l.asked.clone(), raw)
+    };
     let lines = raw
         .notation
         .map(|n| {
@@ -198,7 +211,7 @@ pub fn now(held: &Held) -> Option<Now> {
                 .map(|i| {
                     let score = i.score.map(|s: Score| if raw.second { s.flipped() } else { s });
                     let pv: Vec<String> = i.pv.iter().take(SHOWN).cloned().collect();
-                    let a = &l.asked;
+                    let a = &asked;
                     let moves = seam::line(&a.variant, a.initial.as_deref(), &a.entries, n, &pv).into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect();
                     LineView { score: score.map(Score::shown).unwrap_or_default(), depth: i.depth, moves }
                 })
@@ -379,6 +392,15 @@ pub fn setup(variant: &str, text: &str) -> Result<State, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_line_number_past_those_asked_for_is_ignored() {
+        let mut raw = Raw::default();
+        raw.heard(&Info { line: 2, pv: vec!["e2e4".into()], ..Default::default() }, 3);
+        raw.heard(&Info { line: 1_000_000_000, pv: vec!["d2d4".into()], ..Default::default() }, 3);
+        assert_eq!(raw.lines.len(), 2);
+        assert_eq!(raw.lines[1].pv, ["e2e4"]);
+    }
 
     #[test]
     fn analysis_is_locked_only_during_a_rated_game_against_a_person() {

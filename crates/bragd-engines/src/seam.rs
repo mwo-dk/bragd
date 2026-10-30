@@ -91,7 +91,11 @@ pub fn position(key: &str, initial: Option<&str>, entries: &[String], notation: 
             p.moves = entries.iter().take_while(|e| !e.starts_with("dead:") && !matches!(e.as_str(), "accept" | "resume")).map(|e| to_engine(notation, e)).collect();
         }
         _ => {
-            if let Some(i) = initial.filter(|i| !i.trim().is_empty()) {
+            if let Some(i) = initial.map(str::trim).filter(|i| !i.is_empty()) {
+                // Sent to the engine as it was typed: a line break in it would be a command of its own.
+                if i.contains(char::is_control) {
+                    return Err("A position is one line.".into());
+                }
                 let start = if notation == Notation::Hub { hub_position(&bragd_games::replay(key, Some(i), &[] as &[&str]).map_err(|e| e.to_string())?) } else { i.to_string() };
                 p.start = Start::Setup(start);
             }
@@ -304,6 +308,14 @@ pub fn plays(about: &crate::About, protocol: Protocol, key: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_set_up_position_cannot_carry_a_second_line() {
+        let start = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w";
+        assert!(position("xiangqi", Some(start), &[], Notation::Wire).is_ok());
+        let hostile = format!("{start}\nsetoption name Debug Log File value /tmp/x");
+        assert!(position("xiangqi", Some(&hostile), &[], Notation::Wire).is_err());
+    }
 
     /// Every Variant of the catalogue: the engines that play it, and what Fairy-Stockfish and
     /// Scan call it.
