@@ -26,10 +26,10 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 - [x] S4: `bragd-library`: formats, Library, dedupe, Slices, Parquet (wave 1, agent "library")
 - [x] S5: `bragd-engines`: protocols, discovery, images, Syzygy (wave 1, agent "engines")
 - [x] S6: CI, release tooling, docs check, sync workflow, screenshot tooling (wave 1, agent "ci")
-- [ ] S7: GUI shell: branding, splash, sidebar, Themes, Settings with Family toggles, boards for all 25 Variants, play against yourself (wave 2)
+- [x] S7: GUI shell: branding, splash, sidebar, Themes, Settings with Family toggles, boards for all 25 Variants, play against yourself (wave 2)
 - [x] S8: Helper process, Sources (TWIC, custom URL), schedule (wave 2)
 - [ ] S9: GUI for Databases, Analyse, Engines, Tablebases; install wizard; What's new; F1 Features (wave 3)
-- [ ] S11: Disk watch and Strip rules: streamed, filtered import of big downloads, pruning of existing downloads and Libraries, a Disk use page with limits and warnings, FICS listed as a Source (wave 3, added by the owner mid-run)
+- [x] S11: Disk watch and Strip rules: streamed, filtered import of big downloads, pruning of existing downloads and Libraries, a Disk use page with limits and warnings, FICS listed as a Source (wave 3, added by the owner mid-run)
 - [ ] S10: docs tree, screenshots, morning report in the PR body (wave 3)
 
 ## Decisions made alone during the run
@@ -112,8 +112,6 @@ Each one is listed here, so the owner can overturn it in the morning.
 - helper.log has times in UTC. There is no docs page for the Helper yet (S10).
 - Tablebase downloads and the Lichess tablebase API use ureq's bundled Mozilla roots, not the OS trust store that the update check uses. To align them, change `bragd-engines/src/fetch.rs`.
 
-- [x] S7: GUI shell: branding, splash, sidebar, Themes, Settings with Family toggles, boards for all 25 Variants, play against yourself (wave 2)
-- [ ] S8: Helper process, Sources (TWIC, custom URL), schedule (wave 2)
 ### S7: GUI
 - `bragd-games` is the one catalogue. `bragd-core/src/families.rs` is deleted; `bragd-core` depends on `bragd-games`, and its Family and Variant switches in Settings are made from the catalogue at start. `Family::from_key` and `Family::has_engine` (false for tafl, Ur and senet) are new in the catalogue.
 - `bragd-games` emits the art slice's ids: `capablanca-*` and `seirawan-*` sheets for those Variants, `janggi-r*`/`janggi-b*`, shogi `shogi-b*` for Sente and `shogi-w*` for Gote with `T*`, `H` and `D` for promoted pieces, tafl `aS`/`dS`/`dK`. A test reads `gui/src/lib/sprites/*.svg` and fails on any id the code can emit that no sheet has.
@@ -133,7 +131,6 @@ Each one is listed here, so the owner can overturn it in the morning.
 - `cap.py` sets the page larger than the window (Emulation.setDeviceMetricsOverride), because Broadway places the window off the page's corner and pictures lost their bottom and right edges.
 - Screenshots in `docs/screenshots/`: `sidebar-*`, `settings-families-*`, `play-<family>-*` at 390 and 1100 px, and `play-<variant>-1100.png` for Seirawan, Capablanca, shatranj, janggi, Go 19×19, international draughts, checkers and brandubh.
 
-- [x] S11: Disk watch and Strip rules: streamed, filtered import of big downloads, pruning of existing downloads and Libraries, a Disk use page with limits and warnings, FICS listed as a Source (wave 3, added by the owner mid-run)
 - Downloads are kept, and the oldest go first when the disk cap is passed. Since S11 nothing is unpacked to disk: zips and packed files are imported as a stream.
 ### S11: Disk watch and Strip rules
 - Big downloads are read as a stream, game by game (`bragd_library::stream`), through the pass over PGN that S4 copied (`chess::games::scan` keeping each game's text). One game's text (at most 16 MB) and one line (at most 1 MB) are held at a time, whatever the file's size. The test proves it by counting: 20,000 games from `.pgn`, `.pgn.gz`, `.pgn.zst`, `.pgn.bz2` and a zip, each unpacked once from start to end, never more than one game held, nothing written beside the file.
