@@ -110,3 +110,4 @@ Each one is listed here, so the owner can overturn it in the morning.
 - A job left running when the Helper stopped starts again from the start, which is safe because imports are idempotent. One whose file has gone fails and says so.
 - "Dedupe now" merges again the headers of every Game that has more than one Source, using the current priority (`Library::merge_again`). That makes a change of Source priority reach the Games already merged.
 - helper.log has times in UTC. There is no docs page for the Helper yet (S10).
+- Tablebase downloads and the Lichess tablebase API use ureq's bundled Mozilla roots, not the OS trust store that the update check uses. To align them, change `bragd-engines/src/fetch.rs`.
