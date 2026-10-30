@@ -19,8 +19,9 @@ RUN curl -fsSLo /net.txt.gz https://github.com/lightvector/KataGo/releases/downl
  && echo "09456899f1b9155217f4ca059cf8a68f79b7eba22cf6b7c00ffb7f17ce067967  /net.txt.gz" | sha256sum -c -
 # No AVX2, so it runs on any CPU of its kind; no libzip (only training needs it). musl's headers
 # that KataGo includes do not pull in <endian.h>, where BYTE_ORDER is (glibc's do).
+# zlib is named by its static archive: CMake would pick libz.so, which a static link refuses.
 RUN cd cpp \
- && cmake . -DCMAKE_CXX_FLAGS="-include endian.h" -DUSE_BACKEND=EIGEN -DUSE_AVX2=0 -DNO_GIT_REVISION=1 -DNO_LIBZIP=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-static \
+ && cmake . -DCMAKE_CXX_FLAGS="-include endian.h" -DZLIB_LIBRARY=/usr/lib/libz.a -DUSE_BACKEND=EIGEN -DUSE_AVX2=0 -DNO_GIT_REVISION=1 -DNO_LIBZIP=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-static \
  && make -j"$(nproc)" \
  && strip katago \
  && ./katago version
