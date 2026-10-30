@@ -28,7 +28,7 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 - [x] S6: CI, release tooling, docs check, sync workflow, screenshot tooling (wave 1, agent "ci")
 - [x] S7: GUI shell: branding, splash, sidebar, Themes, Settings with Family toggles, boards for all 25 Variants, play against yourself (wave 2)
 - [x] S8: Helper process, Sources (TWIC, custom URL), schedule (wave 2)
-- [ ] S9: GUI for Databases, Analyse, Engines, Tablebases; install wizard; What's new; F1 Features (wave 3)
+- [x] S9: GUI for Databases, Analyse, Engines, Tablebases; install wizard; What's new; F1 Features (wave 3)
 - [x] S11: Disk watch and Strip rules: streamed, filtered import of big downloads, pruning of existing downloads and Libraries, a Disk use page with limits and warnings, FICS listed as a Source (wave 3, added by the owner mid-run)
 - [ ] S10: docs tree, screenshots, morning report in the PR body (wave 3)
 
