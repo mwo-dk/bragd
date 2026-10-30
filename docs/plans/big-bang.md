@@ -23,7 +23,7 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 - [ ] S1: rules crates and `bragd-games` (wave 1, agent "rules")
 - [x] S2: artwork, sprites, CJK glyphs as paths, brand: icon drafts, splash, rune wordmark (wave 1, agent "art")
 - [x] S3: `bragd-core`: config, state, settings, i18n with every locale, Themes, update check, features, notices (wave 1, agent "core")
-- [ ] S4: `bragd-library`: formats, Library, dedupe, Slices, Parquet (wave 1, agent "library")
+- [x] S4: `bragd-library`: formats, Library, dedupe, Slices, Parquet (wave 1, agent "library")
 - [ ] S5: `bragd-engines`: protocols, discovery, images, Syzygy (wave 1, agent "engines")
 - [ ] S6: CI, release tooling, docs check, sync workflow, screenshot tooling (wave 1, agent "ci")
 - [ ] S7: GUI shell: branding, splash, sidebar, Themes, Settings with Family toggles, boards for all 25 Variants, play against yourself (wave 2)
@@ -43,3 +43,9 @@ Each one is listed here, so the owner can overturn it in the morning.
 - `[families.family]` and `[families.variant]` are separate tables, because "chess" names both a Family and a Variant.
 - `bragd-core/src/families.rs` duplicates the catalogue in `bragd-games`. Once S1 lands, one is deleted.
 - English fills in the untranslated keys in every locale. The list is in `crates/bragd-core/locales/UNTRANSLATED.md`.
+- The upstream per-file game table is called `chess::Table`, because Library is the glossary's word for the SQLite store.
+- The Duplicate key hashes Family, Variant, start position and every ply's key, using deterministic SplitMix64 and FNV. Chess positions use the Polyglot Zobrist key. Draughts, xiangqi and shogi use a hash of the FEN/SFEN. Go only has a move-sequence key for now, so position search does not work for go.
+- The Source priority is held in memory, not stored in the Library, and changing it affects only later merges.
+- The `[%evp]` layout (start ply, then centipawns from White's side) was inferred from a single sample (upstream #615). It needs checking against a real ChessBase export.
+- The reader texts that used translations are plain English constants for now, until the library crate takes texts from `bragd-core`.
+- The Variant ids in `bragd-library` must be aligned with `bragd-games` when S1 lands.
