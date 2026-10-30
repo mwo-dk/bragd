@@ -17,14 +17,14 @@ fn a_short_game_with_a_drop_replays() {
         .unwrap();
     assert_eq!(
         (dropped.x, dropped.y, dropped.sprite.as_str()),
-        (5, 4, "shogi-sB")
+        (5, 4, "shogi-bB")
     );
     // Gote took a promoted bishop and holds a plain one.
     let gote = &state.board.hands[1];
     assert_eq!(gote.pieces.len(), 1);
     assert_eq!(
         (gote.pieces[0].sprite.as_str(), gote.pieces[0].count),
-        ("shogi-gB", 1)
+        ("shogi-wB", 1)
     );
     assert!(
         state.board.hands[0].pieces.is_empty(),
@@ -38,7 +38,7 @@ fn drops_are_offered_from_the_hand() {
     let drop = state.moves.iter().find(|m| m.wire == "B*5e").unwrap();
     assert_eq!(drop.from, None);
     assert_eq!(drop.to.as_deref(), Some("5e"));
-    assert_eq!(drop.drop.as_deref(), Some("shogi-sB"));
+    assert_eq!(drop.drop.as_deref(), Some("shogi-bB"));
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn a_promoted_piece_has_its_own_sprite() {
         .iter()
         .find(|p| p.square == "2b")
         .unwrap();
-    assert_eq!(horse.sprite, "shogi-spB");
+    assert_eq!(horse.sprite, "shogi-bH");
     assert!(
         state
             .board
@@ -87,7 +87,7 @@ fn the_board_is_nine_by_nine_from_sentes_side() {
         .iter()
         .find(|p| p.square == "5i")
         .unwrap();
-    assert_eq!((king.x, king.y, king.sprite.as_str()), (4, 0, "shogi-sK"));
+    assert_eq!((king.x, king.y, king.sprite.as_str()), (4, 0, "shogi-bK"));
     assert_eq!(state.to_move.unwrap().name, "Sente");
     let start = start_position("shogi").unwrap();
     assert_eq!(

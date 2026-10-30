@@ -67,7 +67,7 @@ impl Default for LookConfig {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct FamiliesConfig {
-    /// Family id -> on (`families::FAMILIES`).
+    /// Family id -> on (`bragd_games::Family`).
     pub family: BTreeMap<String, bool>,
     /// Variant id -> on.
     pub variant: BTreeMap<String, bool>,
@@ -324,14 +324,15 @@ impl Config {
 
     /// Whether the Variant `id` shows: it and its Family are on.
     pub fn variant_on(&self, id: &str) -> bool {
-        crate::families::of_variant(id).is_some_and(|f| self.family_on(f.id))
+        bragd_games::Variant::from_key(id).is_some_and(|v| self.family_on(v.family().key()))
             && self.families.variant.get(id) != Some(&false)
     }
 
     /// Whether the Family `id` shows: it is on, and so is one of its Variants at least.
     pub fn family_shown(&self, id: &str) -> bool {
-        crate::families::find(id)
-            .is_some_and(|f| self.family_on(id) && f.variants.iter().any(|v| self.variant_on(v)))
+        bragd_games::Family::from_key(id).is_some_and(|f| {
+            self.family_on(id) && f.variants().any(|v| self.variant_on(v.key))
+        })
     }
 }
 
@@ -347,8 +348,8 @@ mod tests {
         assert_eq!(c.look.board_theme, "racing");
         assert_eq!(c.knowledge.source_priority, ["twic", "lichess"]);
         assert!(c.updates.check && c.tablebases.online && !c.helper.start_with_session);
-        for v in crate::families::variants() {
-            assert!(c.variant_on(v), "{v}");
+        for v in &bragd_games::VARIANTS {
+            assert!(c.variant_on(v.key), "{}", v.key);
         }
     }
 

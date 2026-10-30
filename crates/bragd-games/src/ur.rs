@@ -55,7 +55,7 @@ fn seat(side: Side) -> Seat {
     Seat::of(Variant::Ur, if side == Side::White { 0 } else { 1 })
 }
 
-fn sprite(side: Side) -> &'static str {
+pub(crate) fn sprite(side: Side) -> &'static str {
     match side {
         Side::White => "ur-l",
         Side::Black => "ur-d",

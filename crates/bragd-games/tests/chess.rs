@@ -54,7 +54,7 @@ fn the_board_names_its_pieces_with_the_family() {
 fn seirawan_shows_its_hands_and_gates() {
     let state = replay("seirawan", None, &["b1c3h"]).unwrap();
     let white = &state.board.hands[0];
-    assert_eq!(white.pieces[0].sprite, "chess-wH");
+    assert_eq!(white.pieces[0].sprite, "seirawan-wH");
     assert_eq!(white.pieces[0].count, 0, "the hawk has been gated");
     assert_eq!(white.pieces[1].count, 1, "the elephant is still held");
     assert_eq!(state.history, ["Nc3/H"]);

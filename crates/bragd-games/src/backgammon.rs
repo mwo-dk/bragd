@@ -50,7 +50,7 @@ fn seat(side: Side) -> Seat {
     Seat::of(Variant::Backgammon, side.index() as u8)
 }
 
-fn sprite(side: Side) -> &'static str {
+pub(crate) fn sprite(side: Side) -> &'static str {
     match side {
         Side::White => "backgammon-w",
         Side::Black => "backgammon-b",

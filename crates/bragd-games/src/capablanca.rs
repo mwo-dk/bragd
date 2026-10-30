@@ -30,9 +30,9 @@ fn seat(color: Color) -> Seat {
     Seat::of(Variant::Capablanca, if color == Color::White { 0 } else { 1 })
 }
 
-fn sprite(color: Color, role: Role) -> String {
+pub(crate) fn sprite(color: Color, role: Role) -> String {
     let side = if color == Color::White { 'w' } else { 'b' };
-    format!("chess-{side}{}", role.letter().to_ascii_uppercase())
+    format!("capablanca-{side}{}", role.letter().to_ascii_uppercase())
 }
 
 fn highlight(square: Square, kind: HighlightKind) -> Highlight {

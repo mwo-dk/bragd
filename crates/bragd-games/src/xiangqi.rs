@@ -44,15 +44,11 @@ fn seat(variant: Variant, side: Side) -> Seat {
     Seat::of(variant, if side == Side::Red { 0 } else { 1 })
 }
 
-/// `xiangqi-rK`; janggi's pieces are drawn differently, so `xiangqi-janggi-cK` (Cho) and `-hK` (Han).
-fn sprite(variant: Variant, side: Side, letter: char) -> String {
-    let letter = letter.to_ascii_uppercase();
-    match (variant, side) {
-        (Variant::Janggi, Side::Red) => format!("xiangqi-janggi-c{letter}"),
-        (Variant::Janggi, Side::Black) => format!("xiangqi-janggi-h{letter}"),
-        (_, Side::Red) => format!("xiangqi-r{letter}"),
-        (_, Side::Black) => format!("xiangqi-b{letter}"),
-    }
+/// `xiangqi-rK`; janggi's pieces have their own sheet: `janggi-rK` is Cho, `janggi-bK` Han.
+pub(crate) fn sprite(variant: Variant, side: Side, letter: char) -> String {
+    let sheet = if variant == Variant::Janggi { "janggi" } else { "xiangqi" };
+    let side = if side == Side::Red { 'r' } else { 'b' };
+    format!("{sheet}-{side}{}", letter.to_ascii_uppercase())
 }
 
 fn highlight(point: Point, kind: HighlightKind) -> Highlight {

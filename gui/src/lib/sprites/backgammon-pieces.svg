@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+	<!--
+		Backgammon checkers, drawn rather than sourced, like the draughts set.
+
+		A checker is a flat disc with a turned groove, seen from above. The two
+		sides differ by tone; the inner ring keeps a stack of them legible where
+		they overlap on a point.
+
+		Sized 45x45 to match the chess sprite, so one board renderer places them.
+	-->
+	<symbol id="backgammon-w" viewBox="0 0 45 45">
+		<title>white checker</title>
+		<circle cx="22.5" cy="22.5" r="20" fill="var(--piece-light-fill, #f3ece0)"
+			stroke="var(--piece-light-line, #3a3a3a)" stroke-width="1.5" />
+		<circle cx="22.5" cy="22.5" r="13" fill="none"
+			stroke="var(--piece-light-line, #3a3a3a)" stroke-width="1" opacity="0.4" />
+	</symbol>
+
+	<symbol id="backgammon-b" viewBox="0 0 45 45">
+		<title>black checker</title>
+		<circle cx="22.5" cy="22.5" r="20" fill="var(--piece-dark-fill, #2b2b2b)"
+			stroke="var(--piece-dark-line, #111)" stroke-width="1.5" />
+		<circle cx="22.5" cy="22.5" r="13" fill="none"
+			stroke="var(--piece-dark-line, #777)" stroke-width="1" opacity="0.5" />
+	</symbol>
+</svg>

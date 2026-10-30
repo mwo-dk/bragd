@@ -19,9 +19,7 @@ fn every_variant_starts_and_offers_something_to_do() {
         let board = &state.board;
         assert_eq!((board.files, board.ranks), (info.files, info.ranks), "{key}");
         assert_eq!(board.geometry, info.geometry, "{key}");
-        let prefix = format!("{}-", info.family.key());
         for piece in &board.pieces {
-            assert!(piece.sprite.starts_with(&prefix), "{key}: {}", piece.sprite);
             assert!(piece.x < board.files.max(26) && piece.count > 0, "{key}: {piece:?}");
         }
         if info.family != Family::Go {

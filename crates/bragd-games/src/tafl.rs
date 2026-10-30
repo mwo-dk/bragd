@@ -126,9 +126,9 @@ fn state(variant: Variant, game: &Game) -> State {
             let square = Square::from_file_rank(file, rank).expect("on the board");
             if let Some(piece) = position.piece_at(square) {
                 let sprite = match (piece.side, piece.role) {
-                    (Side::Attackers, _) => "tafl-aM",
+                    (Side::Attackers, _) => "tafl-aS",
                     (Side::Defenders, Role::King) => "tafl-dK",
-                    (Side::Defenders, _) => "tafl-dM",
+                    (Side::Defenders, _) => "tafl-dS",
                 };
                 pieces.push(Placed {
                     x: file,

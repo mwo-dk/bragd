@@ -12,6 +12,7 @@ test-home = []
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+bragd-games = { path = "../bragd-games" }
 serde_json = "1"
 toml = "1"
 # Settings writes one value into config.toml and keeps the user's comments and layout.

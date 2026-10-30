@@ -61,6 +61,16 @@ impl Family {
     pub fn variants(self) -> impl Iterator<Item = &'static VariantInfo> {
         VARIANTS.iter().filter(move |info| info.family == self)
     }
+
+    /// The Family `key`.
+    pub fn from_key(key: &str) -> Option<Family> {
+        Family::ALL.into_iter().find(|f| f.key() == key)
+    }
+
+    /// Whether an outside Engine plays it; tafl, Ur and senet have only built-in Bots.
+    pub fn has_engine(self) -> bool {
+        !matches!(self, Family::Tafl | Family::Ur | Family::Senet)
+    }
 }
 
 /// How the board is built, which decides how a front end draws it.

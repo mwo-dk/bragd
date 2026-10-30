@@ -35,15 +35,17 @@ fn seat(side: Side) -> Seat {
     Seat::of(Variant::Shogi, if side == Side::Black { 0 } else { 1 })
 }
 
-/// `shogi-sP` for a Sente pawn, `shogi-gpR` for a Gote dragon: a promoted
-/// piece is its base letter after a lower-case `p`, since `+` cannot go in an id.
-fn sprite(piece: Piece) -> String {
-    let side = if piece.side == Side::Black { 's' } else { 'g' };
-    let letter = piece.role.letter();
-    match letter.strip_prefix('+') {
-        Some(base) => format!("shogi-{side}p{base}"),
-        None => format!("shogi-{side}{letter}"),
-    }
+/// `shogi-bP` for a Sente pawn (Black, pointing up), `shogi-wD` for a Gote
+/// dragon. A promoted piece is `T` and its base letter (turned over), except
+/// the horse `H` and the dragon `D`, since `+` cannot go in an id.
+pub(crate) fn sprite(piece: Piece) -> String {
+    let side = if piece.side == Side::Black { 'b' } else { 'w' };
+    let role = match piece.role.letter() {
+        "+B" => "H".to_string(),
+        "+R" => "D".to_string(),
+        letter => letter.replace('+', "T"),
+    };
+    format!("shogi-{side}{role}")
 }
 
 fn mark(square: Square, kind: HighlightKind) -> Highlight {

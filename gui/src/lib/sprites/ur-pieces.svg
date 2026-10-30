@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+	<!--
+		Ur pieces, drawn rather than sourced.
+
+		The pieces found at Ur are flat discs of shell and shale, each inlaid
+		with five dots. The sides are Light and Dark, so the discs are a light
+		and a dark one; the dots are what tell them apart from draughts.
+
+		Sized 45x45 to match the chess sprite.
+	-->
+	<symbol id="ur-l" viewBox="0 0 45 45">
+		<title>light piece</title>
+		<circle cx="22.5" cy="22.5" r="18" fill="var(--piece-light-fill, #f3ece0)"
+			stroke="var(--piece-light-line, #3a3a3a)" stroke-width="1.5" />
+		<g fill="var(--piece-light-line, #3a3a3a)">
+			<circle cx="22.5" cy="22.5" r="2.4" />
+			<circle cx="15" cy="15" r="2.4" />
+			<circle cx="30" cy="15" r="2.4" />
+			<circle cx="15" cy="30" r="2.4" />
+			<circle cx="30" cy="30" r="2.4" />
+		</g>
+	</symbol>
+
+	<symbol id="ur-d" viewBox="0 0 45 45">
+		<title>dark piece</title>
+		<circle cx="22.5" cy="22.5" r="18" fill="var(--piece-dark-fill, #2b2b2b)"
+			stroke="var(--piece-dark-line, #111)" stroke-width="1.5" />
+		<g fill="var(--piece-light-fill, #f3ece0)">
+			<circle cx="22.5" cy="22.5" r="2.4" />
+			<circle cx="15" cy="15" r="2.4" />
+			<circle cx="30" cy="15" r="2.4" />
+			<circle cx="15" cy="30" r="2.4" />
+			<circle cx="30" cy="30" r="2.4" />
+		</g>
+	</symbol>
+</svg>

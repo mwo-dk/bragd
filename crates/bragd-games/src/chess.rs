@@ -46,10 +46,12 @@ fn seat(variant: Variant, color: Color) -> Seat {
     Seat::of(variant, if color == Color::White { 0 } else { 1 })
 }
 
-pub(crate) fn sprite(color: Color, role: Role) -> String {
+/// `chess-wK`; Seirawan's pieces come from their own sheet, `seirawan-wH`.
+pub(crate) fn sprite(variant: Variant, color: Color, role: Role) -> String {
     let piece = rules_chess::Piece::new(color, role);
+    let sheet = if variant == Variant::Seirawan { "seirawan" } else { "chess" };
     let side = if color == Color::White { 'w' } else { 'b' };
-    format!("chess-{side}{}", piece.fen_char().to_ascii_uppercase())
+    format!("{sheet}-{side}{}", piece.fen_char().to_ascii_uppercase())
 }
 
 fn state(variant: Variant, game: &Game<Rules>) -> State {
@@ -66,7 +68,7 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
             notation: rules_chess::to_san(game.variant(), position, mv),
             from: Some(mv.from().to_string()),
             to: Some(mv.to().to_string()),
-            drop: mv.gate().map(|role| sprite(to_move, role)),
+            drop: mv.gate().map(|role| sprite(variant, to_move, role)),
         })
         .collect();
 
@@ -78,7 +80,7 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
                 x: square.file(),
                 y: square.rank(),
                 square: square.to_string(),
-                sprite: sprite(piece.color, piece.role),
+                sprite: sprite(variant, piece.color, piece.role),
                 count: 1,
             });
         }
@@ -112,7 +114,7 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
                 pieces: rules_chess::seirawan::IN_HAND
                     .into_iter()
                     .map(|role| HandPiece {
-                        sprite: sprite(color, role),
+                        sprite: sprite(variant, color, role),
                         count: u8::from(position.in_hand(color, role)),
                     })
                     .collect(),

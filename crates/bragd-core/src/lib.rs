@@ -2,7 +2,6 @@
 
 pub mod config;
 pub mod dirs;
-pub mod families;
 pub mod features;
 pub mod fs;
 pub mod i18n;

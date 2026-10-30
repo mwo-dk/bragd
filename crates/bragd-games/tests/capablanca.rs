@@ -23,6 +23,6 @@ fn the_capablanca_board_is_ten_files_wide() {
     assert_eq!((state.board.files, state.board.ranks), (10, 8));
     assert_eq!(state.board.pieces.len(), 40);
     let archbishop = state.board.pieces.iter().find(|p| p.square == "c1").unwrap();
-    assert_eq!((archbishop.x, archbishop.y, archbishop.sprite.as_str()), (2, 0, "chess-wA"));
+    assert_eq!((archbishop.x, archbishop.y, archbishop.sprite.as_str()), (2, 0, "capablanca-wA"));
     assert!(start_position("capablanca").unwrap().starts_with("rnabqkbcnr/"));
 }

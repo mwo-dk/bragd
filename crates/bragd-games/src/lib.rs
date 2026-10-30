@@ -322,3 +322,91 @@ fn targets(moves: &[LegalMove]) -> BTreeMap<String, Vec<String>> {
     }
     map
 }
+
+#[cfg(test)]
+mod sprite_sheets {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    /// Every `<symbol id>` in the sprite sheets the app draws from.
+    fn sheets() -> BTreeSet<String> {
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../gui/src/lib/sprites");
+        let mut ids = BTreeSet::new();
+        for entry in std::fs::read_dir(dir).expect("the sprite sheets") {
+            let text = std::fs::read_to_string(entry.unwrap().path()).unwrap();
+            for part in text.split("<symbol id=\"").skip(1) {
+                ids.insert(part.split('"').next().unwrap().to_string());
+            }
+        }
+        ids
+    }
+
+    /// Every id each Family's code can emit, role by role.
+    fn emitted() -> BTreeSet<String> {
+        use rules_chess::Role as R;
+        let mut ids = BTreeSet::new();
+        let plain = [R::King, R::Queen, R::Rook, R::Bishop, R::Knight, R::Pawn];
+        for color in rules_chess::Color::ALL {
+            for role in plain.iter().chain(&[R::Ferz, R::Alfil, R::Gaja]) {
+                ids.insert(chess::sprite(Variant::Chess, color, *role));
+            }
+            for role in plain.iter().chain(&[R::Hawk, R::Elephant]) {
+                ids.insert(chess::sprite(Variant::Seirawan, color, *role));
+            }
+        }
+        for color in rules_capablanca::Color::ALL {
+            for role in rules_capablanca::Role::ALL {
+                ids.insert(capablanca::sprite(color, role));
+            }
+        }
+        for side in rules_shogi::Side::ALL {
+            for role in rules_shogi::Role::ALL {
+                ids.insert(shogi::sprite(rules_shogi::Piece::new(side, role)));
+            }
+        }
+        for variant in [Variant::Xiangqi, Variant::Janggi] {
+            for side in rules_xiangqi::Side::ALL {
+                for role in rules_xiangqi::Role::ALL {
+                    ids.insert(xiangqi::sprite(variant, side, role.letter()));
+                }
+            }
+        }
+        for side in rules_backgammon::Side::ALL {
+            ids.insert(backgammon::sprite(side).into());
+        }
+        for side in [rules_ur::Side::White, rules_ur::Side::Black] {
+            ids.insert(ur::sprite(side).into());
+        }
+        for side in [rules_senet::Side::White, rules_senet::Side::Black] {
+            ids.insert(senet::sprite(side).into());
+        }
+        // Draughts and tafl name theirs inline.
+        for id in ["draughts-wM", "draughts-bM", "draughts-wK", "draughts-bK"] {
+            ids.insert(id.into());
+        }
+        ids
+    }
+
+    #[test]
+    fn every_sprite_id_exists_in_the_sheets() {
+        let sheets = sheets();
+        let mut ids = emitted();
+        // And whatever real boards show: every start and every teaching position.
+        let lessons = positions::POSITIONS.iter().map(|p| {
+            let (initial, line) = p.start();
+            (p.variant, initial, line)
+        });
+        let starts = VARIANTS.iter().map(|info| (info.key, None, &[][..]));
+        for (key, initial, line) in starts.chain(lessons) {
+            let state = replay(key, initial, line).unwrap_or_else(|e| panic!("{key}: {e}"));
+            let board = &state.board;
+            ids.extend(board.pieces.iter().map(|p| p.sprite.clone()));
+            for hand in board.hands.iter().chain(&board.off) {
+                ids.extend(hand.pieces.iter().map(|p| p.sprite.clone()));
+            }
+            ids.extend(state.moves.iter().filter_map(|m| m.drop.clone()));
+        }
+        let missing: Vec<_> = ids.iter().filter(|id| !sheets.contains(*id)).collect();
+        assert!(missing.is_empty(), "no sprite for {missing:?}");
+    }
+}

@@ -6,7 +6,8 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::config::Config;
-use crate::families::FAMILIES;
+use bragd_games::Family;
+use std::sync::LazyLock;
 
 /// An area of Settings, by what users come for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -95,51 +96,23 @@ const fn opt(
 
 use Area::*;
 
-macro_rules! families {
-    ($($id:literal),*) => { [$(opt(concat!("family_", $id), &["families", "family", $id], Families, concat!("family.", $id))),*] };
-}
-macro_rules! variants {
-    ($($id:literal),*) => { [$(opt(concat!("variant_", $id), &["families", "variant", $id], Families, concat!("variant.", $id))),*] };
+/// A Family's or Variant's switch, made once from `bragd_games`' catalogue.
+fn switch(kind: &str, id: &'static str) -> Opt {
+    let leak = |s: String| -> &'static str { Box::leak(s.into_boxed_str()) };
+    let table: &'static str = if kind == "family" { "family" } else { "variant" };
+    Opt {
+        name: leak(format!("{kind}_{id}")),
+        path: Box::leak(Box::new(["families", table, id])),
+        area: Families,
+        texts: leak(format!("{kind}.{id}")),
+    }
 }
 
-const FAMILY_OPTS: [Opt; 9] = families!(
-    "chess",
-    "xiangqi",
-    "shogi",
-    "go",
-    "draughts",
-    "tafl",
-    "backgammon",
-    "ur",
-    "senet"
-);
-const VARIANT_OPTS: [Opt; 25] = variants!(
-    "chess",
-    "chess960",
-    "shatranj",
-    "chaturanga",
-    "kingofthehill",
-    "racingkings",
-    "seirawan",
-    "capablanca",
-    "xiangqi",
-    "janggi",
-    "shogi",
-    "go-9",
-    "go-13",
-    "go-19",
-    "checkers",
-    "draughts",
-    "draughts-brazilian",
-    "draughts-russian",
-    "hnefatafl",
-    "hnefatafl-fetlar",
-    "tablut",
-    "brandubh",
-    "backgammon",
-    "ur",
-    "senet"
-);
+static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
+    let families = Family::ALL.iter().map(|f| switch("family", f.key()));
+    let variants = bragd_games::VARIANTS.iter().map(|v| switch("variant", v.key));
+    families.chain(variants).collect()
+});
 
 const OTHER_OPTS: [Opt; 12] = [
     opt("language", &["language"], Look, "setting.language"),
@@ -203,10 +176,7 @@ const OTHER_OPTS: [Opt; 12] = [
 
 /// Every option: the Families and Variants, then the rest, each in its area's order.
 pub fn options() -> impl Iterator<Item = &'static Opt> {
-    FAMILY_OPTS
-        .iter()
-        .chain(VARIANT_OPTS.iter())
-        .chain(OTHER_OPTS.iter())
+    SWITCHES.iter().chain(OTHER_OPTS.iter())
 }
 
 /// The option `name`.
@@ -269,8 +239,8 @@ pub enum Item {
 /// outside Engine has only Play, Databases and Rules.
 pub fn items(id: &str) -> Vec<Item> {
     use Item::*;
-    match crate::families::find(id) {
-        Some(f) if !f.has_engine => vec![Play, Databases, Rules],
+    match Family::from_key(id) {
+        Some(f) if !f.has_engine() => vec![Play, Databases, Rules],
         _ if id == "chess" => vec![
             Play,
             Analyse,
@@ -302,12 +272,12 @@ pub enum Sidebar {
 }
 
 pub fn sidebar(cfg: &Config) -> Sidebar {
-    let mut on: Vec<SidebarFamily> = FAMILIES
+    let mut on: Vec<SidebarFamily> = Family::ALL
         .iter()
-        .filter(|f| cfg.family_shown(f.id))
+        .filter(|f| cfg.family_shown(f.key()))
         .map(|f| SidebarFamily {
-            id: f.id,
-            items: items(f.id),
+            id: f.key(),
+            items: items(f.key()),
         })
         .collect();
     match on.len() {
@@ -352,10 +322,10 @@ mod tests {
             );
         }
         // Every Family and Variant of the catalogue has its switch.
-        for f in FAMILIES {
-            assert!(find(&format!("family_{}", f.id)).is_some(), "{}", f.id);
-            for v in f.variants {
-                assert!(find(&format!("variant_{v}")).is_some(), "{v}");
+        for f in Family::ALL {
+            assert!(find(&format!("family_{}", f.key())).is_some(), "{f:?}");
+            for v in f.variants() {
+                assert!(find(&format!("variant_{}", v.key)).is_some(), "{}", v.key);
             }
         }
     }
@@ -407,8 +377,8 @@ mod tests {
         // One Family on: its items at the top.
         let off = |ids: &[&str]| {
             let mut c = Config::default();
-            for f in FAMILIES {
-                c.families.family.insert(f.id.into(), ids.contains(&f.id));
+            for f in Family::ALL {
+                c.families.family.insert(f.key().into(), ids.contains(&f.key()));
             }
             c
         };

@@ -35,7 +35,7 @@ fn a_janggi_game_with_passes_replays() {
     let pass = state.moves.iter().find(|m| m.wire == "e9e9").unwrap();
     assert_eq!((pass.from.as_deref(), pass.to.as_deref()), (None, None));
     let general = state.board.pieces.iter().find(|p| p.square == "e2").unwrap();
-    assert_eq!((general.x, general.y, general.sprite.as_str()), (4, 1, "xiangqi-janggi-cK"));
+    assert_eq!((general.x, general.y, general.sprite.as_str()), (4, 1, "janggi-rK"));
 }
 
 #[test]
