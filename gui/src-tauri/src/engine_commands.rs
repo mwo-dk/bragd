@@ -122,7 +122,7 @@ pub fn review_start(variant: String, initial: Option<String>, entries: Vec<Strin
     analyse::review_start(&ctx.cfg(), &held, &variant, initial.as_deref(), &entries, engine)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn review_now(held: Managed<'_, analyse::Held>) -> Option<analyse::ReviewView> {
     analyse::review_now(&held)
 }

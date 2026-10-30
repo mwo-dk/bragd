@@ -219,7 +219,7 @@ fn game_throw(variant: String, initial: Option<String>, entries: Vec<String>) ->
 }
 
 /// The Rules page of a Family: its docs and its teaching positions.
-#[tauri::command]
+#[tauri::command(async)]
 fn rules_page(family: String) -> Result<rules::Page, String> {
     let family = Family::from_key(&family).ok_or_else(|| format!("no Family {family}"))?;
     Ok(rules::page(family))

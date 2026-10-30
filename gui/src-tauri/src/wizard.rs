@@ -119,7 +119,7 @@ fn engines(cfg: &Config) -> Vec<FamilyEngines> {
         .collect()
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn wizard_open(ctx: tauri::State<'_, Ctx>) -> Open {
     let cfg = ctx.cfg();
     let offers = wizard::offers(&helper_sources(), &cfg, disk::bytes);
