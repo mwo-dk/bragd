@@ -1,6 +1,7 @@
 <script>
   // A list of Games of any length: only the rows in sight (and a few around them) are asked of
   // Rust, as the list scrolls. A header click sorts by that column, when the list can sort.
+  import { untrack } from "svelte";
   import { t, num } from "./i18n.svelte.js";
 
   /** @type {{ fetch: (from: number, count: number) => Promise<{total: number, rows: any[]}>, version: any, sort?: string, desc?: boolean, onsort?: (col: string) => void, onopen: (row: any) => void, selected?: number | null }} */
@@ -29,10 +30,10 @@
     }
   }
 
-  // Again from the top when what is listed changes.
+  // Again when what is listed changes; scrolling loads through `scrolled`, not here.
   $effect(() => {
     version;
-    load(Math.max(0, Math.floor(top / ROW) - 10));
+    untrack(() => load(Math.max(0, Math.floor(top / ROW) - 10)));
   });
 
   function scrolled(/** @type {Event} */ e) {
