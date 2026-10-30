@@ -1,15 +1,32 @@
 <script>
-  // Play against yourself: a Game of one Variant of the Family. The record is a list of entries;
-  // Rust replays it and hands back the board, the legal moves and the result. A click picks one
-  // of those moves; nothing here knows a rule.
+  // Play against yourself or an Engine, and Analyse: a Game of one Variant of the Family. The
+  // record is a list of entries; Rust replays it and hands back the board, the legal moves and
+  // the result, and an Engine's move as an entry. A click picks one of those moves; nothing here
+  // knows a rule.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import { movesOf, movesTo, plainMoves } from "./board.js";
   import Board from "./Board.svelte";
   import BackgammonBoard from "./BackgammonBoard.svelte";
+  import Analysis from "./Analysis.svelte";
+  import Known from "./Known.svelte";
+  import { current } from "./current.svelte.js";
 
-  /** @type {{ family: any }} */
-  let { family } = $props();
+  /** @type {{ family: any, mode?: "play" | "analyse" }} */
+  let { family, mode = "play" } = $props();
+  const analyse = $derived(mode === "analyse");
+  /** The review's mark of each entry. @type {string[]} */
+  let marks = $state([]);
+  /** Who plays the other Side: yourself, or an Engine. */
+  let opponent = $state("self");
+  /** The Engine's Side: 1 the second, 0 the first. */
+  let engineSeat = $state(1);
+  let thinkMs = $state(1000);
+  let skill = $state(20);
+  /** @type {{engines: {key: string, name: string, ready: boolean}[], sides: string[]}} */
+  let choices = $state({ engines: [], sides: [] });
+  let engineKey = $state("");
+  let thinking = $state(false);
 
   const variants = $derived(family.variants.filter((/** @type {any} */ v) => v.on));
   let key = $state("");
@@ -49,11 +66,59 @@
     choose = [];
   }
 
+  // The Game played here is the one Analyse can take up.
+  $effect(() => {
+    if (!analyse && key) current[family.id] = { variant: key, initial, entries: [...entries] };
+  });
+  // The Engines that can take a Side, for this Variant.
+  $effect(() => {
+    if (!analyse && key)
+      api.engineChoices(key).then((c) => {
+        choices = c;
+        engineKey = c.default ?? "";
+      });
+  });
+
+  // On the Engine's turn it throws (backgammon), takes a double offered, or moves; Rust gives
+  // its move as an entry.
+  $effect(() => {
+    if (analyse || opponent !== "engine" || !st || st.outcome || thinking || error) return;
+    if (st.toMove?.index !== engineSeat) return;
+    thinking = true;
+    const g = { variant: key, initial, entries: [...entries] };
+    const done = () => (thinking = false);
+    if (st.awaiting === "throw") doThrow().finally(done);
+    else if (st.moves.some((/** @type {any} */ m) => m.wire === "take")) playEntry("take").finally(done);
+    else
+      api
+        .engineMove(g, engineKey || null, thinkMs, skill)
+        .then((m) => playEntry(m.entry))
+        .catch((e) => (error = String(e)))
+        .finally(done);
+  });
+
+  /** A list of entries from Analyse (a line clicked): the Game after them. */
+  async function setEntries(/** @type {string[]} */ list) {
+    await load(api.replay(key, initial, list));
+    if (!error) entries = list;
+  }
+
+  /** A set-up position (or the start, with null), and the entries after it. */
+  async function setUp(/** @type {string|null} */ text, /** @type {string[]} */ list = []) {
+    await load(api.replay(key, text, list));
+    if (!error) {
+      initial = text;
+      entries = list;
+      marks = [];
+    }
+  }
+
   export function newGame(/** @type {string} */ variant = key) {
     key = variant;
     initial = null;
     entries = [];
     dead = [];
+    marks = [];
     load(api.replay(key, null, []));
   }
 
@@ -75,7 +140,9 @@
   }
 
   function undo() {
-    entries = entries.slice(0, -1);
+    // Against an Engine, Undo takes back its reply too.
+    const n = opponent === "engine" && !analyse && entries.length > 1 ? 2 : 1;
+    entries = entries.slice(0, -n);
     dead = [];
     load(api.replay(key, initial, entries));
   }
@@ -143,6 +210,30 @@
     <button class="primary" onclick={() => newGame()}>{t("play.new_game")}</button>
     <button onclick={undo} disabled={!entries.length}>{t("play.undo")}</button>
     <button onclick={() => (flipped = !flipped)} aria-pressed={flipped}>{t("play.flip")}</button>
+    {#if !analyse && choices.engines.length}
+      <select bind:value={opponent} aria-label={t("play.opponent")}>
+        <option value="self">{t("play.against_self")}</option>
+        <option value="engine">{t("play.against_engine")}</option>
+      </select>
+      {#if opponent === "engine"}
+        <select bind:value={engineKey} aria-label={t("analyse.engine")}>
+          {#each choices.engines as c}
+            <option value={c.key}>{c.name}{c.ready ? "" : ` (${t("engines.not_ready")})`}</option>
+          {/each}
+        </select>
+        <select bind:value={engineSeat} aria-label={t("play.engine_side")}>
+          {#each choices.sides as side, seat}
+            <option value={seat}>{t("play.engine_plays", { side })}</option>
+          {/each}
+        </select>
+        <select bind:value={thinkMs} aria-label={t("play.think_time")}>
+          {#each [100, 1000, 3000, 10000] as ms}
+            <option value={ms}>{t("play.seconds", { n: ms / 1000 })}</option>
+          {/each}
+        </select>
+        <label class="skill">{t("play.strength")} <input type="range" min="0" max="20" bind:value={skill} /></label>
+      {/if}
+    {/if}
   </header>
 
   {#if st}
@@ -246,14 +337,24 @@
           </div>
         {/if}
 
+        {#if thinking}
+          <p class="hint" role="status">{t("play.thinking")}</p>
+        {/if}
         {#if error}
           <p class="error" role="alert">{error}</p>
         {/if}
 
+        {#if family.id === "chess"}
+          <Known game={{ variant: key, initial, entries }} onplay={playEntry} />
+        {/if}
+        {#if analyse}
+          <Analysis {family} game={{ variant: key, initial, entries }} over={!!st.outcome} onentries={setEntries} onsetup={setUp} bind:marks />
+        {/if}
+
         <h2>{t("play.moves")}</h2>
         <ol class="moves">
-          {#each st.history as h}
-            <li>{h}</li>
+          {#each st.history as h, i}
+            <li>{h}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")}>{marks[i]}</span>{/if}</li>
           {/each}
         </ol>
       </aside>
@@ -368,6 +469,19 @@
   }
   .error {
     color: var(--red);
+  }
+  .mark {
+    margin-inline-start: 0.15rem;
+    font-weight: 700;
+    color: var(--dim);
+  }
+  .mark.bad {
+    color: var(--red);
+  }
+  .skill {
+    display: inline-flex;
+    gap: 0.3rem;
+    align-items: center;
   }
   .moves {
     columns: 2;

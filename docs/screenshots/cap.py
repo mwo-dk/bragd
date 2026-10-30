@@ -22,6 +22,7 @@ The window takes the display's size, which the app reads from BRAGD_WINDOW_SIZE 
 app runs with BRAGD_OFFLINE=1, so it checks for no update. A demo home without a state.json gets
 one that has seen the install wizard, the tour cards and the hints (SEEN), so they do not cover
 the screen; `Desktop(state={...})` writes the state given instead, `{}` for a first start.
+BRAGD_OFFLINE=1 also means no tablebase download or lookup is made.
 
 The demo home is $DEMO_HOME (default <tmp>/bragd-cap-<uid>/demo-home, made with demo-home.sh).
 `SANDBOX_ARGS` (extra bwrap arguments) is passed to sandbox.sh; keep the network, the page is

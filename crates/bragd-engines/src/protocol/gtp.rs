@@ -27,9 +27,9 @@ pub struct Gtp {
     colour_next: &'static str,
 }
 
-/// The board size of a go Variant key (`go9`, `go13`, `go19`).
+/// The board size of a go Variant key (`go-9`, `go-13`, `go-19`).
 fn size(variant: &str) -> u32 {
-    variant.strip_prefix("go").and_then(|s| s.parse().ok()).unwrap_or(19)
+    variant.strip_prefix("go-").and_then(|s| s.parse().ok()).unwrap_or(19)
 }
 
 impl Gtp {
@@ -184,12 +184,12 @@ mod tests {
         assert_eq!(d.greeted("", &mut about), Step::More);
         assert_eq!(d.greeted("= 3.8", &mut about), Step::Ready(String::new()));
         assert_eq!(about.name, "GNU Go 3.8");
-        assert_eq!(d.position(&about, &Position::new("go9", &["E5", "pass"])), "boardsize 9\nclear_board\nkomi 7.5\nplay B E5\nplay W pass\n");
+        assert_eq!(d.position(&about, &Position::new("go-9", &["E5", "pass"])), "boardsize 9\nclear_board\nkomi 7.5\nplay B E5\nplay W pass\n");
         assert_eq!(d.go(&about, Limit::Depth(14), 1), "level 10\ngenmove B\n");
         let got = run(&mut *d, "= \n\n=\n\n=\n\n= \n\n=\n\n=\n\n= c3\n\n");
         assert_eq!(got, [Event::Best(Best { mv: Some("C3".into()), ponder: None })]);
         // A refusal is said, not taken for the move.
-        d.position(&about, &Position::new("go9", &["Z99"]));
+        d.position(&about, &Position::new("go-9", &["Z99"]));
         assert_eq!(run(&mut *d, "=\n\n=\n\n=\n\n? illegal move\n\n"), [Event::Refused("illegal move".into())]);
     }
 
@@ -200,7 +200,7 @@ mod tests {
         d.greeted("=1 KataGo", &mut about);
         assert_eq!(d.greeted("= 1.15.3", &mut about), Step::Ready(String::new()));
         assert_eq!(d.set_option("maxVisits", "400"), "kata-set-param maxVisits 400\n");
-        assert_eq!(d.position(&about, &Position::new("go19", &["Q16"])), "boardsize 19\nclear_board\nkomi 7.5\nplay B Q16\n");
+        assert_eq!(d.position(&about, &Position::new("go-19", &["Q16"])), "boardsize 19\nclear_board\nkomi 7.5\nplay B Q16\n");
         assert_eq!(d.go(&about, Limit::Time(2000), 2), "time_settings 0 2 1\nkata-genmove_analyze W 50\n");
         let got = run(
             &mut *d,

@@ -13,6 +13,7 @@ pub mod lichess;
 pub mod options;
 pub mod protocol;
 pub mod review;
+pub mod seam;
 pub mod session;
 pub mod syzygy;
 pub mod tools;

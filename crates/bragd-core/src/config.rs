@@ -83,6 +83,13 @@ pub struct EnginesConfig {
     pub runtime: String,
     /// Engine name -> the program to run instead of the one found.
     pub paths: BTreeMap<String, String>,
+    /// Variant key -> the engine it is played and analysed with; none: the first that runs.
+    pub default: BTreeMap<String, String>,
+    /// Engines added by their path: name -> the Game family they play (their program is in
+    /// `paths`).
+    pub added: BTreeMap<String, String>,
+    /// Polyglot opening books (`.bin`) for chess, by path, shown in Play and Analyse.
+    pub books: Vec<String>,
 }
 
 impl Default for EnginesConfig {
@@ -91,6 +98,9 @@ impl Default for EnginesConfig {
             containers: true,
             runtime: "auto".into(),
             paths: BTreeMap::new(),
+            default: BTreeMap::new(),
+            added: BTreeMap::new(),
+            books: vec![],
         }
     }
 }
@@ -334,6 +344,30 @@ impl Config {
         Ok(cfg)
     }
 
+    /// Takes the value at `keys` out of the user's config.toml (nothing when it is not there),
+    /// the rest of the file and its comments kept.
+    pub fn remove_value(keys: &[&str]) -> Result<Config, String> {
+        let path = Config::path().ok_or_else(|| t!("config.no_folder"))?;
+        Config::remove_value_at(&path, keys)
+    }
+
+    pub fn remove_value_at(path: &std::path::Path, keys: &[&str]) -> Result<Config, String> {
+        let old = std::fs::read_to_string(path).unwrap_or_default();
+        let mut doc: toml_edit::DocumentMut = old.parse().map_err(|e| format!("config: {e}"))?;
+        let (last, parents) = keys.split_last().ok_or("config: no key")?;
+        let mut table: Option<&mut dyn toml_edit::TableLike> = Some(doc.as_table_mut());
+        for k in parents {
+            table = table.and_then(|t| t.get_mut(k)).and_then(|i| i.as_table_like_mut());
+        }
+        if let Some(t) = table {
+            t.remove(last);
+        }
+        let new = doc.to_string();
+        let cfg = Config::parse_saved(&old, &new)?;
+        crate::fs::replace(path, new.as_bytes(), false).map_err(|e| format!("config: {e}"))?;
+        Ok(cfg)
+    }
+
     /// Writes Disk watch's limits to `[disk]` in the user's config.toml, its comments kept.
     pub fn save_disk(limits: &DiskConfig) -> Result<Config, String> {
         let path = Config::path().ok_or_else(|| t!("config.no_folder"))?;
@@ -375,6 +409,21 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_value_taken_out_keeps_the_rest() {
+        let d = std::env::temp_dir().join(format!("bragd-config-remove-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("config.toml");
+        std::fs::write(&p, "# mine\n[engines]\npaths = { mine = \"/x/mine\", other = \"/y\" }\nadded = { mine = \"chess\" }\n").unwrap();
+        let c = Config::remove_value_at(&p, &["engines", "added", "mine"]).unwrap();
+        let c2 = Config::remove_value_at(&p, &["engines", "paths", "mine"]).unwrap();
+        assert!(c.engines.added.is_empty() && c.engines.paths.contains_key("mine"));
+        assert_eq!(c2.engines.paths.keys().collect::<Vec<_>>(), ["other"]);
+        assert!(std::fs::read_to_string(&p).unwrap().starts_with("# mine"));
+        Config::remove_value_at(&p, &["nothing", "here"]).unwrap();
+        std::fs::remove_dir_all(&d).unwrap();
+    }
 
     #[test]
     fn config_defaults_have_everything_on() {

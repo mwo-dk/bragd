@@ -15,6 +15,10 @@ bragd-games = { path = "../../crates/bragd-games" }
 bragd-engines = { path = "../../crates/bragd-engines" }
 # Settings opens config.toml in the system's editor and pages in the browser, from Rust.
 tauri-plugin-opener = "2"
+# Engines, tablebases and their downloads; opening books and names from the library.
+bragd-library = { path = "../../crates/bragd-library" }
+# Lists written into config.toml (the opening books), as bragd-core writes them.
+toml_edit = "0.25"
 # No `devtools` feature: a release build has no inspector.
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
@@ -24,7 +28,6 @@ pulldown-cmark = { version = "0.13", default-features = false, features = ["html
 # The Helper: its connection, its requests, Sources and Disk watch (bragd-helper).
 bragd-helper = { path = "../../crates/bragd-helper" }
 # Foreign databases read in place, Libraries and Slices.
-bragd-library = { path = "../../crates/bragd-library" }
 # The file dialog for opening and saving Foreign databases, called from Rust only.
 tauri-plugin-dialog = "2"
 

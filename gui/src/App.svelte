@@ -16,6 +16,9 @@
   import Databases from "./Databases.svelte";
   import Jobs from "./Jobs.svelte";
   import * as knowledge from "./knowledge.js";
+  import Engines from "./Engines.svelte";
+  import Tablebases from "./Tablebases.svelte";
+  import Books from "./Books.svelte";
   import splash from "../../assets/brand/splash.svg";
 
   /** @type {any} */
@@ -102,6 +105,18 @@
         {/key}
       {:else if family && page.item === "rules"}
         <Rules {family} />
+      {:else if family && page.item === "analyse"}
+        {#key family.id}
+          <Play {family} mode="analyse" />
+        {/key}
+      {:else if family && page.item === "engines"}
+        {#key family.id}
+          <Engines {family} />
+        {/key}
+      {:else if family && page.item === "tablebases"}
+        <Tablebases {snap} {save} />
+      {:else if family && page.item === "opening_books"}
+        <Books />
       {:else if family}
         <section>
           <h1>{family.name}: {t(`sidebar.${page.item}`)}</h1>

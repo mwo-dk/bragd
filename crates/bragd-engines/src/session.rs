@@ -405,7 +405,7 @@ mod tests {
         let p = crate::fake_program(&d, "gnugo", "while read l; do case \"$l\" in name) printf '= GNU Go\\n\\n';; version) printf '= 3.8\\n\\n';; genmove*) printf '= C3\\n\\n';; quit) printf '=\\n\\n'; exit 0;; *) printf '=\\n\\n';; esac; done");
         let mut e = Engine::start(&installed(p), Protocol::Gtp, Duration::from_secs(10), &|| false).unwrap();
         assert_eq!(e.about().name, "GNU Go 3.8");
-        let a = think(&mut e, &Position::new("go9", &["E5"]), Limit::Time(1000), 1, &|| false, &mut |_| {}).unwrap();
+        let a = think(&mut e, &Position::new("go-9", &["E5"]), Limit::Time(1000), 1, &|| false, &mut |_| {}).unwrap();
         assert_eq!(a.best.as_deref(), Some("C3"));
         std::fs::remove_dir_all(&d).unwrap();
     }

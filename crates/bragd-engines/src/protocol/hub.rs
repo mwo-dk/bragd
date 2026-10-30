@@ -95,7 +95,7 @@ impl Dialect for Hub {
 
     fn position(&mut self, about: &About, p: &Position) -> String {
         let mut out = String::new();
-        if about.option("variant").is_some() && p.variant == "international" {
+        if about.option("variant").is_some() && p.variant == "draughts" {
             out.push_str(&self.set_option("variant", "normal"));
         }
         out.push_str("new-game\n");
@@ -166,7 +166,7 @@ mod tests {
         assert_eq!(about.option("variant").unwrap().vars, ["normal", "killer", "bt", "frisian", "losing"]);
         assert_eq!(about.option("tt-size").map(|o| (o.kind.as_str(), o.max)), Some(("spin", Some(30))));
         assert_eq!(
-            d.position(&about, &Position::new("international", &["32-28", "19-23"])),
+            d.position(&about, &Position::new("draughts", &["32-28", "19-23"])),
             format!("set-param name=variant value=normal\nnew-game\npos pos={START} moves=\"32-28 19-23\"\n")
         );
         assert_eq!(d.go(&about, Limit::Time(1500), 1), "level move-time=1.500\ngo think\n");

@@ -39,3 +39,61 @@ export const updateCheck = () => invoke("update_check");
 export const openConfig = () => invoke("open_config");
 export const suggestTranslation = (/** @type {string} */ shown) => invoke("suggest_translation", { shown });
 export const openUrl = (/** @type {string} */ url) => invoke("open_url", { url });
+
+// Engines, Analyse, Tablebases and Opening books (gui/src-tauri/src/engine_commands.rs).
+/** @typedef {{variant: string, initial: string|null, entries: string[]}} Game */
+/** @returns {Promise<any>} */
+export const enginesPage = (/** @type {string} */ familyKey) => invoke("engines_page", { familyKey });
+/** @returns {Promise<void>} */
+export const engineDefault = (/** @type {string} */ variant, /** @type {string} */ engine) => invoke("engine_default", { variant, engine });
+/** @returns {Promise<void>} */
+export const engineAdd = (/** @type {string} */ familyKey, /** @type {string} */ path) => invoke("engine_add", { familyKey, path });
+/** @returns {Promise<void>} */
+export const engineRemove = (/** @type {string} */ key) => invoke("engine_remove", { key });
+/** @returns {Promise<any>} */
+export const engineOptions = (/** @type {string} */ key, /** @type {string} */ variant) => invoke("engine_options", { key, variant });
+/** @returns {Promise<any>} */
+export const engineSetOption = (/** @type {string} */ key, /** @type {string} */ name, /** @type {any} */ value) =>
+  invoke("engine_set_option", { key, name, value });
+/** @returns {Promise<any>} */
+export const engineResetOptions = (/** @type {string} */ key) => invoke("engine_reset_options", { key });
+/** @returns {Promise<void>} */
+export const enginePull = (/** @type {string} */ key) => invoke("engine_pull", { key });
+/** @returns {Promise<{engines: {key: string, name: string, ready: boolean}[], default: string|null, sides: string[]}>} */
+export const engineChoices = (/** @type {string} */ variant) => invoke("engine_choices", { variant });
+/** @returns {Promise<{entry: string, notation: string}>} */
+export const engineMove = (/** @type {Game} */ g, /** @type {string|null} */ engine, /** @type {number} */ ms, /** @type {number|null} */ skill) =>
+  invoke("engine_move", { ...g, engine, ms, skill });
+/** @returns {Promise<void>} */
+export const analysisStart = (/** @type {Game} */ g, /** @type {string|null} */ engine, /** @type {number} */ lines) =>
+  invoke("analysis_start", { ...g, engine, lines });
+/** @returns {Promise<any>} */
+export const analysisNow = () => invoke("analysis_now");
+/** @returns {Promise<void>} */
+export const analysisStop = () => invoke("analysis_stop");
+/** @returns {Promise<void>} */
+export const reviewStart = (/** @type {Game} */ g, /** @type {string|null} */ engine) => invoke("review_start", { ...g, engine });
+/** @returns {Promise<any>} */
+export const reviewNow = () => invoke("review_now");
+/** @returns {Promise<void>} */
+export const reviewStop = () => invoke("review_stop");
+/** @returns {Promise<any>} */
+export const positionKnown = (/** @type {Game} */ g) => invoke("position_known", { ...g });
+/** @returns {Promise<any>} */
+export const tablebaseProbe = (/** @type {Game} */ g) => invoke("tablebase_probe", { ...g });
+/** @returns {Promise<any>} */
+export const positionSetup = (/** @type {string} */ variant, /** @type {string} */ text) => invoke("position_setup", { variant, text });
+/** @returns {Promise<any>} */
+export const tablebasesPage = () => invoke("tablebases_page");
+/** @returns {Promise<number>} */
+export const tablebasePlan = (/** @type {string} */ set) => invoke("tablebase_plan", { set });
+/** @returns {Promise<void>} */
+export const tablebaseDownload = (/** @type {string} */ set) => invoke("tablebase_download", { set });
+/** @returns {Promise<void>} */
+export const tablebaseStop = () => invoke("tablebase_stop");
+/** @returns {Promise<any[]>} */
+export const booksPage = () => invoke("books_page");
+/** @returns {Promise<void>} */
+export const bookAdd = (/** @type {string} */ path) => invoke("book_add", { path });
+/** @returns {Promise<void>} */
+export const bookRemove = (/** @type {string} */ path) => invoke("book_remove", { path });

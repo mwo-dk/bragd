@@ -9,31 +9,9 @@ use crate::protocol::Protocol;
 use crate::session::Program;
 use crate::tools::{self, Runtime};
 
-/// The Game families that have outside engines; tafl, ur and senet have Bragd's own Bots.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Family {
-    Chess,
-    Xiangqi,
-    Shogi,
-    Go,
-    Draughts,
-    Backgammon,
-}
-
-/// The Variant keys of each Family, as engines are set up for them.
-pub const VARIANTS: &[(Family, &[&str])] = &[
-    (Family::Chess, &["chess", "chess960", "shatranj", "chaturanga", "kingofthehill", "racingkings", "seirawan", "capablanca"]),
-    (Family::Xiangqi, &["xiangqi", "janggi"]),
-    (Family::Shogi, &["shogi"]),
-    (Family::Go, &["go9", "go13", "go19"]),
-    (Family::Draughts, &["english", "international", "brazilian", "russian"]),
-    (Family::Backgammon, &["backgammon"]),
-];
-
-/// The Family of a Variant key.
-pub fn family(variant: &str) -> Option<Family> {
-    VARIANTS.iter().find(|(_, v)| v.contains(&variant)).map(|(f, _)| *f)
+/// The Family of a Variant key, from bragd-games' catalogue.
+pub fn family(variant: &str) -> Option<bragd_games::Family> {
+    bragd_games::Variant::from_key(variant).map(|v| v.family())
 }
 
 /// Where Bragd's engine images are published.
@@ -69,7 +47,7 @@ pub struct Known {
 
 const CHESS: &[&str] = &["chess", "chess960"];
 const FAIRY: &[&str] = &["chess", "chess960", "shatranj", "chaturanga", "kingofthehill", "racingkings", "seirawan", "capablanca", "xiangqi", "janggi", "shogi"];
-const GO: &[&str] = &["go9", "go13", "go19"];
+const GO: &[&str] = &["go-9", "go-13", "go-19"];
 
 /// The engines of the spec. English, Brazilian and Russian draughts have none: Scan plays
 /// international draughts.
@@ -90,7 +68,7 @@ pub const KNOWN: &[Known] = &[
     Known { key: "yaneuraou", name: "YaneuraOu", programs: &["YaneuraOu", "yaneuraou", "YaneuraOu-by-gcc"], args: &[], variants: &["shogi"], tag: None, pin: None, site: "https://github.com/yaneurao/YaneuraOu/releases", syzygy: false },
     Known { key: "katago", name: "KataGo", programs: &["katago"], args: &["gtp"], variants: GO, tag: Some("1.18.2-eigen"), pin: PIN_KATAGO, site: "https://github.com/lightvector/KataGo/releases", syzygy: false },
     Known { key: "gnugo", name: "GNU Go", programs: &["gnugo"], args: &["--mode", "gtp"], variants: GO, tag: Some("3.8"), pin: PIN_GNUGO, site: "https://www.gnu.org/software/gnugo/", syzygy: false },
-    Known { key: "scan", name: "Scan", programs: &["scan"], args: &["hub"], variants: &["international"], tag: None, pin: None, site: "https://hjetten.home.xs4all.nl/scan/scan.html", syzygy: false },
+    Known { key: "scan", name: "Scan", programs: &["scan"], args: &["hub"], variants: &["draughts"], tag: None, pin: None, site: "https://hjetten.home.xs4all.nl/scan/scan.html", syzygy: false },
     Known { key: "gnubg", name: "GNU Backgammon", programs: &["gnubg"], args: &["-t", "-q"], variants: &["backgammon"], tag: None, pin: None, site: "https://www.gnu.org/software/gnubg/", syzygy: false },
 ];
 
@@ -204,15 +182,15 @@ mod tests {
         let fairy = known("fairy-stockfish").unwrap();
         assert_eq!((fairy.protocol("xiangqi"), fairy.protocol("shogi")), (Protocol::Uci, Protocol::Usi));
         assert_eq!(known("pikafish").unwrap().protocol("xiangqi"), Protocol::Uci, "Pikafish speaks UCI");
-        assert_eq!(known("katago").unwrap().protocol("go19"), Protocol::Gtp);
-        assert_eq!(known("scan").unwrap().protocol("international"), Protocol::Hub);
+        assert_eq!(known("katago").unwrap().protocol("go-19"), Protocol::Gtp);
+        assert_eq!(known("scan").unwrap().protocol("draughts"), Protocol::Hub);
         assert_eq!(known("gnubg").unwrap().protocol("backgammon"), Protocol::Gnubg);
         for k in KNOWN {
             assert!(k.variants.iter().all(|v| family(v).is_some()), "{}: a Variant no Family has", k.key);
         }
         let xiangqi: Vec<&str> = for_variant("xiangqi").map(|k| k.key).collect();
         assert_eq!(xiangqi, ["fairy-stockfish", "pikafish"]);
-        assert_eq!(for_variant("english").count(), 0);
+        assert_eq!(for_variant("checkers").count(), 0);
         assert_eq!(known("stockfish").unwrap().image_name().as_deref(), Some("ghcr.io/mwo-dk/bragd-stockfish:17.1"));
     }
 

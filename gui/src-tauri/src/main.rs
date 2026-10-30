@@ -7,7 +7,11 @@ mod help;
 mod databases;
 mod helper_link;
 mod knowledge;
+mod analyse;
+mod engine_commands;
+mod engines;
 mod rules;
+mod tablebases;
 mod throw;
 mod wizard;
 
@@ -243,6 +247,9 @@ fn main() {
         .manage(Ctx { cfg: RwLock::new(cfg) })
         .manage(knowledge::Knowledge::default())
         .plugin(tauri_plugin_dialog::init())
+        .manage(engines::Held::default())
+        .manage(analyse::Held::default())
+        .manage(tablebases::Held::default())
         .setup(|app| {
             knowledge::start(app.handle());
             let mut window = app.config().app.windows.first().cloned().ok_or("no window in the config")?;
@@ -305,6 +312,32 @@ fn main() {
             knowledge::source_strip,
             knowledge::disk_report,
             knowledge::disk_limits_set,
+            engine_commands::engines_page,
+            engine_commands::engine_default,
+            engine_commands::engine_add,
+            engine_commands::engine_remove,
+            engine_commands::engine_options,
+            engine_commands::engine_set_option,
+            engine_commands::engine_reset_options,
+            engine_commands::engine_pull,
+            engine_commands::engine_choices,
+            engine_commands::engine_move,
+            engine_commands::analysis_start,
+            engine_commands::analysis_now,
+            engine_commands::analysis_stop,
+            engine_commands::review_start,
+            engine_commands::review_now,
+            engine_commands::review_stop,
+            engine_commands::position_known,
+            engine_commands::tablebase_probe,
+            engine_commands::position_setup,
+            engine_commands::tablebases_page,
+            engine_commands::tablebase_plan,
+            engine_commands::tablebase_download,
+            engine_commands::tablebase_stop,
+            engine_commands::books_page,
+            engine_commands::book_add,
+            engine_commands::book_remove,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Bragd");

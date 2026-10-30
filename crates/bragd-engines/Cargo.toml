@@ -7,6 +7,8 @@ publish.workspace = true
 description = "Engines for every Game family: their protocols, discovery, sealed container images and Syzygy tablebases"
 
 [dependencies]
+# The Variant catalogue and its moves: engines play its Variants, their moves turned into its entries.
+bragd-games = { path = "../bragd-games" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Engine options the user sets are kept per engine in a TOML file of their own.

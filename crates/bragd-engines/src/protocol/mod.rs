@@ -12,8 +12,8 @@
 //! | GNU Backgammon's command line | GNU Backgammon | Backgammon |
 //!
 //! Moves go to and come from the engine in its own notation (UCI's `e2e4`, USI's `7g7f`, GTP's
-//! `D4`, Hub's `32-28`, GNU Backgammon's `8/5 6/5`). Turning them into what a Variant shows is the
-//! rules crates' work, not this crate's.
+//! `D4`, Hub's `32-28`, GNU Backgammon's `8/5 6/5`). `crate::seam` turns them into the
+//! entries of `bragd-games` and back.
 
 use serde::{Deserialize, Serialize};
 
@@ -285,7 +285,7 @@ mod tests {
         let mut s = Position::new("shogi", &[]);
         s.start = Start::Setup("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1".into());
         assert!(!s.first_to_move());
-        let mut d = Position::new("international", &[]);
+        let mut d = Position::new("draughts", &[]);
         d.start = Start::Setup("Bbbbbbbbbbbbbbbbbbbbbeeeeeeeeeewwwwwwwwwwwwwwwwwwww".into());
         assert!(!d.first_to_move());
     }
