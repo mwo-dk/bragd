@@ -119,8 +119,11 @@ if ! have npm; then
   elif have pacman && ask "Would you like me to install it with pacman (asks for your password)?"; then
     sudo_cmd pacman -S --needed --noconfirm nodejs npm
   fi
-  have npm || fail "Install Node.js 20 or newer from https://nodejs.org, then run this again."
+  have npm || fail "Install Node.js 20.19 or newer from https://nodejs.org, then run this again."
 fi
+# The build tool (Vite) needs Node.js 20.19+ or 22.12+; a distribution's own package is often older.
+node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 22 || (a === 22 && b >= 12) || (a === 20 && b >= 19) ? 0 : 1)' \
+  || fail "Node.js $(node -v) is too old to build Bragd. Install 20.19 or newer from https://nodejs.org, then run this again."
 
 # ---------------------------------------------------------------- build
 
@@ -147,7 +150,7 @@ Type=Application
 Name=Bragd
 GenericName=Board games
 Comment=Play, study and keep board games
-Exec=$PREFIX/bin/bragd-gui %F
+Exec="$PREFIX/bin/bragd-gui" %F
 Icon=bragd
 Terminal=false
 Categories=Game;BoardGame;

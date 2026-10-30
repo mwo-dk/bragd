@@ -101,7 +101,12 @@ if (-not (Have npm)) {
         winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
         Refresh-Path
     }
-    if (-not (Have npm)) { Fail "Install Node.js 20 or newer from https://nodejs.org, then run this again." }
+    if (-not (Have npm)) { Fail "Install Node.js 20.19 or newer from https://nodejs.org, then run this again." }
+}
+# The build tool (Vite) needs Node.js 20.19+ or 22.12+.
+$nodeVersion = [version]((node -p "process.versions.node").Trim())
+if (-not (($nodeVersion -ge [version]"22.12") -or ($nodeVersion.Major -eq 20 -and $nodeVersion.Minor -ge 19))) {
+    Fail "Node.js $nodeVersion is too old to build Bragd. Install 20.19 or newer from https://nodejs.org, then run this again."
 }
 # Bragd renders with WebView2, which ships with Windows 10 and 11.
 
