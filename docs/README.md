@@ -2,20 +2,99 @@
 
 # Bragd documentation
 
-Every feature has its own page: what it does, how to use it with the exact keys, what you see on screen, its settings and `config.toml` keys, and the questions people ask. The pages are grouped in areas below, each with an index of its own. Every page ends with *Previous* and *Next* links in this order, so the docs can be read from start to end.
+Every feature has its own page: what it does, how to reach it, what it needs, its settings and `config.toml` keys, and the questions people ask. The pages are grouped in areas below, each with an index of its own. Every page ends with *Previous* and *Next* links in this order, so the docs can be read from start to end.
 
-| Area | What it covers |
+New here? Start with [Installing Bragd](getting-started/install.md), [The install wizard](getting-started/first-start.md) and [Playing against yourself](play/against-yourself.md). Every version is in [the changelog](changelog.md).
+
+## [Getting started](getting-started/README.md)
+
+| Page | What it covers |
 |---|---|
-| [Getting started](getting-started/README.md) | Installing Bragd, the first start, the install wizard and What's new |
-| [Play](play/README.md) | New game, the board, moves, clocks, playing against yourself or an engine |
-| [Knowledge](knowledge/README.md) | Libraries, Foreign databases, Sources, Duplicates, Slices and export |
-| [Engines](engines/README.md) | Engines on your machine, sealed engine images, analysis and tablebases |
-| [Look](look/README.md) | Themes, Board themes, pieces, languages and Settings |
-| [Online](online/README.md) | Playing online, accounts and where your tokens are kept |
-| [Reference](reference/README.md) | Keys, `config.toml`, files and folders, the Helper, privacy and updates |
-| [Rules](rules/README.md) | The rules of every Game family and Variant Bragd knows |
+| [Getting started](getting-started/README.md) | The area's pages |
+| [Installing Bragd](getting-started/install.md) | Every channel per system, the Helper beside the app, checking the download |
+| [The install wizard](getting-started/first-start.md) | The six steps of the first start, skipping, running it again |
+| [Game families and Variants](getting-started/game-families.md) | Turning Families and Variants on and off, what disappears and what stays |
+| [The sidebar](getting-started/sidebar.md) | Families and their items, collapsing, the Helper line, Settings, Help and What's new |
+| [Help (F1) and notices](getting-started/help.md) | F1 → Features, the filter, *Show me*, notices and hints |
+| [What's new](getting-started/whats-new.md) | Tour cards after an upgrade, the list of every version |
 
-The [changelog](changelog.md) lists every release.
+## [Play](play/README.md)
+
+| Page | What it covers |
+|---|---|
+| [Play](play/README.md) | The area's pages, and the controls every Family shares |
+| [Playing against yourself](play/against-yourself.md) | New game, moving, Undo, flipping, the result |
+| [Playing against an Engine](play/against-an-engine.md) | Choosing the Engine's Side, strength, time per move, book moves |
+| [Chess and its Variants](play/chess.md) | Promotion, castling, Chess960, Seirawan gating, Capablanca |
+| [Xiangqi and janggi](play/xiangqi.md) | The palace, the river, janggi's passes |
+| [Shogi](play/shogi.md) | Drops, promotion, the hands |
+| [Go](play/go.md) | Placing stones, passing, marking dead stones, scoring |
+| [Draughts](play/draughts.md) | Captures with several paths, crowning, the four rulesets |
+| [Tafl](play/tafl.md) | Attackers and Defenders, the king, the four sizes |
+| [Backgammon](play/backgammon.md) | Throwing the dice, whole turns, the bar, bearing off, the doubling cube |
+| [Ur](play/ur.md) | Throwing four dice, entering, rosettes |
+| [Senet](play/senet.md) | Throwing the sticks, the special squares, bearing off |
+
+## [Knowledge](knowledge/README.md)
+
+| Page | What it covers |
+|---|---|
+| [Knowledge](knowledge/README.md) | The area's pages, and how Foreign databases, Libraries and Sources fit together |
+| [Foreign databases](knowledge/foreign-databases.md) | Opening PGN, SCID, ChessBase, SGF, KIF, CSA and PDN files in place, the list, replay, Save as |
+| [Libraries](knowledge/libraries.md) | Bragd's own store, importing, where it is kept |
+| [Duplicates](knowledge/duplicates.md) | How a Duplicate is found, merging, Source priority, Near-duplicates |
+| [Slices](knowledge/slices.md) | Named queries, live or kept as a copy, position search |
+| [Export to Parquet](knowledge/parquet-export.md) | A Library as a Parquet file for DuckDB; not yet in the app |
+| [Sources](knowledge/sources.md) | TWIC, custom URLs, the listed big Sources, schedules |
+| [Strip rules](knowledge/strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
+| [Disk watch](knowledge/disk-watch.md) | Disk use, limits, warnings and what happens when one is crossed |
+| [The Helper](knowledge/helper.md) | The background process, its jobs, *Start with my session*, battery |
+
+## [Engines](engines/README.md)
+
+| Page | What it covers |
+|---|---|
+| [Engines](engines/README.md) | The area's pages, and which Engine plays which Family |
+| [The Engines page](engines/engines.md) | Engines found, adding one by its path, the default per Variant, options |
+| [Engine container images](engines/container-images.md) | Sealed images, podman or docker, pins, pruning |
+| [Analyse](engines/analyse.md) | Engine lines on any position, clicking into a line |
+| [Game review](engines/review.md) | Marks on every move, the evaluation profile |
+| [Tablebases](engines/tablebases.md) | Syzygy sets, their folder, the Lichess fallback |
+| [Opening books](engines/opening-books.md) | Polyglot books and opening names |
+
+## [Look](look/README.md)
+
+| Page | What it covers |
+|---|---|
+| [Look](look/README.md) | The area's pages |
+| [Themes](look/themes.md) | The 30 built-in Themes in their groups, and your own |
+| [Looks](look/looks.md) | The chrome laid over a Theme |
+| [Board themes](look/board-themes.md) | Racing green, Slate, Walnut and Match theme, on every Family's board |
+| [Languages](look/languages.md) | Choosing a language, *Automatic*, right to left, mending a translation |
+
+## [Online](online/README.md)
+
+| Page | What it covers |
+|---|---|
+| [Online](online/README.md) | The area's pages |
+| [Playing online](online/playing-online.md) | What is coming: other servers, then Bragd's own. Not yet available |
+
+## [Reference](reference/README.md)
+
+| Page | What it covers |
+|---|---|
+| [Reference](reference/README.md) | The area's pages |
+| [config.toml](reference/config-toml.md) | Every key, its default and what it does |
+| [Every setting](reference/settings.md) | Every item in Settings, by area, with the key it writes |
+| [Command line](reference/command-line.md) | `bragd-gui` and `bragd-helper`, their flags and environment variables |
+| [Files on disk](reference/files.md) | Where config, data, Libraries, the Helper, tablebases and the cache are kept |
+| [Privacy](reference/privacy.md) | What leaves the machine, when, and how to stop it |
+
+## [Rules](rules/README.md)
+
+| Page | What it covers |
+|---|---|
+| [Rules](rules/README.md) | The rules of every Game family and Variant Bragd knows |
 
 ---
 [← Previous: README](../README.md) · [Next: Getting started →](getting-started/README.md)

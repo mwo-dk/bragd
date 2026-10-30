@@ -19,17 +19,17 @@ pub const DOCS: &str = "https://github.com/mwo-dk/bragd/blob/master/docs/";
 
 /// Every feature, in the order of `docs/README.md`, with its texts in every language.
 pub const FEATURES: &[Feature] = &[
-    f("families", "families/README.md"),
-    f("play", "play/play.md"),
-    f("analyse", "play/analyse.md"),
-    f("databases", "knowledge/databases.md"),
-    f("engines", "engines/engines.md"),
-    f("tablebases", "knowledge/tablebases.md"),
-    f("themes", "look/themes.md"),
+    f("wizard", "getting-started/first-start.md"),
+    f("families", "getting-started/game-families.md"),
+    f("play", "play/against-yourself.md"),
+    f("databases", "knowledge/foreign-databases.md"),
+    f("disk", "knowledge/disk-watch.md"),
     f("helper", "knowledge/helper.md"),
-    f("disk", "knowledge/README.md"),
-    f("update", "privacy/updates.md"),
-    f("wizard", "getting-started/README.md"),
+    f("engines", "engines/engines.md"),
+    f("analyse", "engines/analyse.md"),
+    f("tablebases", "engines/tablebases.md"),
+    f("themes", "look/themes.md"),
+    f("update", "reference/privacy.md"),
 ];
 
 /// The feature `id`.

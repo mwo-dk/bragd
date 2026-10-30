@@ -73,4 +73,8 @@ lib="$dir/.local/share/bragd/libraries/main.bragd"
 (cd "$repo" && cargo run -q --release -p bragd-library --example demo_library -- "$lib" twic "$dir/Games/demo.pgn")
 (cd "$repo" && cargo run -q --release -p bragd-library --example demo_library -- "$lib" lichess "$dir/Games/copies.pgn")
 
+# A stand-in UCI engine for the pictures of Play against an Engine (pages.py sets it as
+# Stockfish's program): it answers from one line of the Italian game.
+install -m 755 "$repo/docs/screenshots/fake-uci" "$dir/fake-uci"
+
 echo "demo home: $dir"

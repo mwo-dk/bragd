@@ -1,0 +1,30 @@
+#!/usr/bin/python3
+# A stand-in UCI engine for the screenshots: it answers from a short line of the Italian game.
+import sys
+
+LINE = "e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 c2c3 g8f6 d2d4 e5d4 c3d4 c5b4 b1c3 f6e4 e1g1 b4c3".split()
+moves = []
+for raw in sys.stdin:
+    cmd = raw.split()
+    if not cmd:
+        continue
+    if cmd[0] == "uci":
+        print("id name Stockfish 17\nid author demo\noption name Skill Level type spin default 20 min 0 max 20\nuciok", flush=True)
+    elif cmd[0] == "isready":
+        print("readyok", flush=True)
+    elif cmd[0] == "position":
+        moves = cmd[cmd.index("moves") + 1:] if "moves" in cmd else []
+        if cmd[1] == "fen":
+            # A position given as FEN is taken to be on the line, at its ply.
+            ply = 2 * (int(cmd[7]) - 1) + (cmd[3] == "b")
+            moves = LINE[:ply] + moves
+    elif cmd[0] == "go":
+        rest = LINE[len(moves):] if LINE[: len(moves)] == moves else []
+        if rest:
+            for mpv, cp in ((1, 31), (2, 18), (3, 5)):
+                print(f"info depth 18 multipv {mpv} score cp {cp} nodes 120000 pv {' '.join(rest[:10])}", flush=True)
+            print(f"bestmove {rest[0]}", flush=True)
+        else:
+            print("bestmove 0000", flush=True)
+    elif cmd[0] == "quit":
+        break

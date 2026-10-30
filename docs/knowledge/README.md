@@ -2,9 +2,21 @@
 
 # Knowledge
 
-Libraries, Foreign databases read where they are, Sources, Duplicates, Slices and export.
+Bragd keeps Games in two ways. A **Foreign database** is a game file in someone else's format, such as PGN or SGF. Bragd reads it where it is and changes nothing in it. A **Library** is Bragd's own SQLite file, where imports land and each Game appears once. **Sources** such as TWIC bring new Games into the Library on a schedule. The **Helper**, a background process shared by every window, does the fetching, importing and Duplicate finding, so the windows stay quick. **Strip rules** and **Disk watch** hold what is stored to the Games you want and the space you allow.
 
-Each feature in this area gets a page of its own, listed here by the pull request that brings the feature.
+Everything here is reached from the sidebar: a Family, then **Databases**. The page has four tabs: *Files*, *Libraries*, *Sources* and *Disk use*.
+
+| Page | What it covers |
+|---|---|
+| [Foreign databases](foreign-databases.md) | Opening PGN, SCID, ChessBase, SGF, KIF, CSA and PDN files in place, the list, replay, Save as |
+| [Libraries](libraries.md) | Bragd's own store, importing, where it is kept |
+| [Duplicates](duplicates.md) | How a Duplicate is found, merging, Source priority, Near-duplicates |
+| [Slices](slices.md) | Named queries, live or kept as a copy, position search |
+| [Export to Parquet](parquet-export.md) | A Library as a Parquet file for DuckDB |
+| [Sources](sources.md) | TWIC, custom URLs, the listed big Sources, schedules |
+| [Strip rules](strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
+| [Disk watch](disk-watch.md) | Disk use, limits, warnings and what happens when one is crossed |
+| [The Helper](helper.md) | The background process, its jobs, *Start with my session*, battery |
 
 ---
-[← Previous: Play](../play/README.md) · [Next: Engines →](../engines/README.md)
+[← Previous: Senet](../play/senet.md) · [Next: Foreign databases →](foreign-databases.md)

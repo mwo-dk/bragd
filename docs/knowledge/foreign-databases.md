@@ -1,0 +1,88 @@
+[← README](../../README.md) · [Docs index](../README.md) · [Knowledge](README.md)
+
+# Foreign databases
+
+A Foreign database is a game file in someone else's format. Bragd opens it where it is and reads it in place: it does not copy it, convert it or change it. You can list its Games, filter and sort them, step through one, import the file into a Library, or save a copy. In F1 this is the `databases` entry.
+
+![The Databases page at its Files tab: a PGN file open, its Games listed with players, ratings, result, date, event and ECO, a filter for player and one for opening](../screenshots/databases-1100.png)
+*Databases → Files, with a PGN file open.*
+
+![One Game in replay: the board, the moves with a comment, the evaluation profile under them and the headers](../screenshots/databases-replay-1100.png)
+*A Game in replay, with its evaluation profile.*
+
+![The same page in a narrow window: the sidebar folded away, the list below the buttons](../screenshots/databases-390.png)
+*The Files tab at 390 px wide.*
+
+## How to reach it
+
+1. In the sidebar, open a Family and choose **Databases**. The *Files* tab is the first.
+2. Press **Open a file…** and choose a file. The dialog shows the game files Bragd reads.
+3. Click a row, or move to it with **Tab** and press **Enter** or **Space**, to open the Game.
+4. In replay, **←** and **→** step through the moves, **Home** and **End** go to the start and the end.
+
+| Button | What it does |
+|---|---|
+| **Open a file…** | Opens a game file. One file is open at a time |
+| **Import into Library** | Starts a Helper job that imports the file into the default Library, with the Source `file` |
+| **Save as…** | Writes a copy of the file somewhere else |
+| **Close** | Closes the file |
+
+The file stays open while the window runs, so you can leave the page and come back to it.
+
+## What it needs
+
+Only the file. These formats open:
+
+| Format | Files |
+|---|---|
+| PGN (chess and its Variants, xiangqi PGN) | `.pgn`, `.pgn.gz`, `.pgn.zst`, `.pgn.bz2` |
+| SCID 4 and 5 | `.si4`, `.si5` |
+| ChessBase | `.cbh`, `.cbv` |
+| SGF (go) | `.sgf` |
+| KIF and CSA (shogi) | `.kif`, `.kifu`, `.csa` |
+| PDN (draughts) | `.pdn` |
+
+A large file is listed while it is read, with the count so far. A very large file is listed up to a cap, and a line says so. Only the rows in sight are asked of Rust, so scrolling stays quick.
+
+Replay draws a board for chess (and Chess960, from the `Variant` header) and shogi. Draughts and xiangqi Games list their moves without a board for now, because their readers give no position per move. Go Games show their headers.
+
+## Settings and config.toml
+
+Foreign databases have no settings of their own. Importing uses the Library folder:
+
+| Setting | `config.toml` key | Default | What it does |
+|---|---|---|---|
+| Library folder | `knowledge.library` | empty: `<data>/bragd/libraries` | Where the Library that imports land in is kept |
+
+## Questions
+
+#### Does opening a file change it?
+
+No. Bragd reads it in place and writes nothing to it. It is only written when you choose **Save as…** and pick the same file, and then Bragd asks first if the file was downloaded.
+
+#### What counts as downloaded?
+
+A file in a Source's download folder (inside the Helper's folder), or in your `~/Downloads` folder. Writing over one is allowed but discouraged: the next fetch may replace it, and its Games in the Library still name it.
+
+#### How do I filter the list?
+
+Type part of a name in *Player*, or an opening or ECO code in *Opening or ECO*. Click a column heading to sort by it. A go file is filtered by player only and is not sorted.
+
+#### Why does a Game list its moves without a board?
+
+Its reader gives no position for each move yet. That is so for draughts and xiangqi files. Chess and shogi Games show a board.
+
+#### What is the line under the moves?
+
+The evaluation profile, when the file carries one (ChessBase's `[%evp]` comment). White's advantage is up, Black's down, capped at ten pawns. A mark shows where you are in the Game.
+
+#### Why does a Game stop part way?
+
+The file has a move that cannot be played from the position before it. Bragd shows the moves up to that one and names it.
+
+#### Can I open EPD files or Polyglot books here?
+
+Not from this page yet. Polyglot books are added on the [Opening books](../engines/opening-books.md) page.
+
+---
+[← Previous: Knowledge](README.md) · [Next: Libraries →](libraries.md)

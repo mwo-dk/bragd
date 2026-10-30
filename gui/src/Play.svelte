@@ -55,9 +55,13 @@
   const scoring = $derived(st?.moves.some((/** @type {any} */ m) => m.wire === "dead:"));
   const race = $derived(["backgammon", "ur", "senet"].includes(family.id));
 
-  async function load(/** @type {Promise<any>} */ p) {
+  /** The state `p` gives; `then` runs first, so the record and the state it shows change
+   * together (an Engine's turn reads both: asked between them, it got the old record). */
+  async function load(/** @type {Promise<any>} */ p, then = () => {}) {
     try {
-      st = await p;
+      const s = await p;
+      then();
+      st = s;
       error = "";
     } catch (e) {
       error = String(/** @type {any} */ (e)?.reason ?? e);
@@ -99,18 +103,16 @@
 
   /** A list of entries from Analyse (a line clicked): the Game after them. */
   async function setEntries(/** @type {string[]} */ list) {
-    await load(api.replay(key, initial, list));
-    if (!error) entries = list;
+    await load(api.replay(key, initial, list), () => (entries = list));
   }
 
   /** A set-up position (or the start, with null), and the entries after it. */
   async function setUp(/** @type {string|null} */ text, /** @type {string[]} */ list = []) {
-    await load(api.replay(key, text, list));
-    if (!error) {
+    await load(api.replay(key, text, list), () => {
       initial = text;
       entries = list;
       marks = [];
-    }
+    });
   }
 
   export function newGame(/** @type {string} */ variant = key) {
@@ -124,8 +126,7 @@
 
   async function playEntry(/** @type {string} */ entry) {
     const before = entries;
-    await load(api.play(key, initial, before, entry));
-    if (!error) entries = [...before, entry];
+    await load(api.play(key, initial, before, entry), () => (entries = [...before, entry]));
   }
 
   async function doThrow() {

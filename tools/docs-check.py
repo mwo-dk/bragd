@@ -27,8 +27,11 @@ Documentation). It blocks merge: it runs in ci.yml's Docs job, part of "CI resul
    NEEDS_HARDWARE are only warned about.
 6. Every question under a *Questions* heading is a `####` heading, so other pages can link to its
    answer: no question as a bold paragraph, none at another level.
-7. Every setting, action, flag and theme the code has is documented. TODO(coverage): a stub until
-   bragd-core's settings descriptors, actions and themes exist (big-bang S3); see check_coverage.
+7. Every name the code has is documented: each `config.toml` key (dotted, `look.theme`), each
+   setting descriptor (`theme`, `family_go`, `variant_go-9`), each Theme, Look and Board theme,
+   each F1 feature id, and each flag of `bragd-gui` and `bragd-helper` is written in backticks on
+   some page under docs/; and each F1 feature's page exists. The names are read from the Rust
+   source (check_coverage), so a new one fails the check until a page names it.
 
 Python 3.11+, standard library only.
 """
@@ -348,17 +351,93 @@ def check_placeholders(v: str, base: str | None) -> int:
     return count
 
 
-def check_coverage() -> None:
-    """TODO(coverage): every setting (`config.toml` key), action, flag and Theme the code has is
-    named in docs/. A stub until bragd-core has its settings descriptors, actions and Themes
-    (big-bang S3, crates written in parallel). Then: read their names from the code (or from a
-    `cargo run -p bragd-core --example docs-names` that prints them), and error for each one no
-    page under docs/ mentions in backticks. A Rust test in bragd-core would do as well; either way
-    it must fail on a missing name."""
+RUST = ROOT / "crates"
+
+
+def rust(path: str) -> str:
+    return read(RUST / path)
+
+
+def struct_fields(src: str, name: str) -> list[tuple[str, str]]:
+    """(field, type) of `pub struct name { .. }`, without the `#[serde(skip)]` ones."""
+    m = re.search(rf"pub struct {name} \{{(.*?)\n\}}", src, re.S)
+    if not m:
+        return []
+    fields, skip = [], False
+    for line in m.group(1).splitlines():
+        line = line.strip()
+        if line.startswith("#[serde(skip"):
+            skip = True
+        f = re.match(r"pub (\w+): ([\w<>, ]+),", line)
+        if f:
+            if not skip:
+                fields.append((f.group(1), f.group(2)))
+            skip = False
+    return fields
+
+
+def code_names() -> dict[str, list[str]]:
+    """The names check_coverage holds the docs to, by kind, read from the Rust source."""
+    config = rust("bragd-core/src/config.rs")
+    keys = []
+    for field, ty in struct_fields(config, "Config"):
+        sub = struct_fields(config, ty) if ty.endswith("Config") else []
+        keys += [f"{field}.{f}" for f, _ in sub] or [field]
+    settings = rust("bragd-core/src/settings.rs")
+    catalogue = rust("bragd-games/src/catalogue.rs")
+    families = re.findall(r'Family::\w+ => "([a-z]+)",', catalogue)
+    variants = re.findall(r'row\(Variant::\w+, "([\w-]+)"', catalogue)
+    names = re.findall(r'opt\(\s*"(\w+)"', settings)
+    names += [f"family_{f}" for f in families] + [f"variant_{v}" for v in variants]
+    themes = rust("bragd-core/src/themes.rs")
+    looks = re.search(r"pub const LOOKS: &\[&str\] = &\[(.*?)\];", themes, re.S).group(1)
+    theme_names = re.findall(r'^\s*\("([\w-]+)", "theme\.group', themes, re.M)
+    theme_names += re.findall(r'"(\w+)"', looks)
+    theme_names += re.findall(r'"(\w+)"', re.search(r"pub const BOARD_THEMES: \[&str; \d+\] = \[(.*?)\];", themes).group(1))
+    features = re.findall(r'^\s*f\("(\w+)", "([^"]+)"\)', rust("bragd-core/src/features.rs"), re.M)
+    flags = re.findall(r'"(--?[\w-]+)"', rust("bragd-helper/src/main.rs") + rust("bragd-helper/src/service.rs").split("fn ")[0])
+    flags += re.findall(r'Some\("(--?[\w-]+)"(?: \| "(--?[\w-]+)")?\)', read(ROOT / "gui/src-tauri/src/main.rs"))[0]
+    # The environment variables the shipped programs read (the readers' test switches are not).
+    shipped = [*(ROOT / "gui/src-tauri/src").glob("*.rs"), *(RUST / "bragd-core/src").glob("*.rs"),
+               *(RUST / "bragd-engines/src").rglob("*.rs"), *(RUST / "bragd-helper/src").glob("*.rs")]
+    env = sorted({v for p in shipped for v in re.findall(r'var(?:_os)?\("(BRAGD_\w+)"', read(p))})
+    return {
+        "config.toml key": keys,
+        "setting": names,
+        "Theme, Look or Board theme": theme_names,
+        "F1 feature": [f for f, _ in features],
+        "flag": [f for f in flags if f] + env,
+        "_feature pages": [p for _, p in features],
+    }
+
+
+def check_coverage() -> int:
+    """Every name in code_names() is in backticks on a page under docs/, and every F1 feature's
+    page exists. Returns how many names were checked."""
+    spans: set[str] = set()
+    for page in sorted((ROOT / "docs").rglob("*.md")):
+        for _, line in prose_lines(read(page)):
+            spans.update(re.findall(r"`([^`]+)`", line))
+    names = code_names()
+    count = 0
+    for kind, found in names.items():
+        if kind.startswith("_"):
+            continue
+        if not found:
+            error("tools/docs-check.py", f"no {kind} found in the Rust source: the pattern no longer matches the code")
+        for name in dict.fromkeys(found):
+            count += 1
+            if name not in spans:
+                error("docs", f"the {kind} `{name}` is on no page: name it in backticks where it is explained")
+    for page in names["_feature pages"]:
+        if not (ROOT / "docs" / page).exists():
+            error("crates/bragd-core/src/features.rs", f"F1's page docs/{page} does not exist")
+    return count
 
 
 def self_check() -> None:
-    """GitHub's anchors, as the links rely on them, and the fragment format."""
+    """GitHub's anchors, as the links rely on them, the fragment format, and the coverage's reader."""
+    assert struct_fields("pub struct AConfig {\n    /// x\n    pub a: bool,\n    #[serde(skip)]\n    pub b: u8,\n    pub c: Vec<String>,\n}", "AConfig") == [("a", "bool"), ("c", "Vec<String>")]
     assert slug("How fast is it here, and would another model be faster?") == "how-fast-is-it-here-and-would-another-model-be-faster"
     assert slug("`[themes.<name>]`") == "themesname"
     assert slug("Settings and config.toml") == "settings-and-configtoml"
@@ -380,11 +459,11 @@ def main() -> int:
     check_stale_versions(v)
     check_order()
     check_questions()
-    check_coverage()
+    c = check_coverage()
     p = check_placeholders(v, args.base)
     for e in errors:
         print(e, file=sys.stderr)
-    print(f"docs check: {len(pages())} pages, {n} links, {p} placeholders, version {v}, {u} unreleased: "
+    print(f"docs check: {len(pages())} pages, {n} links, {c} names, {p} placeholders, version {v}, {u} unreleased: "
           + (f"{len(errors)} problems" if errors else "all good"))
     return 1 if errors else 0
 

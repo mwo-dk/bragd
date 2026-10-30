@@ -2,9 +2,11 @@
 
 # Online
 
-Playing online, accounts, and where your tokens are kept.
+Playing against people on other servers, and later on Bragd's own. None of it is available yet: this area says what is coming and what the app shows until then.
 
-Each feature in this area gets a page of its own, listed here by the pull request that brings the feature.
+| Page | What it covers |
+|---|---|
+| [Playing online](playing-online.md) | What is coming: other servers, then Bragd's own. Not yet available |
 
 ---
-[← Previous: Look](../look/README.md) · [Next: Reference →](../reference/README.md)
+[← Previous: Languages](../look/languages.md) · [Next: Playing online →](playing-online.md)

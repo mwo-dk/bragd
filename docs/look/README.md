@@ -2,9 +2,21 @@
 
 # Look
 
-Themes, Board themes, pieces, languages and Settings.
+How Bragd looks and which language it speaks: the Theme for the app's colours, the Look laid over it, the Board theme for every board, and the language. All four are in *Settings → Look* and on the first step of the [install wizard](../getting-started/first-start.md), and each change shows at once.
 
-Each feature in this area gets a page of its own, listed here by the pull request that brings the feature.
+| Page | What it covers |
+|---|---|
+| [Themes](themes.md) | The 30 built-in Themes in their groups, and your own |
+| [Looks](looks.md) | The chrome laid over a Theme |
+| [Board themes](board-themes.md) | Racing green, Slate, Walnut and Match theme, on every Family's board |
+| [Languages](languages.md) | Choosing a language, *Automatic*, right to left, mending a translation |
+
+| Setting | `config.toml` key | Default |
+|---|---|---|
+| Theme | `look.theme` | `"racing-green"` |
+| Look | `look.look` | `""`, the Theme's own |
+| Board theme | `look.board_theme` | `"racing"` |
+| Language | `language` | `"auto"` |
 
 ---
-[← Previous: Engines](../engines/README.md) · [Next: Online →](../online/README.md)
+[← Previous: Opening books](../engines/opening-books.md) · [Next: Themes →](themes.md)
