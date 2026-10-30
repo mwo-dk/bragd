@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+	<!--
+		Janggi pieces: a hanja on an octagon, at three sizes. SOURCE for
+		gui/src/lib/sprites/janggi-pieces.svg.
+
+		A sibling of the xiangqi set and not a recolouring of it. The two
+		games share a board and share almost nothing about the men standing on
+		it, and all three of the differences below are things a player reads off
+		the board rather than decoration:
+
+		**They are octagons, not discs.** That is what a janggi set is.
+
+		**They differ in size by rank**, and the size is information. The
+		general is the largest, then the chariot, cannon, horse and elephant,
+		then the guards and soldiers smallest — so a player sees the shape of a
+		position before reading a single character, which is how the game is
+		actually played at speed.
+
+		**The generals are 楚 and 漢** — Cho and Han, the two sides of the
+		Chu–Han contention — where xiangqi has 帥 and 將. Everything else is one
+		character shared by both sides except the soldier, which is 卒 for Cho
+		and 兵 for Han, as on a printed set.
+
+		The standard hanja are used throughout. Many real sets write the pieces
+		in a cursive or grass-script form, and those are handsomer and are what
+		an experienced player expects; they are also unreadable to somebody
+		meeting the game this week, and the entire job of the character is to
+		say which piece this is.
+
+		# The colours are the other way round from xiangqi
+
+		**`r` is green.** The rules' red side means "the side that moves
+		first", inherited from xiangqi where that side really is red — and in
+		janggi the side that moves first is **Cho, whose pieces are green**.
+		Han, who moves second, is the red one. So `janggi-r*` below is painted
+		green and `janggi-b*` is painted red, and that is correct rather than a
+		mistake somebody should tidy up.
+
+		# Text here, outlines in the sprite
+
+		The characters here are `<text>`, and this file is never shipped.
+		tools/pieces/cjk-outlines.py replaces every `<text>` with the glyph's
+		outline from Noto Sans CJK KR Bold (SIL Open Font License 1.1) and writes
+		the sprite, so no piece depends on an installed font. Edit this file,
+		then run the tool.
+	-->
+
+	<defs>
+		<!--
+			The tiles, at three sizes and in two colours. A regular octagon with
+			flat top and sides, and a second one inside it for the engraved ring
+			every set has.
+		-->
+		<g id="janggi-tile-general-cho">
+			<polygon points="14.85,4.02 30.15,4.02 40.98,14.85 40.98,30.15 30.15,40.98 14.85,40.98 4.02,30.15 4.02,14.85" fill="#f2e4c8" stroke="#146b52" stroke-width="2" stroke-linejoin="round" />
+			<polygon points="16.19,7.26 28.81,7.26 37.74,16.19 37.74,28.81 28.81,37.74 16.19,37.74 7.26,28.81 7.26,16.19" fill="none" stroke="#146b52" stroke-width="1" stroke-linejoin="round" />
+		</g>
+		<g id="janggi-tile-major-cho">
+			<polygon points="15.99,6.79 29.01,6.79 38.21,15.99 38.21,29.01 29.01,38.21 15.99,38.21 6.79,29.01 6.79,15.99" fill="#f2e4c8" stroke="#146b52" stroke-width="2" stroke-linejoin="round" />
+			<polygon points="17.22,9.75 27.78,9.75 35.25,17.22 35.25,27.78 27.78,35.25 17.22,35.25 9.75,27.78 9.75,17.22" fill="none" stroke="#146b52" stroke-width="1" stroke-linejoin="round" />
+		</g>
+		<g id="janggi-tile-minor-cho">
+			<polygon points="16.95,9.10 28.05,9.10 35.90,16.95 35.90,28.05 28.05,35.90 16.95,35.90 9.10,28.05 9.10,16.95" fill="#f2e4c8" stroke="#146b52" stroke-width="2" stroke-linejoin="round" />
+			<polygon points="18.06,11.78 26.94,11.78 33.22,18.06 33.22,26.94 26.94,33.22 18.06,33.22 11.78,26.94 11.78,18.06" fill="none" stroke="#146b52" stroke-width="1" stroke-linejoin="round" />
+		</g>
+		<g id="janggi-tile-general-han">
+			<polygon points="14.85,4.02 30.15,4.02 40.98,14.85 40.98,30.15 30.15,40.98 14.85,40.98 4.02,30.15 4.02,14.85" fill="#f2e4c8" stroke="#8a2626" stroke-width="2" stroke-linejoin="round" />
+			<polygon points="16.19,7.26 28.81,7.26 37.74,16.19 37.74,28.81 28.81,37.74 16.19,37.74 7.26,28.81 7.26,16.19" fill="none" stroke="#8a2626" stroke-width="1" stroke-linejoin="round" />
+		</g>
+		<g id="janggi-tile-major-han">
+			<polygon points="15.99,6.79 29.01,6.79 38.21,15.99 38.21,29.01 29.01,38.21 15.99,38.21 6.79,29.01 6.79,15.99" fill="#f2e4c8" stroke="#8a2626" stroke-width="2" stroke-linejoin="round" />
+			<polygon points="17.22,9.75 27.78,9.75 35.25,17.22 35.25,27.78 27.78,35.25 17.22,35.25 9.75,27.78 9.75,17.22" fill="none" stroke="#8a2626" stroke-width="1" stroke-linejoin="round" />
+		</g>
+		<g id="janggi-tile-minor-han">
+			<polygon points="16.95,9.10 28.05,9.10 35.90,16.95 35.90,28.05 28.05,35.90 16.95,35.90 9.10,28.05 9.10,16.95" fill="#f2e4c8" stroke="#8a2626" stroke-width="2" stroke-linejoin="round" />
+			<polygon points="18.06,11.78 26.94,11.78 33.22,18.06 33.22,26.94 26.94,33.22 18.06,33.22 11.78,26.94 11.78,18.06" fill="none" stroke="#8a2626" stroke-width="1" stroke-linejoin="round" />
+		</g>
+	</defs>
+
+	<!--
+		Cho: the side that moves first, whom the rules call red and who is
+		green. The ids carry the codes the rules use — side letter then role
+		letter — and the titles are the names, which is where a screen reader
+		and anybody reading this file gets the truth.
+	-->
+	<symbol id="janggi-rK" viewBox="0 0 45 45" fill="#146b52" font-size="24" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Cho general</title><use href="#janggi-tile-general-cho" /><text x="22.5" y="22.5">楚</text></symbol>
+	<symbol id="janggi-rR" viewBox="0 0 45 45" fill="#146b52" font-size="20" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Cho chariot</title><use href="#janggi-tile-major-cho" /><text x="22.5" y="22.5">車</text></symbol>
+	<symbol id="janggi-rC" viewBox="0 0 45 45" fill="#146b52" font-size="20" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Cho cannon</title><use href="#janggi-tile-major-cho" /><text x="22.5" y="22.5">包</text></symbol>
+	<symbol id="janggi-rN" viewBox="0 0 45 45" fill="#146b52" font-size="20" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Cho horse</title><use href="#janggi-tile-major-cho" /><text x="22.5" y="22.5">馬</text></symbol>
+	<symbol id="janggi-rB" viewBox="0 0 45 45" fill="#146b52" font-size="20" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Cho elephant</title><use href="#janggi-tile-major-cho" /><text x="22.5" y="22.5">象</text></symbol>
+	<symbol id="janggi-rA" viewBox="0 0 45 45" fill="#146b52" font-size="17" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Cho guard</title><use href="#janggi-tile-minor-cho" /><text x="22.5" y="22.5">士</text></symbol>
+	<symbol id="janggi-rP" viewBox="0 0 45 45" fill="#146b52" font-size="17" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Cho soldier</title><use href="#janggi-tile-minor-cho" /><text x="22.5" y="22.5">卒</text></symbol>
+
+	<!-- Han: the side that moves second, whom the rules call black. The red one. -->
+	<symbol id="janggi-bK" viewBox="0 0 45 45" fill="#8a2626" font-size="24" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Han general</title><use href="#janggi-tile-general-han" /><text x="22.5" y="22.5">漢</text></symbol>
+	<symbol id="janggi-bR" viewBox="0 0 45 45" fill="#8a2626" font-size="20" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Han chariot</title><use href="#janggi-tile-major-han" /><text x="22.5" y="22.5">車</text></symbol>
+	<symbol id="janggi-bC" viewBox="0 0 45 45" fill="#8a2626" font-size="20" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Han cannon</title><use href="#janggi-tile-major-han" /><text x="22.5" y="22.5">包</text></symbol>
+	<symbol id="janggi-bN" viewBox="0 0 45 45" fill="#8a2626" font-size="20" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Han horse</title><use href="#janggi-tile-major-han" /><text x="22.5" y="22.5">馬</text></symbol>
+	<symbol id="janggi-bB" viewBox="0 0 45 45" fill="#8a2626" font-size="20" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Han elephant</title><use href="#janggi-tile-major-han" /><text x="22.5" y="22.5">象</text></symbol>
+	<symbol id="janggi-bA" viewBox="0 0 45 45" fill="#8a2626" font-size="17" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Han guard</title><use href="#janggi-tile-minor-han" /><text x="22.5" y="22.5">士</text></symbol>
+	<symbol id="janggi-bP" viewBox="0 0 45 45" fill="#8a2626" font-size="17" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK KR','Noto Sans KR','Source Han Sans KR','Malgun Gothic','Apple SD Gothic Neo','Noto Sans CJK SC',sans-serif"><title>Han soldier</title><use href="#janggi-tile-minor-han" /><text x="22.5" y="22.5">兵</text></symbol>
+</svg>

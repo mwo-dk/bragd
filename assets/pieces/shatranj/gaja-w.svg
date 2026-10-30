@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	gaja-w — the elephant. Chaturanga's, and Seirawan chess's.
+
+	**In profile, facing left, as the knight is.**
+
+	It used to be frontal: a face with two round ears and two dots for eyes, on
+	the bishop's foot. Its own comment argued for that — "every piece in this set
+	faces the player" — and the claim is false. The knight is in profile, and the
+	knight is the most legible piece in the set. The frontal version read as cute,
+	which is not a register any other piece here is drawn in, and cute is what it
+	was rejected for.
+
+	The Alfaerie set states the rule outright for chess-variant pieces: the
+	animals are all profiles facing left, head and neck only.
+
+	Three shapes carry it, in the order they survive at forty-four pixels: **the
+	trunk**, a thick taper from between the eyes down past the jaw and curling
+	forward — it is the longest line in the piece and it says elephant before
+	anything else does; **the ear**, one large shape filling the back of the head;
+	and **the tusk** sweeping forward beside the trunk. The eye is small and high
+	and does almost nothing, which is correct — on the frontal version two large
+	eyes were most of what made it a cartoon.
+
+	**One drawing, two games.** Seirawan's elephant is this file too. Its own
+	drawing was a rook's tower with a howdah, reasoned from the fact that it moves
+	as a rook, and at board size it read as a rook with a smudge — worse than
+	ugly, because a rook is also on that board. The objection to sharing was that
+	the set has three animals called an elephant; that matters between the alfil
+	and this one, which share one sheet, and not at all between chaturanga and
+	Seirawan, which share no board and no sheet.
+
+	Derived from artwork taken under the 3-clause BSD licence; see
+	assets/pieces/LICENCE.md. No share-alike obligation attaches.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 45 45">
+  <g style="opacity:1; fill:none; fill-opacity:1; fill-rule:evenodd; stroke:#000; stroke-width:1.5; stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;" transform="translate(0,0.3)">
+    <path d="M 21,6.6 C 29,6.8 33.8,10.6 35,16.6 C 36.2,22 37.7,27 38.6,32 C 39,34.8 39,37.2 39,39 L 17.6,39 C 18.4,34.6 21.6,31.6 19.6,26.6 C 19.2,24.8 17.6,24.8 16.8,26.6 C 16.2,28.6 15.4,30.6 14.8,32.6 C 14,35.2 11.8,36.6 9.4,36.6 C 7.2,36.6 5.6,35.8 5,34.6 C 4.6,33.8 4.4,33 4.3,32.4 C 5.2,32.8 6,33.1 6.9,33.3 C 8,33.5 9.2,33.6 10.4,33.4 C 10.9,32.2 10.1,31 9.8,29.4 C 9.5,27 9.4,25.4 9.4,23.6 C 9.4,21.4 10.5,20.4 10.5,18.4 C 10.5,16.4 9.3,15.8 9.3,13.8 C 9.3,11.8 10,10.8 11,9.2 C 13,5.4 17.2,4.6 21,6.6 z" style="fill:#FFF; stroke:#000;" />
+    <path d="M 17,18.4 C 13.4,21.2 8.6,24.6 4.4,26.4 C 7,29.6 13.6,27.6 17,23.2" style="fill:#FFF; stroke:#000;" />
+    <path d="M 31.2,10 C 27.6,10 24.8,11.2 23.8,13.6 C 22.6,16 21.4,18.6 21.8,21.6 C 22.2,25.2 24,29 26.4,31.8 C 28.8,31.8 33.4,30.4 36.8,26.2" style="fill:#FFF; stroke:#000;" />
+    <path d="M 14.25 17.6 A 0.65 0.65 0 1 1 12.95,17.6 A 0.65 0.65 0 1 1 14.25 17.6 z" style="fill:#000; stroke:#000;" />
+  </g>
+</svg>

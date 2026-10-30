@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	ferz-w — the shatranj counsellor.
+
+	Ours, drawn for this set from Cburnett's queen: her base, collar and
+	mouldings unchanged, with the spiked crown and its five tassels replaced by
+	a plain dome and a single finial. That is the piece's history as well as its
+	shape — the modern queen is what happened when this piece was given the
+	rook's reach — so sharing her body and differing only above the collar says
+	something true rather than merely matching.
+
+	Derived from artwork taken under the 3-clause BSD licence; see
+	assets/pieces/LICENCE.md. No share-alike obligation attaches.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 45 45">
+  <g style="fill:#FFF;stroke:#000;stroke-width:1.5;stroke-linejoin:round">
+    <path d="M 9,26 C 9,19 14,13.5 22.5,13.5 C 31,13.5 36,19 36,26 z"/>
+    <circle cx="22.5" cy="10" r="2.5"/>
+    <path d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 11,36 11,36 C 9.5,37.5 11,38.5 11,38.5 C 17.5,39.5 27.5,39.5 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z"/>
+    <path d="M 11.5,30 C 15,29 30,29 33.5,30" style="fill:none"/>
+    <path d="M 12,33.5 C 18,32.5 27,32.5 33,33.5" style="fill:none"/>
+  </g>
+</svg>
