@@ -41,7 +41,7 @@ The check asks for one small file and reads a version number from it. It never d
 
 When the channel cannot be asked, GitHub's answer is used, and the notice says the channel may not have the version yet. That is one request a day, two at most. Each waits at most 5 s, and no answer means no news.
 
-The check uses your system's certificate store, so it works behind a proxy your system trusts.
+The check uses your system's certificate store, so it works behind a proxy your system trusts. So do Source downloads, tablebase downloads and the Lichess tablebase API, and each gives up on a connection that sends nothing for two minutes.
 
 ## Links that open your browser
 

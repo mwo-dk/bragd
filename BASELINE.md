@@ -30,5 +30,5 @@ What is settled, and what is known to be broken. Read this before starting work.
 - Draughts *Which move?* names a capture only by its two ends. Seirawan gating works only through *Which move?*. Backgammon has no resign button.
 - Bragd's Variant ids are not aligned with `bragd-games` (`standard`, `international`). Slices take the Library's id.
 - No real engine has been run: the Hub (Scan), gnubg and KataGo parsers, the janggi pass and the gnubg Position ID player order rest on documents only.
-- Tablebase downloads check size only, not BLAKE3, and they use the bundled Mozilla roots rather than the OS trust store.
+- Tablebase downloads check size only, not BLAKE3.
 - The Windows build of the free-space code was not compiled here.
