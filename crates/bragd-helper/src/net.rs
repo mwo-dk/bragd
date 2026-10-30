@@ -1,7 +1,6 @@
 //! Downloads for Sources: behind a trait, so tests use recorded files and never the network.
 //! A download goes to `<name>.part` first and goes on from where it stopped; only a complete
-//! one gets its name. Zips are unpacked with every name checked, so none writes outside its
-//! folder.
+//! one gets its name.
 
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
@@ -121,34 +120,10 @@ fn part_of(p: &Path) -> PathBuf {
     PathBuf::from(s)
 }
 
-/// The kinds of file a Library imports, by extension (`.pgn.gz` and `.pgn.zst` too).
+/// The kinds of file a Library imports, by extension (`.pgn.gz`, `.pgn.zst` and `.pgn.bz2` too).
 pub fn importable(name: &str) -> bool {
-    let n = name.to_ascii_lowercase();
-    let n = n.strip_suffix(".gz").or_else(|| n.strip_suffix(".zst")).unwrap_or(&n);
+    let n = bragd_library::stream::unpacked_name(name).to_ascii_lowercase();
     [".pgn", ".sgf", ".kif", ".csa", ".pdn"].iter().any(|e| n.ends_with(e))
-}
-
-/// Unpacks the importable files of the zip at `zip` into `dir`, at most `max` bytes each; the
-/// files written. A name that would climb out of `dir` is skipped.
-pub fn unzip(zip: &Path, dir: &Path, max: u64) -> io::Result<Vec<PathBuf>> {
-    let mut a = zip::ZipArchive::new(File::open(zip)?).map_err(io::Error::other)?;
-    fs::create_dir_all(dir)?;
-    let mut out = vec![];
-    for i in 0..a.len() {
-        let mut f = a.by_index(i).map_err(io::Error::other)?;
-        let Some(name) = f.enclosed_name().and_then(|p| p.file_name().map(PathBuf::from)) else { continue };
-        if !f.is_file() || !importable(&name.to_string_lossy()) {
-            continue;
-        }
-        let to = dir.join(&name);
-        let n = io::copy(&mut (&mut f).take(max + 1), &mut File::create(&to)?)?;
-        if n > max {
-            let _ = fs::remove_file(&to);
-            return Err(io::Error::other(format!("{} unpacks to more than {max} bytes", name.display())));
-        }
-        out.push(to);
-    }
-    Ok(out)
 }
 
 /// Whether the connection is metered: `Some` where the system says cheaply (NetworkManager on

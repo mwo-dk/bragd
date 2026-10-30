@@ -7,13 +7,19 @@ es-AR) hold only the words they write differently, and take the rest from their 
 
 ## In every language of its own
 
-188 keys:
+198 keys:
 
 - `board_theme.match`
 - `board_theme.racing`
 - `board_theme.slate`
 - `board_theme.walnut`
 - `config.no_folder`
+- `disk.item.cache`
+- `disk.item.downloads`
+- `disk.item.helper`
+- `disk.item.image`
+- `disk.item.library`
+- `disk.item.tablebases`
 - `family.backgammon`
 - `family.chess`
 - `family.draughts`
@@ -96,6 +102,10 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `look.workbench`
 - `notice.config_refused`
 - `notice.config_unreadable`
+- `notice.disk_fetch_paused`
+- `notice.disk_free_low`
+- `notice.disk_item_over`
+- `notice.disk_total_over`
 - `notice.family_off`
 - `notice.family_turn_on`
 - `notice.source_out_of_scope`

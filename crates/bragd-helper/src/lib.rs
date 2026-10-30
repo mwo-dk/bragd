@@ -6,6 +6,7 @@
 //! and pauses heavy work while the machine runs on its battery (`battery`).
 
 pub mod battery;
+pub mod disk;
 pub mod helper;
 pub mod jobs;
 pub mod net;

@@ -17,6 +17,8 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
+use bragd_core::config::DiskConfig;
+
 use crate::jobs::{Job, Jobs, Work};
 use crate::sources::{About, Memo, Options};
 use crate::{VERSION, note, service};
@@ -47,8 +49,21 @@ pub enum Request {
     DedupeNow { library: Option<PathBuf> },
     FetchNow { source: String },
     Sources,
-    /// A Source's options: on or off, its schedule, metered, disk cap, a custom URL.
+    /// A Source's options: on or off, its schedule, metered, disk cap, a custom URL, its Strip
+    /// rule, what becomes of its downloads, and what Disk watch may do for it by itself.
     SetSource { source: String, options: Options },
+    /// Everything Bragd keeps on disk, its limits, the free space, and the limits crossed.
+    DiskReport,
+    /// Disk watch's limits, written to `[disk]` in config.toml; the next check uses them.
+    SetDiskLimits { limits: DiskConfig },
+    /// A job that reports what a Source's Strip rule would take from its downloads and the
+    /// Library, changing nothing (`Work::Strip`, its `Job::report`).
+    StripDryRun { source: String },
+    /// A job that applies a Source's Strip rule to its downloads and the Library.
+    StripApply { source: String },
+    /// A job that applies every Source's Strip rule to a Library: the default one when none is
+    /// named.
+    PruneLibrary { library: Option<PathBuf>, dry_run: bool },
     /// Leave, so a Helper with the settings as they are now comes.
     Restart,
 }
@@ -63,6 +78,7 @@ pub enum Reply {
     Jobs { jobs: Vec<Job> },
     Started { id: u64 },
     Sources { sources: Vec<(About, Options, Memo)> },
+    Disk { report: crate::disk::Report },
     Done,
     Error { error: String },
 }
@@ -80,6 +96,9 @@ pub struct Status {
     pub paused: bool,
     /// Jobs queued or running.
     pub active: usize,
+    /// The disk limits crossed at Disk watch's last check: a notice each.
+    #[serde(default)]
+    pub disk: Vec<crate::disk::Crossed>,
 }
 
 /// 128 bits from the system's random source, as hex.
@@ -204,7 +223,9 @@ pub fn serve(stay: bool) -> io::Result<Ended> {
     let library = crate::default_library(&cfg).ok_or_else(|| io::Error::other("no data folder"))?;
     std::fs::create_dir_all(&dir)?;
     note(format_args!("Helper starts, process {}", std::process::id()));
-    let jobs = || Jobs::open(&dir, Box::new(crate::net::Web::default()), library, cfg.knowledge.source_priority.clone(), Box::new(crate::battery::on_battery));
+    let runtime = cfg.engines.runtime.clone();
+    let images = Box::new(move || crate::disk::pulled_images(&runtime));
+    let jobs = || Jobs::open(&dir, Box::new(crate::net::Web::default()), library, cfg.knowledge.source_priority.clone(), Box::new(crate::battery::on_battery), images);
     let ended = serve_in(OURS, &dir, stay || cfg.helper.start_with_session, LINGER, jobs);
     match &ended {
         Ok(e) => note(format_args!("Helper leaves: {e:?}")),
@@ -313,6 +334,7 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, cli
                 stays,
                 paused: jobs.paused.load(Ordering::Relaxed),
                 active: jobs.list().iter().filter(|j| matches!(j.status, crate::jobs::Status::Queued | crate::jobs::Status::Running)).count(),
+                disk: jobs.crossed(),
             }),
             Request::Jobs => Reply::Jobs { jobs: jobs.list() },
             Request::Start { work } => started(work),
@@ -331,6 +353,14 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, cli
                 Ok(()) => Reply::Done,
                 Err(error) => Reply::Error { error },
             },
+            Request::DiskReport => Reply::Disk { report: jobs.disk_report(&bragd_core::config::Config::load().unwrap_or_default()) },
+            Request::SetDiskLimits { limits } => match bragd_core::config::Config::save_disk(&limits) {
+                Ok(_) => Reply::Done,
+                Err(error) => Reply::Error { error },
+            },
+            Request::StripDryRun { source } => started(Work::Strip { source, dry_run: true }),
+            Request::StripApply { source } => started(Work::Strip { source, dry_run: false }),
+            Request::PruneLibrary { library: l, dry_run } => started(Work::Prune { library: library(l), dry_run }),
             Request::Restart => {
                 quit.store(true, Ordering::SeqCst);
                 Reply::Done

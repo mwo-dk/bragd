@@ -1,10 +1,13 @@
 //! Sources: where Games come from, each fetched again on its schedule. Built in: TWIC, a
 //! custom URL, and the big Sources this version lists but does not fetch yet. Every Source is
-//! opt-in: none is enabled until the user turns it on.
+//! opt-in: none is enabled until the user turns it on. A Source's downloads are kept as they
+//! came, packed, and imported from there as a stream (`bragd_library::stream`), so a zip or a
+//! `.pgn.zst` is never unpacked to disk.
 
 use std::io;
 use std::path::{Path, PathBuf};
 
+use bragd_library::strip::StripRule;
 use serde::{Deserialize, Serialize};
 
 use crate::net::{self, Fetcher};
@@ -48,6 +51,41 @@ pub struct Options {
     /// A custom URL Source's address.
     #[serde(default)]
     pub url: String,
+    /// Which of its Games are kept: applied as they come in, and to what is stored already
+    /// when asked (`jobs::Work::Strip`). None keeps every Game.
+    #[serde(default)]
+    pub strip: Option<StripRule>,
+    /// What becomes of a download once its Games are in the Library.
+    #[serde(default)]
+    pub after_import: AfterImport,
+    /// What Disk watch may do by itself when a limit this Source counts against is crossed.
+    #[serde(default)]
+    pub auto: Auto,
+}
+
+/// What becomes of a download once its Games are in the Library.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AfterImport {
+    /// Kept as it came, within the disk cap.
+    #[default]
+    Keep,
+    /// Written again with only the Games the Strip rule keeps.
+    Strip,
+    /// Deleted.
+    Delete,
+}
+
+/// What Disk watch may do by itself for a Source, each only when the user turns it on.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Auto {
+    /// Apply its Strip rule to its downloads and to the Library (at most once a day).
+    pub strip: bool,
+    /// Delete its oldest downloads beyond its limit.
+    pub delete_oldest: bool,
+    /// Stop fetching it until the disk is within the limits again.
+    pub pause: bool,
 }
 
 /// What the Helper remembers of a Source between fetches.
@@ -60,6 +98,10 @@ pub struct Memo {
     /// TWIC: the last issue fetched.
     pub last_issue: Option<u32>,
     pub last_error: Option<String>,
+    /// Disk watch holds its fetches back (`Auto::pause`) while a limit is crossed.
+    pub paused: bool,
+    /// Unix time Disk watch last queued its Strip rule by itself (`Auto::strip`).
+    pub last_auto_strip: Option<u64>,
 }
 
 /// A Source as Settings lists it.
@@ -83,7 +125,7 @@ pub struct About {
 impl About {
     /// What a Source starts as: off, on its usual schedule.
     pub fn defaults(&self) -> Options {
-        Options { enabled: false, schedule: self.schedule, only_unmetered: false, disk_cap: None, url: String::new() }
+        Options { enabled: false, schedule: self.schedule, only_unmetered: false, disk_cap: None, url: String::new(), strip: None, after_import: AfterImport::Keep, auto: Auto::default() }
     }
 }
 
@@ -101,7 +143,8 @@ pub struct Cx<'a> {
 /// A Source the Helper can list and fetch.
 pub trait Source: Send + Sync {
     fn about(&self) -> About;
-    /// Downloads what is new into `cx.dir`: the files to import, unpacked.
+    /// Downloads what is new into `cx.dir`: the files to import, as they came (a zip, a packed
+    /// PGN file).
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>>;
 }
 
@@ -175,15 +218,12 @@ impl Source for Twic {
             if !zip.exists() && !net::download(cx.net, &twic_url(n), &zip, cx.options.disk_cap, cx.stop, cx.progress)? {
                 return Err(io::Error::other(format!("{} is not there", twic_url(n))));
             }
-            files.extend(net::unzip(&zip, &cx.dir.join("unpacked"), UNPACKED_MAX)?);
+            files.push(zip);
             cx.memo.last_issue = Some(n);
         }
         Ok(files)
     }
 }
-
-/// The most one file in a zip may unpack to: more is taken for a zip bomb.
-const UNPACKED_MAX: u64 = 8 << 30;
 
 /// A PGN, SGF, KIF, CSA or PDN file (or a zip of them) at an address the user gives.
 pub struct CustomUrl {
@@ -221,7 +261,7 @@ impl Source for CustomUrl {
         if !net::download(cx.net, &self.url, &to, cx.options.disk_cap, cx.stop, cx.progress)? {
             return Err(io::Error::other(format!("{} is not there", self.url)));
         }
-        if zip { net::unzip(&to, &cx.dir.join("unpacked"), UNPACKED_MAX) } else { Ok(vec![to]) }
+        Ok(vec![to])
     }
 }
 
@@ -255,7 +295,13 @@ fn later(id: &str, name: &str, family: &str, size: u64, schedule: Schedule, url:
 pub fn builtin() -> Vec<Box<dyn Source>> {
     vec![
         Box::new(Twic),
+        // When it is fetched, the month's `.pgn.zst` is kept packed and imported from there as a
+        // stream (`Library::import_with`, through `bragd_library::stream`), game by game, with the
+        // Source's Strip rule applied as the Games stream by: what it strips is never stored, and
+        // nothing is unpacked to disk. `AfterImport::Strip` then shrinks the download itself.
         later("lichess-db", "Lichess database", "chess", 30_000_000_000, Schedule::Monthly, "https://database.lichess.org/standard/lichess_db_standard_rated_{yyyy}-{mm}.pgn.zst"),
+        // The same goes for FICS: a month's or a year's `.pgn.bz2`, chosen on its download page.
+        later("fics", "FICS games database", "chess", 300_000_000, Schedule::Monthly, "https://www.ficsgames.org/download.html"),
         later("pgnmentor", "PGN Mentor", "chess", 200_000_000, Schedule::Monthly, "https://www.pgnmentor.com/files.html"),
         later("lumbras", "LumbrasGigaBase", "chess", 4_000_000_000, Schedule::Monthly, "https://lumbrasgigabase.com/en/download-in-pgn-format-en/"),
         later("ogs", "OGS archive", "go", 1_000_000_000, Schedule::Monthly, "https://online-go.com/"),
@@ -336,14 +382,14 @@ pub(crate) mod tests {
         let net = fixture(1500..=1663);
         let mut memo = Memo::default();
         let files = fetch(&net, &d.0, &mut memo);
-        assert_eq!(files, [d.0.join("unpacked/twic1663.pgn")], "only the PGN, of the newest issue");
+        assert_eq!(files, [d.0.join("twic1663g.zip")], "the newest issue, as it came");
         assert_eq!(memo.last_issue, Some(1663));
         let gets = net.asked.lock().unwrap().iter().filter(|a| a.starts_with("GET")).count();
         assert_eq!(gets, 1, "one download");
         // Two issues later: both, in order, and the probe for the next one finds none.
         let net = fixture(1500..=1665);
         let files = fetch(&net, &d.0, &mut memo);
-        assert_eq!(files, [d.0.join("unpacked/twic1664.pgn"), d.0.join("unpacked/twic1665.pgn")]);
+        assert_eq!(files, [d.0.join("twic1664g.zip"), d.0.join("twic1665g.zip")]);
         assert_eq!(memo.last_issue, Some(1665));
         assert!(net.asked.lock().unwrap().contains(&format!("HEAD {}", twic_url(1666))));
         // Nothing new: nothing fetched.
@@ -383,7 +429,7 @@ pub(crate) mod tests {
     #[test]
     fn the_registry_lists_every_source_and_fetches_only_some() {
         let ids: Vec<String> = builtin().iter().map(|s| s.about().id).collect();
-        assert_eq!(ids, ["twic", "lichess-db", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi"]);
+        assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi"]);
         for s in builtin().iter().skip(1) {
             let a = s.about();
             assert!(!a.fetchable && a.notice.as_deref() == Some(OUT_OF_SCOPE) && a.size > 0, "{}", a.id);

@@ -1,6 +1,7 @@
 //! A PGN file's games as a table, for files of millions of games: one pass reads only where
 //! each game starts and its headers (on a thread of its own, the table filling as it goes);
-//! a game's moves are read when it is opened. `.pgn.gz` and `.pgn.zst` are read as they unpack.
+//! a game's moves are read when it is opened. `.pgn.gz`, `.pgn.zst` and `.pgn.bz2` are read as
+//! they unpack.
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -262,6 +263,7 @@ enum Pack {
     None,
     Gz,
     Zst,
+    Bz2,
     Dhtml,
 }
 
@@ -271,6 +273,8 @@ fn pack(path: &Path) -> Pack {
         Pack::Gz
     } else if n.ends_with(".zst") {
         Pack::Zst
+    } else if n.ends_with(".bz2") {
+        Pack::Bz2
     } else if is_dhtml(path) {
         Pack::Dhtml
     } else {
@@ -341,8 +345,7 @@ pub(crate) fn reader(path: &Path, read: Arc<AtomicU64>, unpacked: u64) -> io::Re
     let f = BufReader::new(Counted { inner: File::open(path)?, read });
     Ok(match pack(path) {
         Pack::None => Box::new(f),
-        Pack::Gz => Box::new(flate2::read::MultiGzDecoder::new(f).take(unpacked)),
-        Pack::Zst => Box::new(ruzstd::decoding::StreamingDecoder::new(f).map_err(io::Error::other)?.take(unpacked)),
+        Pack::Gz | Pack::Zst | Pack::Bz2 => Box::new(crate::stream::unpack(&path.to_string_lossy(), f)?.take(unpacked)),
         Pack::Dhtml => {
             let mut text = vec![];
             f.take(crate::xiangqi::DHTML_MAX).read_to_end(&mut text)?;

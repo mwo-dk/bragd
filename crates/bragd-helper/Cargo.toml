@@ -13,22 +13,24 @@ path = "src/main.rs"
 [dependencies]
 bragd-core = { path = "../bragd-core" }
 bragd-library = { path = "../bragd-library" }
+# Disk watch asks the container runtime what its engine images take.
+bragd-engines = { path = "../bragd-engines" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # The connection token, from the system's random source.
 getrandom = "0.4"
 # Source downloads, with the system's certificate store.
 ureq = { version = "3", features = ["platform-verifier"] }
-# TWIC comes as a zip of PGN. Deflate only, in pure Rust.
-zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
 
-# launchd's domain names the user by uid.
-[target.'cfg(target_os = "macos")'.dependencies]
+# launchd's domain names the user by uid; Disk watch asks statvfs for the free space.
+[target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
-# Whether a laptop runs on its battery.
+# Whether a laptop runs on its battery, and the free space on a disk.
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_System_Power"] }
+windows-sys = { version = "0.61", features = ["Win32_System_Power", "Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
 bragd-core = { path = "../bragd-core", features = ["test-home"] }
+# Zips of PGN, as TWIC sends them, made for the tests.
+zip = { version = "9", default-features = false, features = ["deflate-flate2"] }

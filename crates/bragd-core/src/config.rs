@@ -24,6 +24,7 @@ pub struct Config {
     pub knowledge: KnowledgeConfig,
     pub helper: HelperConfig,
     pub updates: UpdatesConfig,
+    pub disk: DiskConfig,
     /// The user's own Themes, `[themes.<name>]`: each colour not given is Racing green's. One
     /// named like a built-in Theme replaces it.
     pub themes: BTreeMap<String, Theme>,
@@ -137,6 +138,20 @@ pub struct HelperConfig {
     pub start_with_session: bool,
 }
 
+/// Disk watch's limits, in bytes; 0 is no limit. The Helper checks them on a schedule and
+/// after each job, and warns when one is crossed.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct DiskConfig {
+    /// The most everything Bragd keeps may take together.
+    pub total: u64,
+    /// Warn when the free space on a disk Bragd keeps things on falls below this.
+    pub free_below: u64,
+    /// The most one item may take, by its id in the Helper's disk report: `library:main.bragd`,
+    /// `downloads:twic`, `helper`, `tablebases`, `image:<name>`, `cache`.
+    pub items: BTreeMap<String, u64>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UpdatesConfig {
@@ -161,6 +176,7 @@ impl Default for Config {
             knowledge: KnowledgeConfig::default(),
             helper: HelperConfig::default(),
             updates: UpdatesConfig::default(),
+            disk: DiskConfig::default(),
             themes: BTreeMap::new(),
             refused: vec![],
         }
@@ -235,6 +251,7 @@ impl Config {
         take(&table, "knowledge", &mut c.knowledge, &mut refused);
         take(&table, "helper", &mut c.helper, &mut refused);
         take(&table, "updates", &mut c.updates, &mut refused);
+        take(&table, "disk", &mut c.disk, &mut refused);
         take(&table, "themes", &mut c.themes, &mut refused);
         c.refused = refused;
         c
@@ -314,6 +331,25 @@ impl Config {
         let new = Config::edit(&old, keys, value)?;
         let cfg = Config::parse_saved(&old, &new)?;
         crate::fs::replace(path, new.as_bytes(), false).map_err(|e| format!("config: {e}"))?;
+        Ok(cfg)
+    }
+
+    /// Writes Disk watch's limits to `[disk]` in the user's config.toml, its comments kept.
+    pub fn save_disk(limits: &DiskConfig) -> Result<Config, String> {
+        let path = Config::path().ok_or_else(|| t!("config.no_folder"))?;
+        Config::save_disk_at(&path, limits)
+    }
+
+    /// `save_disk` to the file at `path`. An item limit no longer given is set to 0, no limit.
+    pub fn save_disk_at(path: &std::path::Path, limits: &DiskConfig) -> Result<Config, String> {
+        let text = std::fs::read_to_string(path).unwrap_or_default();
+        let old = Config::lenient(&text).disk;
+        let n = |v: u64| toml_edit::Value::from(i64::try_from(v).unwrap_or(i64::MAX));
+        Config::save_value_at(path, &["disk", "total"], n(limits.total))?;
+        let mut cfg = Config::save_value_at(path, &["disk", "free_below"], n(limits.free_below))?;
+        for id in old.items.keys().chain(limits.items.keys()) {
+            cfg = Config::save_value_at(path, &["disk", "items", id], n(limits.items.get(id).copied().unwrap_or(0)))?;
+        }
         Ok(cfg)
     }
 
@@ -410,6 +446,25 @@ on = true
         );
         assert!(c.family_shown("chess"));
         assert!(!c.variant_on("no-such-variant"));
+    }
+
+    #[test]
+    fn config_disk_limits_are_written_and_cleared() {
+        let path = crate::dirs::config_dir()
+            .unwrap()
+            .join("save-disk")
+            .join("config.toml");
+        let _ = std::fs::remove_file(&path);
+        let mut limits = DiskConfig {
+            total: 50 << 30,
+            free_below: 0,
+            items: [("downloads:lichess-db".to_string(), 10 << 30)].into(),
+        };
+        assert_eq!(Config::save_disk_at(&path, &limits).unwrap().disk, limits);
+        limits.items.clear();
+        let c = Config::save_disk_at(&path, &limits).unwrap();
+        assert_eq!(c.disk.items["downloads:lichess-db"], 0, "no limit any more");
+        assert!(std::fs::read_to_string(&path).unwrap().contains("[disk.items]"));
     }
 
     #[test]
