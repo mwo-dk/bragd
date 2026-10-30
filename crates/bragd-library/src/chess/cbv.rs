@@ -311,13 +311,21 @@ fn run_folder() -> io::Result<PathBuf> {
     Ok(run)
 }
 
-/// A folder only its owner can read, made when missing.
+/// A folder only its owner can read, made when missing. One already there (in the shared
+/// temporary folder, someone else may have made it first, or put a link there) must be a real
+/// folder of ours: only its owner can set its mode.
 fn private_dir(dir: &Path) -> io::Result<()> {
     let mut b = std::fs::DirBuilder::new();
     b.recursive(true);
     #[cfg(unix)]
     std::os::unix::fs::DirBuilderExt::mode(&mut b, 0o700);
-    b.create(dir)
+    b.create(dir)?;
+    if !std::fs::symlink_metadata(dir)?.is_dir() {
+        return Err(bad("the folder for unpacked archives is a link"));
+    }
+    #[cfg(unix)]
+    std::fs::set_permissions(dir, std::os::unix::fs::PermissionsExt::from_mode(0o700))?;
+    Ok(())
 }
 
 /// Archives unpacked in this run: by path, size and time, the `.cbh` files in the cache.
@@ -447,6 +455,21 @@ mod tests {
         let mut out = vec![];
         unpack(b, b.len() as u64, size, &mut out, &|| false, &mut |_| {})?;
         Ok(out)
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_in_place_of_the_unpack_folder_is_refused() {
+        let d = std::env::temp_dir().join(format!("bragd-cbv-link-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("elsewhere")).unwrap();
+        std::os::unix::fs::symlink(d.join("elsewhere"), d.join("run")).unwrap();
+        assert!(private_dir(&d.join("run")).is_err());
+        std::fs::set_permissions(d.join("elsewhere"), std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+        private_dir(&d.join("elsewhere")).unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(std::fs::metadata(d.join("elsewhere")).unwrap().permissions().mode() & 0o777, 0o700, "made private again");
+        std::fs::remove_dir_all(&d).unwrap();
     }
 
     /// A stored block, an LZ block (a literal run, a short run, a long run, back-references
