@@ -21,7 +21,7 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 
 - [x] S0: the constitution (`CLAUDE.md`), spec, glossary, ADRs, baseline, credits, sync page, workspace
 - [ ] S1: rules crates and `bragd-games` (wave 1, agent "rules")
-- [ ] S2: artwork, sprites, CJK glyphs as paths, brand: icon drafts, splash, rune wordmark (wave 1, agent "art")
+- [x] S2: artwork, sprites, CJK glyphs as paths, brand: icon drafts, splash, rune wordmark (wave 1, agent "art")
 - [ ] S3: `bragd-core`: config, state, settings, i18n with every locale, Themes, update check, features, notices (wave 1, agent "core")
 - [ ] S4: `bragd-library`: formats, Library, dedupe, Slices, Parquet (wave 1, agent "library")
 - [ ] S5: `bragd-engines`: protocols, discovery, images, Syzygy (wave 1, agent "engines")
@@ -34,3 +34,7 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 ## Decisions made alone during the run
 
 Each one is listed here, so the owner can overturn it in the morning.
+- Commits and the PR body carry no Claude attribution, following the commit rule in `CLAUDE.md`.
+- Sprite ids are `<sheet>-<side><ROLE>`. Capablanca and seirawan have their own sheets. Janggi `r` is Cho, painted green (`assets/pieces/README.md`).
+- Icon draft 1 (plain roundel) is the provisional app icon until the owner picks one of the three in `assets/brand/`.
+- `tools/pieces/compose-capablanca-pieces.mjs` draws an older design than the committed pieces. Running it overwrites them. It needs an update or deletion.

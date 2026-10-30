@@ -5,3 +5,4 @@ node_modules
 /gui/src-tauri/target
 /gui/src-tauri/gen
 *.swp
+/.claude/worktrees
