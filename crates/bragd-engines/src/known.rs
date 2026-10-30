@@ -150,7 +150,7 @@ pub fn choose(k: &Known, installed: Option<PathBuf>, rt: Option<&Runtime>, has: 
     if !has(rt, &image) {
         return Err(Missing::NotPulled { image });
     }
-    Ok(Program::Container { rt: rt.clone(), image, args: vec![], syzygy: syzygy.filter(|_| k.syzygy).map(Path::to_path_buf) })
+    Ok(Program::Container { rt: rt.clone(), image, args: vec![], syzygy: syzygy.filter(|p| k.syzygy && p.is_dir()).map(Path::to_path_buf) })
 }
 
 /// The program `configured` names, a path or a bare name: a bare name is looked for on PATH
@@ -213,8 +213,11 @@ mod tests {
         let here = PathBuf::from("/usr/games/stockfish");
         assert_eq!(choose(&k, Some(here.clone()), Some(&rt), |_, _| true, None), Ok(Program::Installed { path: here, args: vec![] }));
         let image = k.image().unwrap();
-        let tb = Path::new("/data/syzygy");
+        let tb = &std::env::temp_dir();
         assert_eq!(choose(&k, None, Some(&rt), |_, _| true, Some(tb)), Ok(Program::Container { rt: rt.clone(), image: image.clone(), args: vec![], syzygy: Some(tb.into()) }));
+        // No tablebases downloaded yet: a mount of a missing folder would stop the container.
+        let missing = Path::new("/nonexistent/bragd/tablebases");
+        assert!(matches!(choose(&k, None, Some(&rt), |_, _| true, Some(missing)), Ok(Program::Container { syzygy: None, .. })));
         assert_eq!(choose(&k, None, Some(&rt), |_, _| false, None), Err(Missing::NotPulled { image }));
         assert_eq!(choose(&k, None, None, |_, _| true, None), Err(Missing::NoRuntime));
         assert_eq!(choose(known("pikafish").unwrap(), None, Some(&rt), |_, _| true, None), Err(Missing::NoImage), "unpublished");
