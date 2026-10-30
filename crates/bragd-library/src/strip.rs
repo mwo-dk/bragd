@@ -210,7 +210,7 @@ pub fn rewrite(path: &Path, rule: &StripRule, dry_run: bool, stop: &dyn Fn() -> 
         Some(k)
     };
     if dry_run {
-        stream::file_games(path, &mut |_, f, t| keep(f, t).is_some())?;
+        stream::file_games(path, stop, &mut |_, f, t| keep(f, t).is_some()).map_err(|e| if stop() { stopped() } else { e })?;
         if halted {
             return Err(stopped());
         }
@@ -219,12 +219,14 @@ pub fn rewrite(path: &Path, rule: &StripRule, dry_run: bool, stop: &dyn Fn() -> 
     }
     let name = path.file_name().unwrap_or_default().to_string_lossy();
     let tmp = path.with_file_name(format!(".{name}.strip-{}.tmp", std::process::id()));
-    let written = if stream::is_zip(path) { rewrite_zip(path, &tmp, &mut keep) } else { rewrite_file(path, &tmp, &mut keep) };
+    let written = if stream::is_zip(path) { rewrite_zip(path, &tmp, stop, &mut keep) } else { rewrite_file(path, &tmp, stop, &mut keep) };
     match written {
         Ok(()) if !halted => fs::rename(&tmp, path)?,
         other => {
             let _ = fs::remove_file(&tmp);
-            other?;
+            if !stop() {
+                other?;
+            }
             return Err(stopped());
         }
     }
@@ -233,9 +235,9 @@ pub fn rewrite(path: &Path, rule: &StripRule, dry_run: bool, stop: &dyn Fn() -> 
 }
 
 /// The games of `r` (a file named `name`) that `keep` keeps, written to `w`.
-fn filter(name: &str, r: impl io::Read + Send, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>, w: &mut dyn Write) -> io::Result<()> {
+fn filter(name: &str, r: impl io::Read + Send, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>, w: &mut dyn Write) -> io::Result<()> {
     let mut failed = None;
-    stream::games(name, r, &mut |f, t| match keep(f, t) {
+    stream::games(name, r, stop, &mut |f, t| match keep(f, t) {
         Some(true) => w.write_all(t).map_err(|e| failed = Some(e)).is_ok(),
         Some(false) => true,
         None => false,
@@ -243,13 +245,13 @@ fn filter(name: &str, r: impl io::Read + Send, keep: &mut dyn FnMut(Format, &[u8
     failed.map_or(Ok(()), Err)
 }
 
-fn rewrite_file(path: &Path, tmp: &Path, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>) -> io::Result<()> {
+fn rewrite_file(path: &Path, tmp: &Path, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>) -> io::Result<()> {
     let name = path.to_string_lossy();
-    let f = packed(&name, File::create(tmp)?, &mut |w| filter(&name, File::open(path)?, keep, w))?;
+    let f = packed(&name, File::create(tmp)?, &mut |w| filter(&name, File::open(path)?, stop, keep, w))?;
     f.sync_all()
 }
 
-fn rewrite_zip(path: &Path, tmp: &Path, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>) -> io::Result<()> {
+fn rewrite_zip(path: &Path, tmp: &Path, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>) -> io::Result<()> {
     let mut src = zip::ZipArchive::new(File::open(path)?).map_err(io::Error::other)?;
     let mut w = zip::ZipWriter::new(File::create(tmp)?);
     for i in 0..src.len() {
@@ -257,7 +259,7 @@ fn rewrite_zip(path: &Path, tmp: &Path, keep: &mut dyn FnMut(Format, &[u8]) -> O
         let name = m.enclosed_name().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
         if m.is_file() && stream::is_text(&name) && stream::unpacked_name(&name) == name {
             w.start_file(m.name().map_err(io::Error::other)?.into_owned(), zip::write::SimpleFileOptions::default()).map_err(io::Error::other)?;
-            filter(&name, m, keep, &mut w)?;
+            filter(&name, m, stop, keep, &mut w)?;
         } else {
             w.raw_copy_file(m).map_err(io::Error::other)?;
         }
@@ -385,7 +387,7 @@ mod tests {
 
     fn count(path: &Path) -> (u64, u64) {
         let (mut all, mut kept) = (0, 0);
-        crate::stream::file_games(path, &mut |_, f, t| {
+        crate::stream::file_games(path, &|| false, &mut |_, f, t| {
             all += 1;
             kept += u64::from(strong().keeps(&read_game(f, t)));
             true

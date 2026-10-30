@@ -769,7 +769,7 @@ pub(crate) mod tests {
     }
 
     fn games_in(path: &Path) -> u64 {
-        bragd_library::stream::file_games(path, &mut |_, _, _| true).unwrap().games
+        bragd_library::stream::file_games(path, &|| false, &mut |_, _, _| true).unwrap().games
     }
 
     /// A custom URL Source of RATED, set up with its options changed by `set`.

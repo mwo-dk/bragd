@@ -64,14 +64,20 @@ impl Stats {
     }
 }
 
-/// Counts what is read through it.
-struct Count<R> {
+/// Counts what is read through it, and ends the read when `stop` says so: a packed stream can
+/// unpack to terabytes with no game in it, and games are the only other place a stop is heard.
+struct Count<'s, R> {
     r: R,
     n: u64,
+    stop: &'s dyn Fn() -> bool,
 }
 
-impl<R: Read> Read for Count<R> {
+impl<R: Read> Read for Count<'_, R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if (self.stop)() {
+            // Not `Interrupted`, which readers above this one take as "try again".
+            return Err(io::Error::other("stopped"));
+        }
         let n = self.r.read(buf)?;
         self.n += n as u64;
         Ok(n)
@@ -79,9 +85,10 @@ impl<R: Read> Read for Count<R> {
 }
 
 /// The games of `r`, the bytes of a file named `name`, each handed to `each` (whose games they
-/// are, and the game's text) until it says false.
-pub fn games(name: &str, r: impl Read + Send, each: &mut dyn FnMut(Format, &[u8]) -> bool) -> io::Result<Stats> {
-    let mut buf = BufReader::with_capacity(1 << 16, Count { r: unpack(name, r)?, n: 0 });
+/// are, and the game's text) until it says false. `stop` is asked as the bytes come, and a stop
+/// ends the read with an error.
+pub fn games(name: &str, r: impl Read + Send, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(Format, &[u8]) -> bool) -> io::Result<Stats> {
+    let mut buf = BufReader::with_capacity(1 << 16, Count { r: unpack(name, r)?, n: 0, stop });
     let format = if unpacked_name(name).to_ascii_lowercase().ends_with(".pdn") {
         Format::Pdn
     } else if crate::xiangqi::is_xiangqi(buf.fill_buf()?) {
@@ -101,10 +108,10 @@ pub fn games(name: &str, r: impl Read + Send, each: &mut dyn FnMut(Format, &[u8]
 
 /// The games of the file at `path` (`streams`), each handed to `each` with the zip member it is
 /// in (`""` for a file of its own) until it says false. Members of a zip that are not game text
-/// are left out.
-pub fn file_games(path: &Path, each: &mut dyn FnMut(&str, Format, &[u8]) -> bool) -> io::Result<Stats> {
+/// are left out. `stop` as for `games`.
+pub fn file_games(path: &Path, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(&str, Format, &[u8]) -> bool) -> io::Result<Stats> {
     if !is_zip(path) {
-        return games(&path.to_string_lossy(), File::open(path)?, &mut |f, t| each("", f, t));
+        return games(&path.to_string_lossy(), File::open(path)?, stop, &mut |f, t| each("", f, t));
     }
     let mut zip = zip::ZipArchive::new(File::open(path)?).map_err(io::Error::other)?;
     let mut stats = Stats::default();
@@ -115,7 +122,7 @@ pub fn file_games(path: &Path, each: &mut dyn FnMut(&str, Format, &[u8]) -> bool
             continue;
         }
         let mut go = true;
-        stats.add(games(&name, member, &mut |f, t| {
+        stats.add(games(&name, member, stop, &mut |f, t| {
             go = each(&name, f, t);
             go
         })?);
@@ -199,7 +206,7 @@ pub(crate) mod tests {
             std::fs::write(&p, &bytes).unwrap();
             let mut seen = 0u64;
             let mut members = std::collections::BTreeSet::new();
-            let s = file_games(&p, &mut |m, f, t| {
+            let s = file_games(&p, &|| false, &mut |m, f, t| {
                 assert_eq!(f, Format::Pgn);
                 assert!(t.starts_with(b"[Event"), "{name}: a game starts at its first tag");
                 members.insert(m.to_string());
@@ -224,12 +231,22 @@ pub(crate) mod tests {
         let p = d.0.join("a.pgn.bz2");
         std::fs::write(&p, bz2(&many(50))).unwrap();
         let mut n = 0;
-        let s = file_games(&p, &mut |_, _, _| {
+        let s = file_games(&p, &|| false, &mut |_, _, _| {
             n += 1;
             n < 10
         })
         .unwrap();
         assert_eq!((n, s.games), (10, 10));
+        // A stream with no game in it (a bomb of blank lines) still hears a stop.
+        let blank = d.0.join("blank.pgn.bz2");
+        std::fs::write(&blank, bz2(&"\n".repeat(1 << 20))).unwrap();
+        let asked = std::cell::Cell::new(0);
+        let e = file_games(&blank, &|| {
+            asked.set(asked.get() + 1);
+            asked.get() > 3
+        }, &mut |_, _, _| true)
+        .unwrap_err();
+        assert_eq!((e.to_string().as_str(), asked.get()), ("stopped", 4));
         assert!(is_text("x.PGN.BZ2") && is_text("a.pdn.gz") && !is_text("a.sgf") && !is_text("a.bz2"));
         assert_eq!(unpacked_name("Lichess.pgn.ZST"), "Lichess.pgn");
         assert!(streams(Path::new("/a/twic1600g.ZIP")) && !streams(Path::new("a.si4")));

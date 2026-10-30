@@ -497,7 +497,7 @@ impl Library {
         let (mut p, mut done) = (Progress::default(), Progress::default());
         let mut tx = Some(conn.unchecked_transaction()?);
         let (mut in_batch, mut failed, mut n) = (0usize, None::<Error>, 0usize);
-        crate::stream::file_games(path, &mut |member, format, text| {
+        let read = crate::stream::file_games(path, stop, &mut |member, format, text| {
             if stop() {
                 done.cancelled = true;
                 return false;
@@ -536,7 +536,14 @@ impl Library {
                 progress(&p);
             }
             true
-        })?;
+        });
+        match read {
+            // Stopped between two games' worth of bytes, as in a stream with no games in it.
+            Err(_) if stop() => done.cancelled = true,
+            r => {
+                r?;
+            }
+        }
         if let Some(e) = failed {
             return Err(e);
         }
