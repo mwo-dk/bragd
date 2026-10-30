@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
+# The NSIS installers of the release, x64 and Windows on ARM. They install for the current user.
+PackageIdentifier: mwo-dk.Bragd
+PackageVersion: ${VERSION}
+InstallerType: nullsoft
+Scope: user
+InstallModes:
+  - interactive
+  - silent
+UpgradeBehavior: install
+ReleaseDate: ${DATE}
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/mwo-dk/bragd/releases/download/v${VERSION}/Bragd_${VERSION}_x64-setup.exe
+    InstallerSha256: ${SHA_X64}
+  - Architecture: arm64
+    InstallerUrl: https://github.com/mwo-dk/bragd/releases/download/v${VERSION}/Bragd_${VERSION}_arm64-setup.exe
+    InstallerSha256: ${SHA_ARM64}
+ManifestType: installer
+ManifestVersion: 1.10.0

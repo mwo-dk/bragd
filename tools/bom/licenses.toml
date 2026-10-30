@@ -1,0 +1,25 @@
+# Licence policy beyond deny.toml (tools/bom/README.md).
+#
+# Rust crates: deny.toml's [licenses] allow list, checked by `cargo deny` in CI.
+# npm packages that ship in the app: the same list plus `also_allow`, checked by
+# `bom.py licenses` against their SBOM.
+
+[npm]
+# Each one with the reason it is acceptable.
+also_allow = []
+
+# Packages whose package.json does not say their licence correctly, each read in its package's
+# licence file. Keyed by name and version: a new version is checked anew.
+[npm.overrides]
+
+# Components that come with Bragd without a package manager listing them (the piece art, fonts'
+# glyph outlines), and C code a crate compiles in under its own licence. `file` is in this
+# repository; `crate_files` are in the named crate's package. docs/CREDITS.md lists the art;
+# each piece set gets its entry here in the pull request that adds it:
+#
+# [[bundled]]
+# name = "Chess pieces (Cburnett)"
+# what = "assets/pieces/chess/*.svg, …"
+# license = "…"
+# source = "…"
+# file = "assets/pieces/chess/LICENSE"

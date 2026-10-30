@@ -4,9 +4,17 @@
 
 Status: in early development. See [the specification](docs/spec.md).
 
+- [Documentation](docs/README.md)
 - [Specification](docs/spec.md)
 - [Glossary](GLOSSARY.md)
 - [Decisions](docs/adr/)
 - [Credits](docs/CREDITS.md)
+
+## Changelog
+
+The last ten versions; every one is in [the changelog](docs/changelog.md).
+
+| Version | Date | What's new |
+|---|---|---|
 
 Licence: MIT. Artwork licences are in [Credits](docs/CREDITS.md).

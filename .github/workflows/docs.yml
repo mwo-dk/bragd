@@ -1,0 +1,32 @@
+name: Docs
+
+# The docs check (tools/docs-check.py) and the workflows' shell check
+# (tools/workflow-shell-check.py). Called by ci.yml on every pull request and push, so it is part
+# of the one required check, "CI result". By hand too.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Docs and workflow scripts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The base branch's Cargo.toml says whether this raises the minor or major version.
+      - name: Base branch
+        if: github.base_ref != ''
+        env:
+          BASE: ${{ github.base_ref }}
+        run: git fetch --no-tags --depth=1 origin "+refs/heads/$BASE:refs/remotes/origin/$BASE"
+      - run: python3 tools/docs-check.py
+      # The workflows' own shell scripts, and those inside `bash -c '…'` or `"…"` in them: bash -n
+      # and shellcheck, so a quoting slip fails here in seconds, not deep inside a release.
+      - run: python3 tools/workflow-shell-check.py
+      # The release tooling's own test: release-pr.py in a throwaway repository.
+      - run: python3 packaging/test_release_pr.py

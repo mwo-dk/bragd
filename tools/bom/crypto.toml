@@ -1,0 +1,39 @@
+# Every cryptographic algorithm and protocol Bragd uses, for its CBOM (tools/bom/README.md).
+#
+# Kept by hand: no scanner reads Rust well enough yet. generate.sh checks it against the build:
+# every crate in `watch` that Cargo.lock has must be a [[library]] here, every library must be
+# in Cargo.lock, and every `found` pattern must still match its file. So a new crypto
+# dependency, or code that moved, fails the build of the CBOM instead of going unnoticed.
+#
+# Empty while the crates are written: the update check, the Sources' downloads and online play
+# will bring TLS (rustls), and checking downloads (tablebases, images) a hash. Each arrives here
+# as a [[library]] with the [[asset]]s Bragd really uses, in the pull request that adds it.
+
+# Crates that do cryptography. Add one when a new dependency brings some in.
+watch = [
+  "aes", "aes-gcm", "argon2", "aws-lc-rs", "blake2", "blake3", "cbc", "chacha20", "chacha20poly1305",
+  "ctr", "ed25519-dalek", "hmac", "md-5", "md5", "native-tls", "openssl", "p256", "p384", "pbkdf2",
+  "ring", "rsa", "rustls", "scrypt", "sha1", "sha2", "sha3", "x25519-dalek", "zip",
+]
+
+# ---------------------------------------------------------------------------- libraries
+# A crate that provides algorithms:
+#
+# [[library]]
+# crate = "sha2"
+# provides = ["sha-256"]
+
+# ---------------------------------------------------------------------------- assets
+# CycloneDX cryptoProperties, plus `purpose` (why Bragd uses it, a property in the CBOM) and
+# `found`: where our code uses it, as a file and a pattern on one of its lines:
+#
+# [[asset]]
+# ref = "sha-256"
+# name = "SHA-256"
+# type = "algorithm"
+# primitive = "hash"
+# oid = "2.16.840.1.101.3.4.2.1"
+# param_set = "256"
+# functions = ["digest"]
+# purpose = "Checks that a downloaded tablebase is the file expected"
+# found = [{ file = "crates/bragd-engines/src/syzygy.rs", pattern = "Sha256::new()" }]

@@ -1,0 +1,89 @@
+name: Nix
+
+# The flake's package built with Nix: the app on Linux (packaging/nix/package.nix). Nightly when
+# master changed, and in every release; pull requests only when the lock files or the Nix files
+# change.
+on:
+  workflow_dispatch:
+  workflow_call: # from release.yml (a release or rehearsal; a master push touching the paths below) and nightly.yml
+  pull_request:
+    # Pull requests run this system only when its own packaging or workflow changes; every
+    # other change is tested on it nightly and in every Release run.
+    paths:
+      - "flake.nix"
+      - "flake.lock"
+      - "packaging/nix/**"
+      - ".github/workflows/nix.yml"
+
+permissions:
+  contents: read
+
+# A newer push to a pull request cancels its older run. Called from release.yml, the group is that
+# run's own (github.* is the caller's there), so nothing cancels it.
+concurrency:
+  group: nix-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Nix, ${{ matrix.os }}
+    # A release pull request's (release/X.Y.Z) run is its Release run, after the merge.
+    if: ${{ !startsWith(github.head_ref, 'release/') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The app comes with the GUI slice: until gui/ is there, the flake has nothing to build.
+      - id: gui
+        run: |
+          if [ -f gui/package-lock.json ]; then echo exists=true; else echo "::notice::No gui/ yet: nothing to build."; echo exists=false; fi >> "$GITHUB_OUTPUT"
+
+      # The package's compiled dependencies (crane's buildDepsOnly), kept between runs as a binary
+      # cache in a folder: a store path that changes only with Cargo.lock, a Cargo.toml, the Nix
+      # files or flake.lock. Unsigned, so trusted by name; it comes only from this repository's
+      # caches. A new key is saved only when the paths change.
+      - id: deps
+        if: steps.gui.outputs.exists == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: nix-deps
+          key: nix-deps-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock', 'Cargo.lock', '**/Cargo.toml', 'packaging/nix/*.nix') }}
+          restore-keys: nix-deps-v1-${{ runner.os }}-${{ runner.arch }}-
+      - if: steps.gui.outputs.exists == 'true'
+        run: mkdir -p nix-deps
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        if: steps.gui.outputs.exists == 'true'
+        with:
+          extra_nix_config: extra-substituters = file://${{ github.workspace }}/nix-deps?trusted=true
+
+      - name: The app
+        if: steps.gui.outputs.exists == 'true'
+        run: |
+          nix build -L .#default
+          test -f result/share/applications/bragd.desktop
+          # Every library found.
+          ! ldd result/bin/.bragd-gui-wrapped | grep 'not found'
+
+      - name: Dependencies, for the next run
+        if: steps.gui.outputs.exists == 'true' && steps.deps.outputs.cache-hit != 'true'
+        run: |
+          deps=".#bragd.cargoArtifacts"
+          # With their closure (the crates' sources), less what cache.nixos.org has.
+          nix copy --to "file://$PWD/nix-deps.new?compression=zstd" $deps
+          # shellcheck disable=SC2016 # the inner sh expands them
+          nix path-info -r $deps | cut -c12-43 | xargs -P 16 -I{} sh -c \
+            'curl -sfI -o /dev/null https://cache.nixos.org/{}.narinfo || exit 0; rm -f "nix-deps.new/$(sed -n "s/^URL: //p" nix-deps.new/{}.narinfo)" nix-deps.new/{}.narinfo'
+          du -sh nix-deps.new
+          sudo rm -rf nix-deps
+          mv nix-deps.new nix-deps
+      - if: steps.gui.outputs.exists == 'true' && steps.deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: nix-deps
+          key: ${{ steps.deps.outputs.cache-primary-key }}

@@ -1,0 +1,137 @@
+<#
+.SYNOPSIS
+  Build and install Bragd from source on Windows.
+
+.DESCRIPTION
+  Run from PowerShell in the unpacked folder:
+
+    powershell -ExecutionPolicy Bypass -File install\install.ps1        # asks before installing anything
+    powershell -ExecutionPolicy Bypass -File install\install.ps1 -Yes   # no questions
+
+  Installs to %LOCALAPPDATA%\Programs\Bragd, adds that folder to your user PATH and creates a
+  Start Menu shortcut.
+#>
+param(
+    [switch]$Yes
+)
+
+$ErrorActionPreference = "Stop"
+Set-Location (Split-Path -Parent $PSScriptRoot)
+$Dest = Join-Path $env:LOCALAPPDATA "Programs\Bragd"
+
+function Say($text) { Write-Host $text -ForegroundColor Cyan }
+function Info($text) { Write-Host "  $text" }
+function Fail($text) { Write-Host "Error: $text" -ForegroundColor Red; exit 1 }
+function Have($cmd) { [bool](Get-Command $cmd -ErrorAction SilentlyContinue) }
+
+# Ask politely; Enter means yes.
+function Ask($question) {
+    if ($Yes) { return $true }
+    $reply = Read-Host "  $question [Y/n]"
+    return ($reply -eq "" -or $reply -match "^[Yy]")
+}
+
+function Refresh-Path {
+    $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
+                [Environment]::GetEnvironmentVariable("Path", "User")
+}
+
+# Stop on a failing native command (cargo, npm), which $ErrorActionPreference does not do.
+# No param block on purpose: flags like --release must reach $args as plain strings.
+function Run {
+    $exe, $rest = $args
+    & $exe @rest
+    if ($LASTEXITCODE -ne 0) { Fail "'$($args -join ' ')' failed (exit code $LASTEXITCODE)." }
+}
+
+Say "Installing Bragd (Windows)"
+
+# ---------------------------------------------------------------- Rust
+
+if (-not (Have cargo)) { Refresh-Path }
+if (-not (Have cargo)) {
+    Say "Rust is needed to build Bragd, and it isn't installed yet."
+    Info "The official installer (rustup, https://rustup.rs) puts it in your user profile."
+    Info "It may also offer to install the Visual Studio C++ Build Tools, which Rust needs"
+    Info "on Windows; please accept that. You can remove Rust later with 'rustup self uninstall'."
+    if (Ask "Would you like me to install Rust now?") {
+        $installer = Join-Path $env:TEMP "rustup-init.exe"
+        # The OS's architecture, not this PowerShell's: an x64 PowerShell runs on ARM64 too.
+        $arch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64" -or
+                    $env:PROCESSOR_ARCHITEW6432 -eq "ARM64" -or $env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "aarch64" } else { "x86_64" }
+        Invoke-WebRequest "https://win.rustup.rs/$arch" -OutFile $installer -UseBasicParsing
+        & $installer -y --profile minimal
+        if ($LASTEXITCODE -ne 0) { Fail "The Rust installer did not finish." }
+        Refresh-Path
+        $env:Path = (Join-Path $env:USERPROFILE ".cargo\bin") + ";" + $env:Path
+    } else {
+        Fail "No problem. Install Rust from https://rustup.rs when you're ready, then run this again."
+    }
+}
+
+# The newest rust-version among the locked crates for this machine is what Rust must reach
+# (1.85, the 2024 edition, when cargo cannot say).
+$hostTriple = ((rustc -vV) | Where-Object { $_ -like "host: *" }) -replace "^host: ", ""
+$need = [version]"1.85"
+try {
+    $meta = cargo metadata --locked --format-version 1 --filter-platform $hostTriple 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $newest = ($meta | ConvertFrom-Json).packages.rust_version | Where-Object { $_ } |
+            ForEach-Object { [version]($(if ($_ -match "^\d+\.\d+$") { "$_.0" } else { $_ })) } |
+            Sort-Object | Select-Object -Last 1
+        if ($newest) { $need = $newest }
+    }
+} catch { }
+$haveRust = [version](((rustc --version) -split " ")[1] -replace "[-+].*$", "")
+if ($haveRust -lt $need) {
+    Say "Your Rust ($(rustc --version)) is older than Bragd needs ($need)."
+    if ((Have rustup) -and (Ask "Would you like me to update it with 'rustup update stable'?")) {
+        Run rustup update stable
+    } else {
+        Fail "Please update Rust (rustup update) and run this again."
+    }
+}
+Info "Rust: $(rustc --version)"
+
+# ---------------------------------------------------------------- Node.js
+
+if (-not (Have npm)) {
+    Say "Bragd's interface is built with Node.js, which isn't installed."
+    if ((Have winget) -and (Ask "Would you like me to install Node.js LTS with winget?")) {
+        winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
+        Refresh-Path
+    }
+    if (-not (Have npm)) { Fail "Install Node.js 20 or newer from https://nodejs.org, then run this again." }
+}
+# Bragd renders with WebView2, which ships with Windows 10 and 11.
+
+# ---------------------------------------------------------------- build
+
+Say "Building Bragd (a few minutes the first time)..."
+Push-Location gui
+try {
+    Run npm ci --no-audit --no-fund
+    Run npx tauri build --no-bundle
+} finally {
+    Pop-Location
+}
+New-Item -ItemType Directory -Force -Path $Dest | Out-Null
+Copy-Item "target\release\bragd-gui.exe" $Dest -Force
+$shell = New-Object -ComObject WScript.Shell
+$link = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Programs")) "Bragd.lnk"))
+$link.TargetPath = Join-Path $Dest "bragd-gui.exe"
+$link.WorkingDirectory = $env:USERPROFILE
+$link.Save()
+Info "Installed $Dest\bragd-gui.exe and a Start Menu shortcut"
+
+# ---------------------------------------------------------------- PATH
+
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if (($userPath -split ";") -notcontains $Dest) {
+    [Environment]::SetEnvironmentVariable("Path", "$userPath;$Dest", "User")
+    Info "Added $Dest to your PATH (open a new terminal to use it)."
+}
+
+Write-Host ""
+Say "Done."
+Info "Start Bragd from the Start Menu, or run: bragd-gui"

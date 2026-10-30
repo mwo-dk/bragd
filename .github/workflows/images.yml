@@ -1,0 +1,95 @@
+name: Engine images
+
+# Bragd's own engine images: each folder packaging/images/<engine> holds a Dockerfile, built for
+# amd64 and arm64 and pushed to ghcr.io/mwo-dk/bragd-<engine>:latest. Built again every week, so
+# a new base image's fixes arrive; the same source gives the same image (timestamps at 1970, no
+# attestations), so an unchanged week pushes an unchanged digest. Pull requests build without
+# pushing. packaging/images/README.md says what a folder holds.
+on:
+  push:
+    branches: [master]
+    paths:
+      - packaging/images/**
+      - .github/workflows/images.yml
+  pull_request:
+    paths:
+      - packaging/images/**
+      - .github/workflows/images.yml
+  schedule:
+    - cron: "47 3 * * 6" # Saturdays, 03:47 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  list:
+    runs-on: ubuntu-24.04
+    outputs:
+      engines: ${{ steps.l.outputs.engines }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: l
+        run: |
+          engines=$(find packaging/images -mindepth 2 -maxdepth 2 -name Dockerfile -printf '%h\n' 2>/dev/null | xargs -rn1 basename | sort | jq -Rsc 'split("\n") | map(select(. != ""))')
+          echo "engines=${engines:-[]}" | tee -a "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.engine }}
+    needs: list
+    if: needs.list.outputs.engines != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: ${{ fromJSON(needs.list.outputs.engines) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ENGINE: ${{ matrix.engine }}
+      IMAGE: ghcr.io/mwo-dk/bragd-${{ matrix.engine }}
+      PUSH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Log in to ghcr.io
+        if: env.PUSH == 'true'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+      # Held as Bragd holds it: no network, read-only, no capabilities. The folder's check.sh,
+      # when it has one, talks the engine's protocol to it; and no image has a shell.
+      - name: It answers, held as Bragd holds it
+        run: |
+          docker buildx build "packaging/images/$ENGINE" --load -t "bragd-$ENGINE:test"
+          if [ -x "packaging/images/$ENGINE/check.sh" ]; then
+            "packaging/images/$ENGINE/check.sh" "bragd-$ENGINE:test"
+          fi
+          if docker run --rm --entrypoint sh "bragd-$ENGINE:test" -c true 2>/dev/null; then
+            echo "::error::the image has a shell"; exit 1
+          fi
+      - name: Build, and push from master
+        run: |
+          export SOURCE_DATE_EPOCH=0
+          docker buildx build "packaging/images/$ENGINE" \
+            --platform linux/amd64,linux/arm64 --pull --no-cache \
+            --provenance=false --sbom=false \
+            --output "type=image,name=$IMAGE:latest,push=$PUSH,rewrite-timestamp=true" \
+            --metadata-file meta.json
+          if [ "$PUSH" = true ]; then
+            echo "::notice title=Pushed::$IMAGE:latest@$(jq -r '."containerimage.digest"' meta.json)"
+          fi

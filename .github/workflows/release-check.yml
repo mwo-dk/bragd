@@ -1,0 +1,255 @@
+name: Release check
+
+# A published release, installed the way a user installs it: from its published downloads, on
+# each system they are for, and then started; and every channel checked for its version: the
+# Homebrew cask, and WinGet within its week (winget.yml files the newest release there weekly).
+# Nothing waits for this workflow; a red run here is a release to fix at once. packaging/README.md.
+#
+# It runs when a Release run ends, whatever its result (a channel may have failed), and checks the
+# release that run published; none when the version had one already. And by hand.
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to check, e.g. v1.2.0, or latest
+        default: latest
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-check-${{ inputs.tag || github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+env:
+  REPO: ${{ github.repository }}
+
+jobs:
+  resolve:
+    name: Which release
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.head_branch == 'master' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          case "$EVENT" in
+            workflow_dispatch) tag="$INPUT_TAG" ;;
+            # Only when that run published a release: a release of its commit.
+            workflow_run)
+              tag=$(gh api "repos/$REPO/releases?per_page=20" -q "[.[] | select(.draft == false and .target_commitish == \"$HEAD_SHA\")][0].tag_name // empty") ;;
+          esac
+          [ "$tag" = latest ] && tag=$(gh api "repos/$REPO/releases/latest" -q .tag_name)
+          if [ -n "$tag" ] && ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Not a release tag: $tag"; exit 1
+          fi
+          echo "Release: ${tag:-none}"
+          { echo "tag=$tag"; echo "version=${tag#v}"; } >> "$GITHUB_OUTPUT"
+
+  # Exactly the files the release should have (packaging/release-assets.sh), SHA256SUMS against
+  # every download, and every .sha256 against its file.
+  sums:
+    name: GitHub release files
+    needs: resolve
+    if: needs.resolve.outputs.tag != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.resolve.outputs.tag }}
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.resolve.outputs.tag }}
+        run: |
+          packaging/retry.sh gh release download "$TAG" --repo "$REPO" -D assets
+          test -f assets/SHA256SUMS || { echo "::error::$TAG has no SHA256SUMS"; exit 1; }
+          packaging/release-assets.sh "$TAG" assets
+
+  # Each channel has this version. A channel's job in release.yml may have just finished:
+  # each check waits a little.
+  channels:
+    name: Channels
+    needs: resolve
+    if: needs.resolve.outputs.tag != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.resolve.outputs.tag }}
+      VER: ${{ needs.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Homebrew
+        if: ${{ !cancelled() }}
+        run: |
+          got=$(gh api "repos/mwo-dk/homebrew-bragd/contents/Casks/bragd.rb" -H "Accept: application/vnd.github.raw" | sed -n 's/^ *version "\(.*\)"/\1/p' | head -1)
+          # A higher version, released meanwhile, is fine too.
+          if [ -n "$got" ] && [ "$(printf '%s\n' "$got" "$VER" | sort -V | head -1)" = "$VER" ]; then
+            echo "Casks/bragd.rb: $got"
+          else
+            echo "::error title=Homebrew::Casks/bragd.rb is at '$got', not $VER"; exit 1
+          fi
+      # WinGet is filed once a week by winget.yml, with the newest release only, so the version
+      # just released may have no pull request yet. The rule: take the newest version with an
+      # open or merged pull request; the oldest release after it is the one waiting longest. A
+      # weekly run has passed once it waits more than 8 days.
+      - name: WinGet
+        if: ${{ !cancelled() }}
+        env:
+          # The account that files our pull requests: anyone can open one with the same title.
+          WINGET_AUTHOR: ${{ github.repository_owner }}
+          ID: mwo-dk.Bragd
+        run: |
+          set -o pipefail
+          now=$(date +%s)
+          releases=$(gh release list -R "$REPO" --exclude-drafts --exclude-pre-releases --limit 100 --json tagName,publishedAt -q '.[] | "\(.tagName) \(.publishedAt)"')
+          listed=0; packaging/winget-listed.sh "$ID" || listed=$?
+          if [ "$listed" = 2 ]; then echo "::error title=WinGet::could not tell whether $ID is listed"; exit 1; fi
+          if ! filed=$(gh pr list -R microsoft/winget-pkgs --state all --author "$WINGET_AUTHOR" --search "$ID version in:title" --limit 100 --json title,state \
+              -q '.[] | select(.state != "CLOSED") | .title' |
+              sed -nE "s/^(New|Add|Update) (version|package): ${ID//./\\.} version ([0-9][^ ]*)$/\3/p" | sort -V | tail -1); then
+            echo "::error title=WinGet::could not read winget-pkgs' pull requests for $ID"; exit 1
+          fi
+          if [ "$listed" = 1 ] && [ -z "$filed" ]; then
+            echo "::notice title=WinGet::$ID is not listed on WinGet yet and has no pull request of ours open: its first version is filed by hand (packaging/winget/)."; exit 0
+          fi
+          waiting=$(while read -r tag at; do
+            if [ "${tag#v}" != "$filed" ] && [ "$(printf '%s\n' "${filed:-0}" "${tag#v}" | sort -V | tail -1)" = "${tag#v}" ]; then echo "$tag $at"; fi
+          done <<<"$releases" | tail -1)
+          if [ -z "$waiting" ]; then
+            echo "$ID $filed: pull request open or merged, the newest release"; exit 0
+          fi
+          read -r tag at <<<"$waiting"
+          days=$(( (now - $(date -d "$at" +%s)) / 86400 ))
+          if [ "$days" -gt 8 ] && [ "$listed" = 0 ]; then
+            echo "::error title=WinGet::$ID: newest pull request is for ${filed:-no version}, but $tag has waited $days days for one (filed weekly by winget.yml)"; exit 1
+          elif [ "$days" -gt 15 ]; then
+            echo "::error title=WinGet::$ID is not listed yet and its New-Package pull request is still for $filed, but $tag has waited $days days"; exit 1
+          fi
+          echo "::notice title=WinGet::$ID: newest pull request is for ${filed:-no version}; $tag and later wait for winget.yml's weekly run ($days days so far)"
+
+  linux:
+    name: Linux ${{ matrix.arch }}
+    needs: resolve
+    if: needs.resolve.outputs.tag != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x86_64, runs-on: ubuntu-24.04, deb: amd64 }
+          - { arch: aarch64, runs-on: ubuntu-24.04-arm, deb: arm64 }
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 20
+    env:
+      TAG: ${{ needs.resolve.outputs.tag }}
+      VER: ${{ needs.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions
+      - name: Download
+        run: |
+          deb="Bragd_${VER}_${{ matrix.deb }}.deb"
+          for f in SHA256SUMS "$deb"; do
+            curl -fsSLO "https://github.com/$REPO/releases/download/$TAG/$f"
+          done
+          sha256sum -c --ignore-missing SHA256SUMS | tee sums.txt
+          test "$(grep -c ': OK$' sums.txt)" = 1
+          echo "DEB=$deb" >> "$GITHUB_ENV"
+      - name: The .deb and xvfb, with apt
+        uses: ./.github/actions/apt-install
+        timeout-minutes: 10
+        with:
+          packages: xvfb
+          debs: ./${{ env.DEB }}
+      - name: The app, from the .deb with apt
+        run: |
+          dpkg -L bragd
+          test "$(dpkg-query -W -f '${Version}' bragd)" = "$VER"
+          if ldd /usr/bin/bragd-gui | grep 'not found'; then exit 1; fi
+          # It starts and stays up for 30 seconds, on a display of its own, with a home of its own.
+          mkdir -p "$RUNNER_TEMP/home"
+          rc=0
+          HOME="$RUNNER_TEMP/home" WEBKIT_DISABLE_COMPOSITING_MODE=1 timeout -k 5 30 xvfb-run -a bragd-gui >gui.log 2>&1 || rc=$?
+          tail -20 gui.log
+          [ "$rc" = 124 ] || { echo "::error::The app did not stay up (exit $rc)"; exit 1; }
+
+  macos:
+    name: macOS ${{ matrix.arch }}
+    needs: resolve
+    if: needs.resolve.outputs.tag != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: aarch64, runs-on: macos-latest }
+          - { arch: x64, runs-on: macos-15-intel }
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 20
+    env:
+      TAG: ${{ needs.resolve.outputs.tag }}
+      VER: ${{ needs.resolve.outputs.version }}
+    steps:
+      - name: The .dmg, mounted
+        run: |
+          dmg="Bragd_${VER}_${{ matrix.arch }}.dmg"
+          for f in SHA256SUMS "$dmg"; do
+            curl -fsSLO "https://github.com/$REPO/releases/download/$TAG/$f"
+          done
+          grep " \*\?$dmg\$" SHA256SUMS | shasum -a 256 -c -
+          hdiutil attach -nobrowse -mountpoint /Volumes/Bragd "$dmg"
+          app=/Volumes/Bragd/Bragd.app
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "$VER"
+          file "$app/Contents/MacOS/bragd-gui"
+          hdiutil detach /Volumes/Bragd
+
+  windows:
+    name: Windows ${{ matrix.arch }}
+    needs: resolve
+    if: needs.resolve.outputs.tag != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, runs-on: windows-latest }
+          - { arch: arm64, runs-on: windows-11-arm }
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 20
+    env:
+      TAG: ${{ needs.resolve.outputs.tag }}
+      VER: ${{ needs.resolve.outputs.version }}
+    steps:
+      - name: The NSIS installer, silently
+        shell: pwsh
+        run: |
+          $exe = "Bragd_${env:VER}_${{ matrix.arch }}-setup.exe"
+          foreach ($f in @("SHA256SUMS", $exe)) {
+            Invoke-WebRequest "https://github.com/$env:REPO/releases/download/$env:TAG/$f" -OutFile $f -UseBasicParsing
+          }
+          $want = (Select-String -Path SHA256SUMS -Pattern ([regex]::Escape($exe) + '$')).Line.Split(' ')[0]
+          $got = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          if ($want -ne $got) { Write-Error "$exe does not match SHA256SUMS"; exit 1 }
+          Start-Process -Wait -FilePath ".\$exe" -ArgumentList '/S'
+          $app = Join-Path $env:LOCALAPPDATA "Bragd\bragd-gui.exe"
+          if (-not (Test-Path $app)) { Write-Error "$app is not installed"; exit 1 }
+          $v = (Get-Item $app).VersionInfo.ProductVersion
+          Write-Host "$app $v"
+          if (-not $v.StartsWith($env:VER)) { Write-Error "installed $v, not $env:VER"; exit 1 }

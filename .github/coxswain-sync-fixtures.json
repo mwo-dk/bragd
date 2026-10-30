@@ -1,0 +1,124 @@
+{
+ "repo": "mwo-dk/bragd",
+ "page": "# Coxswain sync\n\n[← README](../README.md)\n\nLast synced: `aaaaaaa` (a fixture).\n\n## Paths we copied\n\n| coxswain | Bragd |\n|---|---|\n| `crates/coxswain-core/src/chess/` | `crates/bragd-library/src/chess/` |\n| `crates/coxswain-core/src/{go,shogi}.rs` | `crates/bragd-library/src/` |\n| `tools/` | same |\n\n## Upstream issues carried as Bragd issues\n\nCoxswain 2.36.0: #700.\n",
+ "api": {
+  "repos/mwo-dk/coxswain/commits/aaaaaaa": {
+   "commit": {
+    "committer": {
+     "date": "2026-10-30T10:00:00Z"
+    }
+   }
+  },
+  "repos/mwo-dk/coxswain/commits?since=2026-10-30T10%3A00%3A00Z&path=crates%2Fcoxswain-core%2Fsrc%2Fchess&per_page=100": [
+   {
+    "sha": "bbbbbbb000000000000000000000000000000000",
+    "html_url": "https://github.com/mwo-dk/coxswain/commit/bbbbbbb",
+    "commit": {
+     "message": "Chess: castling rights survive an undo\n\nLonger text.",
+     "committer": {
+      "date": "2026-11-02T12:00:00Z"
+     }
+    }
+   },
+   {
+    "sha": "aaaaaaa000000000000000000000000000000000",
+    "html_url": "https://github.com/mwo-dk/coxswain/commit/aaaaaaa",
+    "commit": {
+     "message": "The synced commit",
+     "committer": {
+      "date": "2026-10-30T12:00:00Z"
+     }
+    }
+   }
+  ],
+  "repos/mwo-dk/coxswain/commits?since=2026-10-30T10%3A00%3A00Z&path=crates%2Fcoxswain-core%2Fsrc%2Fgo.rs&per_page=100": [
+   {
+    "sha": "ccccccc000000000000000000000000000000000",
+    "html_url": "https://github.com/mwo-dk/coxswain/commit/ccccccc",
+    "commit": {
+     "message": "Go: ko is checked on the whole board",
+     "committer": {
+      "date": "2026-11-04T12:00:00Z"
+     }
+    }
+   },
+   {
+    "sha": "bbbbbbb000000000000000000000000000000000",
+    "html_url": "https://github.com/mwo-dk/coxswain/commit/bbbbbbb",
+    "commit": {
+     "message": "Chess: castling rights survive an undo\n\nLonger text.",
+     "committer": {
+      "date": "2026-11-02T12:00:00Z"
+     }
+    }
+   }
+  ],
+  "repos/mwo-dk/coxswain/commits?since=2026-10-30T10%3A00%3A00Z&path=crates%2Fcoxswain-core%2Fsrc%2Fshogi.rs&per_page=100": [],
+  "repos/mwo-dk/coxswain/commits?since=2026-10-30T10%3A00%3A00Z&path=tools&per_page=100": [],
+  "repos/mwo-dk/coxswain/issues?state=all&since=2026-10-30T10%3A00%3A00Z&per_page=100": [
+   {
+    "number": 801,
+    "title": "Chess clock drifts in long games",
+    "state": "open",
+    "html_url": "https://github.com/mwo-dk/coxswain/issues/801",
+    "labels": []
+   },
+   {
+    "number": 802,
+    "title": "Rename dialog",
+    "state": "closed",
+    "html_url": "https://github.com/mwo-dk/coxswain/issues/802",
+    "labels": [
+     {
+      "name": "translation"
+     }
+    ]
+   },
+   {
+    "number": 803,
+    "title": "Copy dialog freezes",
+    "state": "open",
+    "html_url": "https://github.com/mwo-dk/coxswain/issues/803",
+    "labels": []
+   },
+   {
+    "number": 804,
+    "title": "Engine options: fix",
+    "state": "open",
+    "html_url": "https://github.com/mwo-dk/coxswain/issues/804",
+    "labels": [],
+    "pull_request": {}
+   },
+   {
+    "number": 805,
+    "title": "Sidebar width",
+    "state": "open",
+    "html_url": "https://github.com/mwo-dk/coxswain/issues/805",
+    "labels": [
+     {
+      "name": "ui"
+     }
+    ]
+   },
+   {
+    "number": 700,
+    "title": "Go board too small",
+    "state": "open",
+    "html_url": "https://github.com/mwo-dk/coxswain/issues/700",
+    "labels": []
+   }
+  ],
+  "repos/mwo-dk/bragd/issues?state=open&per_page=100": [
+   {
+    "number": 3,
+    "title": "Something else",
+    "body": "x"
+   },
+   {
+    "number": 7,
+    "title": "Coxswain sync: 1 commit, 0 issues",
+    "body": "<!-- coxswain-sync -->\n- [x] [`bbbbbbb`](u) Chess: castling\n"
+   }
+  ]
+ }
+}

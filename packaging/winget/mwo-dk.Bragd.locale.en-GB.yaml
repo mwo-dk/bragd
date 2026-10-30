@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
+PackageIdentifier: mwo-dk.Bragd
+PackageVersion: ${VERSION}
+PackageLocale: en-GB
+Publisher: Michael W. Olesen
+PublisherUrl: https://github.com/mwo-dk
+PublisherSupportUrl: https://github.com/mwo-dk/bragd/issues
+Author: Michael W. Olesen
+PackageName: Bragd
+PackageUrl: https://github.com/mwo-dk/bragd
+License: MIT
+LicenseUrl: https://github.com/mwo-dk/bragd/blob/master/LICENSE
+ShortDescription: Play, study and keep board games
+Description: |-
+  Bragd is a desktop app for playing, studying and keeping board games: chess and its old and
+  fairy Variants, xiangqi and janggi, shogi, go, draughts, tafl, backgammon, ur and senet.
+Moniker: bragd
+Tags:
+  - board-games
+  - chess
+  - go
+  - shogi
+  - xiangqi
+  - draughts
+ReleaseNotesUrl: https://github.com/mwo-dk/bragd/releases/tag/v${VERSION}
+ManifestType: defaultLocale
+ManifestVersion: 1.10.0
