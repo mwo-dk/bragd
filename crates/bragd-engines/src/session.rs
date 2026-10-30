@@ -54,6 +54,8 @@ impl Program {
                 let base = image.rsplit('/').next().unwrap_or("engine").split([':', '@']).next().unwrap_or("engine");
                 let name = format!("{base}-{}-{}", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
                 let mounts: Vec<(PathBuf, &str)> = syzygy.iter().map(|s| (s.clone(), CONTAINER_SYZYGY)).collect();
+                // Probed once per runtime and image, so `sealed` leaves out bounds it cannot keep.
+                images::bounds_work(&rt.path, image);
                 let mut c = images::sealed(rt, &name, image, &mounts);
                 c.args(args);
                 (c, Some((rt.path.clone(), name)))
