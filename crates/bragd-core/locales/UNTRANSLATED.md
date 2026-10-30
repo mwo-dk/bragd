@@ -7,7 +7,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 
 ## In every language of its own
 
-187 keys:
+188 keys:
 
 - `board_theme.match`
 - `board_theme.racing`
@@ -98,6 +98,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `notice.config_unreadable`
 - `notice.family_off`
 - `notice.family_turn_on`
+- `notice.source_out_of_scope`
 - `setting.board_theme`
 - `setting.board_theme.hint`
 - `setting.check_updates.hint`

@@ -109,6 +109,7 @@
  "notice.config_unreadable": "config.toml could not be read: {problem}. Every setting keeps its default until it is mended.",
  "notice.family_off": "{family} is turned off. Its files still open, and none of its data is deleted.",
  "notice.family_turn_on": "Turn it on",
+ "notice.source_out_of_scope": "{source} is listed so you know it is coming, but this version of Bragd cannot fetch it yet.",
  "settings.area.engines": "Engines",
  "settings.area.families": "Game families",
  "settings.area.knowledge": "Knowledge",

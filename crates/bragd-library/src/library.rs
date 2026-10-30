@@ -474,6 +474,32 @@ impl Library {
         Ok(serde_json::from_str(&json).unwrap_or_default())
     }
 
+    /// Merges the headers of every Game with more than one Source again, by the priority set
+    /// now: what "Dedupe now" does after the Source priority changed. `stop` is asked between
+    /// Games; the Games merged before it said stop stay merged. How many Games were merged.
+    pub fn merge_again(&mut self, stop: &dyn Fn() -> bool, progress: &mut dyn FnMut(usize, usize)) -> Result<usize> {
+        let ids: Vec<i64> = {
+            let mut st = self.conn.prepare("SELECT game_id FROM game_sources GROUP BY game_id HAVING count(*) > 1 ORDER BY game_id")?;
+            st.query_map([], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?
+        };
+        let mut done = 0;
+        for chunk in ids.chunks(self.batch.max(1)) {
+            let tx = self.conn.transaction()?;
+            for id in chunk {
+                if stop() {
+                    tx.commit()?;
+                    return Ok(done);
+                }
+                let result: String = tx.query_row("SELECT result FROM games WHERE id = ?", [id], |r| r.get(0))?;
+                merge_headers(&tx, &self.priority, *id, &result)?;
+                done += 1;
+            }
+            tx.commit()?;
+            progress(done, ids.len());
+        }
+        Ok(done)
+    }
+
     /// The Near-duplicates found, for review: the shorter Game's id, then the longer's.
     pub fn near_duplicates(&self) -> Result<Vec<(i64, i64)>> {
         let mut st = self.conn.prepare("SELECT short_id, long_id FROM near_duplicates ORDER BY short_id, long_id")?;
@@ -663,6 +689,10 @@ pub(crate) mod tests {
         // Importing the same file again records nothing new.
         assert_eq!(import(&mut lib, &twic, "twic").merged, 1);
         assert_eq!(lib.sources(1).unwrap().len(), 2);
+        // With Lichess ranked first, merging again gives Lichess's spelling.
+        lib.set_priority(&["lichess", "twic"]);
+        assert_eq!(lib.merge_again(&|| false, &mut |_, _| {}).unwrap(), 1);
+        assert_eq!(lib.headers(1).unwrap()["White"], "D. Byrne");
     }
 
     #[test]

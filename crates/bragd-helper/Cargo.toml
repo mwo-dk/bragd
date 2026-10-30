@@ -1,0 +1,34 @@
+[package]
+name = "bragd-helper"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "The Helper: one background process per user that fetches Sources on a schedule, and imports and deduplicates Libraries for every Bragd window"
+
+[[bin]]
+name = "bragd-helper"
+path = "src/main.rs"
+
+[dependencies]
+bragd-core = { path = "../bragd-core" }
+bragd-library = { path = "../bragd-library" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# The connection token, from the system's random source.
+getrandom = "0.4"
+# Source downloads, with the system's certificate store.
+ureq = { version = "3", features = ["platform-verifier"] }
+# TWIC comes as a zip of PGN. Deflate only, in pure Rust.
+zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
+
+# launchd's domain names the user by uid.
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
+
+# Whether a laptop runs on its battery.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_Power"] }
+
+[dev-dependencies]
+bragd-core = { path = "../bragd-core", features = ["test-home"] }
