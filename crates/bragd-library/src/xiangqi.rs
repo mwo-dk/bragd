@@ -388,13 +388,19 @@ pub fn dhtml_to_pgn(text: &str) -> String {
     // `[DhtmlXQ_key]value[/DhtmlXQ_key]`, any key, read left to right without a pattern engine.
     let mut tags: HashMap<String, String> = HashMap::new();
     let mut rest = text;
-    while let Some(at) = rest.find("[DhtmlXQ_") {
+    // Each tag left open costs a scan of the rest; a real file leaves none, so a file with many
+    // is read only as far as its first few, or it would take hours (quadratic).
+    let mut open = 0;
+    while open < 64
+        && let Some(at) = rest.find("[DhtmlXQ_")
+    {
         let after = &rest[at + 9..];
         let Some(end) = after.find(']') else { break };
         let key = &after[..end];
         let body = &after[end + 1..];
         let close = format!("[/DhtmlXQ_{key}]");
         let Some(stop) = body.find(&close) else {
+            open += 1;
             rest = body;
             continue;
         };
@@ -611,6 +617,10 @@ mod tests {
     #[test]
     fn a_dhtml_game_read_as_pgn() {
         assert!(is_dhtml(DHTML.as_bytes()) && is_dhtml(b"  [dhtmlxq_ver]") && !is_dhtml(b"[Event \"x\"]") && !is_dhtml(b"[Dht"));
+        // Tags left open, up to the most read: done in one pass, not one per tag.
+        let open = "[DhtmlXQ_a]".repeat(DHTML_MAX as usize / 11);
+        let open_pgn = dhtml_to_pgn(&format!("[DhtmlXQ_movelist]7747[/DhtmlXQ_movelist]{open}"));
+        assert!(open_pgn.contains("1. "), "{open_pgn}");
         let pgn = dhtml_to_pgn(DHTML);
         assert!(is_xiangqi(pgn.as_bytes()), "{pgn}");
         for tag in ["[Event \"0001-对兵互进右马局\"]", "[Site \"华山\"]", "[Date \"2009.11.26\"]", "[Red \"布局圣手\"]", "[Black \"兰帝\"]", "[Result \"1-0\"]", "[Opening \"E42 对兵互进右马局\"]"] {
