@@ -340,7 +340,8 @@ mod tests {
                 assert_eq!(k.exe_in(&text).as_deref(), Some(exe), "{k:?}");
             }
         }
-        let written: Vec<_> = written.iter().map(|p| p.to_string_lossy().into_owned()).collect();
+        // One separator on every system: Windows joins with `\`.
+        let written: Vec<_> = written.iter().map(|p| p.to_string_lossy().replace('\\', "/")).collect();
         assert_eq!(written, [".config/systemd/user/bragd-helper.service", ".config/autostart/bragd-helper.desktop", ".config/autostart/bragd-helper.desktop", "Library/LaunchAgents/dk.mwo.bragd.helper.plist"]);
 
         let systemd = Kind::Systemd.unit(exe, log);
