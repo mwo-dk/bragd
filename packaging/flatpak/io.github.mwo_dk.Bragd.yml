@@ -44,8 +44,8 @@ modules:
       - cargo build --release --locked --offline -p bragd-gui
       - install -Dm755 target/release/bragd-gui -t /app/bin
       - install -Dm644 packaging/flatpak/io.github.mwo_dk.Bragd.desktop -t /app/share/applications
-      - install -Dm644 gui/src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/io.github.mwo_dk.Bragd.png
-      - install -Dm644 gui/src-tauri/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/io.github.mwo_dk.Bragd.png
+      - install -Dm644 assets/brand/icons/128x128.png /app/share/icons/hicolor/128x128/apps/io.github.mwo_dk.Bragd.png
+      - install -Dm644 assets/brand/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/io.github.mwo_dk.Bragd.png
       - python3 packaging/flatpak/metainfo.py > io.github.mwo_dk.Bragd.metainfo.xml
       - install -Dm644 io.github.mwo_dk.Bragd.metainfo.xml -t /app/share/metainfo
     sources:

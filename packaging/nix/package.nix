@@ -72,7 +72,7 @@ craneLib.buildPackage (
     ];
 
     postInstall = ''
-      install -Dm644 gui/src-tauri/icons/128x128.png $out/share/icons/hicolor/128x128/apps/bragd.png
+      install -Dm644 assets/brand/icons/128x128.png $out/share/icons/hicolor/128x128/apps/bragd.png
     '';
 
     passthru = { inherit cargoArtifacts; };

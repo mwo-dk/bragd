@@ -140,7 +140,7 @@ else
   ICONS="$PREFIX/share/icons/hicolor/128x128/apps"
   APPS="$PREFIX/share/applications"
   mkdir -p "$ICONS" "$APPS"
-  install -m 644 gui/src-tauri/icons/128x128.png "$ICONS/bragd.png"
+  install -m 644 assets/brand/icons/128x128.png "$ICONS/bragd.png"
   cat >"$APPS/bragd.desktop" <<EOF
 [Desktop Entry]
 Type=Application
