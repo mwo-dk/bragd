@@ -34,7 +34,7 @@ All 25 Variants of the ten Game families are playable from the start:
 
 ## Look
 
-- **Theme:** the 31 Themes (Own, Windows, Mac, Other desktops, Home computers), plus Looks and user themes. **Racing green** is the default, built on the brand ramp `#00301b` `#004225` `#0b5c39` `#4f9d76` `#e9f0ea`.
+- **Theme:** 30 Themes: 28 from the Own, Windows, Mac, Other desktops and Home computers groups, plus Racing green light and dark, plus Looks and user themes. **Racing green** is the default, built on the brand ramp `#00301b` `#004225` `#0b5c39` `#4f9d76` `#e9f0ea`.
 - **Board theme:**
   - Exactly four colours: light square, dark square, highlight and marker.
   - Racing green (`#efe7d6` / `#17553a` / `#d8b74a`) is the default. Slate and Walnut are also offered.

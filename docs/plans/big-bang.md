@@ -22,7 +22,7 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 - [x] S0: the constitution (`CLAUDE.md`), spec, glossary, ADRs, baseline, credits, sync page, workspace
 - [ ] S1: rules crates and `bragd-games` (wave 1, agent "rules")
 - [x] S2: artwork, sprites, CJK glyphs as paths, brand: icon drafts, splash, rune wordmark (wave 1, agent "art")
-- [ ] S3: `bragd-core`: config, state, settings, i18n with every locale, Themes, update check, features, notices (wave 1, agent "core")
+- [x] S3: `bragd-core`: config, state, settings, i18n with every locale, Themes, update check, features, notices (wave 1, agent "core")
 - [ ] S4: `bragd-library`: formats, Library, dedupe, Slices, Parquet (wave 1, agent "library")
 - [ ] S5: `bragd-engines`: protocols, discovery, images, Syzygy (wave 1, agent "engines")
 - [ ] S6: CI, release tooling, docs check, sync workflow, screenshot tooling (wave 1, agent "ci")
@@ -38,3 +38,8 @@ Each one is listed here, so the owner can overturn it in the morning.
 - Sprite ids are `<sheet>-<side><ROLE>`. Capablanca and seirawan have their own sheets. Janggi `r` is Cho, painted green (`assets/pieces/README.md`).
 - Icon draft 1 (plain roundel) is the provisional app icon until the owner picks one of the three in `assets/brand/`.
 - `tools/pieces/compose-capablanca-pieces.mjs` draws an older design than the committed pieces. Running it overwrites them. It needs an update or deletion.
+- There are 30 Themes, not 31. The source has 33, and removing Cyber and the four DOS themes leaves 28. Racing green light and Racing green dark bring it to 30.
+- "Match theme" board colours come from the Theme. The light square is the lighter of page and text; the dark square is the first clearly darker of accent, selection, border and dim.
+- `[families.family]` and `[families.variant]` are separate tables, because "chess" names both a Family and a Variant.
+- `bragd-core/src/families.rs` duplicates the catalogue in `bragd-games`. Once S1 lands, one is deleted.
+- English fills in the untranslated keys in every locale. The list is in `crates/bragd-core/locales/UNTRANSLATED.md`.
