@@ -17,9 +17,10 @@ RUN curl -fsSLo kg.tar.gz https://github.com/lightvector/KataGo/archive/refs/tag
  && tar xzf kg.tar.gz --strip-components=1 && rm kg.tar.gz
 RUN curl -fsSLo /net.txt.gz https://github.com/lightvector/KataGo/releases/download/v1.3.2/g170e-b15c192-s1672170752-d466197061.txt.gz \
  && echo "09456899f1b9155217f4ca059cf8a68f79b7eba22cf6b7c00ffb7f17ce067967  /net.txt.gz" | sha256sum -c -
-# No AVX2, so it runs on any CPU of its kind; no libzip (only training needs it).
+# No AVX2, so it runs on any CPU of its kind; no libzip (only training needs it). musl's headers
+# that KataGo includes do not pull in <endian.h>, where BYTE_ORDER is (glibc's do).
 RUN cd cpp \
- && cmake . -DUSE_BACKEND=EIGEN -DUSE_AVX2=0 -DNO_GIT_REVISION=1 -DNO_LIBZIP=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-static \
+ && cmake . -DCMAKE_CXX_FLAGS="-include endian.h" -DUSE_BACKEND=EIGEN -DUSE_AVX2=0 -DNO_GIT_REVISION=1 -DNO_LIBZIP=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-static \
  && make -j"$(nproc)" \
  && strip katago \
  && ./katago version
