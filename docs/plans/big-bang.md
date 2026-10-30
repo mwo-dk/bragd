@@ -20,12 +20,12 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 ## Slices
 
 - [x] S0: the constitution (`CLAUDE.md`), spec, glossary, ADRs, baseline, credits, sync page, workspace
-- [ ] S1: rules crates and `bragd-games` (wave 1, agent "rules")
+- [x] S1: rules crates and `bragd-games` (wave 1, agent "rules")
 - [x] S2: artwork, sprites, CJK glyphs as paths, brand: icon drafts, splash, rune wordmark (wave 1, agent "art")
 - [x] S3: `bragd-core`: config, state, settings, i18n with every locale, Themes, update check, features, notices (wave 1, agent "core")
 - [x] S4: `bragd-library`: formats, Library, dedupe, Slices, Parquet (wave 1, agent "library")
 - [x] S5: `bragd-engines`: protocols, discovery, images, Syzygy (wave 1, agent "engines")
-- [ ] S6: CI, release tooling, docs check, sync workflow, screenshot tooling (wave 1, agent "ci")
+- [x] S6: CI, release tooling, docs check, sync workflow, screenshot tooling (wave 1, agent "ci")
 - [ ] S7: GUI shell: branding, splash, sidebar, Themes, Settings with Family toggles, boards for all 25 Variants, play against yourself (wave 2)
 - [ ] S8: Helper process, Sources (TWIC, custom URL), schedule (wave 2)
 - [ ] S9: GUI for Databases, Analyse, Engines, Tablebases; install wizard; What's new; F1 Features (wave 3)
@@ -67,3 +67,23 @@ Each one is listed here, so the owner can overturn it in the morning.
 - The Syzygy plan reads the mirror's `bytes.tsv` (one request) for exact sizes. Downloads check each file's size but not its BLAKE3 sum yet.
 - Reviews mark moves only where engines score in centipawns (chess, xiangqi, shogi, draughts). Go and backgammon reviews show evaluations without marks.
 - The KataGo image uses the g170e b15c192 network (48 MB), which is light enough for the CPU.
+
+### S1: rules
+
+- There are nine Families, ten rules crates and 25 Variants. Capablanca and seirawan are chess Variants.
+- Rules crates are at `crates/rules-<family>`, not `crates/rules/*`.
+- The seam keeps no state: every call replays the whole record. Dice, throws and the doubling cube are entries in the record.
+- Shogi's Sides are Sente and Gote. White moves first in all four draughts rulesets, following the rules crate; English checkers traditionally starts with Black.
+- Go uses Chinese area scoring with komi 7.5. After two passes, the scoring entries are `dead:`, `accept` and `resume`.
+- Backgammon's legal moves are whole turns.
+- The sprite ids from `bragd-games` and from the art slice must be reconciled in S7. Examples: janggi is `xiangqi-janggi-*` in one and a `janggi-*` sheet in the other, and shogi promoted pieces are `spP` in one and `TP` in the other.
+
+### S6: CI
+
+- The first release is 0.2.0, or 0.1.1 if there is no feature row. Exit 3 does not apply before the first release.
+- Tour-card marker: a fragment ends with `<!-- feature --> <!-- tour: card-id -->`. `release-pr.py` exits 5 when the card id is not in `tour.rs`.
+- The Flatpak bundle is a release file. It is not on Flathub.
+- WiX en-GB is forced in the release config.
+- Nix is Linux only.
+- The BSD desktop tarballs are not adapted yet, and neither is the nixpkgs package. Both become issues.
+- `gui/src-tauri` must join the workspace in S7.
