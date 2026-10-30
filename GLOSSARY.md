@@ -42,6 +42,14 @@ _Avoid_: database (ambiguous), collection, archive
 A named query over one or more Libraries, such as "Grünfeld" or "both players 2500+". It is live by default. As an option, it can be kept as a separate copy that can be edited.
 _Avoid_: collection, filter, view
 
+**Strip rule**:
+A filter on a Source that decides which of its Games are kept, for example rating 2000+ or slow time controls only. It applies to Games as they arrive and to what is already stored.
+_Avoid_: filter (a Slice filters for viewing; a Strip rule removes), prune rule
+
+**Disk watch**:
+The sizes of Libraries, downloads, Tablebases and images held against limits you set, with a warning when one is crossed.
+_Avoid_: quota, disk monitor
+
 **Source**:
 Where Games come from, such as TWIC, the Lichess database or Chess Mentor. A Source can be fetched again on a schedule.
 _Avoid_: feed, provider
