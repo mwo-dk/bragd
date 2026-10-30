@@ -751,10 +751,15 @@ impl Library {
     }
 
     /// The Near-duplicates found, for review: the shorter Game's id, then the longer's.
-    pub fn near_duplicates(&self) -> Result<Vec<(i64, i64)>> {
-        let mut st = self.conn.prepare("SELECT short_id, long_id FROM near_duplicates ORDER BY short_id, long_id")?;
-        let rows = st.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
+    pub fn near_duplicates(&self, limit: usize) -> Result<Vec<(i64, i64)>> {
+        let mut st = self.conn.prepare("SELECT short_id, long_id FROM near_duplicates ORDER BY short_id, long_id LIMIT ?")?;
+        let rows = st.query_map([limit as i64], |r| Ok((r.get(0)?, r.get(1)?)))?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// How many Near-duplicate pairs there are.
+    pub fn near_duplicate_count(&self) -> Result<u64> {
+        Ok(self.conn.query_row("SELECT count(*) FROM near_duplicates", [], |r| r.get::<_, i64>(0))? as u64)
     }
 
     /// The Games merged from more than one Source, by id, at most `limit` of them: the
@@ -796,25 +801,22 @@ fn add_in(tx: &Connection, priority: &[String], g: &NewGame, source: &str, sourc
     let fetched = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64);
     let own: Map<String, Value> = g.headers.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect();
     let own = Value::Object(own).to_string();
+    // Cached statements: an import runs these once per Game, millions of times.
     let same: Option<i64> = tx
-        .query_row(
-            "SELECT id FROM games WHERE zobrist_chain_hash = ?1 AND family = ?2 AND variant = ?3 AND moves = ?4 AND start IS ?5",
-            params![hash, g.family, g.variant, moves, g.start],
-            |r| r.get(0),
-        )
+        .prepare_cached("SELECT id FROM games WHERE zobrist_chain_hash = ?1 AND family = ?2 AND variant = ?3 AND moves = ?4 AND start IS ?5")?
+        .query_row(params![hash, g.family, g.variant, moves, g.start], |r| r.get(0))
         .optional()?;
     if let Some(id) = same {
-        tx.execute("INSERT OR IGNORE INTO game_sources (game_id, source, source_ref, fetched_at, headers) VALUES (?, ?, ?, ?, ?)", params![id, source, source_ref, fetched, own])?;
+        tx.prepare_cached("INSERT OR IGNORE INTO game_sources (game_id, source, source_ref, fetched_at, headers) VALUES (?, ?, ?, ?, ?)")?.execute(params![id, source, source_ref, fetched, own])?;
         merge_headers(tx, priority, id, &g.result)?;
         return Ok((Added::Merged(id), 0));
     }
     let last = *g.keys.last().unwrap_or(&g.start_key);
-    tx.execute(
-        "INSERT INTO games (family, variant, headers, result, moves, start, ply_count, zobrist_final, zobrist_chain_hash) VALUES (?, ?, '{}', ?, ?, ?, ?, ?, ?)",
+    tx.prepare_cached("INSERT INTO games (family, variant, headers, result, moves, start, ply_count, zobrist_final, zobrist_chain_hash) VALUES (?, ?, '{}', ?, ?, ?, ?, ?, ?)")?.execute(
         params![g.family, g.variant, g.result, moves, g.start, n as i64, last as i64, hash],
     )?;
     let id = tx.last_insert_rowid();
-    tx.execute("INSERT INTO game_sources (game_id, source, source_ref, fetched_at, headers) VALUES (?, ?, ?, ?, ?)", params![id, source, source_ref, fetched, own])?;
+    tx.prepare_cached("INSERT INTO game_sources (game_id, source, source_ref, fetched_at, headers) VALUES (?, ?, ?, ?, ?)")?.execute(params![id, source, source_ref, fetched, own])?;
     let mut put = tx.prepare_cached("INSERT INTO positions (hash, game_id, ply) VALUES (?, ?, ?)")?;
     for (ply, &k) in g.keys.iter().enumerate() {
         put.execute(params![k as i64, id, ply as i64 + 1])?;
@@ -844,7 +846,7 @@ fn near_duplicates(tx: &Connection, g: &NewGame, id: i64, moves: &str, chain: &[
     for part in chain[1..n].chunks(500) {
         let marks = vec!["?"; part.len()].join(",");
         let sql = format!("SELECT id, moves FROM games WHERE zobrist_chain_hash IN ({marks}) AND family = ? AND variant = ? AND start IS ? AND id != ?");
-        let mut st = tx.prepare(&sql)?;
+        let mut st = tx.prepare_cached(&sql)?;
         let mut args: Vec<rusqlite::types::Value> = part.iter().map(|&h| (h as i64).into()).collect();
         args.extend([g.family.clone().into(), g.variant.clone().into(), g.start.clone().into(), id.into()]);
         let rows = st.query_map(rusqlite::params_from_iter(args), |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
@@ -885,8 +887,7 @@ fn merge_headers(tx: &Connection, priority: &[String], id: i64, moves_result: &s
     };
     let elo = |n: &str| get(&[n]).parse::<i64>().ok().filter(|&e| e > 0);
     let result = Some(get(&["Result"])).filter(|r| !r.is_empty()).unwrap_or_else(|| moves_result.to_string());
-    tx.execute(
-        "UPDATE games SET headers = ?, white = ?, black = ?, white_elo = ?, black_elo = ?, date = ?, event = ?, site = ?, eco = ?, opening = ?, result = ? WHERE id = ?",
+    tx.prepare_cached("UPDATE games SET headers = ?, white = ?, black = ?, white_elo = ?, black_elo = ?, date = ?, event = ?, site = ?, eco = ?, opening = ?, result = ? WHERE id = ?")?.execute(
         params![
             Value::Object(merged.clone()).to_string(),
             get(&["White", "Red"]),
@@ -1012,10 +1013,11 @@ pub(crate) mod tests {
             let p = import(&mut lib, second, "twic");
             assert_eq!((p.added, p.merged, p.near_duplicates), (1, 0, 1));
             assert_eq!(lib.count().unwrap(), 2, "never merged");
-            let plies: Vec<i64> = lib.near_duplicates().unwrap().iter().map(|&(s, _)| lib.conn().query_row("SELECT ply_count FROM games WHERE id = ?", [s], |r| r.get(0)).unwrap()).collect();
+            let plies: Vec<i64> = lib.near_duplicates(usize::MAX).unwrap().iter().map(|&(s, _)| lib.conn().query_row("SELECT ply_count FROM games WHERE id = ?", [s], |r| r.get(0)).unwrap()).collect();
             assert_eq!(plies, [80], "the shorter one is the one cut after move 40");
-            let long: i64 = lib.conn().query_row("SELECT ply_count FROM games WHERE id = ?", [lib.near_duplicates().unwrap()[0].1], |r| r.get(0)).unwrap();
+            let long: i64 = lib.conn().query_row("SELECT ply_count FROM games WHERE id = ?", [lib.near_duplicates(usize::MAX).unwrap()[0].1], |r| r.get(0)).unwrap();
             assert_eq!(long, 82, "every move of the whole game played");
+            assert_eq!((lib.near_duplicate_count().unwrap(), lib.near_duplicates(0).unwrap().len()), (1, 0));
         }
     }
 

@@ -411,7 +411,7 @@ pub fn libraries(cfg: &Config) -> Vec<LibraryView> {
                     v.games = lib.count().unwrap_or(0);
                     v.size = disk::bytes(lib.size());
                     v.duplicates = lib.merged(REVIEW).map_or(0, |m| m.len());
-                    v.near_duplicates = lib.near_duplicates().map_or(0, |n| n.len());
+                    v.near_duplicates = lib.near_duplicate_count().map_or(0, |n| n as usize);
                     v.slices = lib.slices().unwrap_or_default().into_iter().map(|s| slice_view(p, s)).collect();
                 }
                 Err(e) => v.error = e.to_string(),
@@ -515,7 +515,7 @@ pub fn review(path: &Path) -> Result<Review, String> {
         .into_iter()
         .map(|id| (row_of(&lib, id), lib.sources(id).unwrap_or_default().into_iter().map(|(s, r, _)| format!("{s}: {}", r.rsplit(['/', '\\']).next().unwrap_or(&r))).collect()))
         .collect();
-    let near = lib.near_duplicates().map_err(e)?.into_iter().take(REVIEW).map(|(a, b)| (row_of(&lib, a), row_of(&lib, b))).collect();
+    let near = lib.near_duplicates(REVIEW).map_err(e)?.into_iter().map(|(a, b)| (row_of(&lib, a), row_of(&lib, b))).collect();
     Ok(Review { duplicates, near })
 }
 
