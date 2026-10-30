@@ -124,15 +124,6 @@ impl Position {
         self.to_move
     }
 
-    /// The same board with the other side to play. The platform needs this to
-    /// seat the opening roll; nothing in the rules uses it.
-    pub fn with_to_move(&self, side: Side) -> Position {
-        Position {
-            to_move: side,
-            ..*self
-        }
-    }
-
     /// What stands on `side`'s point `number`. The point may of course be the
     /// opponent's — the numbering is a view, not an ownership claim.
     pub fn point(&self, side: Side, number: u8) -> Point {

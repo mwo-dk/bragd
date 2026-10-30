@@ -78,20 +78,6 @@ impl AppState {
         crate::fs::replace(path, &serde_json::to_vec_pretty(self)?, true)
     }
 
-    /// A copy kept in memory takes what another window wrote since it was read, before it is
-    /// changed and saved. A missing or corrupt file leaves the copy as it is.
-    pub fn reload_from(&mut self, path: &Path) {
-        match std::fs::read(path) {
-            Ok(bytes) => {
-                if let Ok(st) = serde_json::from_slice(&bytes) {
-                    *self = st;
-                }
-            }
-            Err(e) if e.kind() == io::ErrorKind::NotFound => {}
-            Err(_) => self.unreadable = true,
-        }
-    }
-
     pub fn load() -> AppState {
         AppState::path()
             .map(|p| AppState::load_from(&p))

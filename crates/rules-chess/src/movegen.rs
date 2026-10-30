@@ -323,12 +323,6 @@ fn generate_castles(position: &Position, moves: &mut MoveList) {
     }
 }
 
-/// Whether the given side has any legal move. Cheaper than counting them, and
-/// it is the question checkmate and stalemate actually ask.
-pub fn has_legal_move(position: &Position) -> bool {
-    !legal_moves(position).is_empty()
-}
-
 /// All squares attacked by `color`, used for board display and later for hints.
 pub fn attacked_squares(position: &Position, color: Color) -> Bitboard {
     let occupied = position.occupied();

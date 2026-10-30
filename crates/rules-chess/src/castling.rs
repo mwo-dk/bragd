@@ -69,17 +69,6 @@ impl Side {
         }
     }
 
-    /// The file a standard-chess rook of this side starts on.
-    ///
-    /// Only for reading and writing FEN, where X-FEN's `K` and `Q` mean "the
-    /// outermost rook", and for [`CastlingRights::STANDARD`]. Move generation
-    /// must never consult it — that was the bug.
-    pub const fn standard_rook_file(self) -> u8 {
-        match self {
-            Side::Kingside => 7,
-            Side::Queenside => 0,
-        }
-    }
 }
 
 /// The castling rights alive in a position, each carrying the file its rook

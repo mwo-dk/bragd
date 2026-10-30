@@ -22,13 +22,6 @@ pub struct Tablebases {
 }
 
 impl Tablebases {
-    /// `SyzygyPath` for an engine: the folders that exist, joined as the engines read them
-    /// (`:`, or `;` on Windows). None when there are none.
-    pub fn syzygy_path(&self) -> Option<String> {
-        let sep = if cfg!(windows) { ";" } else { ":" };
-        let here: Vec<String> = self.folders.iter().filter(|f| f.is_dir()).map(|f| f.display().to_string()).collect();
-        (!here.is_empty()).then(|| here.join(sep))
-    }
 
     /// Whether a table for the material of the chess position `fen` is in one of the folders
     /// (its WDL file, the stronger side named either way round).
@@ -253,7 +246,6 @@ pub(crate) mod tests {
         let done = download(&p, &d, &fake, &mut |_, _| true).unwrap();
         assert_eq!(done, Downloaded { fetched: 1, kept: 2 });
         let tb = Tablebases { folders: vec![d.clone(), d.join("missing")], online: false };
-        assert_eq!(tb.syzygy_path(), Some(d.display().to_string()));
         assert!(tb.covers("8/8/8/4k3/8/8/8/KQ6 w - - 0 1") && tb.covers("8/8/8/4K3/8/8/8/kq6 w - - 0 1"));
         assert!(!tb.covers("8/8/8/4k3/8/8/8/KN6 w - - 0 1"));
         // Stopped: the file under way is not kept.

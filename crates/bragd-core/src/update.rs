@@ -11,7 +11,6 @@ use crate::config::Config;
 use crate::state::AppState;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const RELEASES_URL: &str = "https://github.com/mwo-dk/bragd/releases/latest";
 const API_URL: &str = "https://api.github.com/repos/mwo-dk/bragd/releases/latest";
 const DAY: u64 = 24 * 3600;
 

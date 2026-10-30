@@ -191,18 +191,6 @@ impl Game {
         v
     }
 
-    /// The moves from the first to `node`, in order; empty for none (the start position).
-    pub fn path_to(&self, node: Option<u32>) -> Vec<u32> {
-        let mut v = vec![];
-        let mut at = node.filter(|&n| (n as usize) < self.nodes.len());
-        while let Some(n) = at {
-            v.push(n);
-            at = self.nodes[n as usize].parent;
-        }
-        v.reverse();
-        v
-    }
-
     /// The moves as they are written out: the main line with each variation in brackets after
     /// the move it replaces, comments where they stand, move numbers where needed.
     pub fn layout(&self) -> Vec<Token> {

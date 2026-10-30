@@ -54,27 +54,6 @@ impl Ruleset {
         }
     }
 
-    /// What the two seats are called.
-    ///
-    /// Indexed by [`Side::index`], and **the names do not agree with the
-    /// colours**. Janggi's first player is Cho (초), whose pieces are green or
-    /// blue; the second is Han (한), whose pieces are red. This engine's
-    /// `Side::Red` is "the side that moves first" — inherited from xiangqi,
-    /// where Red does move first — so under janggi `Side::Red` is *Cho* and
-    /// `Side::Black` is *Han*, and a renderer that painted `Side::Red` red
-    /// would paint Cho the colour of his opponent.
-    ///
-    /// This is a familiar mistake: a field holding the right thing under a name that lies. The
-    /// name is not renamed here because `Side` is xiangqi's too, so instead the
-    /// truth is written down and this function is what anything user-facing is
-    /// expected to read.
-    pub const fn seat_names(self) -> [&'static str; 2] {
-        match self {
-            Ruleset::Xiangqi => ["Red", "Black"],
-            Ruleset::Janggi => ["Cho", "Han"],
-        }
-    }
-
     /// Where a game under these rules begins.
     ///
     /// Janggi's answer is a *choice* rather than a constant — see [`Setup`] —
@@ -240,9 +219,6 @@ impl Default for Setup {
 pub struct Score(u32);
 
 impl Score {
-    pub const fn half_points(self) -> u32 {
-        self.0
-    }
 }
 
 impl fmt::Display for Score {

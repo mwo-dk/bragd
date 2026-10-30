@@ -168,10 +168,6 @@ impl Bitboard {
     pub const EMPTY: Bitboard = Bitboard(0);
     pub const BOARD: Bitboard = Bitboard((1u128 << POINTS) - 1);
 
-    pub const fn from_point(point: Point) -> Bitboard {
-        Bitboard(1u128 << point.0)
-    }
-
     pub const fn contains(self, point: Point) -> bool {
         self.0 & (1u128 << point.0) != 0
     }
