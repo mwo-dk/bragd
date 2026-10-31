@@ -2,8 +2,9 @@
   // Sources: where Games come from. Each is off until turned on, shows what one fetch downloads,
   // and has its schedule, the metered rule, a disk cap, the largest download it takes without
   // asking (a bigger one waits for Download it anyway), what becomes of its downloads, and its
-  // Strip rule with Preview (a dry run) and Apply. The Sources this version cannot fetch yet are
-  // shown with their notice. A custom URL can be added.
+  // Routes: each a Library (one there, or a new one by name) and a Strip rule, with Preview (a
+  // dry run) and Apply over all of them. The Sources this version cannot fetch yet are shown
+  // with their notice. A custom URL can be added.
   import * as k from "./knowledge.js";
   import { t } from "./i18n.svelte.js";
   import StripEditor from "./StripEditor.svelte";
@@ -26,6 +27,8 @@
   let name = $state("");
   let url = $state("");
 
+  /** The select's value for "a new Library", which no Library file can be called. */
+  const NEW = "\u0000new";
   const emptyRule = () => ({ min_rating: null, rating_of: "both", speeds: [], rated_only: false, variants: [], date_from: "", date_to: "", min_plies: null, results: [], titled_only: false, players: [] });
 
   async function load() {
@@ -46,7 +49,7 @@
     if (open === s.id) return void (open = null);
     open = s.id;
     draft = JSON.parse(JSON.stringify(s.options));
-    draft.strip ??= emptyRule();
+    for (const r of draft.routes) r.strip ??= emptyRule();
     cap = s.diskCap;
     maxDownload = s.maxDownload;
   }
@@ -54,7 +57,8 @@
   async function save(/** @type {string} */ id, /** @type {any} */ options, /** @type {string | null} */ capText = null, /** @type {string | null} */ maxText = null) {
     error = message = "";
     try {
-      const o = { ...options, strip: options.strip ? { ...options.strip, min_rating: options.strip.min_rating || null, min_plies: options.strip.min_plies || null } : null };
+      const clean = (/** @type {any} */ r) => (r ? { ...r, min_rating: r.min_rating || null, min_plies: r.min_plies || null } : null);
+      const o = { ...options, routes: options.routes.map((/** @type {any} */ r) => ({ library: r.library, strip: clean(r.strip) })) };
       await k.sourceSet(id, o, capText, maxText);
       message = t("source.saved");
       await load();
@@ -130,12 +134,34 @@
             <label class="wide">{t("source.url")} <input type="text" bind:value={draft.url} /></label>
           {/if}
         </div>
-        <StripEditor rule={draft.strip} {page} />
+        <section class="routes">
+          <h4>{t("source.routes")}</h4>
+          <p class="hint">{t("source.routes_hint")}</p>
+          {#each draft.routes as r, i}
+            <div class="route">
+              <div class="bar">
+                <label
+                  >{t("source.route_library", { n: i + 1 })}
+                  <select value={page.libraries.includes(r.library) ? r.library : NEW} onchange={(e) => (r.library = e.currentTarget.value === NEW ? "" : e.currentTarget.value)}>
+                    {#each page.libraries as l}<option value={l}>{l}</option>{/each}
+                    <option value={NEW}>{t("source.route_new")}</option>
+                  </select>
+                </label>
+                {#if !page.libraries.includes(r.library)}
+                  <label>{t("source.route_new_name")} <input type="text" bind:value={r.library} size="14" /></label>
+                {/if}
+                <button onclick={() => (r.strip = emptyRule())}>{t("strip.clear")}</button>
+                <button onclick={() => draft.routes.splice(i, 1)} disabled={draft.routes.length < 2}>{t("source.route_remove")}</button>
+              </div>
+              <StripEditor rule={r.strip} {page} />
+            </div>
+          {/each}
+          <button onclick={() => draft.routes.push({ library: "", strip: emptyRule() })}>{t("source.route_add")}</button>
+        </section>
         <div class="bar">
           <button class="primary" onclick={() => save(s.id, draft, cap, maxDownload)}>{t("source.save")}</button>
           <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, true)))} title={t("strip.preview_hint")}>{t("strip.preview")}</button>
           <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, false)))} title={t("strip.apply_hint")}>{t("strip.apply")}</button>
-          <button onclick={() => (draft.strip = emptyRule())}>{t("strip.clear")}</button>
         </div>
       {/if}
       {#if jobs[s.id] !== undefined}<JobLine id={jobs[s.id]} ondone={load} />{/if}
@@ -220,8 +246,21 @@
   p {
     margin: 0;
   }
-  h3 {
+  h3,
+  h4 {
     font-size: 1rem;
     margin: 0 0 0.3rem;
+  }
+  .routes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .route {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-inline-start: 0.6rem;
+    border-inline-start: 3px solid var(--alt);
   }
 </style>

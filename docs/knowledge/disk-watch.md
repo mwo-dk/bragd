@@ -16,7 +16,7 @@ On the page:
 
 1. Type a limit beside an item, beside *All together*, and beside *Warn when free space falls below*. Type sizes as `500 MB` or `5 GB`; leave a field empty for no limit.
 2. Press **Save limits**. The next check uses them; no restart is needed.
-3. Under *Prune the Library*, **Preview** counts what every Source's Strip rule would take from the Library. **Prune now** takes it.
+3. Under *Prune the Library*, **Preview** counts what the Strip rules of the Sources' Routes to the main Library would take from it. **Prune now** takes it.
 4. Under *What Disk watch may do by itself*, tick what may happen for each Source when a limit it counts against is crossed.
 
 ## What it counts
@@ -82,7 +82,7 @@ It must be a size Bragd can read, such as `500 MB` or `5 GB`. In `config.toml` t
 
 #### What does Prune now remove?
 
-The Games that every one of their Sources' Strip rules strips. A Game brought by a Source without a rule, or kept by its rule, stays. Press **Preview** first: it counts what would go and changes nothing.
+The Games that every one of their Sources' Routes to this Library strips. A Game brought by a Source whose Route here has no rule, or keeps it, stays. Press **Preview** first: it counts what would go and changes nothing.
 
 #### Why is a Source not fetched any more?
 

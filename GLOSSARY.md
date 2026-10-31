@@ -43,7 +43,7 @@ A named query over one or more Libraries, such as "Grünfeld" or "both players 2
 _Avoid_: collection, filter, view
 
 **Strip rule**:
-A filter on a Source that decides which of its Games are kept, for example rating 2000+ or slow time controls only. It applies to Games as they arrive and to what is already stored.
+A filter on a Route of a Source that decides which of its Games are kept, for example rating 2000+ or slow time controls only. It applies to Games as they arrive and to what is already stored.
 _Avoid_: filter (a Slice filters for viewing; a Strip rule removes), prune rule
 
 **Route**:

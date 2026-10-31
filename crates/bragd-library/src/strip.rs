@@ -186,12 +186,13 @@ fn stopped() -> io::Error {
     io::Error::new(io::ErrorKind::Interrupted, "stopped")
 }
 
-/// Writes the download at `path` (`stream::streams`) again with only the Games `rule` keeps,
+/// Writes the download at `path` (`stream::streams`) again with only the Games one of `rules`
+/// keeps (a Source's Routes each have one),
 /// packed as it was, and puts it in place of the old one at once: until then the old one is
 /// untouched, so a stop or a crash leaves it whole. A zip keeps its other members as they are,
 /// and so are its packed members. `dry_run`: nothing is written; the counts and the size it
 /// would have are reported. `stop` is asked between Games.
-pub fn rewrite(path: &Path, rule: &StripRule, dry_run: bool, stop: &dyn Fn() -> bool) -> io::Result<Rewritten> {
+pub fn rewrite(path: &Path, rules: &[&StripRule], dry_run: bool, stop: &dyn Fn() -> bool) -> io::Result<Rewritten> {
     let mut out = Rewritten { path: path.to_path_buf(), bytes_before: fs::metadata(path)?.len(), dry_run, ..Default::default() };
     let (mut kept_bytes, mut all_bytes, mut halted) = (0u64, 0u64, false);
     let mut keep = |f: Format, t: &[u8]| -> Option<bool> {
@@ -200,7 +201,8 @@ pub fn rewrite(path: &Path, rule: &StripRule, dry_run: bool, stop: &dyn Fn() -> 
             return None;
         }
         all_bytes += t.len() as u64;
-        let k = rule.keeps(&read_game(f, t));
+        let game = read_game(f, t);
+        let k = rules.iter().any(|r| r.keeps(&game));
         if k {
             out.kept += 1;
             kept_bytes += t.len() as u64;
@@ -407,11 +409,11 @@ mod tests {
         for (name, bytes) in [("a.pgn", text.clone().into_bytes()), ("a.pgn.gz", gz(&text)), ("a.pgn.zst", zst(&text)), ("a.pgn.bz2", bz2(&text)), ("a.zip", zip_of(&[("a.pgn", text.as_bytes()), ("readme.txt", b"kept")]))] {
             let p = d.0.join(name);
             std::fs::write(&p, &bytes).unwrap();
-            let dry = rewrite(&p, &strong(), true, &|| false).unwrap();
+            let dry = rewrite(&p, &[&strong()], true, &|| false).unwrap();
             assert_eq!((dry.kept, dry.stripped), (want, all - want), "{name}");
             assert!(dry.bytes_after < dry.bytes_before, "{name}");
             assert_eq!(std::fs::read(&p).unwrap(), bytes, "{name}: a dry run changes nothing");
-            let done = rewrite(&p, &strong(), false, &|| false).unwrap();
+            let done = rewrite(&p, &[&strong()], false, &|| false).unwrap();
             assert_eq!((done.kept, done.stripped), (want, all - want), "{name}");
             assert_eq!(done.bytes_after, std::fs::metadata(&p).unwrap().len());
             assert_eq!(count(&p), (want, want), "{name}: only the Games kept are left, still read as before");
@@ -427,7 +429,7 @@ mod tests {
         let p = d.0.join("b.pgn.gz");
         std::fs::write(&p, gz(&text)).unwrap();
         let asked = std::cell::Cell::new(0);
-        let err = rewrite(&p, &strong(), false, &|| {
+        let err = rewrite(&p, &[&strong()], false, &|| {
             asked.set(asked.get() + 1);
             asked.get() > 100
         })

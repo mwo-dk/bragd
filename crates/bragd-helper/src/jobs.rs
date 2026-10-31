@@ -31,13 +31,13 @@ pub enum Work {
     /// Headers of the Games with several Sources merged again, by the Source priority.
     Dedupe { library: PathBuf },
     Export { library: PathBuf, to: PathBuf },
-    /// What is new at a Source, into the default Library.
+    /// What is new at a Source, into the Library of each of its Routes.
     Fetch { source: String },
-    /// A Source's Strip rule applied to its downloads (`AfterImport`: written again with only
-    /// the Games kept, or deleted) and to the Games it brought to the default Library.
-    /// `dry_run`: nothing changes; the job's report says what would go.
+    /// A Source's Routes' Strip rules applied to its downloads (`AfterImport`: written again
+    /// with only the Games some Route keeps, or deleted) and to the Games it brought to each
+    /// Route's Library. `dry_run`: nothing changes; the job's report says what would go.
     Strip { source: String, dry_run: bool },
-    /// Every Source's Strip rule applied to a Library's Games (`Library::prune`).
+    /// The Strip rule of every Route to a Library applied to its Games (`Library::prune`).
     Prune { library: PathBuf, dry_run: bool },
 }
 
@@ -48,7 +48,7 @@ pub struct Report {
     pub files: Vec<Rewritten>,
     /// Downloads deleted, with their sizes.
     pub removed: Vec<(PathBuf, u64)>,
-    /// What went from the Library.
+    /// What went from the Libraries, added up.
     pub library: Option<Pruned>,
 }
 
@@ -110,7 +110,9 @@ impl State {
         if read.as_ref().is_err_and(|_| !path.exists()) {
             return State::default();
         }
-        read.and_then(|b| serde_json::from_slice(&b).map_err(|e| e.to_string())).unwrap_or_else(|e| {
+        read.and_then(|b| serde_json::from_slice(&b).map_err(|e| e.to_string()))
+            .and_then(|v| serde_json::from_value(upgrade(v)).map_err(|e| e.to_string()))
+            .unwrap_or_else(|e| {
             let mut bad = path.with_extension("json.bad");
             if bad.exists() {
                 bad = path.with_extension(format!("json.{}.bad", bragd_core::fs::now()));
@@ -120,6 +122,20 @@ impl State {
             State::default()
         })
     }
+}
+
+/// `state.json` as an older Helper wrote it, made current: a Source's one Strip rule (`strip`)
+/// becomes one Route to the main Library with that rule.
+fn upgrade(mut v: serde_json::Value) -> serde_json::Value {
+    let sources = v.get_mut("sources").and_then(|s| s.as_object_mut());
+    for kept in sources.into_iter().flat_map(|s| s.values_mut()) {
+        let Some(o) = kept.get_mut("options").and_then(|o| o.as_object_mut()) else { continue };
+        if !o.contains_key("routes") {
+            let strip = o.remove("strip").unwrap_or(serde_json::Value::Null);
+            o.insert("routes".into(), serde_json::json!([{ "strip": strip, "library": sources::MAIN }]));
+        }
+    }
+    v
 }
 
 /// A Source's id as a folder name of its own: letters, digits and `-` stay, and every other
@@ -250,11 +266,23 @@ impl Jobs {
         .collect()
     }
 
-    /// Sets a Source's options, its Strip rule among them. A custom URL one is made by naming
-    /// it `custom:<name>`, with a URL.
+    /// Sets a Source's options, its Routes among them. A custom URL one is made by naming it
+    /// `custom:<name>`, with a URL.
     pub fn set_source(&self, id: &str, options: Options) -> Result<(), String> {
         if id.starts_with(sources::CUSTOM) && !(options.url.starts_with("https://") || options.url.starts_with("http://")) {
             return Err(format!("{id}: a custom URL Source needs an http(s) address"));
+        }
+        if options.routes.is_empty() {
+            return Err(format!("{id}: a Source needs a Route"));
+        }
+        let mut libraries = HashSet::new();
+        for r in &options.routes {
+            if !sources::library_name(&r.library) {
+                return Err(format!("{id}: {:?} cannot name a Library", r.library));
+            }
+            if !libraries.insert(r.library.as_str()) {
+                return Err(format!("{id}: two Routes go to the Library {}", r.library));
+            }
         }
         if sources::find(id, &options.url).is_none() {
             return Err(format!("no Source {id}"));
@@ -385,7 +413,7 @@ impl Jobs {
             Work::Strip { source, dry_run } => self.strip(id, source, *dry_run),
             Work::Prune { library, dry_run } => {
                 let stop = || self.should_stop(id);
-                let p = self.open_library(library)?.prune(&self.rules(), *dry_run, None, &stop, &mut |n, of| self.progress(id, n, Some(of))).map_err(|e| format!("{}: {e}", library.display()))?;
+                let p = self.open_library(library)?.prune(&self.rules_for(library), *dry_run, None, &stop, &mut |n, of| self.progress(id, n, Some(of))).map_err(|e| format!("{}: {e}", library.display()))?;
                 let games = p.games;
                 self.set_report(id, Report { library: Some(p), ..Default::default() });
                 Ok(games)
@@ -393,9 +421,17 @@ impl Jobs {
         }
     }
 
-    /// Every Source's Strip rule, by its id.
-    fn rules(&self) -> BTreeMap<String, StripRule> {
-        self.sources().into_iter().filter_map(|(a, o, _)| Some((a.id, o.strip?))).collect()
+    /// The Library a Route names: `main` is the main Library, other names sit beside it.
+    pub fn library_of(&self, name: &str) -> PathBuf {
+        self.library.with_file_name(format!("{name}.bragd"))
+    }
+
+    /// The Strip rule of each Source's Route to `library`, by the Source's id.
+    fn rules_for(&self, library: &Path) -> BTreeMap<String, StripRule> {
+        self.sources()
+            .into_iter()
+            .filter_map(|(a, o, _)| Some((a.id, o.routes.iter().find(|r| self.library_of(&r.library) == library)?.rule()?.clone())))
+            .collect()
     }
 
     fn set_report(&self, id: u64, report: Report) {
@@ -409,10 +445,14 @@ impl Jobs {
         self.dir.join("sources").join(folder_name(source))
     }
 
-    /// `Work::Strip`: the Games stripped from downloads and the Library, or that would be.
+    /// `Work::Strip`: the Games stripped from downloads and the Libraries, or that would be.
     fn strip(&self, id: u64, source: &str, dry_run: bool) -> Result<u64, String> {
         let (_, o, _) = self.sources().into_iter().find(|(a, _, _)| a.id == source).ok_or_else(|| format!("no Source {source}"))?;
-        let rule = o.strip.clone().filter(|r| !r.is_empty()).ok_or_else(|| format!("{source} has no Strip rule"))?;
+        if !o.routes.iter().any(|r| r.rule().is_some()) {
+            return Err(format!("{source} has no Strip rule"));
+        }
+        // A download keeps what some Route keeps: all of it while one Route keeps everything.
+        let rules: Option<Vec<&StripRule>> = o.routes.iter().map(|r| r.rule()).collect();
         let stop = || self.should_stop(id);
         let mut files: Vec<PathBuf> = std::fs::read_dir(self.source_dir(source))
             .into_iter()
@@ -430,12 +470,18 @@ impl Jobs {
                     std::fs::remove_file(f).map_err(|e| format!("{}: {e}", f.display()))?;
                 }
                 report.removed.push((f.clone(), len));
-            } else {
-                report.files.push(strip::rewrite(f, &rule, dry_run, &stop).map_err(|e| format!("{}: {e}", f.display()))?);
+            } else if let Some(rules) = &rules {
+                report.files.push(strip::rewrite(f, rules, dry_run, &stop).map_err(|e| format!("{}: {e}", f.display()))?);
             }
             self.progress(id, n as u64 + 1, Some(files.len() as u64));
         }
-        let pruned = self.open_library(&self.library)?.prune(&self.rules(), dry_run, Some(source), &stop, &mut |n, of| self.progress(id, n, Some(of))).map_err(|e| e.to_string())?;
+        let mut pruned = Pruned { dry_run, ..Default::default() };
+        for r in o.routes.iter().filter(|r| r.rule().is_some()) {
+            let library = self.library_of(&r.library);
+            let p = self.open_library(&library)?.prune(&self.rules_for(&library), dry_run, Some(source), &stop, &mut |n, of| self.progress(id, n, Some(of))).map_err(|e| e.to_string())?;
+            (pruned.games, pruned.of, pruned.bytes) = (pruned.games + p.games, pruned.of + p.of, pruned.bytes + p.bytes);
+            pruned.cancelled |= p.cancelled;
+        }
         let games = pruned.games + report.files.iter().map(|f| f.stripped).sum::<u64>();
         report.library = Some(pruned);
         self.set_report(id, report);
@@ -489,7 +535,7 @@ impl Jobs {
         for (a, o, m) in self.sources() {
             let item = format!("downloads:{}", a.id);
             let hit = everyone || before.crossed.iter().any(|c| c.item.as_deref() == Some(item.as_str()));
-            let strip = hit && o.auto.strip && o.strip.as_ref().is_some_and(|r| !r.is_empty()) && m.last_auto_strip.is_none_or(|t| now >= t + DAY);
+            let strip = hit && o.auto.strip && o.routes.iter().any(|r| r.rule().is_some()) && m.last_auto_strip.is_none_or(|t| now >= t + DAY);
             let paused = hit && o.auto.pause;
             if paused != m.paused || strip {
                 let mut st = self.lock();
@@ -542,21 +588,24 @@ impl Jobs {
                     too_big = crate::net::TooBig::of(&e).and_then(|t| t.size);
                     e.to_string()
                 })?;
-            let mut lib = self.open_library(&self.library)?;
-            let rule = options.strip.as_ref().filter(|r| !r.is_empty());
+            let mut libraries = options.routes.iter().map(|r| self.open_library(&self.library_of(&r.library))).collect::<Result<Vec<_>, _>>()?;
             let mut read = 0;
             for f in &files {
-                read += self.import(id, &mut lib, f, source, rule)?;
+                let mut routes: Vec<(&mut Library, Option<&StripRule>)> = libraries.iter_mut().zip(&options.routes).map(|(l, r)| (l, r.rule())).collect();
+                let all = bragd_library::library::import_routes(f, source, &mut routes, &stop, &mut |_, p| self.progress(id, p.read as u64, None)).map_err(|e| format!("{}: {e}", f.display()))?;
+                read += all.first().map_or(0, |p| p.read as u64);
                 if stop() {
                     return Err("stopped".to_string());
                 }
             }
-            // The Games are in the Library now: the downloads stay, shrink or go, as the user chose.
+            // The Games are in their Libraries now: the downloads stay, shrink to what some Route
+            // keeps, or go, as the user chose.
+            let rules: Option<Vec<&StripRule>> = options.routes.iter().map(|r| r.rule()).collect();
             for f in &files {
-                match (options.after_import, rule) {
+                match (options.after_import, &rules) {
                     (AfterImport::Delete, _) => std::fs::remove_file(f).map_err(|e| format!("{}: {e}", f.display()))?,
-                    (AfterImport::Strip, Some(rule)) => {
-                        strip::rewrite(f, rule, false, &stop).map_err(|e| format!("{}: {e}", f.display()))?;
+                    (AfterImport::Strip, Some(rules)) => {
+                        strip::rewrite(f, rules, false, &stop).map_err(|e| format!("{}: {e}", f.display()))?;
                     }
                     _ => {}
                 }
@@ -856,7 +905,7 @@ pub(crate) mod tests {
     fn a_fetch_strips_as_it_imports_and_shrinks_its_download() {
         let d = crate::tests::Dir::new("strip-fetch");
         let jobs = club(&d.0, |o| {
-            o.strip = Some(strong());
+            o.routes = vec![sources::Route { strip: Some(strong()), library: sources::MAIN.into() }];
             o.after_import = AfterImport::Strip;
         });
         run(&jobs, Work::Fetch { source: "custom:club".into() });
@@ -887,7 +936,7 @@ pub(crate) mod tests {
         while jobs.run_next() {}
         assert!(jobs.list().iter().any(|j| j.id == no_rule && j.status == Status::Failed), "no rule yet");
         let (a, mut o, _) = jobs.sources().into_iter().find(|(a, _, _)| a.id == "custom:club").unwrap();
-        o.strip = Some(strong());
+        o.routes = vec![sources::Route { strip: Some(strong()), library: sources::MAIN.into() }];
         jobs.set_source(&a.id, o).unwrap();
         let dry = run(&jobs, Work::Strip { source: "custom:club".into(), dry_run: true }).report.unwrap();
         assert_eq!((dry.files[0].kept, dry.files[0].stripped), (1, 1));
@@ -903,7 +952,7 @@ pub(crate) mod tests {
         let jobs = club(&d.0, |_| {});
         run(&jobs, Work::Fetch { source: "custom:club".into() });
         let (a, mut o, _) = jobs.sources().into_iter().find(|(a, _, _)| a.id == "custom:club").unwrap();
-        o.strip = Some(strong());
+        o.routes = vec![sources::Route { strip: Some(strong()), library: sources::MAIN.into() }];
         jobs.set_source(&a.id, o).unwrap();
         let pruned = run(&jobs, Work::Prune { library: d.0.join("lib/main.bragd"), dry_run: false }).report.unwrap().library.unwrap();
         assert_eq!((pruned.games, count(&d.0.join("lib/main.bragd"))), (1, 1));
@@ -914,7 +963,7 @@ pub(crate) mod tests {
         let d = crate::tests::Dir::new("watch");
         let jobs = club(&d.0, |o| {
             o.enabled = true;
-            o.strip = Some(strong());
+            o.routes = vec![sources::Route { strip: Some(strong()), library: sources::MAIN.into() }];
             o.auto = sources::Auto { strip: true, delete_oldest: true, pause: true };
         });
         let dir = jobs.source_dir("custom:club");
@@ -1011,5 +1060,73 @@ pub(crate) mod tests {
         // Without an answer of its own a Source takes the default cap.
         assert_eq!(sources::cap(&sources::Twic.about().defaults(), &Memo::default()), sources::MAX_DOWNLOAD);
         assert_eq!(sources::MAX_DOWNLOAD, 2_000_000_000);
+    }
+
+    /// A Route of RATED: `strip` the minimum rating it keeps (none: every Game), into `library`.
+    fn route(min: Option<u16>, library: &str) -> sources::Route {
+        sources::Route { strip: min.map(|m| StripRule { min_rating: Some(m), ..Default::default() }), library: library.into() }
+    }
+
+    /// One download, read once, fans out: a Game lands in every Library whose Route keeps it,
+    /// and a Game no Route keeps is stored nowhere. Each Library prunes by its own Route.
+    #[test]
+    fn routes_send_each_game_to_every_library_that_keeps_it() {
+        let d = crate::tests::Dir::new("routes");
+        // Strong Games (2000+) into `main`; anything 1000+ into `club`; 3000+ into `top`.
+        let jobs = club(&d.0, |o| o.routes = vec![route(Some(2000), "main"), route(Some(1000), "club"), route(Some(3000), "top")]);
+        run(&jobs, Work::Fetch { source: "custom:club".into() });
+        let main = d.0.join("lib/main.bragd");
+        let (club_lib, top) = (jobs.library_of("club"), jobs.library_of("top"));
+        assert_eq!(club_lib, d.0.join("lib/club.bragd"));
+        assert_eq!((count(&main), count(&club_lib), count(&top)), (1, 2, 0));
+        // The strong Game is in two Libraries; the weak one only in `club`.
+        let white = |lib: &Path| -> Vec<String> {
+            let l = Library::open(lib).unwrap();
+            (1..=l.count().unwrap() as i64).map(|id| l.headers(id).unwrap()["White"].as_str().unwrap().to_string()).collect()
+        };
+        assert_eq!(white(&main), ["Strong"]);
+        assert_eq!(white(&club_lib), ["Strong", "Weak"]);
+        // No Route keeps anything: nothing is stored anywhere.
+        let d2 = crate::tests::Dir::new("routes-none");
+        let jobs2 = club(&d2.0, |o| o.routes = vec![route(Some(3000), "main")]);
+        run(&jobs2, Work::Fetch { source: "custom:club".into() });
+        assert_eq!(count(&d2.0.join("lib/main.bragd")), 0);
+        // `club`'s rule raised to 2000: pruning `club` takes the weak Game, `main` is untouched.
+        let (a, mut o, _) = jobs.sources().into_iter().find(|(a, _, _)| a.id == "custom:club").unwrap();
+        o.routes[1] = route(Some(2000), "club");
+        jobs.set_source(&a.id, o).unwrap();
+        let pruned = run(&jobs, Work::Prune { library: club_lib.clone(), dry_run: false }).report.unwrap().library.unwrap();
+        assert_eq!((pruned.games, count(&club_lib), count(&main)), (1, 1, 1));
+        // Routes must name Libraries, each once.
+        let (a, mut o, _) = jobs.sources().into_iter().find(|(a, _, _)| a.id == "custom:club").unwrap();
+        for bad in [vec![], vec![route(None, "main"), route(Some(1), "main")], vec![route(None, "../x")], vec![route(None, "")]] {
+            o.routes = bad.clone();
+            assert!(jobs.set_source(&a.id, o.clone()).is_err(), "{bad:?}");
+        }
+    }
+
+    /// A `state.json` from before Routes: the Source's one Strip rule becomes one Route to the
+    /// main Library, and a Source with no rule gets a Route that keeps everything.
+    #[test]
+    fn an_old_strip_rule_becomes_one_route_to_the_main_library() {
+        let d = crate::tests::Dir::new("routes-upgrade");
+        let old = serde_json::json!({
+            "next_id": 0,
+            "jobs": [],
+            "sources": {
+                "twic": { "options": { "enabled": true, "schedule": "weekly", "strip": { "min_rating": 2200 } }, "memo": {} },
+                "custom:club": { "options": { "enabled": false, "schedule": "weekly", "url": "https://example.org/a.pgn" }, "memo": {} }
+            }
+        });
+        std::fs::write(d.0.join("state.json"), old.to_string()).unwrap();
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
+        let routes = |id: &str| jobs.sources().into_iter().find(|(a, _, _)| a.id == id).unwrap().1.routes;
+        assert_eq!(routes("twic"), [sources::Route { strip: Some(StripRule { min_rating: Some(2200), ..Default::default() }), library: "main".into() }]);
+        assert_eq!(routes("custom:club"), [sources::Route::main()]);
+        assert!(!d.0.join("state.json.bad").exists());
+        // Written back in the new form.
+        let saved: serde_json::Value = serde_json::from_slice(&std::fs::read(d.0.join("state.json")).unwrap()).unwrap();
+        assert!(saved["sources"]["twic"]["options"].get("strip").is_none());
+        assert_eq!(saved["sources"]["twic"]["options"]["routes"][0]["library"], "main");
     }
 }

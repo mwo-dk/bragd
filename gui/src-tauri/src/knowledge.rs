@@ -11,7 +11,7 @@ use bragd_core::config::DiskConfig;
 use bragd_core::t;
 use bragd_helper::disk;
 use bragd_helper::helper::{Reply, Request};
-use bragd_helper::sources::{self, Auto, Options, Schedule};
+use bragd_helper::sources::{self, Auto, Options, Route, Schedule};
 use bragd_library::chess::Query;
 use bragd_library::library::Library;
 use serde::Serialize;
@@ -288,6 +288,8 @@ pub struct Pick {
 #[serde(rename_all = "camelCase")]
 pub struct SourcesPage {
     pub sources: Vec<SourceView>,
+    /// The Libraries a Route can go to, by name: `main` and every other in the Library folder.
+    pub libraries: Vec<String>,
     pub schedules: Vec<Pick>,
     pub speeds: Vec<Pick>,
     pub rating_of: Vec<Pick>,
@@ -316,7 +318,7 @@ fn sources_of(k: &Knowledge) -> Res<Vec<(sources::About, Options, sources::Memo)
 }
 
 #[tauri::command(async)]
-pub fn sources_list(k: State<'_, Knowledge>) -> Res<SourcesPage> {
+pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<SourcesPage> {
     let now = bragd_core::fs::now();
     let sources = sources_of(&k)?
         .into_iter()
@@ -340,8 +342,21 @@ pub fn sources_list(k: State<'_, Knowledge>) -> Res<SourcesPage> {
             options: o,
         })
         .collect();
+    let mut libraries: Vec<String> = databases::library_folder(&ctx.cfg())
+        .and_then(|d| std::fs::read_dir(d).ok())
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|e| e == "bragd"))
+        .filter_map(|p| Some(p.file_stem()?.to_string_lossy().into_owned()))
+        .chain([sources::MAIN.to_string()])
+        .collect();
+    libraries.sort();
+    libraries.dedup();
     Ok(SourcesPage {
         sources,
+        libraries,
         schedules: picks("source.schedule", &["daily", "weekly", "monthly", "off"]),
         speeds: picks("strip.speed", &["bullet", "blitz", "rapid", "classical", "correspondence"]),
         rating_of: picks("strip.rating_of", &["both", "either", "average"]),
@@ -351,10 +366,13 @@ pub fn sources_list(k: State<'_, Knowledge>) -> Res<SourcesPage> {
 }
 
 /// A Source's options as the page edits them, with its disk cap and its largest download as
-/// typed when they were in sight; a Strip rule that keeps everything is none.
+/// typed when they were in sight; a Route's Strip rule that keeps everything is none.
 #[tauri::command(async)]
 pub fn source_set(id: String, mut options: Options, disk_cap: Option<String>, max_download: Option<String>, k: State<'_, Knowledge>) -> Res<()> {
-    options.strip = options.strip.filter(|r| !r.is_empty());
+    for r in &mut options.routes {
+        r.strip = r.strip.take().filter(|s| !s.is_empty());
+        r.library = r.library.trim().to_string();
+    }
     if let Some(cap) = disk_cap {
         options.disk_cap = Some(parse_size(&cap)?).filter(|&c| c > 0);
     }
@@ -371,7 +389,7 @@ pub fn source_add(name: String, url: String, k: State<'_, Knowledge>) -> Res<()>
     if name.is_empty() {
         return Err(t!("source.no_name"));
     }
-    let options = Options { enabled: true, schedule: Schedule::Weekly, only_unmetered: false, disk_cap: None, max_download: None, url: url.trim().into(), strip: None, after_import: Default::default(), auto: Auto::default() };
+    let options = Options { enabled: true, schedule: Schedule::Weekly, only_unmetered: false, disk_cap: None, max_download: None, url: url.trim().into(), routes: Route::only_main(), after_import: Default::default(), auto: Auto::default() };
     k.link.ask(&Request::SetSource { source: format!("{}{name}", sources::CUSTOM), options }).map(drop)
 }
 

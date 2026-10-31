@@ -7,7 +7,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 
 ## In every language of its own
 
-301 keys:
+308 keys:
 
 - `board_theme.match`
 - `board_theme.racing`
@@ -201,6 +201,13 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `sidebar.tablebases`
 - `source.allow`
 - `source.max_download`
+- `source.route_add`
+- `source.route_library`
+- `source.route_new`
+- `source.route_new_name`
+- `source.route_remove`
+- `source.routes`
+- `source.routes_hint`
 - `source.too_big`
 - `theme.aqua`
 - `theme.atarist`

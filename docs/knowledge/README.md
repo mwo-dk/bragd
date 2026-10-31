@@ -2,7 +2,7 @@
 
 # Knowledge
 
-Bragd keeps Games in two ways. A **Foreign database** is a game file in someone else's format, such as PGN or SGF. Bragd reads it where it is and changes nothing in it. A **Library** is Bragd's own SQLite file, where imports land and each Game appears once. **Sources** such as TWIC bring new Games into the Library on a schedule. The **Helper**, a background process shared by every window, does the fetching, importing and Duplicate finding, so the windows stay quick. **Strip rules** and **Disk watch** hold what is stored to the Games you want and the space you allow.
+Bragd keeps Games in two ways. A **Foreign database** is a game file in someone else's format, such as PGN or SGF. Bragd reads it where it is and changes nothing in it. A **Library** is Bragd's own SQLite file, where imports land and each Game appears once. **Sources** such as TWIC bring new Games on a schedule, each through its **Routes** into one Library or several. The **Helper**, a background process shared by every window, does the fetching, importing and Duplicate finding, so the windows stay quick. **Strip rules** and **Disk watch** hold what is stored to the Games you want and the space you allow.
 
 Everything here is reached from the sidebar: a Family, then **Databases**. The page has four tabs: *Files*, *Libraries*, *Sources* and *Disk use*.
 

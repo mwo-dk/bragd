@@ -55,16 +55,52 @@ pub struct Options {
     /// A custom URL Source's address.
     #[serde(default)]
     pub url: String,
-    /// Which of its Games are kept: applied as they come in, and to what is stored already
-    /// when asked (`jobs::Work::Strip`). None keeps every Game.
-    #[serde(default)]
-    pub strip: Option<StripRule>,
+    /// Where its Games go: each Route a Strip rule and a Library. A download is read once, and
+    /// each Game is stored in every Library whose Route keeps it, and nowhere when none does.
+    #[serde(default = "Route::only_main")]
+    pub routes: Vec<Route>,
     /// What becomes of a download once its Games are in the Library.
     #[serde(default)]
     pub after_import: AfterImport,
     /// What Disk watch may do by itself when a limit this Source counts against is crossed.
     #[serde(default)]
     pub auto: Auto,
+}
+
+/// The Library a Source's Games go to unless the user says otherwise: `main.bragd`.
+pub const MAIN: &str = "main";
+
+/// A Strip rule paired with the Library its Games go to.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Route {
+    /// Which Games it keeps: applied as they come in, and to what it stored already when asked
+    /// (`jobs::Work::Strip`). None keeps every Game.
+    #[serde(default)]
+    pub strip: Option<StripRule>,
+    /// The Library, by name: `main` is `main.bragd` in the Library folder.
+    pub library: String,
+}
+
+impl Route {
+    /// Every Game, into the main Library: what a Source starts with.
+    pub fn main() -> Route {
+        Route { strip: None, library: MAIN.into() }
+    }
+
+    pub fn only_main() -> Vec<Route> {
+        vec![Route::main()]
+    }
+
+    /// Its rule, when it strips anything.
+    pub fn rule(&self) -> Option<&StripRule> {
+        self.strip.as_ref().filter(|r| !r.is_empty())
+    }
+}
+
+/// Whether `name` can name a Library file: letters, digits, `-`, `_` and spaces, not empty.
+pub fn library_name(name: &str) -> bool {
+    let n = name.trim();
+    !n.is_empty() && n == name && n.chars().all(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | ' '))
 }
 
 /// What becomes of a download once its Games are in the Library.
@@ -74,7 +110,7 @@ pub enum AfterImport {
     /// Kept as it came, within the disk cap.
     #[default]
     Keep,
-    /// Written again with only the Games the Strip rule keeps.
+    /// Written again with only the Games some Route keeps.
     Strip,
     /// Deleted.
     Delete,
@@ -84,7 +120,7 @@ pub enum AfterImport {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Auto {
-    /// Apply its Strip rule to its downloads and to the Library (at most once a day).
+    /// Apply its Routes' Strip rules to its downloads and their Libraries (at most once a day).
     pub strip: bool,
     /// Delete its oldest downloads beyond its limit.
     pub delete_oldest: bool,
@@ -142,7 +178,7 @@ pub struct About {
 impl About {
     /// What a Source starts as: off, on its usual schedule.
     pub fn defaults(&self) -> Options {
-        Options { enabled: false, schedule: self.schedule, only_unmetered: false, disk_cap: None, max_download: None, url: String::new(), strip: None, after_import: AfterImport::Keep, auto: Auto::default() }
+        Options { enabled: false, schedule: self.schedule, only_unmetered: false, disk_cap: None, max_download: None, url: String::new(), routes: Route::only_main(), after_import: AfterImport::Keep, auto: Auto::default() }
     }
 }
 

@@ -1,0 +1,1 @@
+| **A Source can send its Games to several Libraries.** Each Source has Routes, each a Strip rule and a Library; the download is read once, and a Game lands in every Library whose Route keeps it. A Source's Strip rule became its one Route to the main Library. | [Docs](knowledge/sources.md#routes) |

@@ -58,7 +58,7 @@ Everything the Helper keeps is in `<data>/bragd/helper/`:
 | `helper.lock` | Held while a Helper runs, so a second one leaves at once |
 | `helper.addr` | The address and a token; only you can read it |
 | `helper.log` | What it did and what went wrong, with times in UTC |
-| `state.json` | Its jobs, the Sources' options and Strip rules, and what each fetch remembered |
+| `state.json` | Its jobs, the Sources' options and Routes with their Strip rules, and what each fetch remembered |
 | `sources/` | The Sources' downloads |
 
 Windows reach it over a Unix socket in this folder. On Windows it is a loopback TCP port, guarded by the token.

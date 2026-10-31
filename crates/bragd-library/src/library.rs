@@ -486,85 +486,8 @@ impl Library {
     /// unpacked to disk; a zip's SGF, KIF and CSA files, which hold a game or a few, are
     /// unpacked one at a time beside it and removed once read.
     pub fn import_with(&mut self, path: &Path, source: &str, rule: Option<&StripRule>, stop: &dyn Fn() -> bool, progress: &mut dyn FnMut(&Progress)) -> Result<Progress> {
-        let rule = rule.filter(|r| !r.is_empty());
-        if !crate::stream::streams(path) {
-            return self.import_reader(path, source, rule, Progress::default(), stop, progress);
-        }
-        let mut p = self.import_stream(path, source, rule, stop, progress)?;
-        if crate::stream::is_zip(path) && !p.cancelled {
-            p = self.import_zip_others(path, source, rule, p, stop, progress)?;
-        }
-        Ok(p)
-    }
-
-    /// The streamed part of `import_with`.
-    fn import_stream(&mut self, path: &Path, source: &str, rule: Option<&StripRule>, stop: &dyn Fn() -> bool, progress: &mut dyn FnMut(&Progress)) -> Result<Progress> {
-        let (conn, priority, batch) = (&self.conn, &self.priority, self.batch.max(1));
-        // The last batch written, and the one under way.
-        let (mut p, mut done) = (Progress::default(), Progress::default());
-        let mut tx = Some(conn.unchecked_transaction()?);
-        let (mut in_batch, mut failed, mut n) = (0usize, None::<Error>, 0usize);
-        let read = crate::stream::file_games(path, stop, &mut |member, format, text| {
-            if stop() {
-                done.cancelled = true;
-                return false;
-            }
-            n += 1;
-            done.read += 1;
-            let game = read_game(format, text);
-            if rule.is_some_and(|r| !r.keeps(&game)) {
-                done.stripped += 1;
-            } else {
-                let source_ref = if member.is_empty() { format!("{}#{n}", path.display()) } else { format!("{}!{member}#{n}", path.display()) };
-                match add_in(tx.as_ref().expect("a transaction is open"), priority, &game, source, &source_ref) {
-                    Ok((Added::New(_), near)) => {
-                        done.added += 1;
-                        done.near_duplicates += near;
-                    }
-                    Ok((Added::Merged(_), _)) => done.merged += 1,
-                    Err(e) => {
-                        failed = Some(e);
-                        return false;
-                    }
-                }
-            }
-            in_batch += 1;
-            if in_batch == batch {
-                match tx.take().expect("a transaction is open").commit().and_then(|()| conn.unchecked_transaction()) {
-                    Ok(t) => tx = Some(t),
-                    Err(e) => {
-                        failed = Some(e.into());
-                        return false;
-                    }
-                }
-                in_batch = 0;
-                done.committed = done.added + done.merged;
-                p = done.clone();
-                progress(&p);
-            }
-            true
-        });
-        match read {
-            // Stopped between two games' worth of bytes, as in a stream with no games in it.
-            Err(_) if stop() => done.cancelled = true,
-            r => {
-                r?;
-            }
-        }
-        if let Some(e) = failed {
-            return Err(e);
-        }
-        if done.cancelled {
-            // Dropped, the batch under way rolls back.
-            drop(tx);
-            p.cancelled = true;
-        } else {
-            tx.take().expect("a transaction is open").commit()?;
-            done.committed = done.added + done.merged;
-            p = done;
-        }
-        progress(&p);
-        Ok(p)
+        let mut all = import_routes(path, source, &mut [(self, rule)], stop, &mut |_, p| progress(p))?;
+        Ok(all.remove(0))
     }
 
     /// The SGF, KIF and CSA files of the zip at `path`, each unpacked beside it, imported and
@@ -797,6 +720,118 @@ pub struct Stored {
     pub moves: Vec<String>,
     pub result: String,
     pub headers: Map<String, Value>,
+}
+
+/// Imports every Game of the Foreign database at `path`, as coming from `source`, into each
+/// Library of `routes` whose Strip rule keeps it: a Game no rule keeps is stored nowhere. A
+/// PGN or PDN file, packed or not, and a zip's game files are read once for all of them, each
+/// Library writing its own batches (`Library::batch`) in transactions of its own. `progress`
+/// hears the route's index and its progress after each of its batches; `stop` is asked between
+/// Games, and true ends every import there: each batch under way is rolled back.
+pub fn import_routes(path: &Path, source: &str, routes: &mut [(&mut Library, Option<&StripRule>)], stop: &dyn Fn() -> bool, progress: &mut dyn FnMut(usize, &Progress)) -> Result<Vec<Progress>> {
+    if !crate::stream::streams(path) {
+        // shortcut: a file read through a table (SCID, CBH, a lone SGF) is read once per Route; read it once when a Source brings such files often.
+        return routes.iter_mut().enumerate().map(|(i, (lib, rule))| lib.import_reader(path, source, rule.filter(|r| !r.is_empty()), Progress::default(), stop, &mut |p| progress(i, p))).collect();
+    }
+    let ways: Vec<(&Library, Option<&StripRule>)> = routes.iter().map(|(lib, rule)| (&**lib, *rule)).collect();
+    let mut all = stream_into(path, source, &ways, stop, progress)?;
+    if crate::stream::is_zip(path) {
+        for (i, (lib, rule)) in routes.iter_mut().enumerate() {
+            if !all[i].cancelled {
+                all[i] = lib.import_zip_others(path, source, rule.filter(|r| !r.is_empty()), all[i].clone(), stop, &mut |p| progress(i, p))?;
+            }
+        }
+    }
+    Ok(all)
+}
+
+/// The streamed part of `import_routes`: one read of `path`, each Game offered to every way.
+fn stream_into(path: &Path, source: &str, ways: &[(&Library, Option<&StripRule>)], stop: &dyn Fn() -> bool, progress: &mut dyn FnMut(usize, &Progress)) -> Result<Vec<Progress>> {
+    /// One Library's side of the import: the last batch written, and the one under way.
+    struct Way<'c> {
+        conn: &'c Connection,
+        priority: &'c [String],
+        batch: usize,
+        rule: Option<&'c StripRule>,
+        tx: Option<rusqlite::Transaction<'c>>,
+        in_batch: usize,
+        p: Progress,
+        done: Progress,
+    }
+    let mut ways: Vec<Way> = ways
+        .iter()
+        .map(|(lib, rule)| {
+            Ok(Way { conn: &lib.conn, priority: &lib.priority, batch: lib.batch.max(1), rule: rule.filter(|r| !r.is_empty()), tx: Some(lib.conn.unchecked_transaction()?), in_batch: 0, p: Progress::default(), done: Progress::default() })
+        })
+        .collect::<Result<_>>()?;
+    let (mut failed, mut n, mut cancelled) = (None::<Error>, 0usize, false);
+    let read = crate::stream::file_games(path, stop, &mut |member, format, text| {
+        if stop() {
+            cancelled = true;
+            return false;
+        }
+        n += 1;
+        let game = read_game(format, text);
+        let source_ref = if member.is_empty() { format!("{}#{n}", path.display()) } else { format!("{}!{member}#{n}", path.display()) };
+        for (i, w) in ways.iter_mut().enumerate() {
+            w.done.read += 1;
+            if w.rule.is_some_and(|r| !r.keeps(&game)) {
+                w.done.stripped += 1;
+            } else {
+                match add_in(w.tx.as_ref().expect("a transaction is open"), w.priority, &game, source, &source_ref) {
+                    Ok((Added::New(_), near)) => {
+                        w.done.added += 1;
+                        w.done.near_duplicates += near;
+                    }
+                    Ok((Added::Merged(_), _)) => w.done.merged += 1,
+                    Err(e) => {
+                        failed = Some(e);
+                        return false;
+                    }
+                }
+            }
+            w.in_batch += 1;
+            if w.in_batch == w.batch {
+                match w.tx.take().expect("a transaction is open").commit().and_then(|()| w.conn.unchecked_transaction()) {
+                    Ok(t) => w.tx = Some(t),
+                    Err(e) => {
+                        failed = Some(e.into());
+                        return false;
+                    }
+                }
+                w.in_batch = 0;
+                w.done.committed = w.done.added + w.done.merged;
+                w.p = w.done.clone();
+                progress(i, &w.p);
+            }
+        }
+        true
+    });
+    match read {
+        // Stopped between two games' worth of bytes, as in a stream with no games in it.
+        Err(_) if stop() => cancelled = true,
+        r => {
+            r?;
+        }
+    }
+    if let Some(e) = failed {
+        return Err(e);
+    }
+    let mut out = Vec::with_capacity(ways.len());
+    for (i, mut w) in ways.into_iter().enumerate() {
+        if cancelled {
+            // Dropped, the batch under way rolls back.
+            drop(w.tx.take());
+            w.p.cancelled = true;
+        } else {
+            w.tx.take().expect("a transaction is open").commit()?;
+            w.done.committed = w.done.added + w.done.merged;
+            w.p = w.done;
+        }
+        progress(i, &w.p);
+        out.push(w.p);
+    }
+    Ok(out)
 }
 
 /// `Library::add` inside the transaction `tx`; with the Near-duplicate pairs it found.
