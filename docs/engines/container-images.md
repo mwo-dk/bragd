@@ -36,6 +36,19 @@ When an Engine is not installed, Bragd can run it from a sealed container image 
 
 The update and pruning rounds are written but the app does not run them yet: they start once images are published.
 
+## Images built on your own machine
+
+Until an image is published, you can build it yourself from a checkout of Bragd, with podman. Nothing is installed on your machine: each Engine stays in its image.
+
+| Command | What it does |
+|---|---|
+| `tools/dev/images.sh` | Builds every image in `packaging/images/` as `localhost/bragd-<engine>:dev`, showing podman's progress |
+| `tools/dev/images.sh stockfish katago` | Builds only those |
+| `tools/dev/images.sh --list` | Lists the images there are to build |
+| `tools/dev/run.sh --images` | Builds Bragd and the images, then starts Bragd with a throwaway home and `BRAGD_DEV_IMAGES=1` |
+
+Bragd runs an image built this way only when it is started with `BRAGD_DEV_IMAGES=1`, for example `env BRAGD_DEV_IMAGES=1 bragd-gui`. Without it, in any build, only images pinned by digest are run. Such an image is run sealed, like every other, and never pulled; its card says *Runs from its image built on this machine*. With `BRAGD_DEV_IMAGES=1`, a card of an Engine whose image is not published names the command that builds it.
+
 ## Settings and config.toml
 
 | Setting | `config.toml` key | Default | What it does |
@@ -70,6 +83,10 @@ A passing fault, such as a dropped connection or a busy registry, is tried again
 #### Why does my card say neither podman nor docker is there?
 
 The image is published but no runtime was found on your `PATH`. Install podman or docker, or install the Engine itself.
+
+#### Why does Bragd not run my image built with `tools/dev/images.sh`?
+
+It is pinned by nothing, so Bragd runs it only when started with `BRAGD_DEV_IMAGES=1`. Start Bragd with `env BRAGD_DEV_IMAGES=1 bragd-gui`, or with `tools/dev/run.sh --images`. Check that `podman image ls localhost/bragd-<engine>` lists it, and that *Container runtime* is *Automatic* or *podman*.
 
 #### How much disk do the images take?
 

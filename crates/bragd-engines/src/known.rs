@@ -17,6 +17,20 @@ pub fn family(variant: &str) -> Option<bragd_games::Family> {
 /// Where Bragd's engine images are published.
 pub const REGISTRY: &str = "ghcr.io/mwo-dk";
 
+/// Set to `1`, Bragd also runs the images `tools/dev/images.sh` builds on this machine
+/// (`localhost/bragd-<key>:dev`), which are pinned by nothing. Without it, in any build, only
+/// images pinned by digest are ever run.
+pub const DEV_IMAGES: &str = "BRAGD_DEV_IMAGES";
+
+/// Whether images built here may run: only when `BRAGD_DEV_IMAGES` is `1`.
+pub fn dev_images() -> bool {
+    dev_wanted(std::env::var(DEV_IMAGES).ok().as_deref())
+}
+
+fn dev_wanted(value: Option<&str>) -> bool {
+    value == Some("1")
+}
+
 // The digests the images are pinned to. None: the image is not published yet, so it is never
 // pulled. TODO(unpublished): set each when `packaging/images/<engine>` is first pushed.
 pub const PIN_STOCKFISH: Option<&str> = None;
@@ -91,9 +105,16 @@ impl Known {
         Some(format!("{REGISTRY}/bragd-{}:{}", self.key, self.tag?))
     }
 
-    /// Its image pinned by digest, the only form ever pulled or run; None while unpublished.
+    /// Its image pinned by digest, the only form ever pulled, and the only one run unless
+    /// `dev`; None while unpublished.
     pub fn image(&self) -> Option<String> {
         Some(format!("{}@{}", self.image_name()?, self.pin?))
+    }
+
+    /// Its image as `tools/dev/images.sh` builds it here, when Bragd has one to build and
+    /// `dev` (`dev_images()`) allows it: never pulled, only run when the runtime has it.
+    pub fn dev_image(&self, dev: bool) -> Option<String> {
+        self.tag.filter(|_| dev).map(|_| format!("localhost/bragd-{}:dev", self.key))
     }
 
     /// Its program installed here, only looked for.
@@ -142,20 +163,31 @@ impl std::fmt::Display for Missing {
     }
 }
 
-/// The program to run for `k`: installed here (`installed`), else its pinned image when the
-/// runtime has it (`has`). `syzygy`: the tablebase folder an image is given read-only;
+/// The program to run for `k`: installed here (`installed`), else its image built here when
+/// `dev` allows it and the runtime has it (`has`), else its pinned image when the runtime has it. `syzygy`: the tablebase folder an image is given read-only;
 /// `networks`: where the networks images need are kept (`network`), an image's given it
 /// read-only. An installed engine brings its own network.
-pub fn choose(k: &Known, installed: Option<PathBuf>, rt: Option<&Runtime>, has: impl Fn(&Runtime, &str) -> bool, syzygy: Option<&Path>, networks: &Path) -> Result<Program, Missing> {
+#[allow(clippy::too_many_arguments, reason = "each is one thing the choice depends on, given so tests need no machine")]
+pub fn choose(k: &Known, installed: Option<PathBuf>, rt: Option<&Runtime>, has: impl Fn(&Runtime, &str) -> bool, syzygy: Option<&Path>, networks: &Path, dev: bool) -> Result<Program, Missing> {
     let args: Vec<String> = k.args.iter().map(|a| a.to_string()).collect();
     if let Some(path) = installed {
         return Ok(Program::Installed { path, args });
     }
-    let image = k.image().ok_or(Missing::NoImage)?;
-    let rt = rt.ok_or(Missing::NoRuntime)?;
-    if !has(rt, &image) {
-        return Err(Missing::NotPulled { image });
+    let (local, pinned) = (k.dev_image(dev), k.image());
+    if local.is_none() && pinned.is_none() {
+        return Err(Missing::NoImage);
     }
+    let rt = rt.ok_or(Missing::NoRuntime)?;
+    let image = match local.filter(|i| has(rt, i)) {
+        Some(i) => i,
+        None => {
+            let image = pinned.ok_or(Missing::NoImage)?;
+            if !has(rt, &image) {
+                return Err(Missing::NotPulled { image });
+            }
+            image
+        }
+    };
     let network = match crate::network::for_engine(k.key) {
         Some(n) => Some(Some(n.path(networks)).filter(|p| p.is_file()).ok_or(Missing::NoNetwork)?),
         None => None,
@@ -222,22 +254,52 @@ mod tests {
         let k = Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: Some("sha256:1111111111111111111111111111111111111111111111111111111111111111"), site: "", syzygy: true };
         let here = PathBuf::from("/usr/games/stockfish");
         let nets = Path::new("/nonexistent/networks");
-        assert_eq!(choose(&k, Some(here.clone()), Some(&rt), |_, _| true, None, nets), Ok(Program::Installed { path: here, args: vec![] }));
+        assert_eq!(choose(&k, Some(here.clone()), Some(&rt), |_, _| true, None, nets, false), Ok(Program::Installed { path: here, args: vec![] }));
         let image = k.image().unwrap();
         let tb = &std::env::temp_dir();
-        assert_eq!(choose(&k, None, Some(&rt), |_, _| true, Some(tb), nets), Ok(Program::Container { rt: rt.clone(), image: image.clone(), args: vec![], syzygy: Some(tb.into()), network: None }));
+        assert_eq!(choose(&k, None, Some(&rt), |_, _| true, Some(tb), nets, false), Ok(Program::Container { rt: rt.clone(), image: image.clone(), args: vec![], syzygy: Some(tb.into()), network: None }));
         // No tablebases downloaded yet: a mount of a missing folder would stop the container.
         let missing = Path::new("/nonexistent/bragd/tablebases");
-        assert!(matches!(choose(&k, None, Some(&rt), |_, _| true, Some(missing), nets), Ok(Program::Container { syzygy: None, .. })));
-        assert_eq!(choose(&k, None, Some(&rt), |_, _| false, None, nets), Err(Missing::NotPulled { image }));
-        assert_eq!(choose(&k, None, None, |_, _| true, None, nets), Err(Missing::NoRuntime));
-        assert_eq!(choose(known("pikafish").unwrap(), None, Some(&rt), |_, _| true, None, nets), Err(Missing::NoImage), "unpublished");
+        assert!(matches!(choose(&k, None, Some(&rt), |_, _| true, Some(missing), nets, false), Ok(Program::Container { syzygy: None, .. })));
+        assert_eq!(choose(&k, None, Some(&rt), |_, _| false, None, nets, false), Err(Missing::NotPulled { image }));
+        assert_eq!(choose(&k, None, None, |_, _| true, None, nets, false), Err(Missing::NoRuntime));
+        assert_eq!(choose(known("pikafish").unwrap(), None, Some(&rt), |_, _| true, None, nets, false), Err(Missing::NoImage), "unpublished");
         // GNU Go installed gets its protocol on its command line; its image's entrypoint has it.
         let g = known("gnugo").unwrap();
         let gnugo = Known { pin: k.pin, programs: g.programs, args: g.args, variants: g.variants, tag: g.tag, site: g.site, ..k };
-        assert_eq!(choose(&gnugo, Some("/usr/bin/gnugo".into()), None, |_, _| false, None, nets).unwrap(), Program::Installed { path: "/usr/bin/gnugo".into(), args: vec!["--mode".into(), "gtp".into()] });
+        assert_eq!(choose(&gnugo, Some("/usr/bin/gnugo".into()), None, |_, _| false, None, nets, false).unwrap(), Program::Installed { path: "/usr/bin/gnugo".into(), args: vec!["--mode".into(), "gtp".into()] });
         let gnugo = Known { syzygy: false, ..gnugo };
-        assert!(matches!(choose(&gnugo, None, Some(&rt), |_, _| true, Some(tb), nets).unwrap(), Program::Container { args, syzygy: None, .. } if args.is_empty()), "no tablebases for go");
+        assert!(matches!(choose(&gnugo, None, Some(&rt), |_, _| true, Some(tb), nets, false).unwrap(), Program::Container { args, syzygy: None, .. } if args.is_empty()), "no tablebases for go");
+    }
+
+    /// An image built here (`tools/dev/images.sh`) runs only when `BRAGD_DEV_IMAGES=1` asks for
+    /// it: without that, an unpublished engine has no image, whatever the runtime holds.
+    #[test]
+    fn images_built_here_run_only_when_asked_for() {
+        assert!(dev_wanted(Some("1")));
+        for v in [None, Some(""), Some("0"), Some("true"), Some("yes")] {
+            assert!(!dev_wanted(v), "{v:?}");
+        }
+        let rt = Runtime { name: "podman", path: PathBuf::from("/nonexistent/podman") };
+        let nets = Path::new("/nonexistent/networks");
+        let k = known("gnugo").unwrap();
+        assert_eq!(k.pin, None, "unpublished");
+        let local = "localhost/bragd-gnugo:dev";
+        assert_eq!(k.dev_image(true).as_deref(), Some(local));
+        assert_eq!(k.dev_image(false), None);
+        let built = |_: &Runtime, i: &str| i == local;
+        // Not asked for: the image built here is never run, even though the runtime has it.
+        assert_eq!(choose(k, None, Some(&rt), built, None, nets, false), Err(Missing::NoImage));
+        // Asked for: it runs, sealed like every image.
+        assert!(matches!(choose(k, None, Some(&rt), built, None, nets, true), Ok(Program::Container { image, .. }) if image == local));
+        // Asked for but not built: still no image, and no runtime means none either way.
+        assert_eq!(choose(k, None, Some(&rt), |_, _| false, None, nets, true), Err(Missing::NoImage));
+        assert_eq!(choose(k, None, None, built, None, nets, true), Err(Missing::NoRuntime));
+        // A published image is still pulled when nothing was built here.
+        let p = Known { pin: Some("sha256:3333333333333333333333333333333333333333333333333333333333333333"), ..*k };
+        assert_eq!(choose(&p, None, Some(&rt), |_, _| false, None, nets, true), Err(Missing::NotPulled { image: p.image().unwrap() }));
+        // Bragd builds no image of Scan: nothing to build here either.
+        assert_eq!(known("scan").unwrap().dev_image(true), None);
     }
 
     /// Pikafish's image runs only once its network is downloaded, and is then given it; an
@@ -247,15 +309,15 @@ mod tests {
         let rt = Runtime { name: "podman", path: PathBuf::from("/nonexistent/podman") };
         let p = Known { pin: Some("sha256:2222222222222222222222222222222222222222222222222222222222222222"), ..*known("pikafish").unwrap() };
         let d = crate::test_dir("networks");
-        assert_eq!(choose(&p, None, Some(&rt), |_, _| true, None, &d), Err(Missing::NoNetwork));
-        assert!(matches!(choose(&p, Some("/usr/bin/pikafish".into()), Some(&rt), |_, _| true, None, &d), Ok(Program::Installed { .. })));
+        assert_eq!(choose(&p, None, Some(&rt), |_, _| true, None, &d, false), Err(Missing::NoNetwork));
+        assert!(matches!(choose(&p, Some("/usr/bin/pikafish".into()), Some(&rt), |_, _| true, None, &d, false), Ok(Program::Installed { .. })));
         let file = crate::network::PIKAFISH.path(&d);
         std::fs::create_dir_all(file.parent().unwrap()).unwrap();
         std::fs::write(&file, "net").unwrap();
-        assert!(matches!(choose(&p, None, Some(&rt), |_, _| true, None, &d), Ok(Program::Container { network: Some(n), .. }) if n == file));
+        assert!(matches!(choose(&p, None, Some(&rt), |_, _| true, None, &d, false), Ok(Program::Container { network: Some(n), .. }) if n == file));
         // An engine without a network is given none.
         let k = Known { pin: p.pin, ..*known("stockfish").unwrap() };
-        assert!(matches!(choose(&k, None, Some(&rt), |_, _| true, None, &d), Ok(Program::Container { network: None, .. })));
+        assert!(matches!(choose(&k, None, Some(&rt), |_, _| true, None, &d, false), Ok(Program::Container { network: None, .. })));
         std::fs::remove_dir_all(&d).unwrap();
     }
 

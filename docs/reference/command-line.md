@@ -45,6 +45,7 @@ On Windows, `bragd-helper` is a windowed program, so neither it nor the `reg` co
 | Variable | Read by | What it does |
 |---|---|---|
 | `BRAGD_OFFLINE` | `bragd-gui` | Set to anything: nothing is asked online. No update check, no tablebase download or lookup, no engine network download |
+| `BRAGD_DEV_IMAGES` | `bragd-gui` | `1`: also run the engine images `tools/dev/images.sh` built on this machine (`localhost/bragd-<engine>:dev`), which are not pinned ([Engine container images](../engines/container-images.md#images-built-on-your-own-machine)). Without it only pinned images run |
 | `BRAGD_WINDOW_SIZE` | `bragd-gui` | `WxH`, such as `1100x760`: the window's size at start. Used for screenshots |
 
 Other `BRAGD_` variables in the code are read only by tests.

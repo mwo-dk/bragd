@@ -92,7 +92,7 @@ pub fn engine_choices(variant: String, ctx: Managed<'_, Ctx>) -> Choices {
     let engines = engines::engines_for(&cfg, &variant)
         .into_iter()
         .map(|key| {
-            let ready = matches!(engines::availability(&cfg, &key), engines::Availability::Installed { .. } | engines::Availability::Pulled { .. });
+            let ready = engines::availability(&cfg, &key).ready();
             let name = bragd_engines::known::known(&key).map_or_else(|| key.clone(), |k| k.name.to_string());
             Choice { key, name, ready }
         })

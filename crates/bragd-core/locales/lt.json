@@ -703,5 +703,7 @@
  "engines.network.intro": "{name}'s image needs this network to play. It comes under its own licence, below, so Bragd does not ship it. If you agree, Bragd downloads {name}'s release ({size}), checks it, and keeps only the network, in Bragd's data folder. An installed {name} does not need it.",
  "engines.network.from": "From: {url}",
  "engines.network.agree": "Agree and download {size}",
- "engines.network.missing": "{name}'s image needs its evaluation network. Download it on the Engines page, under its licence."
+ "engines.network.missing": "{name}'s image needs its evaluation network. Download it on the Engines page, under its licence.",
+ "engines.state.built": "Runs from its image built on this machine.",
+ "engines.build_here": "Its image is not published yet. Build it on this machine with {command}, then come back here."
 }

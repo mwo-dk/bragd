@@ -97,6 +97,9 @@ pub fn engines_for(cfg: &Config, key: &str) -> Vec<String> {
 pub enum Availability {
     Installed { path: String },
     Pulled { image: String },
+    /// Runs from its image built on this machine (`tools/dev/images.sh`), as
+    /// `BRAGD_DEV_IMAGES=1` allows.
+    Built { image: String },
     /// Its image can be pulled.
     Pull { image: String },
     /// Not installed, and Bragd's image of it is not published yet.
@@ -105,6 +108,13 @@ pub enum Availability {
     NoRuntime,
     /// Added by a path that is no longer there.
     Gone { path: String },
+}
+
+impl Availability {
+    /// There to run now.
+    pub fn ready(&self) -> bool {
+        matches!(self, Availability::Installed { .. } | Availability::Pulled { .. } | Availability::Built { .. })
+    }
 }
 
 fn home() -> PathBuf {
@@ -120,26 +130,34 @@ fn runtime(cfg: &Config) -> Option<tools::Runtime> {
     if cfg.engines.containers { tools::container_runtime(&cfg.engines.runtime) } else { None }
 }
 
-/// Where the engine `key` stands. Only an image that is published is asked about.
+/// Where the engine `key` stands. Only an image that is published, or one built here when
+/// `BRAGD_DEV_IMAGES=1` allows it, is asked about.
 pub fn availability(cfg: &Config, key: &str) -> Availability {
     let k = known::known(key);
     if let Some(p) = installed(cfg, key, k) {
         return Availability::Installed { path: p.display().to_string() };
     }
     let Some(k) = k else { return Availability::Gone { path: cfg.engines.paths.get(key).cloned().unwrap_or_default() } };
-    let Some(image) = k.image() else { return Availability::NoImage };
-    match runtime(cfg) {
-        None => Availability::NoRuntime,
-        Some(rt) if images::pulled(&rt.path, std::slice::from_ref(&image)).is_empty() => Availability::Pull { image },
-        Some(_) => Availability::Pulled { image },
+    let (local, pinned) = (k.dev_image(known::dev_images()), k.image());
+    if local.is_none() && pinned.is_none() {
+        return Availability::NoImage;
+    }
+    let Some(rt) = runtime(cfg) else { return Availability::NoRuntime };
+    let has = |i: &String| !images::pulled(&rt.path, std::slice::from_ref(i)).is_empty();
+    match (local.filter(has), pinned) {
+        (Some(image), _) => Availability::Built { image },
+        (None, None) => Availability::NoImage,
+        (None, Some(image)) if has(&image) => Availability::Pulled { image },
+        (None, Some(image)) => Availability::Pull { image },
     }
 }
 
 /// The engine `key` for the Variant `variant`, ready to start, or why it cannot be.
 pub fn resolve(cfg: &Config, key: &str, variant: &str) -> Result<Chosen, String> {
     if let Some(k) = known::known(key) {
-        let rt = k.image().and_then(|_| runtime(cfg));
-        let program = known::choose(k, installed(cfg, key, Some(k)), rt.as_ref(), |rt, i| !images::pulled(&rt.path, &[i.to_string()]).is_empty(), Some(&tablebase_folder(cfg)), &networks_folder()).map_err(|m| missing(k, &m))?;
+        let dev = known::dev_images();
+        let rt = (k.image().is_some() || k.dev_image(dev).is_some()).then(|| runtime(cfg)).flatten();
+        let program = known::choose(k, installed(cfg, key, Some(k)), rt.as_ref(), |rt, i| !images::pulled(&rt.path, &[i.to_string()]).is_empty(), Some(&tablebase_folder(cfg)), &networks_folder(), dev).map_err(|m| missing(k, &m))?;
         return Ok(Chosen { key: key.into(), program, protocols: vec![k.protocol(variant)] });
     }
     let family = cfg.engines.added.get(key).and_then(|f| Family::from_key(f)).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
@@ -163,7 +181,7 @@ pub fn default_for(cfg: &Config, variant: &str) -> Option<String> {
     if let Some(d) = cfg.engines.default.get(variant).filter(|d| all.contains(d)) {
         return Some(d.clone());
     }
-    all.iter().find(|k| matches!(availability(cfg, k), Availability::Installed { .. } | Availability::Pulled { .. })).or(all.first()).cloned()
+    all.iter().find(|k| availability(cfg, k).ready()).or(all.first()).cloned()
 }
 
 /// Starts `chosen` for `variant`, with the user's options and the tablebases: the engine,
@@ -237,6 +255,8 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             let k = known::known(&key);
             let state = availability(cfg, &key);
             let hint = match (&state, k) {
+                // Running from a checkout with images allowed: the image can be built here.
+                (Availability::NoImage, Some(k)) if k.dev_image(known::dev_images()).is_some() => tr("engines.build_here", &[("command", &format!("tools/dev/images.sh {}", k.key))]),
                 (Availability::NoImage | Availability::NoRuntime | Availability::Pull { .. }, Some(k)) => tr("engines.install_hint", &[("program", k.programs[0]), ("site", k.site)]),
                 (Availability::Gone { .. }, _) => tr("engines.gone", &[("name", &key)]),
                 _ => String::new(),

@@ -7,7 +7,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 
 ## In every language of its own
 
-318 keys:
+320 keys:
 
 - `board_theme.match`
 - `board_theme.racing`
@@ -20,6 +20,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `disk.item.image`
 - `disk.item.library`
 - `disk.item.tablebases`
+- `engines.build_here`
 - `engines.network.absent`
 - `engines.network.agree`
 - `engines.network.downloading`
@@ -30,6 +31,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `engines.network.present`
 - `engines.network.read`
 - `engines.network.title`
+- `engines.state.built`
 - `family.backgammon`
 - `family.chess`
 - `family.draughts`

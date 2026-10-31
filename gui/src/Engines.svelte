@@ -32,12 +32,13 @@
     ({
       installed: t("engines.state.installed", { path: s.path }),
       pulled: t("engines.state.pulled"),
+      built: t("engines.state.built"),
       pull: t("engines.state.pull"),
       noImage: t("engines.state.no_image"),
       noRuntime: t("engines.state.no_runtime"),
       gone: t("engines.state.gone", { path: s.path }),
     })[/** @type {string} */ (s.kind)];
-  const ready = (/** @type {any} */ e) => e.state.kind === "installed" || e.state.kind === "pulled";
+  const ready = (/** @type {any} */ e) => ["installed", "pulled", "built"].includes(e.state.kind);
 
   async function act(/** @type {Promise<any>} */ p) {
     busy = true;
