@@ -161,7 +161,7 @@ Everything is local in 0.3.0. Online sync comes later, on Bragd's own server.
   - A director can edit a rating. Every edit is kept in an audit log: who, when, old value, new value and why.
   - A Club is one file. Copying it shares it, and a lock stops two directors working on it at once.
 - **Rating lists:**
-  - FIDE, the Danish Chess Union (DSU), and every federation in Bragd's locale countries that publishes a usable list ([`reference/rating-lists.md`](reference/rating-lists.md)).
+  - FIDE, the Danish Chess Union (DSU), and every federation in Bragd's locale countries that publishes a usable list (the research page `reference/rating-lists.md` comes with 0.3.0).
   - The Helper fetches them monthly in the background, once you agree in the wizard.
   - At check-in, players are found in them by name or ID.
 - **Pairing systems:** Swiss (FIDE Dutch), Monrad, Nordic Swiss, round-robin (Berger tables), knockout, Scheveningen, team Leagues, and the Drop-in tournament ("spil når du vil").
