@@ -47,7 +47,18 @@ Until an image is published, you can build it yourself from a checkout of Bragd,
 | `tools/dev/images.sh --list` | Lists the images there are to build |
 | `tools/dev/run.sh --images` | Builds Bragd and the images, then starts Bragd with a throwaway home and `BRAGD_DEV_IMAGES=1` |
 
-Bragd runs an image built this way only when it is started with `BRAGD_DEV_IMAGES=1`, for example `env BRAGD_DEV_IMAGES=1 bragd-gui`. Without it, in any build, only images pinned by digest are run. Such an image is run sealed, like every other, and never pulled; its card says *Runs from its image built on this machine*. With `BRAGD_DEV_IMAGES=1`, a card of an Engine whose image is not published names the command that builds it.
+Bragd runs an image built this way only when it is started with `BRAGD_DEV_IMAGES=1`, for example `env BRAGD_DEV_IMAGES=1 bragd-gui`. Without it, in any build, only images pinned by digest are run. Such an image is run sealed, like every other, and never pulled; its card says *Container image built on this machine, ready.*. With `BRAGD_DEV_IMAGES=1`, a card of an Engine whose image is not published names the command that builds it.
+
+## Old image versions
+
+Every master build pushes the images again, so old versions pile up on ghcr.io. After each master build, `tools/ghcr-prune.py` deletes the old untagged ones. It keeps:
+
+- every tagged version, such as `latest`
+- every digest pinned on master and in the newest 3 releases, so a pinned image can always be pulled
+- the newest 5 untagged images
+- the amd64 and arm64 parts of every image it keeps
+
+It first lists what it keeps and why, and what it deletes.
 
 ## Settings and config.toml
 

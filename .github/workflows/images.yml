@@ -93,3 +93,32 @@ jobs:
           if [ "$PUSH" = true ]; then
             echo "::notice title=Pushed::$IMAGE:latest@$(jq -r '."containerimage.digest"' meta.json)"
           fi
+
+  # After a master build, old untagged versions on ghcr.io are deleted. Kept: every tagged
+  # version, every digest pinned in known.rs here and in the newest 3 release tags, the newest 5
+  # untagged images, and every per-platform manifest a kept index names (GHCR lists those as
+  # untagged versions of their own, so `latest`'s amd64 and arm64 manifests look untagged).
+  # tools/ghcr-prune.py prints what it keeps and why, and what it deletes, before deleting.
+  prune:
+    name: Prune old image versions
+    needs: [list, build]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && needs.list.outputs.engines != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the release tags, whose known.rs pins are kept
+      - name: Log in to ghcr.io
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+      - name: Delete old untagged versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/ghcr-prune.py

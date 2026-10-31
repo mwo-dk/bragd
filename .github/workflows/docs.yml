@@ -30,3 +30,5 @@ jobs:
       - run: python3 tools/workflow-shell-check.py
       # The release tooling's own test: release-pr.py in a throwaway repository.
       - run: python3 packaging/test_release_pr.py
+      # The engine image pruning's plan, against fixtures: what it keeps and what it deletes.
+      - run: python3 tools/ghcr-prune.py --self-test

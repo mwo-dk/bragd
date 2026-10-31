@@ -13,3 +13,10 @@ A folder holds:
 
 The image's licence, and the source it was built from, go into `org.opencontainers.image.*` labels
 and into `tools/bom/README.md`.
+
+After a master build, the same workflow deletes old untagged versions on ghcr.io with
+`tools/ghcr-prune.py`. It keeps every tagged version, every digest pinned in
+`crates/bragd-engines/src/known.rs` on master and in the newest 3 release tags, the newest 5
+untagged images, and the per-platform manifests of each image it keeps: GHCR lists those as
+untagged versions of their own. `python3 tools/ghcr-prune.py --self-test` checks the plan against
+`tools/fixtures/ghcr-prune/`.
