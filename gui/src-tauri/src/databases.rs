@@ -386,7 +386,7 @@ pub struct LibraryView {
     pub name: String,
     pub games: u64,
     pub size: String,
-    /// Games merged from more than one Source (at most `REVIEW`).
+    /// Games merged from more than one Source.
     pub duplicates: usize,
     pub near_duplicates: usize,
     pub slices: Vec<SliceView>,
@@ -422,7 +422,7 @@ pub fn libraries(cfg: &Config) -> Vec<LibraryView> {
                 Ok(lib) => {
                     v.games = lib.count().unwrap_or(0);
                     v.size = disk::bytes(lib.size());
-                    v.duplicates = lib.merged(REVIEW).map_or(0, |m| m.len());
+                    v.duplicates = lib.merged_count().map_or(0, |n| n as usize);
                     v.near_duplicates = lib.near_duplicate_count().map_or(0, |n| n as usize);
                     v.slices = lib.slices().unwrap_or_default().into_iter().map(|s| slice_view(p, s)).collect();
                 }

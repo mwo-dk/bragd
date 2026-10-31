@@ -700,6 +700,12 @@ impl Library {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
+    /// How many Games were merged from more than one Source: every Duplicate, not only the
+    /// ones `merged` lists.
+    pub fn merged_count(&self) -> Result<u64> {
+        Ok(self.conn.query_row("SELECT count(*) FROM (SELECT 1 FROM game_sources GROUP BY game_id HAVING count(*) > 1)", [], |r| r.get::<_, i64>(0))? as u64)
+    }
+
     /// A Game as kept, to show it: its Family, Variant, start position, main line and result.
     pub fn stored(&self, id: i64) -> Result<Stored> {
         let (family, variant, start, moves, result) = self.conn.query_row("SELECT family, variant, start, moves, result FROM games WHERE id = ?", [id], |r| {
@@ -1012,6 +1018,7 @@ pub(crate) mod tests {
         assert_eq!(import(&mut lib, &twic, "twic").merged, 1);
         assert_eq!(lib.sources(1).unwrap().len(), 2);
         assert_eq!(lib.merged(10).unwrap(), [1]);
+        assert_eq!((lib.merged(0).unwrap().len(), lib.merged_count().unwrap()), (0, 1), "counted past the list's limit");
         let s = lib.stored(1).unwrap();
         assert_eq!((s.family.as_str(), s.variant.as_str(), s.start.as_deref(), s.moves.len()), ("chess", "standard", None, 82));
         assert_eq!(&s.moves[..2], ["Nf3", "Nf6"]);

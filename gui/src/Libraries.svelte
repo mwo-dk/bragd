@@ -155,7 +155,7 @@
       </div>
       {#if job !== null}<JobLine id={job} ondone={load} />{/if}
       {#if review}
-        <h3>{t("lib.duplicates")} ({num(review.duplicates.length)})</h3>
+        <h3>{t("lib.duplicates")} ({num(lib.duplicates)})</h3>
         <ul class="review">
           {#each review.duplicates as [g, sources]}
             <li>
@@ -164,7 +164,7 @@
             </li>
           {/each}
         </ul>
-        <h3>{t("lib.near")} ({num(review.near.length)})</h3>
+        <h3>{t("lib.near")} ({num(lib.nearDuplicates)})</h3>
         <p class="hint">{t("lib.near_hint")}</p>
         <ul class="review">
           {#each review.near as [short, long]}
