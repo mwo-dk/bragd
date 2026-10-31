@@ -1,6 +1,6 @@
 {
  "board_theme.match": "Comme le thème",
- "board_theme.racing": "Vert de course",
+ "board_theme.racing": "Racing green",
  "board_theme.slate": "Ardoise",
  "board_theme.walnut": "Noyer",
  "common.apply": "Appliquer",
@@ -74,7 +74,7 @@
  "feature.tablebases.q2": "Quand une position est-elle envoyée à Lichess ?",
  "feature.tablebases.title": "Tables de finales",
  "feature.tablebases.what": "Jeu parfait pour les positions d’échecs à peu de pièces, à partir des tables Syzygy, transmises à tous les moteurs.",
- "feature.themes.a1": "Vert de course, propre à Bragd, construit sur les couleurs de son icône.",
+ "feature.themes.a1": "Racing green, propre à Bragd, construit sur les couleurs de son icône.",
  "feature.themes.a2": "Non. Un thème d’échiquier ne s’inverse jamais avec un thème sombre : les cases claires restent les plus claires.",
  "feature.themes.q1": "Quel est le thème par défaut ?",
  "feature.themes.q2": "Un thème sombre rend-il l’échiquier sombre ?",
@@ -158,7 +158,7 @@
  "setting.tablebases_path": "Dossier des tables de finales",
  "setting.tablebases_path.hint": "Vos tables Syzygy. Le dossier est transmis à chaque moteur.",
  "setting.theme": "Thème",
- "setting.theme.hint": "Les couleurs de l’application, et avec certains thèmes leurs propres formes. Vert de course est le thème par défaut.",
+ "setting.theme.hint": "Les couleurs de l’application, et avec certains thèmes leurs propres formes. Racing green est le thème par défaut.",
  "settings.area.engines": "Moteurs",
  "settings.area.families": "Familles de jeux",
  "settings.area.knowledge": "Connaissances",
@@ -219,8 +219,8 @@
  "theme.os2": "OS/2 Warp",
  "theme.paper": "Blanc papier",
  "theme.platinum": "Mac OS 9",
- "theme.racing-green": "Vert de course",
- "theme.racing-green-dark": "Vert de course (sombre)",
+ "theme.racing-green": "Racing green",
+ "theme.racing-green-dark": "Racing green (sombre)",
  "theme.spectrum": "ZX Spectrum",
  "theme.system7": "Mac System 7",
  "theme.win10": "Windows 10",
@@ -241,7 +241,7 @@
  "tour.families.title": "Chaque famille de jeux, prête à jouer",
  "tour.helper.text": "Un processus en arrière-plan récupère les sources comme TWIC selon un calendrier, et indexe et trouve les doublons pour chaque fenêtre.",
  "tour.helper.title": "L’assistant et les sources",
- "tour.themes.text": "Vert de course et 29 autres thèmes, ainsi que quatre thèmes d’échiquier, dans Réglages → Habillage.",
+ "tour.themes.text": "Racing green et 29 autres thèmes, ainsi que quatre thèmes d’échiquier, dans Réglages → Habillage.",
  "tour.themes.title": "Thèmes et thèmes d’échiquier",
  "update.available": "Bragd {version} est disponible",
  "update.download": "Téléchargez-la depuis la page des versions.",
@@ -370,7 +370,8 @@
  "db.game_files": "Fichiers de parties",
  "db.games": {
   "one": "{n} partie",
-  "other": "{n} parties"
+  "other": "{n} parties",
+  "many": "{n} de parties"
  },
  "db.import": "Importer dans la bibliothèque",
  "db.no_board": "Les coups de cette partie sont listés sans échiquier pour l’instant.",
@@ -420,7 +421,8 @@
  "disk.where": "Emplacement",
  "helper.active": {
   "one": "{n} tâche",
-  "other": "{n} tâches"
+  "other": "{n} tâches",
+  "many": "{n} de tâches"
  },
  "helper.connecting": "Connexion à l’assistant…",
  "helper.idle": "Assistant inactif",
@@ -519,7 +521,8 @@
  "source.any_family": "Toute famille",
  "source.days_ago": {
   "one": "il y a {n} jour",
-  "other": "il y a {n} jours"
+  "other": "il y a {n} jours",
+  "many": "il y a {n} de jours"
  },
  "source.disk_cap": "Garder au plus",
  "source.fetch_now": "Récupérer maintenant",

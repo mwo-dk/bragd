@@ -1,6 +1,6 @@
 {
  "board_theme.match": "Come il tema",
- "board_theme.racing": "Verde racing",
+ "board_theme.racing": "Racing green",
  "board_theme.slate": "Ardesia",
  "board_theme.walnut": "Noce",
  "common.apply": "Applica",
@@ -74,7 +74,7 @@
  "feature.tablebases.q2": "Quando una posizione viene inviata a Lichess?",
  "feature.tablebases.title": "Tablebase",
  "feature.tablebases.what": "Gioco perfetto per le posizioni di scacchi con pochi pezzi, dalle tabelle Syzygy, passate a ogni motore.",
- "feature.themes.a1": "Verde racing, proprio di Bragd, costruito sui colori della sua icona.",
+ "feature.themes.a1": "Racing green, proprio di Bragd, costruito sui colori della sua icona.",
  "feature.themes.a2": "No. Un tema della scacchiera non si inverte mai con un tema scuro: le case chiare restano le più chiare.",
  "feature.themes.q1": "Qual è il tema predefinito?",
  "feature.themes.q2": "Un tema scuro rende scura la scacchiera?",
@@ -158,7 +158,7 @@
  "setting.tablebases_path": "Cartella delle tablebase",
  "setting.tablebases_path.hint": "Le tue tabelle Syzygy. La cartella viene passata a ogni motore.",
  "setting.theme": "Tema",
- "setting.theme.hint": "I colori dell'app e, con alcuni temi, le loro forme. Verde racing è il tema predefinito.",
+ "setting.theme.hint": "I colori dell'app e, con alcuni temi, le loro forme. Racing green è il tema predefinito.",
  "settings.area.engines": "Motori",
  "settings.area.families": "Famiglie di giochi",
  "settings.area.knowledge": "Conoscenze",
@@ -219,8 +219,8 @@
  "theme.os2": "OS/2 Warp",
  "theme.paper": "Bianco carta",
  "theme.platinum": "Mac OS 9",
- "theme.racing-green": "Verde racing",
- "theme.racing-green-dark": "Verde racing (scuro)",
+ "theme.racing-green": "Racing green",
+ "theme.racing-green-dark": "Racing green (scuro)",
  "theme.spectrum": "ZX Spectrum",
  "theme.system7": "Mac System 7",
  "theme.win10": "Windows 10",
@@ -241,7 +241,7 @@
  "tour.families.title": "Ogni famiglia di giochi, pronta a giocare",
  "tour.helper.text": "Un processo in background scarica le fonti come TWIC secondo una pianificazione, e indicizza e trova i duplicati per ogni finestra.",
  "tour.helper.title": "L’assistente e le fonti",
- "tour.themes.text": "Verde racing e altri 29 temi, più quattro temi della scacchiera, in Impostazioni → Aspetto.",
+ "tour.themes.text": "Racing green e altri 29 temi, più quattro temi della scacchiera, in Impostazioni → Aspetto.",
  "tour.themes.title": "Temi e temi della scacchiera",
  "update.available": "È disponibile Bragd {version}",
  "update.download": "Scaricala dalla pagina delle versioni.",
@@ -370,7 +370,8 @@
  "db.game_files": "File di partite",
  "db.games": {
   "one": "{n} partita",
-  "other": "{n} partite"
+  "other": "{n} partite",
+  "many": "{n} di partite"
  },
  "db.import": "Importa in biblioteca",
  "db.no_board": "Le mosse di questa partita sono elencate per ora senza scacchiera.",
@@ -420,7 +421,8 @@
  "disk.where": "Dove",
  "helper.active": {
   "one": "{n} attività",
-  "other": "{n} attività"
+  "other": "{n} attività",
+  "many": "{n} di attività"
  },
  "helper.connecting": "Connessione all’assistente…",
  "helper.idle": "Assistente inattivo",
@@ -519,7 +521,8 @@
  "source.any_family": "Qualsiasi famiglia",
  "source.days_ago": {
   "one": "{n} giorno fa",
-  "other": "{n} giorni fa"
+  "other": "{n} giorni fa",
+  "many": "{n} di giorni fa"
  },
  "source.disk_cap": "Conserva al massimo",
  "source.fetch_now": "Scarica ora",
