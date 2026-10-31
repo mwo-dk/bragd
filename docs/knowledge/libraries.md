@@ -60,7 +60,11 @@ A PGN or PDN file, packed or not, and every zip is read as a stream, one Game at
 
 #### Does the Games list show only the Family I came from?
 
-No. A Library's Games tab lists all its Games, whatever their Family, filtered only by the player you type. Slices can be limited to one Family or Variant.
+Yes. On the chess page the Games tab lists the Library's chess Games, on the go page its go Games, and so on, filtered further by the player you type. The Libraries table counts every Game, whatever its Family. A Slice can be limited to one Variant of the Family as well.
+
+#### Which Variant ids does a Library store?
+
+The ids of Bragd's own Variants, the same as in *Settings → Game families* and `config.toml`: `chess`, `chess960`, `kingofthehill`, `draughts` (international), `checkers`, `draughts-russian`, `draughts-brazilian`, `xiangqi`, `shogi`, `go-9`, `go-13` and `go-19`. A PGN `Variant` tag of `Standard` or `From Position` is `chess`. A Variant Bragd does not play keeps its own name in lower case, without spaces: `threecheck`, `go-7`, `gametype-22`.
 
 ---
 [← Previous: Foreign databases](foreign-databases.md) · [Next: Duplicates →](duplicates.md)

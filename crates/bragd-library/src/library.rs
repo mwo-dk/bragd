@@ -143,7 +143,8 @@ CREATE TABLE IF NOT EXISTS slices (
 pub struct NewGame {
     /// `chess`, `draughts`, `xiangqi`, `shogi` or `go`.
     pub family: String,
-    /// `standard`, `chess960`, `international`, `english`, …
+    /// Its Variant, by `bragd_games`' id: `chess`, `chess960`, `draughts`, `checkers`, `go-19`, …
+    /// (`chess_variant`, `from_parsed`, `from_go`).
     pub variant: String,
     pub headers: Vec<(String, String)>,
     /// The main line's moves.
@@ -194,10 +195,9 @@ impl NewGame {
             b.play_unchecked(mv);
             keys.push(polyglot::key(&b));
         }
-        let variant = g.tag("Variant").map(|v| v.trim().to_ascii_lowercase()).filter(|v| !v.is_empty() && v != "standard" && v != "from position");
         NewGame {
             family: "chess".into(),
-            variant: variant.unwrap_or_else(|| "standard".into()),
+            variant: chess_variant(g.tag("Variant").unwrap_or("")),
             headers: g.tags.clone(),
             moves,
             start: (pgn::fen(&first) != pgn::fen(&cozy_chess::Board::default())).then(|| pgn::fen(&first)),
@@ -266,9 +266,10 @@ impl NewGame {
             ("Handicap", &i.handicap),
             ("Rules", &i.rules),
         ];
+        let variant = if i.width == i.height { format!("go-{}", i.width) } else { format!("go-{}x{}", i.width, i.height) };
         NewGame {
             family: "go".into(),
-            variant: "standard".into(),
+            variant,
             headers: headers.iter().filter(|h| !h.1.is_empty()).map(|(k, v)| (k.to_string(), v.to_string())).collect(),
             moves,
             start: (start != "SZ[19:19]").then_some(start.clone()),
@@ -374,20 +375,36 @@ impl Reader {
     }
 }
 
+/// A chess Variant's id, as `bragd_games` has it, from a PGN `Variant` tag as Lichess and others
+/// write it: none, `Standard` or `From Position` is `chess`; `Chess960` or `Fischerandom` is
+/// `chess960`; `King of the Hill` is `kingofthehill`. A Variant `bragd_games` does not have
+/// keeps its name, in lower case without spaces or punctuation (`threecheck`).
+pub fn chess_variant(tag: &str) -> String {
+    let plain: String = tag.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect();
+    match plain.as_str() {
+        "" | "standard" | "fromposition" | "normal" => "chess".into(),
+        "fischerandom" | "fischerrandom" | "960" => "chess960".into(),
+        _ => plain,
+    }
+}
+
 /// A parsed game as it goes into a Library, by whose games its file holds.
 fn from_parsed(format: Format, g: &pgn::Game) -> NewGame {
     match format {
         Format::Pdn => {
             let v = crate::draughts::variant(g);
+            // PDN GameType numbers; one `bragd_games` does not have keeps its number.
             let name = match (v.kind, v.width) {
-                (20, 10) => "international".to_string(),
-                (21, 8) => "english".to_string(),
+                (20, 10) => "draughts".to_string(),
+                (21, 8) => "checkers".to_string(),
+                (25, 8) => "draughts-russian".to_string(),
+                (26, 8) => "draughts-brazilian".to_string(),
                 (k, _) => format!("gametype-{k}"),
             };
             NewGame::from_family(g, "draughts", &name, "")
         }
-        Format::Xiangqi => NewGame::from_family(g, "xiangqi", "standard", crate::xiangqi::START),
-        Format::Kif | Format::Csa => NewGame::from_family(g, "shogi", "standard", crate::shogi::START),
+        Format::Xiangqi => NewGame::from_family(g, "xiangqi", "xiangqi", crate::xiangqi::START),
+        Format::Kif | Format::Csa => NewGame::from_family(g, "shogi", "shogi", crate::shogi::START),
         _ => NewGame::from_chess(g),
     }
 }
@@ -1020,7 +1037,7 @@ pub(crate) mod tests {
         assert_eq!(lib.merged(10).unwrap(), [1]);
         assert_eq!((lib.merged(0).unwrap().len(), lib.merged_count().unwrap()), (0, 1), "counted past the list's limit");
         let s = lib.stored(1).unwrap();
-        assert_eq!((s.family.as_str(), s.variant.as_str(), s.start.as_deref(), s.moves.len()), ("chess", "standard", None, 82));
+        assert_eq!((s.family.as_str(), s.variant.as_str(), s.start.as_deref(), s.moves.len()), ("chess", "chess", None, 82));
         assert_eq!(&s.moves[..2], ["Nf3", "Nf6"]);
         // With Lichess ranked first, merging again gives Lichess's spelling.
         lib.set_priority(&["lichess", "twic"]);
@@ -1128,19 +1145,25 @@ pub(crate) mod tests {
     fn every_family_imports() {
         let d = Dir::new("families");
         let files = [
-            ("g.sgf", "(;FF[4]GM[1]SZ[19]PB[Shusaku]PW[Gennan]RE[B+2];B[qd];W[dc];B[pq])(;FF[4]GM[1]SZ[19]PB[Shusaku]PW[Gennan]RE[B+2];B[qd];W[dc];B[pq])".to_string(), "go"),
-            ("g.pdn", "[White \"Anna\"]\n[Black \"Bram\"]\n[Result \"2-0\"]\n\n1. 32-28 19-23 2. 28x19 14x23 2-0\n".to_string(), "draughts"),
-            ("g.csa", "N+Habu\nN-Sato\nPI\n+\n+7776FU\n-3334FU\n%TORYO\n".to_string(), "shogi"),
-            ("x.pgn", "[Game \"Chinese Chess\"]\n[Red \"Hu\"]\n[Black \"Lin\"]\n[Result \"1-0\"]\n\n1. h2e2 h9g7 2. h0g2 1-0\n".to_string(), "xiangqi"),
+            ("g.sgf", "(;FF[4]GM[1]SZ[19]PB[Shusaku]PW[Gennan]RE[B+2];B[qd];W[dc];B[pq])(;FF[4]GM[1]SZ[19]PB[Shusaku]PW[Gennan]RE[B+2];B[qd];W[dc];B[pq])".to_string(), "go", "go-19"),
+            ("n.sgf", "(;FF[4]GM[1]SZ[9]PB[A]PW[B]RE[W+R];B[ee];W[cc])".to_string(), "go", "go-9"),
+            ("g.pdn", "[White \"Anna\"]\n[Black \"Bram\"]\n[Result \"2-0\"]\n\n1. 32-28 19-23 2. 28x19 14x23 2-0\n".to_string(), "draughts", "draughts"),
+            ("e.pdn", "[GameType \"21\"]\n[White \"Anna\"]\n[Black \"Bram\"]\n[Result \"2-0\"]\n\n1. 11-15 23-19 2-0\n".to_string(), "draughts", "checkers"),
+            ("g.csa", "N+Habu\nN-Sato\nPI\n+\n+7776FU\n-3334FU\n%TORYO\n".to_string(), "shogi", "shogi"),
+            ("x.pgn", "[Game \"Chinese Chess\"]\n[Red \"Hu\"]\n[Black \"Lin\"]\n[Result \"1-0\"]\n\n1. h2e2 h9g7 2. h0g2 1-0\n".to_string(), "xiangqi", "xiangqi"),
+            ("c.pgn", "[Variant \"Chess960\"]\n[White \"A\"]\n[FEN \"bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1\"]\n[SetUp \"1\"]\n\n1. e4 e5 *\n".to_string(), "chess", "chess960"),
+            ("s.pgn", "[Variant \"Standard\"]\n[White \"A\"]\n\n1. d4 d5 *\n".to_string(), "chess", "chess"),
         ];
         let mut lib = Library::open(&d.0.join("lib.bragd")).unwrap();
-        for (name, text, family) in files {
+        for (name, text, family, variant) in files {
             let p = d.0.join(name);
             std::fs::write(&p, text).unwrap();
             let got = import(&mut lib, &p, "club");
             assert!(got.added == 1 && got.skipped == 0, "{name}: {got:?}");
-            let (f, plies, white): (String, i64, String) = lib.conn().query_row("SELECT family, ply_count, white FROM games ORDER BY id DESC LIMIT 1", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
-            assert_eq!(f, family);
+            let (f, v, plies, white): (String, String, i64, String) = lib.conn().query_row("SELECT family, variant, ply_count, white FROM games ORDER BY id DESC LIMIT 1", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))).unwrap();
+            assert_eq!((f.as_str(), v.as_str()), (family, variant), "{name}");
+            // Bragd's Variant ids are `bragd_games`' own.
+            assert_eq!(bragd_games::Variant::from_key(&v).map(|x| bragd_games::Family::from_key(&f).is_some_and(|fam| fam.variants().any(|i| i.variant == x))), Some(true), "{name}: {v}");
             assert!(plies >= 2 && !white.is_empty(), "{name}: {plies} {white}");
         }
         // The go file's two games are one Game with the same Source twice.

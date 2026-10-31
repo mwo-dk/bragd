@@ -75,11 +75,6 @@ pub fn speed(time_control: Option<&str>, event: Option<&str>) -> Option<Speed> {
     .map(|&(_, s)| s)
 }
 
-/// A Variant's name as rules compare it: `Chess960`, `chess 960` and `chess960` are one.
-fn plain(s: &str) -> String {
-    s.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect()
-}
-
 /// Which Games of a Source are kept. Kept in the Helper's state with the Source's options.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -91,7 +86,8 @@ pub struct StripRule {
     pub speeds: Vec<Speed>,
     /// Strips Games whose Event says casual or unrated. A Game that does not say is rated.
     pub rated_only: bool,
-    /// The Variants kept (`standard`, `chess960`, `crazyhouse`, …).
+    /// The Variants kept, by name or id (`Standard` or `chess`, `Chess960`, `crazyhouse`, …),
+    /// compared as `library::chess_variant` writes them.
     pub variants: Vec<String>,
     /// The first and last dates kept, as PGN writes them (`2024.01.31`); a shorter date
     /// (`2024`, `2024.06`) means all of it. A Game without a known year is stripped.
@@ -141,7 +137,7 @@ impl StripRule {
         if self.rated_only && (event.contains("casual") || event.contains("unrated")) {
             return false;
         }
-        if !self.variants.is_empty() && !self.variants.iter().any(|v| plain(v) == plain(variant)) {
+        if !self.variants.is_empty() && !self.variants.iter().any(|v| crate::library::chess_variant(v) == crate::library::chess_variant(variant)) {
             return false;
         }
         if !self.date_from.trim().is_empty() || !self.date_to.trim().is_empty() {
@@ -311,7 +307,7 @@ mod tests {
     fn game(tags: &[(&str, &str)], plies: usize) -> NewGame {
         NewGame {
             family: "chess".into(),
-            variant: "standard".into(),
+            variant: "chess".into(),
             headers: tags.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
             moves: vec!["e4".into(); plies],
             result: "*".into(),
@@ -364,7 +360,9 @@ mod tests {
         assert!(keeps(rated_only.clone()) && !rated_only.keeps(&game(&[("Event", "Casual Blitz game")], 1)));
         assert!(!rated_only.keeps(&game(&[("Event", "FICS unrated blitz game")], 1)) && rated_only.keeps(&game(&[], 1)));
         let variants = |v: &[&str]| StripRule { variants: v.iter().map(|s| s.to_string()).collect(), ..Default::default() };
-        assert!(keeps(variants(&["Standard"])) && !keeps(variants(&["Chess960"])));
+        assert!(keeps(variants(&["Standard"])) && keeps(variants(&["chess"])) && !keeps(variants(&["Chess960"])));
+        let fischer = NewGame { variant: crate::library::chess_variant("Chess960"), ..game(&[], 1) };
+        assert!(variants(&["chess 960"]).keeps(&fischer) && !variants(&["Standard"]).keeps(&fischer));
         let dates = |f: &str, t: &str| StripRule { date_from: f.into(), date_to: t.into(), ..Default::default() };
         assert!(keeps(dates("2024", "2024")) && keeps(dates("2024.06.15", "2024.06")) && !keeps(dates("2024.07", "")) && !keeps(dates("", "2024.05")));
         assert!(!dates("2000", "").keeps(&game(&[("Date", "????.??.??")], 1)), "no year, no Game");

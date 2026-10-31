@@ -27,7 +27,7 @@ A Strip rule decides which of a Source's Games are kept, for example rating 2000
 | Rated Games only | Not casual or unrated by its Event |
 | Titled players only | A titled player. Lichess's BOT is not a title |
 | From, To | A date in the range, such as `2024.01` to `2024.12.31`. A Game with no known year fails |
-| Variants | One of these, as the Source writes them, such as `standard, chess960` |
+| Variants | One of these, by the Source's name or Bragd's id, such as `standard, chess960`. `Standard` and `chess` are one, as are `Chess960` and `chess 960` |
 | Players | One of these names, as the Source writes them, apart by commas |
 
 ## How the time control is told
