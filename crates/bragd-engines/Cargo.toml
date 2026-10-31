@@ -19,6 +19,8 @@ ureq = { version = "3", features = ["platform-verifier"] }
 # checked by their SHA-256. Decoding only (LZMA2), no encryption.
 sevenz-rust2 = { version = "0.24", default-features = false }
 sha2 = "0.11"
+# Tablebase files are checked against the BLAKE3 sums that come with Bragd.
+blake3 = "1.8"
 
 # A console engine started from the desktop app must not flash a console window.
 [target.'cfg(windows)'.dependencies]

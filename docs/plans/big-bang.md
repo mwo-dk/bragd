@@ -65,7 +65,7 @@ Each one is listed here, so the owner can overturn it in the morning.
 - Engine containers also get `--pull=never`, `--user 65534:65534`, a 256 MB `/tmp` and `LC_ALL=C`. The tablebase folder is mounted read-only at `/syzygy`.
 - Engine options are kept per engine in their own TOML file (`OptionStore`), not in `config.toml`. The caller chooses where the file goes.
 - A pull tries again after 5 s, 30 s and 2 min on a passing network or registry fault. After that it says "no network" or "the registry is busy". `next_try` gives the app 5 min, then 15 min, then hourly. An unknown fault counts as lasting.
-- The Syzygy plan reads the mirror's `bytes.tsv` (one request) for exact sizes. Downloads check each file's size but not its BLAKE3 sum yet.
+- The Syzygy plan reads the mirror's `bytes.tsv` (one request) for exact sizes. Downloads check each file's size and its BLAKE3 sum.
 - Reviews mark moves only where engines score in centipawns (chess, xiangqi, shogi, draughts). Go and backgammon reviews show evaluations without marks.
 - The KataGo image uses the g170e b15c192 network (48 MB), which is light enough for the CPU.
 

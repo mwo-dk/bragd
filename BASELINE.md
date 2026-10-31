@@ -22,4 +22,3 @@ What is settled, and what is known to be broken. Read this before starting work.
 - A custom URL Source can't be removed.
 - Bragd's Variant ids are not aligned with `bragd-games` (`standard`, `international`). Slices take the Library's id.
 - No real engine has been run: the Hub (Scan), gnubg and KataGo parsers, the janggi pass and the gnubg Position ID player order rest on documents only.
-- Tablebase downloads check size only, not BLAKE3.

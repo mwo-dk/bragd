@@ -1,0 +1,1 @@
+| **Tablebase downloads are checked by their BLAKE3 checksum, not only their size.** Bragd carries the checksum of every table of up to 6 pieces; a damaged file is not kept, and one already in the folder is downloaded again. | [Tablebases](engines/tablebases.md#is-a-download-checked) |
