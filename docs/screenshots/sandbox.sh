@@ -19,11 +19,18 @@ for b in $(type -ap podman docker 2>/dev/null) /usr/bin/podman /usr/bin/docker; 
   [ -e "$b" ] && no_containers+=(--ro-bind /dev/null "$(readlink -f "$b")")
 done
 
+# Mounted disks are hidden where the machine has them: a CI runner has no /run/media, and the
+# read-only root cannot get one.
+hide=()
+for d in /mnt /run/media; do
+  [ -d "$d" ] && hide+=(--tmpfs "$d")
+done
+
 # shellcheck disable=SC2086 # SANDBOX_ARGS is split into arguments on purpose
 exec bwrap \
   --ro-bind / / --dev /dev --proc /proc \
   "${no_containers[@]}" \
-  --tmpfs /tmp --tmpfs /home --tmpfs /mnt --tmpfs /run/media --tmpfs /opt \
+  --tmpfs /tmp --tmpfs /home --tmpfs /opt "${hide[@]}" \
   --bind "$demo" /home/demo \
   --ro-bind "$repo/target/release" /opt/bragd \
   --bind "$XDG_RUNTIME_DIR" "$XDG_RUNTIME_DIR" \
