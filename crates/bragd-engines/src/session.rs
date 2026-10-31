@@ -11,6 +11,7 @@ use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
 use crate::images;
+use crate::network::CONTAINER_NETWORK;
 use crate::options::OptionStore;
 use crate::protocol::{About, Best, Dialect, Event, Info, Limit, Position, Protocol, Score, Step};
 use crate::tools::{self, Runtime};
@@ -21,8 +22,9 @@ pub enum Program {
     /// A program installed here, with the arguments it needs (`gtp`, `--mode gtp`, `hub`).
     Installed { path: PathBuf, args: Vec<String> },
     /// A pinned image, run sealed (`images::sealed`) by the runtime `rt`, its tablebase folder
-    /// (when there is one) read-only at `/syzygy`.
-    Container { rt: Runtime, image: String, args: Vec<String>, syzygy: Option<PathBuf> },
+    /// (when there is one) read-only at `/syzygy`, and the evaluation network it needs (when it
+    /// needs one, `network`) read-only at `network::CONTAINER_NETWORK`.
+    Container { rt: Runtime, image: String, args: Vec<String>, syzygy: Option<PathBuf>, network: Option<PathBuf> },
 }
 
 /// Where a container sees the tablebases.
@@ -49,11 +51,11 @@ impl Program {
                 c.args(args).env("LC_ALL", "C");
                 (c, None)
             }
-            Program::Container { rt, image, args, syzygy } => {
+            Program::Container { rt, image, args, syzygy, network } => {
                 static N: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
                 let base = image.rsplit('/').next().unwrap_or("engine").split([':', '@']).next().unwrap_or("engine");
                 let name = format!("{base}-{}-{}", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
-                let mounts: Vec<(PathBuf, &str)> = syzygy.iter().map(|s| (s.clone(), CONTAINER_SYZYGY)).collect();
+                let mounts: Vec<(PathBuf, &str)> = syzygy.iter().map(|s| (s.clone(), CONTAINER_SYZYGY)).chain(network.iter().map(|n| (n.clone(), CONTAINER_NETWORK))).collect();
                 // Probed once per runtime and image, so `sealed` leaves out bounds it cannot keep.
                 images::bounds_work(&rt.path, image);
                 let mut c = images::sealed(rt, &name, image, &mounts);
@@ -96,6 +98,8 @@ pub struct Engine {
     /// A container's runtime and name: stopped by it too, as killing `podman run` leaves the
     /// container running.
     container: Option<(PathBuf, String)>,
+    /// It runs in a container given its network at `CONTAINER_NETWORK`.
+    network: bool,
 }
 
 impl Drop for Engine {
@@ -129,7 +133,8 @@ impl Engine {
         // Ends when the engine's output closes, at the latest when Drop kills it.
         std::thread::spawn(move || read_lines(BufReader::new(stdout), |l| tx.send(l).is_ok()));
         let dialect = protocol.dialect();
-        let mut e = Engine { child, stdin, out, dialect, about: About::default(), queued: VecDeque::new(), container };
+        let network = matches!(program, Program::Container { network: Some(_), .. });
+        let mut e = Engine { child, stdin, out, dialect, about: About::default(), queued: VecDeque::new(), container, network };
         let hello = e.dialect.hello();
         e.send(&hello)?;
         let deadline = Instant::now() + wait;
@@ -164,14 +169,20 @@ impl Engine {
         self.dialect.protocol()
     }
 
-    /// Sends the options the user set for this engine (`OptionStore::to_send`), and the
-    /// tablebase folder to an engine that takes one. The options not sent come back with why.
+    /// Sends the options the user set for this engine (`OptionStore::to_send`), the tablebase
+    /// folder to an engine that takes one, and its network to an image given one (`EvalFile`).
+    /// The options not sent come back with why.
     pub fn configure(&mut self, store: &OptionStore, syzygy: Option<&str>) -> std::io::Result<Vec<(String, String)>> {
         let (send, ignored) = store.to_send(&self.about, self.container.is_some());
         let mut text: String = send.iter().map(|(n, v)| self.dialect.set_option(n, v)).collect();
         if let (Some(path), Some(o)) = (syzygy.filter(|p| !p.is_empty()), self.about.option("SyzygyPath")) {
             let path = if self.container.is_some() { CONTAINER_SYZYGY } else { path };
             text.push_str(&self.dialect.set_option(&o.name, path));
+        }
+        if self.network
+            && let Some(o) = self.about.option("EvalFile")
+        {
+            text.push_str(&self.dialect.set_option(&o.name, CONTAINER_NETWORK));
         }
         self.send(&text)?;
         Ok(ignored)
@@ -452,6 +463,36 @@ mod tests {
         assert_eq!(e.about().name, "GNU Go 3.8");
         let a = think(&mut e, &Position::new("go-9", &["E5"]), Limit::Time(1000), 1, &|| false, &mut |_| {}).unwrap();
         assert_eq!(a.best.as_deref(), Some("C3"));
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// An image given its network gets it read-only, and is told where it is (`EvalFile`); an
+    /// engine without one is told nothing of it.
+    #[test]
+    fn an_image_is_given_its_network_read_only() {
+        let rt = Runtime { name: "podman", path: PathBuf::from("/nonexistent/podman") };
+        let net = PathBuf::from("/data/bragd/networks/pikafish/pikafish.nnue");
+        let p = Program::Container { rt, image: "ghcr.io/x/bragd-pikafish:1@sha256:3".into(), args: vec![], syzygy: None, network: Some(net) };
+        let (c, _) = p.command();
+        let args: Vec<String> = c.get_args().map(|a| a.to_string_lossy().into_owned()).collect();
+        assert!(args.contains(&format!("type=bind,\"source=/data/bragd/networks/pikafish/pikafish.nnue\",target={CONTAINER_NETWORK},readonly")), "{args:?}");
+        let d = crate::test_dir("evalfile");
+        let log = d.join("sent");
+        let engine = crate::fake_program(
+            &d,
+            "engine",
+            &format!("while read l; do echo \"$l\" >> '{}'; case \"$l\" in uci) echo 'id name Pikafish 2026-09-06'; echo 'option name EvalFile type string default pikafish.nnue'; echo uciok;; isready) echo readyok;; quit) exit 0;; esac; done", log.display()),
+        );
+        for network in [false, true] {
+            let mut e = Engine::start(&installed(engine.clone()), Protocol::Uci, Duration::from_secs(10), &|| false).unwrap();
+            // As `start` sets it for a container given a network.
+            e.network = network;
+            e.configure(&OptionStore::default(), None).unwrap();
+            drop(e);
+            let sent = std::fs::read_to_string(&log).unwrap();
+            assert_eq!(sent.contains(&format!("setoption name EvalFile value {CONTAINER_NETWORK}")), network, "{sent}");
+            std::fs::remove_file(&log).unwrap();
+        }
         std::fs::remove_dir_all(&d).unwrap();
     }
 }

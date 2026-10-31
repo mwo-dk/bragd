@@ -59,6 +59,7 @@ export const engineSetOption = (/** @type {string} */ key, /** @type {string} */
 export const engineResetOptions = (/** @type {string} */ key) => invoke("engine_reset_options", { key });
 /** @returns {Promise<void>} */
 export const enginePull = (/** @type {string} */ key) => invoke("engine_pull", { key });
+export const engineNetworkDownload = (/** @type {string} */ key) => invoke("engine_network_download", { key });
 /** @returns {Promise<{engines: {key: string, name: string, ready: boolean}[], default: string|null, sides: string[]}>} */
 export const engineChoices = (/** @type {string} */ variant) => invoke("engine_choices", { variant });
 /** @returns {Promise<{entry: string, notation: string}>} */

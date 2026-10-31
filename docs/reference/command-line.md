@@ -41,7 +41,7 @@ The registration is a systemd user unit on Linux, a LaunchAgent on macOS, a Run 
 
 | Variable | Read by | What it does |
 |---|---|---|
-| `BRAGD_OFFLINE` | `bragd-gui` | Set to anything: nothing is asked online. No update check, no tablebase download or lookup |
+| `BRAGD_OFFLINE` | `bragd-gui` | Set to anything: nothing is asked online. No update check, no tablebase download or lookup, no engine network download |
 | `BRAGD_WINDOW_SIZE` | `bragd-gui` | `WxH`, such as `1100x760`: the window's size at start. Used for screenshots |
 
 Other `BRAGD_` variables in the code are read only by tests.

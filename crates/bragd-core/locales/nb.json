@@ -693,5 +693,15 @@
  "source.route_new": "New Library…",
  "source.route_new_name": "Name of the new Library",
  "source.route_remove": "Remove this Route",
- "source.route_add": "Add a Route"
+ "source.route_add": "Add a Route",
+ "engines.network.present": "Its evaluation network is downloaded.",
+ "engines.network.absent": "Its image needs its evaluation network, which Bragd does not ship: {size} to download, once you agree to its licence.",
+ "engines.network.downloading": "Downloading its evaluation network: {done}",
+ "engines.network.failed": "The network could not be downloaded: {why}",
+ "engines.network.read": "Read the network's licence…",
+ "engines.network.title": "{name}'s evaluation network",
+ "engines.network.intro": "{name}'s image needs this network to play. It comes under its own licence, below, so Bragd does not ship it. If you agree, Bragd downloads {name}'s release ({size}), checks it, and keeps only the network, in Bragd's data folder. An installed {name} does not need it.",
+ "engines.network.from": "From: {url}",
+ "engines.network.agree": "Agree and download {size}",
+ "engines.network.missing": "{name}'s image needs its evaluation network. Download it on the Engines page, under its licence."
 }

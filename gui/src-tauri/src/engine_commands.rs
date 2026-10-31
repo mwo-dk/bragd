@@ -31,6 +31,11 @@ pub fn engines_page(family_key: String, ctx: Managed<'_, Ctx>, held: Managed<'_,
 }
 
 #[tauri::command]
+pub fn engine_network_download(key: String, held: Managed<'_, engines::Held>) -> Res<()> {
+    engines::download_network(&held, &key)
+}
+
+#[tauri::command]
 pub fn engine_default(variant: String, engine: String, ctx: Managed<'_, Ctx>) -> Res<()> {
     keep(&ctx, engines::set_default(&variant, &engine)).map(drop)
 }

@@ -28,7 +28,8 @@ crate = "ring"
 provides = ["aes-128-gcm", "aes-256-gcm", "chacha20-poly1305", "sha-256", "sha-384", "x25519", "ecdh-p256", "ecdh-p384", "ecdsa-p256", "ecdsa-p384", "ed25519", "rsa-pss", "rsa-pkcs1"]
 
 # SHA-256 in the desktop app's webview layer: tauri-codegen (at build time) and wry hash the
-# app's own scripts and styles into the Content-Security-Policy. No user data is hashed.
+# app's own scripts and styles into the Content-Security-Policy. No user data is hashed. Bragd
+# itself checks Pikafish's release archive and its evaluation network against their digests.
 [[library]]
 crate = "sha2"
 provides = ["sha-256"]
@@ -135,7 +136,8 @@ primitive = "hash"
 oid = "2.16.840.1.101.3.4.2.1"
 param_set = "256"
 functions = ["digest"]
-purpose = "TLS handshake transcript and key schedule"
+purpose = "TLS handshake transcript and key schedule; the Content-Security-Policy's script hashes; checking a downloaded engine network against its digest"
+found = [{ file = "crates/bragd-engines/src/network.rs", pattern = "hash: Sha256::new()" }]
 
 [[asset]]
 ref = "sha-384"

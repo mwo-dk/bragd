@@ -13,18 +13,48 @@ use bragd_engines::known::{self, Known, Missing};
 use bragd_engines::options::{self, EngineInfo, OptionStore};
 use bragd_engines::seam::{self, Notation};
 use bragd_engines::session::{Engine, Program, Session, think};
-use bragd_engines::{Limit, Protocol, images, tools};
+use bragd_engines::{Limit, Protocol, images, network, tools};
 use bragd_games::{Family, Variant};
 use serde::Serialize;
 use serde_json::Value;
 
 /// What the Engines items keep between calls: each engine's options as it last said them,
-/// the engine playing a Side, and the pulls under way.
+/// the engine playing a Side, the pulls under way, and the network downloads, by engine.
 #[derive(Default)]
 pub struct Held {
     info: Mutex<HashMap<String, EngineInfo>>,
     playing: Mutex<Option<(String, Engine)>>,
     pulls: std::sync::Arc<Mutex<HashMap<String, String>>>,
+    networks: std::sync::Arc<Mutex<HashMap<String, NetworkJob>>>,
+}
+
+/// A network download under way or done.
+#[derive(Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkJob {
+    done: u64,
+    total: u64,
+    finished: bool,
+    error: Option<String>,
+}
+
+/// The evaluation network an engine's image needs, as its card shows it.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkView {
+    /// Downloaded and checked.
+    present: bool,
+    /// What one download takes, and where from.
+    size: String,
+    from: String,
+    /// The licence the user agrees to, as the release ships it.
+    licence: String,
+    job: Option<NetworkJob>,
+}
+
+/// Where the networks engine images need are kept: `<data>/bragd/networks`.
+pub fn networks_folder() -> PathBuf {
+    bragd_core::dirs::data_dir().unwrap_or_default().join("bragd").join("networks")
 }
 
 pub fn tr(key: &str, args: &[(&str, &str)]) -> String {
@@ -109,7 +139,7 @@ pub fn availability(cfg: &Config, key: &str) -> Availability {
 pub fn resolve(cfg: &Config, key: &str, variant: &str) -> Result<Chosen, String> {
     if let Some(k) = known::known(key) {
         let rt = k.image().and_then(|_| runtime(cfg));
-        let program = known::choose(k, installed(cfg, key, Some(k)), rt.as_ref(), |rt, i| !images::pulled(&rt.path, &[i.to_string()]).is_empty(), Some(&tablebase_folder(cfg))).map_err(|m| missing(k, &m))?;
+        let program = known::choose(k, installed(cfg, key, Some(k)), rt.as_ref(), |rt, i| !images::pulled(&rt.path, &[i.to_string()]).is_empty(), Some(&tablebase_folder(cfg)), &networks_folder()).map_err(|m| missing(k, &m))?;
         return Ok(Chosen { key: key.into(), program, protocols: vec![k.protocol(variant)] });
     }
     let family = cfg.engines.added.get(key).and_then(|f| Family::from_key(f)).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
@@ -121,6 +151,7 @@ fn missing(k: &Known, m: &Missing) -> String {
     match m {
         Missing::NotPulled { .. } => tr("engines.state.pull", &[]),
         Missing::NoRuntime => tr("engines.state.no_runtime", &[]),
+        Missing::NoNetwork => tr("engines.network.missing", &[("name", k.name)]),
         Missing::NoImage => format!("{} {}", tr("engines.state.no_image", &[]), tr("engines.install_hint", &[("program", k.programs[0]), ("site", k.site)])),
     }
 }
@@ -161,6 +192,8 @@ pub struct EngineRow {
     /// Its pull under way: the runtime's last line, or why it failed.
     pulling: Option<String>,
     variants: Vec<String>,
+    /// The network its image needs, when it needs one and is not installed.
+    network: Option<NetworkView>,
 }
 
 #[derive(Serialize)]
@@ -197,6 +230,7 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
     }
     let pulling = images::pulling();
     let failed = held.pulls.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    let downloads = held.networks.lock().unwrap_or_else(|e| e.into_inner()).clone();
     let engines = keys
         .into_iter()
         .map(|key| {
@@ -209,7 +243,15 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             };
             let image = k.and_then(Known::image);
             let variants = family.variants().filter(|v| engines_for(cfg, v.key).contains(&key)).map(|v| tr(&format!("variant.{}", v.key), &[])).collect();
+            let network = network::for_engine(&key).filter(|_| !matches!(state, Availability::Installed { .. })).map(|n| NetworkView {
+                present: n.path(&networks_folder()).is_file(),
+                size: bragd_helper::disk::bytes(n.archive_size),
+                from: n.archive.to_string(),
+                licence: n.licence.to_string(),
+                job: downloads.get(&key).cloned(),
+            });
             EngineRow {
+                network,
                 name: k.map_or_else(|| key.clone(), |k| k.name.to_string()),
                 added: k.is_none(),
                 pulling: image.as_ref().and_then(|i| pulling.get(i).cloned()).or_else(|| failed.get(&key).cloned()),
@@ -221,6 +263,37 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
         })
         .collect();
     Page { variants, engines }
+}
+
+/// Downloads the network the engine `key`'s image needs, on a thread; the page asks how far
+/// it is. Pressed under the network's licence, which is the user's consent to it.
+pub fn download_network(held: &Held, key: &str) -> Result<(), String> {
+    if crate::analyse::offline() {
+        return Err(tr("tablebases.offline", &[]));
+    }
+    let n = network::for_engine(key).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
+    let jobs = held.networks.clone();
+    {
+        let mut all = jobs.lock().unwrap_or_else(|e| e.into_inner());
+        if all.get(key).is_some_and(|j| !j.finished) {
+            return Err(tr("tablebases.busy", &[]));
+        }
+        all.insert(key.into(), NetworkJob { total: n.archive_size, ..Default::default() });
+    }
+    let key = key.to_string();
+    std::thread::spawn(move || {
+        let r = n.download(&networks_folder(), &bragd_engines::fetch::Http, &mut |done, total| {
+            if let Some(j) = jobs.lock().unwrap_or_else(|e| e.into_inner()).get_mut(&key) {
+                (j.done, j.total) = (done, total);
+            }
+            true
+        });
+        if let Some(j) = jobs.lock().unwrap_or_else(|e| e.into_inner()).get_mut(&key) {
+            j.finished = true;
+            j.error = r.err();
+        }
+    });
+    Ok(())
 }
 
 /// Chooses the engine `engine` for `variant` (empty: automatic).

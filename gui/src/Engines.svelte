@@ -1,6 +1,8 @@
 <script>
   // The Engines item of a Family: each engine Bragd knows or was given, where it stands, the
-  // engine each Variant uses, and an engine's options. Rust finds, checks and saves all of it.
+  // engine each Variant uses, and an engine's options. An image that needs an evaluation network
+  // Bragd does not ship (Pikafish's) shows its licence first; agreeing downloads it. Rust finds,
+  // checks, downloads and saves all of it.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
 
@@ -13,13 +15,15 @@
   let busy = $state(false);
   /** The engine whose options are open, and for which Variant. @type {{key: string, info: any} | null} */
   let opts = $state(null);
+  /** The engine whose network's licence is shown. @type {any} */
+  let licence = $state(null);
 
   const fail = (/** @type {any} */ e) => (error = String(e));
   const load = () => api.enginesPage(family.id).then((p) => ((page = p), (error = ""))).catch(fail);
   load();
-  // A pull under way shows its progress.
+  // A pull or a network download under way shows its progress.
   $effect(() => {
-    if (!page?.engines.some((/** @type {any} */ e) => e.pulling)) return;
+    if (!page?.engines.some((/** @type {any} */ e) => e.pulling || (e.network?.job && !e.network.job.finished))) return;
     const id = setInterval(load, 1000);
     return () => clearInterval(id);
   });
@@ -107,10 +111,22 @@
           <p class="state">{stateText(e.state)}</p>
           {#if e.hint}<p class="dim">{e.hint}</p>{/if}
           {#if e.pulling}<p class="dim">{e.pulling}</p>{/if}
+          {#if e.network}
+            {@const job = e.network.job}
+            <p class="dim">
+              {#if e.network.present}{t("engines.network.present")}
+              {:else if job && !job.finished}{t("engines.network.downloading", { done: Math.round((100 * job.done) / Math.max(job.total, 1)) + "%" })}
+              {:else}{t("engines.network.absent", { size: e.network.size })}{/if}
+            </p>
+            {#if job?.error}<p class="error">{t("engines.network.failed", { why: job.error })}</p>{/if}
+          {/if}
           <p class="dim">{t("engines.plays", { variants: e.variants.join(", ") })}</p>
           <div class="actions">
             {#if e.state.kind === "pull"}
               <button class="primary" disabled={busy || !!e.pulling} onclick={() => act(api.enginePull(e.key))}>{t("engines.pull")}</button>
+            {/if}
+            {#if e.network && !e.network.present}
+              <button disabled={busy || (e.network.job && !e.network.job.finished)} onclick={() => (licence = e)}>{t("engines.network.read")}</button>
             {/if}
             {#if ready(e)}
               <button disabled={busy} onclick={() => showOptions(e)}>{t("engines.options")}</button>
@@ -122,6 +138,21 @@
         </article>
       {/each}
     </div>
+
+    {#if licence}
+      <div class="veil" role="presentation" onclick={(ev) => ev.target === ev.currentTarget && (licence = null)} onkeydown={(ev) => ev.key === "Escape" && (licence = null)}>
+        <div class="panel consent" role="dialog" aria-modal="true" aria-labelledby="consent-title">
+          <h2 id="consent-title">{t("engines.network.title", { name: licence.name })}</h2>
+          <p>{t("engines.network.intro", { name: licence.name, size: licence.network.size })}</p>
+          <pre class="licence">{licence.network.licence}</pre>
+          <p class="dim">{t("engines.network.from", { url: licence.network.from })}</p>
+          <div class="actions">
+            <button class="primary" onclick={() => (act(api.engineNetworkDownload(licence.key)), (licence = null))}>{t("engines.network.agree", { size: licence.network.size })}</button>
+            <button onclick={() => (licence = null)}>{t("common.cancel")}</button>
+          </div>
+        </div>
+      </div>
+    {/if}
 
     {#if opts}
       <section class="panel options">
@@ -237,5 +268,33 @@
   }
   .error {
     color: var(--red);
+  }
+  .veil {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgb(0 0 0 / 0.35);
+  }
+  .consent {
+    max-width: 40rem;
+    max-height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .licence {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 0.85em;
+    background: var(--alt);
+    padding: 0.6rem;
+    margin: 0;
+    max-height: 18rem;
+    overflow: auto;
   }
 </style>

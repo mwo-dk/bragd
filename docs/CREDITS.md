@@ -11,3 +11,4 @@
 | Runic font, and the lettering of the wordmark, splash and icons | The Noto Project Authors (Noto Sans Runic 2.002) | SIL OFL 1.1; the font is bundled with `OFL.txt` | `assets/fonts/`, `assets/brand/` |
 | Brand art: icon, splash | Bragd's author | MIT | `assets/brand/` |
 | Opening names | lichess.org `chess-openings` | CC0 | `crates/bragd-library/` |
+| Pikafish's evaluation network (`pikafish.nnue`), not shipped | The Pikafish developers | Pikafish NNUE-License: legal use only, no commercial use without permission. Bragd does not bundle it: with your consent it is downloaded from Pikafish's own release; the licence shown is in `crates/bragd-engines/licences/pikafish-nnue.md` | `<data>/bragd/networks/pikafish/` |

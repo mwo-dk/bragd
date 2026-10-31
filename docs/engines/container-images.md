@@ -27,7 +27,7 @@ When an Engine is not installed, Bragd can run it from a sealed container image 
 |---|---|
 | Which image | Only the one pinned by digest (`name:tag@sha256:…`). A tag alone is never pulled |
 | Network | None (`--network=none`). A run never pulls (`--pull=never`) |
-| Files | A read-only root, a 256 MB `/tmp` in memory, the tablebase folder read-only at `/syzygy` |
+| Files | A read-only root, a 256 MB `/tmp` in memory, the tablebase folder read-only at `/syzygy`, and Pikafish's network read-only at `/network.nnue` |
 | Rights | No capabilities, no new privileges, user `65534:65534` (nobody) |
 | Bounds | 3 GB of memory and 256 processes, unless a rootless podman cannot keep them |
 | Pulls | Progress shows on the card. A passing network or registry fault is tried again after 5 s, 30 s and 2 min |
@@ -51,7 +51,13 @@ No. An installed Engine is always used first. The image is only for an Engine th
 
 #### Can an Engine in a container reach the network or my files?
 
-No. It runs with no network, a read-only filesystem, no capabilities and an unprivileged user. The only folder it sees is the tablebase folder, read-only.
+No. It runs with no network, a read-only filesystem, no capabilities and an unprivileged user. The only folder it sees is the tablebase folder, read-only, and Pikafish sees its network file, read-only.
+
+#### Why does the Pikafish image need a download of its own?
+
+Pikafish's evaluation network comes under its own licence: legal use only, and no commercial use without permission. So Bragd's Pikafish image holds only the program. Its card on the xiangqi Engines page says the network is missing, with **Read the network's licence…**. That shows the licence as Pikafish's release has it, the size and where it comes from. **Agree and download** downloads Pikafish's own release archive, about 53.6 MB, from GitHub. Bragd checks the archive against its SHA-256, takes `pikafish.nnue` out of it, checks that too, and keeps only the network, in `<data>/bragd/networks/pikafish/`. The image then gets it read-only, and Bragd sets its `EvalFile` option to it. Nothing is downloaded until you agree, and `BRAGD_OFFLINE` stops it. An installed Pikafish brings its own network and needs none of this.
+
+![The licence of Pikafish's evaluation network shown before anything is downloaded, with Agree and download and Cancel](../screenshots/engines-network-licence-1100.png)
 
 #### Will Bragd remove my other images?
 

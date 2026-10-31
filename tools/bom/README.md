@@ -56,3 +56,7 @@ same list.
 Bragd ships no container image in a release, but it runs images of its own
 (`packaging/images/<engine>`, built by `.github/workflows/images.yml`). Each image's licence, the
 licences of what it holds, and where its source is, are listed here when its folder is added.
+
+| Image | Licence | Holds | Source |
+|---|---|---|---|
+| `bragd-pikafish` | GPL-3.0-only | `/pikafish` and its `COPYING`. Not its evaluation network: that one's NNUE-License forbids commercial use without permission, so it is downloaded only with the user's consent, from the release, into Bragd's data folder (`bragd_engines::network`) | Pikafish 2026-09-06 release, by digest (`packaging/images/pikafish/Dockerfile`) |

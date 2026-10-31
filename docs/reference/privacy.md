@@ -25,6 +25,7 @@ Bragd sends nothing unless you ask, with one exception: the update check, which 
 | Tablebase downloads | When you press **Download**, or **Done** in the wizard with Syzygy ticked | Requests for the files | `tablebase.lichess.ovh` | Untick Syzygy in the wizard; do not press Download ([Tablebases](../engines/tablebases.md)) |
 | Tablebase lookups | In Analyse, for a chess position of seven pieces or fewer that your tables do not cover | The position, as a FEN | the Lichess tablebase API, `tablebase.lichess.ovh` | *Ask Lichess for tablebase positions* off (`tablebases.online`) |
 | Engine images | When you press **Download image** | A pull of the pinned image | `ghcr.io` | Do not press it, or turn off `engines.containers`. No image is published yet ([Engine container images](../engines/container-images.md)) |
+| Pikafish's evaluation network | When you press **Agree and download** under its licence on the Engines page | A request for Pikafish's release archive | `github.com`, Pikafish's release | Do not press it. An installed Pikafish needs none ([Engine container images](../engines/container-images.md#why-does-the-pikafish-image-need-a-download-of-its-own)) |
 
 An Engine Bragd runs from an image has no network at all. An installed Engine is your own program: Bragd gives it no network rules.
 
@@ -59,7 +60,7 @@ These open a page in your browser. Bragd itself sends nothing:
 | Ask Lichess for tablebase positions | `tablebases.online` | `true` | Send a position your tables do not cover to the Lichess tablebase API |
 | Pull an Engine that is not installed | `engines.containers` | `true` | Allow pulling an Engine's image when you ask |
 
-Setting `BRAGD_OFFLINE` in the environment also stops the update check and every tablebase download and lookup ([Command line](command-line.md#environment-variables)).
+Setting `BRAGD_OFFLINE` in the environment also stops the update check, every tablebase download and lookup, and the network download ([Command line](command-line.md#environment-variables)).
 
 ## Questions
 

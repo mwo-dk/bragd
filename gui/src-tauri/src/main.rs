@@ -313,6 +313,7 @@ fn main() {
             knowledge::disk_report,
             knowledge::disk_limits_set,
             engine_commands::engines_page,
+            engine_commands::engine_network_download,
             engine_commands::engine_default,
             engine_commands::engine_add,
             engine_commands::engine_remove,

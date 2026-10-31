@@ -30,6 +30,7 @@ In the Flatpak, the XDG folders are the app's own: `~/.var/app/io.github.mwo_dk.
 | data/`state.json` | What Bragd remembers that is not a setting: the wizard seen, the last version whose cards you saw, the last update check, notices closed, hints shown |
 | data/`libraries/` | Your Libraries, such as `main.bragd`, with their `-wal` and `-shm` files. Moved by `knowledge.library` |
 | data/`tablebases/` | Syzygy tables. Moved by `tablebases.path` |
+| data/`networks/pikafish/pikafish.nnue` | Pikafish's evaluation network, for its image, downloaded once you agree to its licence |
 | data/`helper/` | The Helper's folder |
 | data/`helper/helper.lock` | Held while a Helper runs, so only one runs |
 | data/`helper/helper.sock` | Where windows reach the Helper (Unix). On Windows it listens on a loopback port instead |
