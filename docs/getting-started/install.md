@@ -75,6 +75,10 @@ No. It checks for a newer release and shows the command that upgrades your copy,
 
 The `.deb` on Debian and Ubuntu, the `.rpm` on Fedora and openSUSE, and the AppImage anywhere else. The Flatpak bundle keeps Bragd in its own sandbox. The Nix flake suits NixOS.
 
+#### Why does the Homebrew cask clear the quarantine flag?
+
+Bragd's macOS app is not yet signed and notarised by Apple. macOS marks everything downloaded with a quarantine flag, and Gatekeeper refuses an unnotarised app that carries one: it says the app is damaged and offers only to move it to the Bin. So after installing, the cask runs `xattr -cr` on `Bragd.app` to clear the flag. That also means Gatekeeper does not check the app when it first opens. The cask's download is still checked against its SHA-256. Once releases are notarised, the cask will stop clearing the flag.
+
 #### Why are there two programs?
 
 `bragd-helper` fetches Sources, imports and finds Duplicates in the background, for every open window. The window starts the copy beside its own program when none runs ([The Helper](../knowledge/helper.md)).
