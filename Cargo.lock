@@ -416,6 +416,8 @@ dependencies = [
 name = "bragd-library"
 version = "0.1.0"
 dependencies = [
+ "bragd-core",
+ "bragd-games",
  "bzip2",
  "cozy-chess",
  "encoding_rs",

@@ -2,7 +2,7 @@
 
 # Export to Parquet
 
-A Library can be written out as a Parquet file, for DuckDB or any other tool that reads Parquet to query. The export is a copy: the Library stays the store, and nothing reads the Parquet file back into Bragd.
+A Library can be written out as a Parquet file, for DuckDB or any other tool that reads Parquet to query. The export is a copy: the Library stays the store, and nothing reads the Parquet file back into Bragd. In F1 this is the `parquet` entry.
 
 ![The Libraries tab with Export to Parquet under the chosen Library's tabs](../screenshots/databases-libraries-1100.png)
 *Databases → Libraries.*

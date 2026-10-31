@@ -741,6 +741,8 @@
  "engines.none_ready": "No engine for this variant is ready yet.",
  "setting.file_picker": "File picker",
  "setting.file_picker.hint": "The dialog that opens and saves files. Coxswain's picker needs coxswain-gui on your PATH; without it the system's dialog opens.",
+ "setting.max_unpack_ratio": "Largest unpacking ratio",
+ "setting.max_unpack_ratio.hint": "A packed game file may unpack to this many times its own size. Past that the import stops, since the file is taken for a bomb. A Lichess month unpacks to about 7 times its size.",
  "settings.file_picker_auto": "Automatic: the system's dialog, as Coxswain is not found",
  "settings.file_picker_auto_found": "Automatic: Coxswain's picker, found on your PATH",
  "settings.file_picker_system": "The system's dialog",

@@ -114,7 +114,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 15] = [
+const OTHER_OPTS: [Opt; 16] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -148,6 +148,12 @@ const OTHER_OPTS: [Opt; 15] = [
         &["knowledge", "source_priority"],
         Knowledge,
         "setting.source_priority",
+    ),
+    opt(
+        "max_unpack_ratio",
+        &["knowledge", "max_unpack_ratio"],
+        Knowledge,
+        "setting.max_unpack_ratio",
     ),
     opt(
         "tablebases_path",

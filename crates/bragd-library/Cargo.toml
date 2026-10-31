@@ -7,6 +7,8 @@ publish.workspace = true
 description = "Bragd's game databases: Foreign databases read in place, SQLite Libraries with Duplicates merged, Slices, and Parquet export"
 
 [dependencies]
+# The default for how far a packed file may unpack (`config::MAX_UNPACK_RATIO`).
+bragd-core = { path = "../bragd-core" }
 # `.pgn.bz2` (FICS), unpacked as it streams, in pure Rust.
 bzip2 = "0.6"
 # Chess boards, moves and legality, for reading games (SAN, FEN, Polyglot keys).

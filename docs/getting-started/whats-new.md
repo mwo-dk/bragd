@@ -17,6 +17,7 @@ The cards of the coming version:
 | `families` | Every Game family, ready to play |
 | `themes` | Themes and Board themes |
 | `databases` | Databases and Libraries |
+| `parquet` | Export to Parquet |
 | `engines` | Engines and Analyse |
 | `helper` | The Helper and Sources |
 | `disk` | Disk watch |

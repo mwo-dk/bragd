@@ -80,8 +80,13 @@ A Source's options and what each fetch remembered live in the Helper's `state.js
 |---|---|---|---|
 | Library folder | `knowledge.library` | empty: `<data>/bragd/libraries` | Fetched Games go into `main.bragd` there |
 | Source priority | `knowledge.source_priority` | `["twic", "lichess"]` | Which Source wins a header conflict between [Duplicates](duplicates.md) |
+| Largest unpacking ratio | `knowledge.max_unpack_ratio` | `50` | How many times its own size a packed download may unpack to before the import stops |
 
 ## Questions
+
+#### Why did an import stop, saying the file unpacks too far?
+
+A packed game file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) is unpacked as it is read. A file of blank blocks can be 100 MB packed and terabytes unpacked, and reading it would take hours. So an import stops once a file has unpacked to more than *Largest unpacking ratio* times its packed size, 50 unless you change it. The Games already imported stay, except the last batch under way. The first 64 MB unpacked always pass. Real game files stay far below: a Lichess month of about 30 GB unpacks to about 200 GB, 7 times its size. If a file you trust stops, raise the ratio in *Settings → Knowledge* and import it again. The next import uses the new value.
 
 #### Does Bragd download anything before I turn a Source on?
 
