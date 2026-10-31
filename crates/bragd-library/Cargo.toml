@@ -16,7 +16,7 @@ flate2 = "1.1.10"
 memchr = "2"
 # `.pgn.zst`, unpacked in pure Rust.
 ruzstd = "0.9.0"
-rusqlite = { version = "0.40.2", features = ["bundled"] }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Zips of PGN (TWIC), read member by member as they stream. Deflate only, in pure Rust.
