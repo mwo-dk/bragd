@@ -2,7 +2,6 @@
 //! shows, found here (engines, Sources, free space) and decided in bragd-core, and what Done
 //! starts: the chosen Sources turned on in the Helper, and the Syzygy 3–5 download.
 
-use std::path::PathBuf;
 
 use bragd_core::config::Config;
 use bragd_core::state::AppState;
@@ -136,11 +135,6 @@ pub fn wizard_open(ctx: tauri::State<'_, Ctx>) -> Open {
     }
 }
 
-/// Bragd's data folder, whose disk the downloads go to.
-fn data() -> Option<PathBuf> {
-    Some(bragd_core::dirs::data_dir()?.join("bragd"))
-}
-
 #[derive(Serialize)]
 pub struct Chosen {
     totals: wizard::Totals,
@@ -153,7 +147,7 @@ pub struct Chosen {
 pub fn wizard_chosen(chosen: Vec<String>, ctx: tauri::State<'_, Ctx>) -> Chosen {
     let cfg = ctx.cfg();
     let srcs = helper_sources();
-    let free = data().and_then(|d| disk::free_space(&d));
+    let free = bragd_core::dirs::app_data().and_then(|d| disk::free_space(&d));
     Chosen {
         totals: wizard::totals(&srcs, &chosen, free, disk::bytes),
         summary: wizard::summary(&wizard::plan(&srcs, &chosen, &cfg), &srcs, disk::bytes),
@@ -183,10 +177,7 @@ fn done(cfg: &Config, chosen: &[String]) -> Vec<String> {
         if offline {
             failed.push(t!("wizard.failed", "what" => t!("wizard.syzygy"), "error" => "BRAGD_OFFLINE"));
         } else {
-            let folder = match cfg.tablebases.path.trim() {
-                "" => data().map(|d| d.join("tablebases")),
-                p => Some(PathBuf::from(p)),
-            };
+            let folder = cfg.tablebase_folder();
             // TODO(tablebases): progress and errors belong on the Tablebases page; until it
             // shows them, the download runs here and reports only to stderr.
             if let Some(folder) = folder {

@@ -13,7 +13,7 @@ use bragd_library::chess::polyglot;
 use serde::Serialize;
 
 use crate::analyse::offline;
-use crate::engines::{tablebase_folder, tr};
+use crate::engines::{no_folder, tr};
 
 /// A download under way or done.
 #[derive(Clone, Default, Serialize)]
@@ -75,7 +75,7 @@ fn count(folder: &Path, set: Set) -> usize {
 }
 
 pub fn page(cfg: &Config, held: &Held) -> Page {
-    let folder = tablebase_folder(cfg);
+    let folder = cfg.tablebase_folder().unwrap_or_default();
     let plans = held.plans.lock().unwrap_or_else(|e| e.into_inner());
     Page {
         custom: !cfg.tablebases.path.trim().is_empty(),
@@ -113,7 +113,7 @@ pub fn download(cfg: &Config, held: &Held, set: Set) -> Result<(), String> {
     let stop = Arc::new(AtomicBool::new(false));
     *held.stop.lock().unwrap_or_else(|e| e.into_inner()) = Some(stop.clone());
     *held.job.lock().unwrap_or_else(|e| e.into_inner()) = Job { set: Some(set), total: plan.total, ..Default::default() };
-    let (job, folder) = (held.job.clone(), tablebase_folder(cfg));
+    let (job, folder) = (held.job.clone(), cfg.tablebase_folder().ok_or_else(no_folder)?);
     std::thread::spawn(move || {
         let r = syzygy::download(&plan, &folder, &Http, &mut |done, total| {
             let mut j = job.lock().unwrap_or_else(|e| e.into_inner());

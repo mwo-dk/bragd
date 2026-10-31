@@ -238,10 +238,10 @@ pub fn review_start(cfg: &Config, held: &Held, variant: &str, initial: Option<&s
     let setup = Setup {
         program: chosen.program,
         protocol,
-        options: bragd_engines::options::OptionStore::load(&engines::store_path()).unwrap_or_default(),
+        options: bragd_engines::options::OptionStore::load(&engines::store_path()?).unwrap_or_default(),
         syzygy: None,
         limit: Limit::Time(300),
-        cache: bragd_core::dirs::cache_dir().map(|c| c.join("bragd").join("reviews")),
+        cache: bragd_core::dirs::app_cache().map(|c| c.join("reviews")),
     };
     let reviewer = Reviewer::start(&setup, &game);
     *held.review.lock().unwrap_or_else(|e| e.into_inner()) = Some(Reviewing { reviewer, entries: game.moves.len() });
@@ -360,7 +360,7 @@ pub fn tablebase(cfg: &Config, variant: &str, initial: Option<&str>, entries: &[
         return Ok(None);
     }
     let side = state.to_move.map(|s| tr(&format!("side.{}", s.name.to_lowercase()), &[])).unwrap_or_default();
-    let tb = Tablebases { folders: vec![engines::tablebase_folder(cfg)], online: cfg.tablebases.online && !offline() };
+    let tb = Tablebases { folders: cfg.tablebase_folder().into_iter().collect(), online: cfg.tablebases.online && !offline() };
     if tb.covers(fen) {
         return Ok(Some(TableView { pieces, local: true, ..Default::default() }));
     }

@@ -38,7 +38,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn path() -> Option<PathBuf> {
-        Some(crate::dirs::data_dir()?.join("bragd").join("state.json"))
+        Some(crate::dirs::app_data()?.join("state.json"))
     }
 
     /// Missing file = defaults. A corrupt file is moved aside to `state.json.bad`

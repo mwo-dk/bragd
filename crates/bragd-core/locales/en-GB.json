@@ -738,5 +738,6 @@
  "files.pick_database": "Open a database",
  "files.save_database": "Save the database as",
  "common.search": "Search",
- "common.no_match": "Nothing matches."
+ "common.no_match": "Nothing matches.",
+ "app.no_folder": "The system names no folder for Bragd's own files, such as a home folder."
 }

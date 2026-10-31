@@ -492,24 +492,28 @@ impl Jobs {
         Ok(games)
     }
 
-    /// Where Bragd keeps things, by `cfg`.
-    pub fn places(&self, cfg: &Config) -> disk::Places {
-        let data = bragd_core::dirs::data_dir().unwrap_or_default().join("bragd");
-        let tb = cfg.tablebases.path.trim();
-        disk::Places {
+    /// Where Bragd keeps things, by `cfg`; None when the system names no data or cache folder.
+    pub fn places(&self, cfg: &Config) -> Option<disk::Places> {
+        Some(disk::Places {
             libraries: self.library.parent().map(Path::to_path_buf).unwrap_or_default(),
             helper: self.dir.clone(),
             sources: self.sources().into_iter().map(|(a, _, _)| (a.id.clone(), self.source_dir(&a.id))).collect(),
-            tablebases: if tb.is_empty() { data.join("tablebases") } else { PathBuf::from(tb) },
-            cache: bragd_core::dirs::cache_dir().unwrap_or_default().join("bragd"),
-            data,
-        }
+            tablebases: cfg.tablebase_folder()?,
+            cache: bragd_core::dirs::app_cache()?,
+            data: bragd_core::dirs::app_data()?,
+        })
+    }
+
+    /// What Bragd keeps on disk at `places`, against the limits in `cfg`: nothing when there
+    /// are no places.
+    fn report(&self, cfg: &Config, images: &[(String, u64)]) -> disk::Report {
+        self.places(cfg).map(|p| disk::report(&p, &cfg.disk, images, &disk::free_space)).unwrap_or_default()
     }
 
     /// What Bragd keeps on disk now, against the limits in `cfg`, with a notice for each
     /// Source Disk watch holds back.
     pub fn disk_report(&self, cfg: &Config) -> disk::Report {
-        self.notices(disk::report(&self.places(cfg), &cfg.disk, &(self.images)(), &disk::free_space))
+        self.notices(self.report(cfg, &(self.images)()))
     }
 
     /// `r` with a notice for each Source Disk watch holds back.
@@ -541,7 +545,7 @@ impl Jobs {
         // The runtime is asked about the images once a check, and the folders walked again
         // only when a download was deleted.
         let images = (self.images)();
-        let before = disk::report(&self.places(cfg), &cfg.disk, &images, &disk::free_space);
+        let before = self.report(cfg, &images);
         let mut deleted = 0;
         let everyone = before.crossed.iter().any(|c| c.item.is_none());
         for (a, o, m) in self.sources() {
@@ -566,7 +570,7 @@ impl Jobs {
                 self.add(Work::Strip { source: a.id, dry_run: false });
             }
         }
-        let r = self.notices(if deleted > 0 { disk::report(&self.places(cfg), &cfg.disk, &images, &disk::free_space) } else { before });
+        let r = self.notices(if deleted > 0 { self.report(cfg, &images) } else { before });
         *self.crossed.lock().unwrap_or_else(|e| e.into_inner()) = r.crossed.clone();
         r
     }

@@ -227,8 +227,8 @@ fn homes() -> io::Result<(PathBuf, PathBuf)> {
     Ok((bragd_core::dirs::home_dir().ok_or_else(none)?, bragd_core::dirs::config_dir().ok_or_else(none)?))
 }
 
-fn log() -> PathBuf {
-    crate::folder().unwrap_or_default().join("helper.log")
+fn log() -> io::Result<PathBuf> {
+    Ok(crate::folder().ok_or_else(|| io::Error::other("no data folder"))?.join("helper.log"))
 }
 
 /// Whether the Helper is registered here.
@@ -272,11 +272,11 @@ pub fn kick() {
 pub fn install(exe: &Path) -> io::Result<()> {
     let k = Kind::here();
     if k == Kind::RunKey {
-        run(tools::command("reg").args(["add", RUN_KEY, "/v", NAME, "/t", "REG_SZ", "/d", &k.unit(exe, &log()), "/f"]))?;
+        run(tools::command("reg").args(["add", RUN_KEY, "/v", NAME, "/t", "REG_SZ", "/d", &k.unit(exe, &log()?), "/f"]))?;
         return crate::helper::launch(exe, true);
     }
     let (home, config) = homes()?;
-    let file = k.write(&home, &config, exe, &log())?.unwrap_or_default();
+    let file = k.write(&home, &config, exe, &log()?)?.unwrap_or_default();
     match k {
         Kind::Systemd => {
             systemctl(&["daemon-reload"])?;
