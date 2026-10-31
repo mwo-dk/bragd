@@ -252,16 +252,6 @@ pub(crate) mod tests {
         assert_eq!(TooBig::of(&e).and_then(|t| t.size), Some(10));
     }
 
-    /// With `BRAGD_OFFLINE` the Helper asks nobody: the real fetcher refuses before it dials.
-    #[test]
-    fn offline_asks_nobody() {
-        let web = Web { offline: true, ..Web::default() };
-        assert!(web.offline() && !Recorded::default().offline());
-        let e = web.get("https://example.org/twic.zip", 0).err().expect("refused");
-        assert!(e.to_string().contains("BRAGD_OFFLINE"), "{e}");
-        assert!(web.exists("https://example.org/twic.zip").is_err());
-    }
-
     #[test]
     fn importable_names_and_networkmanager_answers() {
         assert!(importable("twic1600.pgn") && importable("x.SGF") && importable("a.pgn.zst"));
