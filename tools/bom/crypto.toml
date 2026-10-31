@@ -34,6 +34,11 @@ provides = ["aes-128-gcm", "aes-256-gcm", "chacha20-poly1305", "sha-256", "sha-3
 crate = "sha2"
 provides = ["sha-256"]
 
+# BLAKE3: every Syzygy tablebase file is checked against the sum that comes with Bragd.
+[[library]]
+crate = "blake3"
+provides = ["blake3"]
+
 # The operating system's random numbers. ring takes each TLS connection's keys and nonces from
 # it, which the TLS assets cover; ahash (for parquet) seeds its hash tables from it, which is
 # not cryptography. The Helper takes its connection token from it, and the app its dice and
@@ -138,6 +143,16 @@ param_set = "256"
 functions = ["digest"]
 purpose = "TLS handshake transcript and key schedule; the Content-Security-Policy's script hashes; checking a downloaded engine network against its digest"
 found = [{ file = "crates/bragd-engines/src/network.rs", pattern = "hash: Sha256::new()" }]
+
+[[asset]]
+ref = "blake3"
+name = "BLAKE3"
+type = "algorithm"
+primitive = "hash"
+param_set = "256"
+functions = ["digest"]
+purpose = "Checking each downloaded Syzygy tablebase file against the sum that comes with Bragd"
+found = [{ file = "crates/bragd-engines/src/syzygy.rs", pattern = "blake3::Hasher::new()" }]
 
 [[asset]]
 ref = "sha-384"

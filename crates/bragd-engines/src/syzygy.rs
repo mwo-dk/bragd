@@ -3,7 +3,9 @@
 //! fetched; and the download itself. 3–5 pieces is what the wizard recommends (about 1 GB), 6
 //! pieces is offered when asked (about 160 GB), and 7 pieces (about 17 TB) is a folder only.
 //!
-//! The files and their sizes come from the official mirror's `bytes.tsv`, one request.
+//! The files and their sizes come from the official mirror's `bytes.tsv`, one request. Each
+//! file's BLAKE3 sum comes with Bragd (`syzygy.b3`, the mirror's `b3` list for up to 6 pieces):
+//! the tables never change, so a file is checked against a sum the mirror cannot alter.
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -61,12 +63,29 @@ pub enum Set {
     Seven,
 }
 
+/// The BLAKE3 sums of every table of up to 6 pieces, as the mirror's `b3` lists them.
+const SUMS: &str = include_str!("syzygy.b3");
+
+/// The BLAKE3 sum, in hex, of the table called `name`.
+fn sum_of(name: &str) -> Option<&'static str> {
+    SUMS.lines().find_map(|l| l.split_once("  ").filter(|(_, n)| *n == name).map(|(s, _)| s))
+}
+
+/// The BLAKE3 sum of the file at `path`, in hex.
+fn sum_file(path: &Path) -> std::io::Result<String> {
+    let mut h = blake3::Hasher::new();
+    h.update_reader(std::fs::File::open(path)?)?;
+    Ok(h.finalize().to_hex().to_string())
+}
+
 /// A file of a plan.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Planned {
     pub name: String,
     pub url: String,
     pub size: u64,
+    /// Its BLAKE3 sum, in hex.
+    pub b3: String,
 }
 
 /// What a download of a set fetches, and how much.
@@ -102,9 +121,10 @@ pub fn plan(set: Set, tsv: &str) -> Result<Plan, String> {
         .filter(|(name, _)| count.contains(&pieces(name)))
         .map(|(name, size)| {
             let dir = if name.ends_with(".rtbw") { wdl } else { dtz };
-            Planned { url: format!("{MIRROR}{dir}/{name}"), name, size }
+            let b3 = sum_of(&name).ok_or_else(|| format!("The mirror lists {name}, which Bragd has no checksum for."))?.to_string();
+            Ok(Planned { url: format!("{MIRROR}{dir}/{name}"), name, size, b3 })
         })
-        .collect();
+        .collect::<Result<_, String>>()?;
     if files.is_empty() {
         return Err("The mirror lists no tables for this set.".into());
     }
@@ -128,16 +148,16 @@ pub struct Downloaded {
     pub kept: usize,
 }
 
-/// Downloads `plan` into `folder`: a file already there with its size is kept; each other goes
-/// to `<name>.part` and is renamed when its size is right. `progress` is told the bytes done of
-/// the plan's total (false stops it, keeping the files done).
+/// Downloads `plan` into `folder`: a file already there with its size and BLAKE3 sum is kept;
+/// each other goes to `<name>.part` and is renamed when its size and sum are right. `progress`
+/// is told the bytes done of the plan's total (false stops it, keeping the files done).
 pub fn download(plan: &Plan, folder: &Path, fetch: &dyn Fetch, progress: &mut dyn FnMut(u64, u64) -> bool) -> Result<Downloaded, String> {
     std::fs::create_dir_all(folder).map_err(|e| format!("{}: {e}", folder.display()))?;
     let mut done = Downloaded::default();
     let mut bytes = 0u64;
     for f in &plan.files {
         let to = folder.join(&f.name);
-        if std::fs::metadata(&to).is_ok_and(|m| m.len() == f.size) {
+        if std::fs::metadata(&to).is_ok_and(|m| m.len() == f.size) && sum_file(&to).is_ok_and(|s| s == f.b3) {
             bytes += f.size;
             done.kept += 1;
             continue;
@@ -152,7 +172,13 @@ pub fn download(plan: &Plan, folder: &Path, fetch: &dyn Fetch, progress: &mut dy
                 let _ = std::fs::remove_file(&part);
                 return Err(format!("{}: more bytes came than the {} expected.", f.name, f.size));
             }
-            Ok(n) if n == f.size => std::fs::rename(&part, &to).map_err(|e| format!("{}: {e}", to.display()))?,
+            Ok(n) if n == f.size => {
+                if !sum_file(&part).is_ok_and(|s| s == f.b3) {
+                    let _ = std::fs::remove_file(&part);
+                    return Err(format!("{}: the file came damaged: its BLAKE3 checksum is wrong.", f.name));
+                }
+                std::fs::rename(&part, &to).map_err(|e| format!("{}: {e}", to.display()))?
+            }
             Ok(n) => {
                 let _ = std::fs::remove_file(&part);
                 return Err(format!("{}: {n} bytes came, {} were expected.", f.name, f.size));
@@ -206,7 +232,7 @@ pub(crate) mod tests {
         let p = plan(Set::UpTo5, SIZES).unwrap();
         assert_eq!(p.files.len(), 8);
         assert_eq!(p.total, 208 + 7632 + 272 + 5392 + 179408 + 193424 + 279824 + 3421968);
-        assert_eq!(p.files[0], Planned { name: "KRvK.rtbw".into(), url: format!("{MIRROR}3-4-5-wdl/KRvK.rtbw"), size: 208 });
+        assert_eq!(p.files[0], Planned { name: "KRvK.rtbw".into(), url: format!("{MIRROR}3-4-5-wdl/KRvK.rtbw"), size: 208, b3: sum_of("KRvK.rtbw").unwrap().into() });
         assert_eq!(p.files[1].url, format!("{MIRROR}3-4-5-dtz/KRvK.rtbz"));
         assert!(!p.files.iter().any(|f| f.name.contains("..") || f.name.contains(':') || f.name.starts_with('.')), "a name with a path is refused");
         assert_eq!(parse_sizes(SIZES).len(), 12, "only the twelve real names");
@@ -225,8 +251,11 @@ pub(crate) mod tests {
         files.insert(format!("{MIRROR}3-4-5-dtz/KRvK.rtbz"), b"abcd".to_vec());
         files.insert(format!("{MIRROR}3-4-5-wdl/KQvK.rtbw"), b"short".to_vec());
         let fake = Fake { files, asked: Mutex::new(vec![]) };
-        let p = plan_from(&fake, Set::UpTo5).unwrap();
+        let mut p = plan_from(&fake, Set::UpTo5).unwrap();
         assert_eq!(p.total, 13);
+        for f in &mut p.files {
+            f.b3 = b3(fake.files[&f.url].as_slice());
+        }
         std::fs::create_dir_all(&d).unwrap();
         std::fs::write(d.join("KRvK.rtbz"), b"abcd").unwrap();
         let mut seen = vec![];
@@ -241,7 +270,6 @@ pub(crate) mod tests {
         assert!(!fake.asked.lock().unwrap().iter().any(|u| u.ends_with("KRvK.rtbz")), "a file there is not fetched again");
         assert_eq!(seen[0], (3, 13));
         // Then with the right file: done, nothing fetched twice.
-        let mut p = p;
         p.files[2].size = 5;
         let done = download(&p, &d, &fake, &mut |_, _| true).unwrap();
         assert_eq!(done, Downloaded { fetched: 1, kept: 2 });
@@ -257,6 +285,37 @@ pub(crate) mod tests {
         assert!(e.contains("more bytes"), "{e}");
         assert!(!d.join("KQvK.rtbw").exists() && !d.join("KQvK.rtbw.part").exists());
         assert!(!d.join("KQvK.rtbw.part").exists());
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    fn b3(bytes: &[u8]) -> String {
+        blake3::hash(bytes).to_hex().to_string()
+    }
+
+    #[test]
+    fn every_table_has_its_sum_from_bragd() {
+        let p = plan(Set::UpTo5, SIZES).unwrap();
+        assert_eq!(p.files[0].b3, sum_of("KRvK.rtbw").unwrap());
+        assert_eq!(sum_of("KPvK.rtbw"), Some("ea496959dc1eeb78708646b48b087dafc94eedfdc81a4c748eea012ef9266945"), "as the mirror's b3 lists it");
+        assert_eq!(SUMS.lines().count(), 1020, "every table of 3 to 6 pieces");
+        assert!(plan(Set::UpTo5, "12\tKQvKZ.rtbw\n").is_err(), "no table without a sum");
+        assert!(plan(Set::UpTo5, "12\tKRvKRB.rtbw\n").is_err(), "not a real table: no sum");
+    }
+
+    #[test]
+    fn a_damaged_file_is_not_kept() {
+        let d = crate::test_dir("syzygy-b3");
+        std::fs::create_dir_all(&d).unwrap();
+        let url = format!("{MIRROR}3-4-5-wdl/KRvK.rtbw");
+        let fake = Fake { files: BTreeMap::from([(url.clone(), b"abd".to_vec())]), asked: Mutex::new(vec![]) };
+        let p = Plan { set: Set::UpTo5, total: 3, files: vec![Planned { name: "KRvK.rtbw".into(), url, size: 3, b3: b3(b"abc") }] };
+        let e = download(&p, &d, &fake, &mut |_, _| true).unwrap_err();
+        assert!(e.contains("BLAKE3"), "{e}");
+        assert!(!d.join("KRvK.rtbw").exists() && !d.join("KRvK.rtbw.part").exists(), "a damaged file is not kept");
+        // A file already there with the right size but other bytes is fetched again, and refused again.
+        std::fs::write(d.join("KRvK.rtbw"), b"xyz").unwrap();
+        assert!(download(&p, &d, &fake, &mut |_, _| true).is_err());
+        assert_eq!(fake.asked.lock().unwrap().len(), 2, "fetched again, not kept");
         std::fs::remove_dir_all(&d).unwrap();
     }
 

@@ -59,7 +59,7 @@ Yes. Type their folder and press **Use this folder**. Bragd only reads it and do
 
 #### Is a download checked?
 
-Each file's size is checked against the mirror's list. Its checksum is not checked yet.
+Yes. Each file's size is checked against the mirror's list, and its BLAKE3 checksum against the one that comes with Bragd. The tables never change, so Bragd carries the sum of every table of up to 6 pieces. A file whose checksum is wrong is not kept, and the download stops and says which file. A file already in the folder is checked the same way before it is kept, so a damaged one is downloaded again.
 
 #### Why are the buttons greyed out?
 
