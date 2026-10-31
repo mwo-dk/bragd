@@ -1,0 +1,25 @@
+[package]
+name = "bragd-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+# For the apps' tests only (their dev-dependency turns it on): the home, config, data and
+# cache folders lie in the temporary folder, never the developer's own (`dirs`).
+test-home = []
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+bragd-games = { path = "../bragd-games" }
+serde_json = "1"
+toml = "1"
+# Settings writes one value into config.toml and keeps the user's comments and layout.
+toml_edit = "0.25"
+dirs = "7"
+sys-locale = "0.3.2"
+# The update check, with the system's certificate store.
+ureq = { version = "3", features = ["platform-verifier"] }
+# WinGet's record of what it installed (`update::winget_installed`) is an SQLite file.
+rusqlite = { version = "0.40", features = ["bundled"] }

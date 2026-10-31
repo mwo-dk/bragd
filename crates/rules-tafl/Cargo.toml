@@ -1,0 +1,10 @@
+[package]
+name = "rules-tafl"
+description = "Hnefatafl and the other tafl games: Copenhagen, Fetlar, tablut and brandubh."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Empty on purpose: a rules crate is pure Rust with no dependencies.
+[dependencies]

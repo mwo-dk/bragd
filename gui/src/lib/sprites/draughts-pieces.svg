@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+	<!--
+		Draughts pieces, drawn rather than sourced.
+
+		Accuracy rather than economy, like the tafl set: a draughts piece is a
+		disc, and a king is two discs stacked — which is exactly how it is done
+		on a real board, by putting a captured piece on top. Nothing here is
+		waiting to be replaced by artwork.
+
+		Sized 45x45 to match the chess sprite, so one board renderer places all
+		three families.
+	-->
+	<symbol id="draughts-wM" viewBox="0 0 45 45">
+		<title>white man</title>
+		<circle cx="22.5" cy="22.5" r="16" fill="var(--piece-light-fill, #f3ece0)"
+			stroke="var(--piece-light-line, #3a3a3a)" stroke-width="1.5" />
+		<circle cx="22.5" cy="22.5" r="11" fill="none"
+			stroke="var(--piece-light-line, #3a3a3a)" stroke-width="1" opacity="0.4" />
+	</symbol>
+
+	<symbol id="draughts-bM" viewBox="0 0 45 45">
+		<title>black man</title>
+		<circle cx="22.5" cy="22.5" r="16" fill="var(--piece-dark-fill, #2b2b2b)"
+			stroke="var(--piece-dark-line, #111)" stroke-width="1.5" />
+		<circle cx="22.5" cy="22.5" r="11" fill="none"
+			stroke="var(--piece-dark-line, #777)" stroke-width="1" opacity="0.5" />
+	</symbol>
+
+	<!--
+		Kings are the man with a second disc offset behind it, which is what a
+		crowned piece looks like from above — and, unlike a crown symbol, it
+		reads at the size a 10x10 board leaves for a piece.
+	-->
+	<symbol id="draughts-wK" viewBox="0 0 45 45">
+		<title>white king</title>
+		<circle cx="22.5" cy="17" r="15" fill="var(--piece-light-fill, #f3ece0)"
+			stroke="var(--piece-light-line, #3a3a3a)" stroke-width="1.5" opacity="0.85" />
+		<circle cx="22.5" cy="25" r="15" fill="var(--piece-light-fill, #f3ece0)"
+			stroke="var(--piece-light-line, #3a3a3a)" stroke-width="1.5" />
+		<circle cx="22.5" cy="25" r="10" fill="none"
+			stroke="var(--piece-light-line, #3a3a3a)" stroke-width="1" opacity="0.4" />
+	</symbol>
+
+	<symbol id="draughts-bK" viewBox="0 0 45 45">
+		<title>black king</title>
+		<circle cx="22.5" cy="17" r="15" fill="var(--piece-dark-fill, #2b2b2b)"
+			stroke="var(--piece-dark-line, #111)" stroke-width="1.5" opacity="0.85" />
+		<circle cx="22.5" cy="25" r="15" fill="var(--piece-dark-fill, #2b2b2b)"
+			stroke="var(--piece-dark-line, #111)" stroke-width="1.5" />
+		<circle cx="22.5" cy="25" r="10" fill="none"
+			stroke="var(--piece-dark-line, #777)" stroke-width="1" opacity="0.5" />
+	</symbol>
+</svg>

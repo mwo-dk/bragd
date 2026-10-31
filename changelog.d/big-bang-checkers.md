@@ -1,0 +1,1 @@
+| **English checkers starts with Black.** Black, on squares 1 to 12, makes the first move, as the rules say; the other draughts still start with White. | [Docs](play/draughts.md#why-does-black-move-first-in-english-checkers) |

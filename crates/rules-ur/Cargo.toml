@@ -1,0 +1,10 @@
+[package]
+name = "rules-ur"
+description = "The Royal Game of Ur, as Irving Finkel reads the rules from BM 33333b. A throw is an input to the rules."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Empty on purpose: a rules crate is pure Rust with no dependencies.
+[dependencies]

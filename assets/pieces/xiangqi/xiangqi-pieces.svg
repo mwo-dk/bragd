@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+	<!--
+		Xiangqi pieces: a character on a disc. SOURCE for
+		gui/src/lib/sprites/xiangqi-pieces.svg.
+
+		This is not a stylised rendering of the game, it *is* the game — the
+		pieces are identical wooden discs distinguished only by the character
+		engraved on them, and by their colour. A pictorial set would be the
+		unfaithful choice.
+
+		The two sides use **different characters for the same piece** — a red
+		general is 帥 and a black one 將 — which is why there are fourteen
+		symbols here rather than seven with a colour swap.
+
+		**The characters here are `<text>`, and this file is never shipped.**
+		tools/pieces/cjk-outlines.py replaces every `<text>` with the glyph's
+		outline from Noto Sans CJK TC Bold (SIL Open Font License 1.1), centred
+		on the point the text is anchored at, and writes the sprite. A board
+		that showed tofu boxes would be unusable, so no piece may depend on an
+		installed font. Edit this file, then run the tool.
+
+		The type is set with presentation attributes on each `<text>`, not with
+		a `<style>` block: a rule keyed on ids stops matching the moment the ids
+		change, and says nothing when it does.
+	-->
+
+	<defs>
+		<g id="xiangqi-disc-red">
+			<circle cx="22.5" cy="22.5" r="20" fill="#f2e4c8" stroke="#8a2626" stroke-width="2" />
+			<circle cx="22.5" cy="22.5" r="16.5" fill="none" stroke="#8a2626" stroke-width="1" />
+		</g>
+		<g id="xiangqi-disc-black">
+			<circle cx="22.5" cy="22.5" r="20" fill="#f2e4c8" stroke="#22303a" stroke-width="2" />
+			<circle cx="22.5" cy="22.5" r="16.5" fill="none" stroke="#22303a" stroke-width="1" />
+		</g>
+	</defs>
+
+	<symbol id="xiangqi-rK" viewBox="0 0 45 45"><title>red general</title><use href="#xiangqi-disc-red" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#8a2626">帥</text></symbol>
+	<symbol id="xiangqi-rA" viewBox="0 0 45 45"><title>red advisor</title><use href="#xiangqi-disc-red" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#8a2626">仕</text></symbol>
+	<symbol id="xiangqi-rB" viewBox="0 0 45 45"><title>red elephant</title><use href="#xiangqi-disc-red" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#8a2626">相</text></symbol>
+	<symbol id="xiangqi-rN" viewBox="0 0 45 45"><title>red horse</title><use href="#xiangqi-disc-red" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#8a2626">傌</text></symbol>
+	<symbol id="xiangqi-rR" viewBox="0 0 45 45"><title>red chariot</title><use href="#xiangqi-disc-red" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#8a2626">俥</text></symbol>
+	<symbol id="xiangqi-rC" viewBox="0 0 45 45"><title>red cannon</title><use href="#xiangqi-disc-red" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#8a2626">炮</text></symbol>
+	<symbol id="xiangqi-rP" viewBox="0 0 45 45"><title>red soldier</title><use href="#xiangqi-disc-red" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#8a2626">兵</text></symbol>
+
+	<symbol id="xiangqi-bK" viewBox="0 0 45 45"><title>black general</title><use href="#xiangqi-disc-black" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#22303a">將</text></symbol>
+	<symbol id="xiangqi-bA" viewBox="0 0 45 45"><title>black advisor</title><use href="#xiangqi-disc-black" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#22303a">士</text></symbol>
+	<symbol id="xiangqi-bB" viewBox="0 0 45 45"><title>black elephant</title><use href="#xiangqi-disc-black" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#22303a">象</text></symbol>
+	<symbol id="xiangqi-bN" viewBox="0 0 45 45"><title>black horse</title><use href="#xiangqi-disc-black" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#22303a">馬</text></symbol>
+	<symbol id="xiangqi-bR" viewBox="0 0 45 45"><title>black chariot</title><use href="#xiangqi-disc-black" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#22303a">車</text></symbol>
+	<symbol id="xiangqi-bC" viewBox="0 0 45 45"><title>black cannon</title><use href="#xiangqi-disc-black" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#22303a">砲</text></symbol>
+	<symbol id="xiangqi-bP" viewBox="0 0 45 45"><title>black soldier</title><use href="#xiangqi-disc-black" /><text x="22.5" y="22.5" font-size="26" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="'Noto Sans CJK SC', 'Source Han Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" fill="#22303a">卒</text></symbol>
+
+</svg>

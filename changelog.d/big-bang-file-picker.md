@@ -1,0 +1,1 @@
+| **Files are chosen with Coxswain's picker when it is installed.** *Settings → Look → File picker* chooses Coxswain's picker or the system's dialog; *Automatic* uses Coxswain's when `coxswain-gui` is on your PATH. The Engines, Tablebases and Opening books pages gain a **Choose…** button. | [Docs](look/file-picker.md) |

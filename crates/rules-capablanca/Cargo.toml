@@ -1,0 +1,10 @@
+[package]
+name = "rules-capablanca"
+description = "Capablanca chess. Its own rules crate: ten files wide, which is one file too many for a u64."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Empty on purpose: a rules crate is pure Rust with no dependencies.
+[dependencies]

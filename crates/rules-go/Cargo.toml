@@ -1,0 +1,10 @@
+[package]
+name = "rules-go"
+description = "Go on 9x9, 13x13 and 19x19, with groups, liberties, ko and scoring."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Empty on purpose: a rules crate is pure Rust with no dependencies.
+[dependencies]

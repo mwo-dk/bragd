@@ -1,0 +1,1 @@
+| **Bragd knows more chess engines.** Leela Chess Zero, Berserk, Ethereal, RubiChess, Koivisto, Igel, Arasan and Fruit join Stockfish and Fairy-Stockfish, each found by its program names and with where to get it. All but Igel have a sealed image to build; Lc0's network is downloaded only once you agree. | [Docs](engines/engines.md#what-it-needs) |

@@ -1,0 +1,23 @@
+[package]
+name = "bragd-games"
+description = "The Family and Variant catalogue, and one seam over every rules crate: start, replay, legal moves, the board to draw and the result."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+rules-backgammon = { path = "../rules-backgammon" }
+rules-capablanca = { path = "../rules-capablanca" }
+rules-chess = { path = "../rules-chess" }
+rules-draughts = { path = "../rules-draughts" }
+rules-go = { path = "../rules-go" }
+rules-senet = { path = "../rules-senet" }
+rules-shogi = { path = "../rules-shogi" }
+rules-tafl = { path = "../rules-tafl" }
+rules-ur = { path = "../rules-ur" }
+rules-xiangqi = { path = "../rules-xiangqi" }
+
+[dev-dependencies]
+serde_json = "1"

@@ -1,0 +1,83 @@
+name: Dependencies
+
+# Known vulnerabilities, licences and sources of every dependency: on each pull request that can
+# change one, on master, and once a week so an advisory published after the last change is still
+# noticed.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - "**/Cargo.toml"
+      - "Cargo.lock"
+      - "deny.toml"
+      - "gui/package.json"
+      - "gui/package-lock.json"
+      - "tools/bom/**"
+      - ".github/workflows/deps.yml"
+  schedule:
+    - cron: "17 6 * * 1" # Mondays, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cargo:
+    name: cargo deny
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check advisories licenses bans sources
+
+  # The release's SBOM, CBOM and notices (tools/bom/README.md), made on every change so that a
+  # new crypto dependency, moved code or a licence outside the list fails here, not at release.
+  bom:
+    name: bills of materials
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The desktop app's SBOM needs its frontend and Tauri crate; until gui/ is there, skipped.
+      - id: gui
+        run: |
+          if [ -f gui/package-lock.json ]; then echo exists=true; else echo "::notice::No gui/ yet: the bills of materials wait for it."; echo exists=false; fi >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        if: steps.gui.outputs.exists == 'true'
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        if: steps.gui.outputs.exists == 'true'
+        with:
+          key: boms
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.gui.outputs.exists == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+      - if: steps.gui.outputs.exists == 'true'
+        run: npm ci --no-audit --no-fund
+        working-directory: gui
+      - if: steps.gui.outputs.exists == 'true'
+        run: cargo install --locked cargo-cyclonedx@0.5.7 cargo-about@0.8.4
+      - if: steps.gui.outputs.exists == 'true'
+        run: tools/bom/generate.sh
+
+  npm:
+    name: npm audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: if [ -f gui/package-lock.json ]; then cd gui && npm audit --audit-level=high; else echo "No gui/ yet."; fi

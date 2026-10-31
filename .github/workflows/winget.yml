@@ -1,0 +1,92 @@
+name: WinGet
+
+# Once a week, the newest release goes to WinGet: one pull request to microsoft/winget-pkgs for
+# mwo-dk.Bragd, by Komac (pinned, checked by its SHA-256). Not one per release: WinGet's
+# moderators review every pull request by hand. Our older pull requests still open are closed as
+# superseded by the newest one. release-check.yml holds the lag to a week.
+#
+# The first version is submitted by hand, from the manifests in packaging/winget/. Until Microsoft
+# has listed it, this run says so and files nothing. A version that has its pull request (open or
+# merged) is not filed again. Needs WINGET_TOKEN: a classic token with public_repo, from the
+# account whose fork of winget-pkgs the pull requests come from (packaging/README.md).
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays, 06:00 UTC
+  workflow_dispatch: # by hand: files the newest release now, if it has no pull request yet
+
+permissions:
+  contents: read
+
+concurrency:
+  group: winget
+  cancel-in-progress: false
+
+jobs:
+  winget:
+    if: github.repository == 'mwo-dk/bragd'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+      ID: mwo-dk.Bragd
+    steps:
+      - if: env.WINGET_TOKEN == ''
+        run: echo "::notice::WINGET_TOKEN is not set, so WinGet is not updated. See packaging/README.md."
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.WINGET_TOKEN != ''
+        with:
+          persist-credentials: false
+      - name: File the winget-pkgs pull request, close the ones it supersedes
+        if: env.WINGET_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -o pipefail
+          TAG=$(gh release view -R "$REPO" --json tagName -q .tagName)
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Not a release tag: $TAG"; exit 1; }
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          v="${TAG#v}"
+          listed=0; packaging/winget-listed.sh "$ID" || listed=$?
+          case $listed in
+            1) echo "::notice::$ID is not on WinGet yet: its first version is filed by hand (packaging/winget/README.md)."; exit 0 ;;
+            2) exit 1 ;;
+          esac
+          me=$(GH_TOKEN="$WINGET_TOKEN" gh api user -q .login)
+          has=0; packaging/winget-listed.sh "$ID" "$v" "$me" || has=$?
+          case $has in
+            0) echo "$ID $v has its pull request already"; exit 0 ;;
+            1) ;;
+            *) exit 1 ;;
+          esac
+          packaging/retry.sh curl -fsSL -o komac.tar.gz https://github.com/russellbanks/Komac/releases/download/v2.16.0/komac-2.16.0-x86_64-unknown-linux-gnu.tar.gz
+          echo "7d2707fa6210f2789a3702de49fbd150b736dbf426ee0b9bc8e098736f9fd82d  komac.tar.gz" | sha256sum -c -
+          tar xzf komac.tar.gz komac
+          base="https://github.com/$REPO/releases/download/$TAG"
+          # Komac takes each installer's architecture from the file: x64 and Windows on ARM.
+          packaging/retry.sh ./komac update "$ID" --version "$v" \
+            --urls "$base/Bragd_${v}_x64-setup.exe" "$base/Bragd_${v}_arm64-setup.exe" \
+            --release-notes-url "https://github.com/$REPO/releases/tag/$TAG" --submit --token "$WINGET_TOKEN" | tee komac.log
+          # The new pull request's number: from Komac's output, or from the search once it has it.
+          n=$(grep -oE 'github\.com/microsoft/winget-pkgs/pull/[0-9]+' komac.log | head -1 | sed 's,.*/,,') || true
+          for _ in $(seq 20); do
+            [ -n "$n" ] && break
+            n=$(gh pr list -R microsoft/winget-pkgs --state all --author "$me" --search "$ID version $v in:title" --json number,state \
+              -q '[.[] | select(.state != "CLOSED")][0].number // empty')
+            [ -n "$n" ] || sleep 30
+          done
+          [ -n "$n" ] || { echo "::error::no pull request found for $ID $v"; exit 1; }
+          echo "$ID $v: microsoft/winget-pkgs#$n"
+          # Ours, still open, for an older version: superseded.
+          gh pr list -R microsoft/winget-pkgs --state open --author "$me" --search "$ID version in:title" --limit 100 \
+            --json number,title -q '.[] | "\(.number)\t\(.title)"' |
+          while IFS=$'\t' read -r num title; do
+            [[ "$title" =~ ^(New|Add|Update)\ version:\ (.+)\ version\ ([0-9][^ ]*)$ ]] || continue
+            [ "${BASH_REMATCH[2]}" = "$ID" ] && [ "$num" != "$n" ] || continue
+            old="${BASH_REMATCH[3]}"
+            [ "$old" != "$v" ] && [ "$(printf '%s\n' "$old" "$v" | sort -V | head -1)" = "$old" ] || continue
+            echo "Closing microsoft/winget-pkgs#$num ($ID $old), superseded by #$n"
+            GH_TOKEN="$WINGET_TOKEN" packaging/retry.sh gh pr close "$num" -R microsoft/winget-pkgs --comment "Superseded by #$n ($ID $v)." || exit 1
+          done
+      - if: failure()
+        run: echo "::error title=Channel failed::WinGet, ${TAG:-the newest release}"

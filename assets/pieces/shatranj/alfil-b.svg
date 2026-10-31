@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- alfil-b — see alfil-w.svg. Black body, white mouldings, as the set does. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 45 45">
+  <g style="fill:none;fill-rule:evenodd;stroke:#000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" transform="translate(0,0.6)">
+    <g style="fill:#000;stroke:#000;stroke-linecap:butt;">
+      <path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/>
+      <path d="M 16,25.5 C 11,22 11,14 22.5,9.5 C 34,14 34,22 29,25.5 z"/>
+      <path d="M 16.5,25.5 C 13,27.5 11,30.5 11.5,33.5 C 13,30.5 15,28 18,26.5 z"/>
+      <path d="M 28.5,25.5 C 32,27.5 34,30.5 33.5,33.5 C 32,30.5 30,28 27,26.5 z"/>
+      <path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 L 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/>
+    </g>
+    <g style="stroke:#FFF">
+      <path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30" style="fill:none;stroke-linejoin:miter"/>
+    </g>
+  </g>
+</svg>

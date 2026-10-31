@@ -1,0 +1,63 @@
+# The app as a Flatpak, built from source with no network: Cargo's and npm's downloads come from
+# cargo-sources.json and node-sources.json, which sources.sh writes from the lock files. It
+# builds the checkout it sits in (the Flatpak workflow, or by hand). Its bundle is a release
+# file; it is not on Flathub (packaging/README.md).
+id: io.github.mwo_dk.Bragd
+runtime: org.gnome.Platform
+# WebKitGTK 4.1 (GTK 3), which Tauri 2 uses, is in the GNOME runtime up to 51 at least.
+runtime-version: '51'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.node24
+command: bragd-gui
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # Foreign databases are read where they are (ADR 0002), and exports are written where the
+  # user says.
+  - --filesystem=home
+  # The update check, and the Sources, tablebases and images the user downloads. Nothing goes
+  # out otherwise.
+  - --share=network
+  # Online tokens go in the OS keychain only.
+  - --talk-name=org.freedesktop.secrets
+  # flatpak-spawn --host: engines the user installed on the host, and podman or docker for the
+  # sealed engine images, run on the host.
+  - --talk-name=org.freedesktop.Flatpak
+modules:
+  - name: bragd
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/node24/bin
+      env:
+        CARGO_HOME: /run/build/bragd/cargo
+        CARGO_NET_OFFLINE: 'true'
+        npm_config_cache: /run/build/bragd/flatpak-node/npm-cache
+        npm_config_offline: 'true'
+        XDG_CACHE_HOME: /run/build/bragd/flatpak-node/cache
+    build-commands:
+      # The Tauri crate embeds gui/dist, so the frontend builds first.
+      - cd gui && npm ci --offline --no-audit --no-fund && npm run build
+      - cargo build --release --locked --offline -p bragd-gui
+      - install -Dm755 target/release/bragd-gui -t /app/bin
+      - install -Dm644 packaging/flatpak/io.github.mwo_dk.Bragd.desktop -t /app/share/applications
+      - install -Dm644 assets/brand/icons/128x128.png /app/share/icons/hicolor/128x128/apps/io.github.mwo_dk.Bragd.png
+      - install -Dm644 assets/brand/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/io.github.mwo_dk.Bragd.png
+      - python3 packaging/flatpak/metainfo.py > io.github.mwo_dk.Bragd.metainfo.xml
+      - install -Dm644 io.github.mwo_dk.Bragd.metainfo.xml -t /app/share/metainfo
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - target
+          - gui/node_modules
+          - gui/dist
+          - .flatpak-builder
+          - .worktrees
+          - packaging/flatpak/build
+          - packaging/flatpak/repo
+      - cargo-sources.json
+      - node-sources.json

@@ -1,0 +1,1 @@
+| **Each custom URL Source keeps its downloads in a folder of its own.** Two Sources whose names differ only in punctuation no longer share one, so removing one's downloads leaves the other's. | [Docs](knowledge/sources.md#where-do-the-downloads-go) |

@@ -1,0 +1,25 @@
+[package]
+name = "bragd-engines"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Engines for every Game family: their protocols, discovery, sealed container images and Syzygy tablebases"
+
+[dependencies]
+# The Variant catalogue and its moves: engines play its Variants, their moves turned into its entries.
+bragd-games = { path = "../bragd-games" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Engine options the user sets are kept per engine in a TOML file of their own.
+toml = "1"
+# Tablebase downloads and the Lichess tablebase API.
+ureq = { version = "3", features = ["platform-verifier"] }
+# Pikafish's evaluation network: the release archive (7z) it comes in is unpacked, and both are
+# checked by their SHA-256. Decoding only (LZMA2), no encryption.
+sevenz-rust2 = { version = "0.24", default-features = false }
+sha2 = "0.11"
+
+# A console engine started from the desktop app must not flash a console window.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_Console"] }

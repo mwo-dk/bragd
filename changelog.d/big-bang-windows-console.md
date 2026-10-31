@@ -1,0 +1,1 @@
+| **No console window opens on Windows when the Helper starts or registers itself.** `bragd-helper` is a windowed program there, and every program Bragd starts runs without a console; `--service` says what it found by its exit code and in `helper.log`. | [Docs](reference/command-line.md#bragd-helper) |

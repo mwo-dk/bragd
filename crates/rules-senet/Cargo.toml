@@ -1,0 +1,10 @@
+[package]
+name = "rules-senet"
+description = "Senet, as Timothy Kendall reconstructs it. A throw is an input, and a piece can be sent backwards."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Empty on purpose: a rules crate is pure Rust with no dependencies.
+[dependencies]

@@ -1,0 +1,1 @@
+| **Slices open faster, and every Library is re-indexed once.** White, Black, ECO, date and both Elos are indexed; a Library made before this gets its indexes the first time it is opened. | [Docs](knowledge/slices.md#why-did-my-library-take-a-while-to-open-once) |

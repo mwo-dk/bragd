@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The screenshots and releases are filled in by metainfo.py at build time. -->
+<component type="desktop-application">
+  <id>io.github.mwo_dk.Bragd</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Bragd</name>
+  <summary>Play, study and keep board games</summary>
+  <developer id="io.github.mwo_dk">
+    <name>Michael W. Olesen</name>
+  </developer>
+  <description>
+    <p>
+      Bragd is a desktop app for playing, studying and keeping board games: chess and its old and
+      fairy Variants, xiangqi and janggi, shogi, go, draughts, tafl, backgammon, ur and senet.
+    </p>
+    <ul>
+      <li>Play against yourself, a friend or an engine, with the rules of each game checked as you move</li>
+      <li>Keep your games in Libraries, and open other programs' databases where they are</li>
+      <li>Analyse with the engines you have, or sealed engine images</li>
+      <li>Themes and board themes, with Racing green by default</li>
+    </ul>
+    <p>
+      Nothing leaves the machine unless you ask: the update check can be turned off, and every
+      download is your choice in Settings.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.mwo_dk.Bragd.desktop</launchable>
+  <url type="homepage">https://github.com/mwo-dk/bragd</url>
+  <url type="bugtracker">https://github.com/mwo-dk/bragd/issues</url>
+  <url type="vcs-browser">https://github.com/mwo-dk/bragd</url>
+  <url type="help">https://github.com/mwo-dk/bragd/blob/master/docs/README.md</url>
+  <content_rating type="oars-1.1"/>
+  <branding>
+    <color type="primary" scheme_preference="light">#c9dccf</color>
+    <color type="primary" scheme_preference="dark">#004225</color>
+  </branding>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <provides>
+    <binary>bragd-gui</binary>
+  </provides>
+  <keywords>
+    <keyword>chess</keyword>
+    <keyword>xiangqi</keyword>
+    <keyword>shogi</keyword>
+    <keyword>go</keyword>
+    <keyword>draughts</keyword>
+  </keywords>
+  <screenshots/>
+  <releases/>
+</component>

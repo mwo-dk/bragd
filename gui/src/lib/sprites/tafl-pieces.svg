@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+	<!--
+		Tafl pieces, drawn rather than sourced.
+
+		Not a placeholder for artwork that has not arrived. Tafl pieces *are*
+		plain tokens — the surviving archaeological finds are glass and bone
+		beads, undecorated, distinguished by colour and by a single taller piece
+		for the king. Drawing them as discs is what they look like, and it also
+		means this file has no licence attached to it, unlike the chess set.
+
+		**What changed, and why.** The first version told the two sides apart by
+		colour alone: a dark disc and a light disc, identical in silhouette. That
+		is a real problem rather than a stylistic one. Roughly one man in twelve
+		has some colour deficiency, a phone in sunlight flattens a dark tone
+		towards a light one, and this is a game with 121 squares whose whole
+		content is reading which side is where. A board you have to squint at is
+		a board people stop playing.
+
+		So the sides now differ in **shape**: attackers are angular, defenders
+		are round. That reads at any size, on any screen, in any light, and it
+		survives being printed in black and white.
+
+		The shape is also not arbitrary. The attackers besiege from the edges and
+		the defenders escort a king out of the middle; giving the besiegers a
+		spearpoint and the besieged a shield is the one figurative step taken
+		here, and it is taken because it happens to be the distinction that is
+		easiest to see. Everything else stays a token — no carved figures, no
+		horned helmets, nothing that would sit oddly beside Cburnett's very
+		restrained line-work in the chess set.
+
+		Stroke weights match that set (1.5, 2 for the king) for the same reason.
+
+		Sized 45x45 to match the chess sprite, so one board renderer places both.
+	-->
+	<symbol id="tafl-aS" viewBox="0 0 45 45">
+		<title>attacker</title>
+		<!--
+			A spearpoint: a square stood on its corner, with the corners softened
+			so it does not read as a warning sign. Unmistakably not a circle at
+			any size, which is the entire job.
+		-->
+		<path
+			d="M 22.5 7.5 L 37.5 22.5 L 22.5 37.5 L 7.5 22.5 Z"
+			fill="var(--piece-dark-fill, #2b2b2b)"
+			stroke="var(--piece-dark-line, #111)"
+			stroke-width="1.5"
+			stroke-linejoin="round"
+		/>
+		<path
+			d="M 22.5 14 L 31 22.5 L 22.5 31 L 14 22.5 Z"
+			fill="none"
+			stroke="var(--piece-dark-line, #111)"
+			stroke-width="1"
+			stroke-linejoin="round"
+			opacity="0.45"
+		/>
+	</symbol>
+
+	<symbol id="tafl-dS" viewBox="0 0 45 45">
+		<title>defender</title>
+		<!-- A shield boss: a disc with a raised centre. -->
+		<circle
+			cx="22.5"
+			cy="22.5"
+			r="15"
+			fill="var(--piece-light-fill, #f3ece0)"
+			stroke="var(--piece-light-line, #3a3a3a)"
+			stroke-width="1.5"
+		/>
+		<circle
+			cx="22.5"
+			cy="22.5"
+			r="9.5"
+			fill="none"
+			stroke="var(--piece-light-line, #3a3a3a)"
+			stroke-width="1"
+			opacity="0.45"
+		/>
+		<circle cx="22.5" cy="22.5" r="3.5" fill="var(--piece-light-line, #3a3a3a)" opacity="0.55" />
+	</symbol>
+
+	<symbol id="tafl-dK" viewBox="0 0 45 45">
+		<title>king</title>
+		<!--
+			Round, because he is one of the defenders — the side he belongs to
+			should be readable from his shape like everybody else's. Larger and
+			crowned because every account of the game agrees the king was a
+			distinct, bigger piece, and because he has to be findable at a glance
+			on a board of 121 squares: the whole game is about where he is.
+		-->
+		<circle
+			cx="22.5"
+			cy="22.5"
+			r="16"
+			fill="var(--piece-light-fill, #f3ece0)"
+			stroke="var(--piece-light-line, #3a3a3a)"
+			stroke-width="2"
+		/>
+		<path
+			d="M13 26 L13 17 L18 21 L22.5 14 L27 21 L32 17 L32 26 Z"
+			fill="var(--piece-light-line, #3a3a3a)"
+			stroke="var(--piece-light-line, #3a3a3a)"
+			stroke-width="1.5"
+			stroke-linejoin="round"
+		/>
+		<path
+			d="M13 29 L32 29"
+			stroke="var(--piece-light-line, #3a3a3a)"
+			stroke-width="2"
+			stroke-linecap="round"
+		/>
+	</symbol>
+</svg>

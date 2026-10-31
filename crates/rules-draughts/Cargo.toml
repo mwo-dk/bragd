@@ -1,0 +1,10 @@
+[package]
+name = "rules-draughts"
+description = "Draughts and checkers. International 10x10 first; the 8x8 Variants fall out as flag combinations."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Empty on purpose: a rules crate is pure Rust with no dependencies.
+[dependencies]

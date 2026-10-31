@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.10.0.schema.json
+# Template for the first WinGet submission, filled in by README.md's command. Later versions are
+# filed by Komac (.github/workflows/winget.yml).
+PackageIdentifier: mwo-dk.Bragd
+PackageVersion: ${VERSION}
+DefaultLocale: en-GB
+ManifestType: version
+ManifestVersion: 1.10.0

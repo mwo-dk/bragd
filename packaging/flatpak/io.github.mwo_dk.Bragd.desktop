@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Bragd
+GenericName=Board games
+Comment=Play, study and keep board games
+Exec=bragd-gui %F
+Icon=io.github.mwo_dk.Bragd
+Terminal=false
+Categories=Game;BoardGame;
+Keywords=chess;xiangqi;janggi;shogi;go;draughts;checkers;tafl;backgammon;pgn;
+MimeType=application/x-chess-pgn;
+StartupWMClass=dk.mwo.bragd

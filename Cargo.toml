@@ -1,0 +1,16 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "gui/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/mwo-dk/bragd"
+homepage = "https://github.com/mwo-dk/bragd"
+publish = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

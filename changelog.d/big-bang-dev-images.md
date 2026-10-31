@@ -1,0 +1,1 @@
+| **Engine images can be built on your own machine before they are published.** `tools/dev/images.sh` builds them with podman, and Bragd runs them only when started with `BRAGD_DEV_IMAGES=1`; `tools/dev/run.sh --images` does both, and now shows its build progress. | [Docs](engines/container-images.md#images-built-on-your-own-machine) |

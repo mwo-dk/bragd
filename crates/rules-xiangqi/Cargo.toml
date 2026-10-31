@@ -1,0 +1,10 @@
+[package]
+name = "rules-xiangqi"
+description = "Xiangqi and janggi: the river, the palaces and the cannon."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Empty on purpose: a rules crate is pure Rust with no dependencies.
+[dependencies]

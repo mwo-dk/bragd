@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+	<!--
+		Go stones. Two of them, which is the whole set.
+
+		Every other sprite here has six or eight or fourteen symbols, because
+		every other Family distinguishes pieces by what they are. Go
+		does not have pieces. It has stones, and a stone's only property is
+		whose it is — so a role field would have exactly one value in it, and
+		the rules write a stone as one letter for that reason.
+
+		# Why they are drawn as domes and not as flat circles
+
+		A real stone is lenticular: thicker in the middle, so a light in the
+		room puts a bright spot up and to the left and a soft edge everywhere
+		else. Two flat discs would be perfectly legible and would also make a
+		19x19 board look like a spreadsheet — and the density of the board is
+		what a Go player is reading. The highlight is what makes a stone look
+		like an object sitting *on* the wood rather than a fill in a cell.
+
+		The white stone needs a rim and the black one does not, and that is not
+		symmetry that was overlooked. A white stone on a light board has no
+		edge without one; a black stone is its own edge. Giving both a rim makes
+		the black stones look outlined and slightly cartoonish at the sizes that
+		matter.
+
+		# Why the gradients are namespaced
+
+		`#go-stone-black` and not `#stone-black`. Every sprite is inlined into
+		the same document, so all their ids share one namespace and a duplicate
+		silently resolves to whichever came first. A gradient is the worst thing
+		to lose that way, because the shape still draws, in flat black.
+
+		The symbols are `go-b` and `go-w`, matching the rules' own one letter
+		per colour, so nothing has to translate between the rules and the
+		artwork. They carry no role letter: a stone has no role.
+
+		The viewBox is 0 0 1 1 and the stone fills 0.92 of it. Every board draws
+		a piece into a one-by-one box, and a Go stone is drawn
+		into the box *centred on a crossing* rather than filling a cell — which
+		is the board's job, not the sprite's. Sized at 0.92 rather than 1 because
+		real stones do not touch: the sliver of wood between two adjacent stones
+		is how you see that there are two of them.
+	-->
+	<defs>
+		<radialGradient id="go-stone-black" cx="0.35" cy="0.32" r="0.75">
+			<stop offset="0" stop-color="#6b6b6f" />
+			<stop offset="0.35" stop-color="#2e2e31" />
+			<stop offset="1" stop-color="#0b0b0d" />
+		</radialGradient>
+		<radialGradient id="go-stone-white" cx="0.35" cy="0.32" r="0.78">
+			<stop offset="0" stop-color="#ffffff" />
+			<stop offset="0.55" stop-color="#f2ede1" />
+			<stop offset="1" stop-color="#cfc6b2" />
+		</radialGradient>
+	</defs>
+
+	<symbol id="go-b" viewBox="0 0 1 1">
+		<circle cx="0.5" cy="0.5" r="0.46" fill="url(#go-stone-black)" />
+	</symbol>
+
+	<symbol id="go-w" viewBox="0 0 1 1">
+		<circle
+			cx="0.5"
+			cy="0.5"
+			r="0.46"
+			fill="url(#go-stone-white)"
+			stroke="#8d8471"
+			stroke-width="0.02"
+		/>
+	</symbol>
+</svg>

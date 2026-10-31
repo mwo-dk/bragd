@@ -1,0 +1,51 @@
+name: Coxswain sync
+
+# Weekly, what changed in mwo-dk/coxswain since the commit docs/coxswain-sync.md names, on the
+# paths we copied, and the coxswain issues about games, engines, images, translations or updates
+# updated since then: one issue here, "Coxswain sync: N commits, M issues", with a checklist,
+# opened or brought up to date (.github/coxswain-sync.py). Each item is ported in a pull request
+# or ticked as not wanted, with a reason (CLAUDE.md, Shipping).
+# A pull request that changes the script, its fixtures or the page runs its self-test.
+on:
+  schedule:
+    - cron: "23 5 * * 1" # Mondays, 05:23 UTC
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/coxswain-sync.py
+      - .github/coxswain-sync-fixtures.json
+      - .github/workflows/coxswain-sync.yml
+      - docs/coxswain-sync.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coxswain-sync-${{ github.event_name == 'pull_request' && github.ref || 'weekly' }}
+  cancel-in-progress: false
+
+jobs:
+  # The script against its fixtures (--dry-run, no network), and the page it reads.
+  self-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 .github/coxswain-sync.py --self-test
+
+  sync:
+    needs: self-test
+    if: github.event_name != 'pull_request' && github.repository == 'mwo-dk/bragd'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/coxswain-sync.py

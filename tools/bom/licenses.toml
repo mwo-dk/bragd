@@ -1,0 +1,69 @@
+# Licence policy beyond deny.toml (tools/bom/README.md).
+#
+# Rust crates: deny.toml's [licenses] allow list, checked by `cargo deny` in CI.
+# npm packages that ship in the app: the same list plus `also_allow`, checked by
+# `bom.py licenses` against their SBOM.
+
+[npm]
+# Each one with the reason it is acceptable.
+also_allow = []
+
+# Packages whose package.json does not say their licence correctly, each read in its package's
+# licence file. Keyed by name and version: a new version is checked anew.
+[npm.overrides]
+
+# Components that come with Bragd without a package manager listing them (the piece art, fonts'
+# glyph outlines), and C code a crate compiles in under its own licence. `file` is in this
+# repository; `crate_files` are in the named crate's package. docs/CREDITS.md lists the art;
+# each piece set gets its entry here in the pull request that adds it.
+
+[[bundled]]
+name = "Chess pieces (Cburnett)"
+what = "gui/src/lib/sprites/chess-pieces.svg, capablanca-pieces.svg and seirawan-pieces.svg, built from assets/pieces/basic/ (Cburnett's twelve pieces, colours normalised, no path changed) and the shatranj, Capablanca and Seirawan pieces drawn on their parts; the full notice is also in each of those sprites' header."
+license = "BSD-3-Clause"
+source = "https://commons.wikimedia.org/wiki/File:Chess_klt45.svg"
+file = "assets/pieces/basic/LICENSE"
+
+[[bundled]]
+name = "Bragd's own pieces"
+what = "The fairy pieces' own parts (ferz, alfil, gaja, archbishop, chancellor, hawk), the draughts, tafl and Go pieces, the xiangqi discs, janggi octagons and shogi tiles, and the brand art: drawn for Bragd, under its own licence."
+license = "MIT"
+source = "https://github.com/mwo-dk/bragd"
+file = "LICENSE"
+
+[[bundled]]
+name = "Noto Sans CJK (glyph outlines on the shogi, xiangqi and janggi pieces)"
+what = "gui/src/lib/sprites/shogi-pieces.svg (JP Regular), xiangqi-pieces.svg (TC Bold) and janggi-pieces.svg (KR Bold): each character is a glyph outline from Noto Sans CJK, made by tools/pieces/build-shogi-pieces.py and tools/pieces/cjk-outlines.py; no font file is included."
+license = "OFL-1.1"
+source = "https://github.com/notofonts/noto-cjk"
+file = "assets/pieces/OFL-NotoSansCJK.txt"
+
+[[bundled]]
+name = "Noto Sans Runic"
+what = "assets/fonts/NotoSansRunic-Regular.ttf (version 2.002), bundled as it is, and the outlines of its letters in the wordmark, splash and icons in assets/brand/."
+license = "OFL-1.1"
+source = "https://github.com/notofonts/runic"
+file = "assets/fonts/OFL.txt"
+
+[[bundled]]
+name = "lichess chess-openings"
+what = "crates/bragd-library/src/chess/openings.tsv: the ECO codes, names and moves of lichess-org/chess-openings, compiled into the app."
+license = "CC0-1.0"
+source = "https://github.com/lichess-org/chess-openings"
+file = "tools/bom/licenses/CC0-1.0.txt"
+
+[[bundled]]
+name = "SQLite"
+what = "Compiled into the app by the Rust crate libsqlite3-sys (rusqlite's feature \"bundled\"), for Libraries and for reading WinGet's list of installed packages."
+license = "public domain"
+source = "https://sqlite.org/copyright.html"
+crate = "libsqlite3-sys"
+crate_files = []
+
+[[bundled]]
+name = "ring's C and assembly code"
+what = "Compiled into the app by the crate ring (TLS): code of its own, from BoringSSL and fiat-crypto."
+license = "ISC AND Apache-2.0 AND (MIT OR Apache-2.0)"
+source = "https://github.com/briansmith/ring"
+crate = "ring"
+crate_files = ["LICENSE", "LICENSE-other-bits", "LICENSE-BoringSSL", "third_party/fiat/LICENSE"]

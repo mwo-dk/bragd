@@ -1,0 +1,11 @@
+// What the wizard, the tour cards, the notice area and Settings share: whether the wizard or
+// cards are open, the notices to show, and the Settings area a link asks for.
+export const guide = $state({
+  wizard: false,
+  /** Tour cards still to show (bragd_core::tour::View). @type {any[]} */
+  cards: [],
+  /** @type {any[]} */
+  notices: [],
+  /** The Settings area to open next, or null. @type {string|null} */
+  area: null,
+});

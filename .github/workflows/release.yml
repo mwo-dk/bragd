@@ -1,0 +1,611 @@
+name: Release
+
+# One run for each push to master. When the version in Cargo.toml has no release yet, it tests
+# every system, builds every installer, checks that every file is there, publishes the GitHub
+# Release (which creates the tag) and updates the Homebrew cask. WinGet is not updated here:
+# winget.yml files the newest release there once a week. Nix builds from the tag's flake, and
+# the Flatpak bundle is one of the release's files.
+# A push without a new version runs only what its pull request ran: CI, and each system whose
+# pull-request `paths` the push touches (.github/changed-systems.py). So does a later push while
+# the new version is still unreleased: only the push that bumped it (or a run by hand) releases.
+# nightly.yml runs every system at night when master changed.
+# To release, merge a release pull request: it bumps `version` in Cargo.toml and moves the
+# changelog.d/ rows into the version's row (CLAUDE.md); release-pr.yml opens it on Sundays.
+#
+# Saturdays (and by hand with `rehearsal`), when changelog.d/ has rows: a rehearsal of
+# tomorrow's release. The draft job makes the release pull request's changes
+# (packaging/release-pr.py) on a branch of their own, rehearsal/vX.Y.Z, and everything runs as
+# for a release, to the draft checked against every file; then `brew audit` of the cask, and
+# nothing is published: the draft and the branch are deleted, no tag is made. A release of the
+# same version meanwhile (a patch made by hand) stops the rehearsal and goes ahead.
+#
+#   version ─┬─ test-ci, test-flatpak, test-nix          (the systems' own workflows, in parallel)
+#            └─ draft ── boms ── desktop, flatpak ── verify ── publish ── taps
+#                                                       │
+#                                  (rehearsal) rehearse ─┤
+#                (anything failed, or a rehearsal: discard) ──┘
+#
+# Never a partial release: every system and every file, or nothing. A failed test stops the run
+# before the draft; a missing file stops it before publishing, and the draft is deleted. A
+# channel that still fails after its retries turns the run red, named. release-check.yml then
+# installs the release and checks every channel.
+on:
+  push:
+    branches: [master]
+  schedule:
+    - cron: "17 6 * * 6" # Saturdays, 06:17 UTC: the rehearsal
+  workflow_dispatch: # again by hand, from master: tests everything again and releases what is missing
+    inputs:
+      rehearsal:
+        description: Rehearse the next release instead (publishes nothing)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# The tests of one commit run once to the end; two runs for one commit (a push and a run by
+# hand) wait for each other. Two commits with the same version: the `draft` job's group below
+# lets only one of them make the release.
+concurrency:
+  group: release-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  # Cheap, and first: whether this version still needs a release, and what this run tests.
+  # Releases only from this repository's master.
+  version:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: read # a rehearsal: release-pr.py reads the milestone's open issues
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      sha: ${{ steps.v.outputs.sha }}
+      release: ${{ steps.v.outputs.release }}
+      rehearsal: ${{ steps.v.outputs.rehearsal }}
+      check: ${{ steps.v.outputs.check }}
+      ci: ${{ steps.sys.outputs.ci }}
+      flatpak: ${{ steps.sys.outputs.flatpak }}
+      nix: ${{ steps.sys.outputs.nix }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2 # the parent too: did this push bump the version?
+      - id: v
+        env:
+          REF: ${{ github.ref }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          REHEARSAL: ${{ github.event_name == 'schedule' || inputs.rehearsal == true }}
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::bad version '$version' in Cargo.toml"; exit 1; }
+          { echo "tag=v$version"; echo "sha=$(git rev-parse HEAD)"; echo rehearsal=false; } >> "$GITHUB_OUTPUT"
+          if [ "$REPO" != mwo-dk/bragd ] || [ "$REF" != refs/heads/master ]; then
+            echo "Not this repository's master: only the tests run."; echo release=false >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$REHEARSAL" = true ]; then
+            # The version tomorrow's release pull request makes; exit 2: no rows, nothing to rehearse.
+            # Exit 3: the current version has no published release. Exit 4: the new version's
+            # milestone still has open issues. Exit 5: a feature row has no tour card.
+            rc=0; next=$(python3 packaging/release-pr.py --next) || rc=$?
+            if [ "$rc" = 2 ]; then
+              echo "::notice title=No rehearsal::changelog.d/ has no rows: nothing to release tomorrow."
+              { echo release=false; echo none=true; } >> "$GITHUB_OUTPUT"; exit 0
+            elif [ "$rc" != 0 ]; then
+              echo "::error title=No rehearsal::release-pr.py --next failed (exit $rc), see above: tomorrow's release pull request would fail too."; exit 1
+            fi
+            echo "::notice title=Rehearsal::v$next, as tomorrow's release pull request makes it. Nothing is published."
+            { echo "tag=v$next"; echo release=true; echo rehearsal=true; } >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          tag="v$version"
+          # A push releases only when it is the one that bumped the version (the release pull
+          # request's merge). A later push while that release is still unpublished runs only what
+          # its pull request ran; the `unreleased` job turns its run red, naming the version.
+          # A failed release run is fixed, then Release is started by hand on master.
+          parent="$(git show HEAD^:Cargo.toml 2>/dev/null | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)"
+          if [ "$EVENT" = push ] && [ "$parent" = "$version" ]; then
+            echo "::notice title=Tests only::this push did not bump the version ($tag): it tests what its pull request tested."
+            { echo release=false; echo check=true; } >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if draft="$(gh release view "$tag" --json isDraft -q .isDraft 2>err)"; then
+            if [ "$draft" = false ]; then
+              echo "::notice title=Tests only::$tag is released already: this run tests what its pull request tested."
+              echo release=false >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          elif ! grep -q "release not found" err; then
+            cat err >&2; exit 1
+          fi
+          echo "::notice title=Release::$tag has no release yet: once every system passes, this run releases it."
+          echo release=true >> "$GITHUB_OUTPUT"
+      # A release or a rehearsal tests every system; a push without a new version only CI and the
+      # systems its files would have started on a pull request; no rehearsal, nothing.
+      - id: sys
+        env:
+          RELEASE: ${{ steps.v.outputs.release }}
+          NONE: ${{ steps.v.outputs.none }}
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$NONE" = true ]; then
+            echo ci=false >> "$GITHUB_OUTPUT"
+          elif [ "$RELEASE" = true ] || [ "$EVENT" != push ]; then
+            printf '%s=true\n' ci flatpak nix >> "$GITHUB_OUTPUT"
+          else
+            echo ci=true >> "$GITHUB_OUTPUT"
+            git fetch -q --depth=1 origin "$BEFORE" || true # gone (a forced push): every system runs
+            python3 .github/changed-systems.py "$BEFORE" HEAD | tee -a "$GITHUB_OUTPUT"
+          fi
+
+  # A push that did not bump the version, while that version has no published release and no
+  # other Release run is under way: its release run failed and nothing would publish it.
+  unreleased:
+    needs: version
+    if: needs.version.outputs.check == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: packaging/unreleased.sh
+
+  # Every system's own workflow, as part of this run. Pull requests run them by themselves.
+  # A release and a rehearsal need every one to pass (the draft job checks).
+  test-ci:
+    name: CI
+    needs: version
+    if: needs.version.outputs.ci == 'true'
+    uses: ./.github/workflows/ci.yml
+  test-flatpak:
+    name: Flatpak
+    needs: version
+    if: needs.version.outputs.flatpak == 'true'
+    uses: ./.github/workflows/flatpak.yml
+  test-nix:
+    name: Nix
+    needs: version
+    if: needs.version.outputs.nix == 'true'
+    uses: ./.github/workflows/nix.yml
+
+  # The gate, then the draft. One release run for a version at a time: a second run for the same
+  # version (one started by hand, or a rerun) waits here, then sees the first run's draft and
+  # leaves the release to it, or its published release and stops.
+  draft:
+    needs: [version, test-ci, test-flatpak, test-nix]
+    if: ${{ !cancelled() && needs.version.outputs.release == 'true' }}
+    concurrency:
+      group: release-${{ needs.version.outputs.tag }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: write # sees whether another run still works on a draft, and stops a rehearsal
+      issues: read # a rehearsal: release-pr.py reads the milestone's open issues
+    runs-on: ubuntu-24.04
+    outputs:
+      id: ${{ steps.create.outputs.id }}
+      tag: ${{ needs.version.outputs.tag }}
+      sha: ${{ steps.create.outputs.sha }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - name: Every system passed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          failed=$(jq -r 'to_entries[] | select(.key != "version" and .value.result != "success") | "\(.key) (\(.value.result))"' <<<"$NEEDS")
+          if [ -n "$failed" ]; then
+            while read -r f; do echo "::error title=No release::$f did not pass: $TAG is not released."; done <<<"$failed"
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.version.outputs.sha }}
+      # A rehearsal builds what tomorrow's release pull request makes: its changes, committed on
+      # rehearsal/vX.Y.Z (deleted again by `discard`). GITHUB_TOKEN's push starts no workflow.
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        if: needs.version.outputs.rehearsal == 'true'
+        with:
+          toolchain: stable
+      - id: stage
+        if: needs.version.outputs.rehearsal == 'true'
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          [ "$(python3 packaging/release-pr.py)" = "${TAG#v}" ] || { echo "::error::release-pr.py did not make $TAG"; exit 1; }
+          git -c user.name="Bragd rehearsal" -c user.email="rehearsal@invalid" commit -qam "Rehearsal of $TAG"
+          git push -q "https://x-access-token:$GH_TOKEN@github.com/$REPO.git" "HEAD:refs/heads/rehearsal/$TAG"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - id: create
+        env:
+          REPO: ${{ github.repository }}
+          SHA: ${{ steps.stage.outputs.sha || needs.version.outputs.sha }}
+          REHEARSAL: ${{ needs.version.outputs.rehearsal }}
+        run: |
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          # The draft says which run makes it, in a comment of its notes, and a rehearsal's says so.
+          if info="$(gh release view "$TAG" --json isDraft,body 2>err)"; then
+            if [ "$(jq -r .isDraft <<<"$info")" = false ]; then
+              echo "::notice::$TAG was released meanwhile by another run."; exit 0
+            fi
+            owner="$(jq -r .body <<<"$info" | sed -n 's/^<!-- release run \([0-9]*\) -->$/\1/p')"
+            busy() { [ "$(gh run view "$owner" --repo "$REPO" --json status -q .status)" != completed ]; }
+            if [ -n "$owner" ] && [ "$owner" != "$GITHUB_RUN_ID" ] && busy; then
+              # A release (a patch released by hand on a Saturday) goes before a rehearsal of the
+              # same version: the rehearsal is stopped, and its draft goes, before this one starts.
+              if [ "$REHEARSAL" != true ] && jq -r .body <<<"$info" | grep -qx '<!-- rehearsal -->'; then
+                echo "::notice::Run $owner rehearses $TAG: stopped, so this run releases it."
+                gh run cancel "$owner" --repo "$REPO" || true
+                for _ in $(seq 120); do busy || break; sleep 15; done
+                busy && { echo "::error::the rehearsal run $owner did not stop: $TAG is not released."; exit 1; }
+              else
+                echo "::notice::Run $owner is releasing $TAG: this run leaves it to that one."; exit 0
+              fi
+            fi
+            # A draft no run is working on any more: replaced, so this run starts clean.
+            if gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null | grep -qx true; then
+              packaging/retry.sh gh release delete "$TAG" --yes
+            fi
+          elif ! grep -q "release not found" err; then
+            cat err >&2; exit 1
+          fi
+          { cat .github/release-notes.md; printf '\n<!-- release run %s -->\n' "$GITHUB_RUN_ID"
+            [ "$REHEARSAL" != true ] || echo '<!-- rehearsal -->'; } > notes.md
+          packaging/retry.sh gh release create "$TAG" --draft --target "$SHA" --title "Bragd $TAG" --notes-file notes.md
+          echo "id=$(gh release view "$TAG" --json databaseId -q .databaseId)" >> "$GITHUB_OUTPUT"
+
+  # The SBOM, the CBOM and the third-party notices (tools/bom/README.md), uploaded to the draft.
+  # The installers take the notices from there.
+  boms:
+    needs: draft
+    if: needs.draft.outputs.id != ''
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.draft.outputs.sha }}
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: boms
+          save-if: false # the Dependencies workflow keeps it, from master
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: gui
+      - run: cargo install --locked cargo-cyclonedx@0.5.7 cargo-about@0.8.4
+      - run: tools/bom/generate.sh dist-bom
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.draft.outputs.tag }}
+        run: packaging/retry.sh gh release upload --clobber "$TAG" dist-bom/*
+
+  # The installers, by tauri-action. A new entry here needs its line in packaging/release-assets.sh.
+  desktop:
+    needs: [draft, boms]
+    if: needs.draft.outputs.id != ''
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04 # oldest glibc still supported, so the AppImage runs on more distros
+            args: ""
+          # ARM64 Linux: 22.04's glibc 2.35, so the .deb and AppImage run on Debian 12 too.
+          - os: ubuntu-22.04-arm
+            args: ""
+          - os: macos-latest
+            args: --target aarch64-apple-darwin
+          - os: macos-latest
+            args: --target x86_64-apple-darwin
+          - os: windows-latest
+            args: ""
+          - os: windows-11-arm # Windows on ARM, native
+            args: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.draft.outputs.sha }}
+      - name: Linux libraries
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/apt-install
+        timeout-minutes: 10
+        with:
+          packages: libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      # No rust-cache here: six caches written once a week would push CI's out of the 10 GB.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: gui
+      # The licences of everything inside, installed with the app. Only release builds bundle it,
+      # through --config below, so other builds need no such file.
+      - name: Third-party notices
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.draft.outputs.tag }}
+        run: bash packaging/retry.sh gh release download "$TAG" --repo "$GITHUB_REPOSITORY" -p THIRD-PARTY-NOTICES.md -D gui/src-tauri --clobber
+      # Developer ID signing and notarisation, when the Apple secrets are set. Without them the
+      # app is ad-hoc signed and not notarised.
+      - name: Apple signing
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ] || [ -z "$APPLE_CERTIFICATE_PASSWORD" ]; then
+            echo "::notice title=macOS signing::No APPLE_CERTIFICATE secret: the app is ad-hoc signed and not notarised."
+            exit 0
+          fi
+          {
+            echo "APPLE_SIGNING_IDENTITY=Developer ID Application"
+            for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD; do
+              printf '%s<<APPLE_EOF\n%s\nAPPLE_EOF\n' "$name" "${!name}"
+            done
+            if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+              for name in APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+                printf '%s<<APPLE_EOF\n%s\nAPPLE_EOF\n' "$name" "${!name}"
+              done
+            fi
+          } >> "$GITHUB_ENV"
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+            echo "::notice title=macOS signing::Signed with the Developer ID, but not notarised: APPLE_ID, APPLE_PASSWORD or APPLE_TEAM_ID is missing."
+          fi
+      # The Helper ships beside the app as a sidecar (externalBin in --config below), built for
+      # the same target.
+      - name: Helper
+        shell: bash
+        run: bash packaging/helper-sidecar.sh ${{ matrix.args }}
+      # The .msi in British English (WiX culture en-GB), whatever tauri.conf.json says.
+      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          projectPath: gui
+          releaseId: ${{ needs.draft.outputs.id }}
+          # GitHub's upload API answers a 500 now and then: try an upload again.
+          retryAttempts: 3
+          args: ${{ matrix.args }} --config '{"bundle":{"resources":["THIRD-PARTY-NOTICES.md"],"externalBin":["binaries/bragd-helper"],"windows":{"wix":{"language":"en-GB"}}}}'
+
+  # The Flatpak bundle the Flatpak workflow built and started in this run, as a release file.
+  flatpak:
+    needs: [draft, boms]
+    if: needs.draft.outputs.id != ''
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.draft.outputs.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bragd-flatpak
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.draft.outputs.tag }}
+        run: |
+          f="Bragd_${TAG#v}_x86_64.flatpak"
+          mv bragd.flatpak "$f"
+          # Its .sha256 is made by `verify`, as every installer's is.
+          packaging/retry.sh gh release upload --clobber "$TAG" "$f"
+
+  # Every file the jobs above make (packaging/release-assets.sh), each installer's .sha256 and
+  # one SHA256SUMS over all of them, or no release: on any gap this fails, says what is missing,
+  # and `discard` deletes the draft.
+  verify:
+    needs: [version, draft, boms, desktop, flatpak]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.draft.outputs.tag }}
+      ID: ${{ needs.draft.outputs.id }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.draft.outputs.sha }}
+      - name: Every file, uploaded completely
+        run: |
+          gh api --paginate "repos/$REPO/releases/$ID/assets" -q '.[] | [.name, .state, .size] | @tsv' | tee listed.tsv
+          bad=$(awk -F'\t' '$2 != "uploaded" || $3 == 0 { print $1 " (" $2 ", " $3 " bytes)" }' listed.tsv | xargs)
+          [ -z "$bad" ] || { echo "::error title=$TAG is not complete::not uploaded completely: $bad"; exit 1; }
+      - name: Every file, and its checksums
+        run: |
+          packaging/retry.sh gh release download "$TAG" --repo "$REPO" -D assets --clobber
+          # tauri-action uploads the installers without a .sha256: each gets its own here, from
+          # the file in the draft.
+          made=()
+          for f in assets/Bragd[_-]*; do
+            case "$f" in *.sha256) continue ;; esac
+            [ -e "$f.sha256" ] || { (cd assets && sha256sum "${f#assets/}" > "${f#assets/}.sha256"); made+=("$f.sha256"); }
+          done
+          [ ${#made[@]} = 0 ] || packaging/retry.sh gh release upload --clobber "$TAG" --repo "$REPO" "${made[@]}"
+          packaging/release-assets.sh "$TAG" assets
+          # One SHA256SUMS over every download, so a download can be checked against what this
+          # run uploaded.
+          (cd assets && rm -f SHA256SUMS && sha256sum -- * > ../SHA256SUMS)
+          cat SHA256SUMS
+          packaging/retry.sh gh release upload --clobber "$TAG" --repo "$REPO" SHA256SUMS
+      - name: The draft, as it will be published
+        run: |
+          gh api --paginate "repos/$REPO/releases/$ID/assets" -q '.[].name' | LC_ALL=C sort > names
+          { packaging/release-assets.sh "$TAG"; echo SHA256SUMS; } | LC_ALL=C sort | diff -u - names ||
+            { echo "::error title=$TAG is not complete::the draft's files differ from the list (above)"; exit 1; }
+          awk '{ sub(/^\*/, "", $2); print $2 }' SHA256SUMS | LC_ALL=C sort | diff -u <(grep -vx SHA256SUMS names) - ||
+            { echo "::error title=$TAG is not complete::SHA256SUMS does not name every file (above)"; exit 1; }
+      # Signed provenance: which commit and workflow built each download, verifiable with
+      # `gh attestation verify <file> --repo mwo-dk/bragd`. It makes no release file, so the
+      # release goes out without it when the attestation service is down. A rehearsal attests
+      # nothing.
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        if: needs.version.outputs.rehearsal != 'true'
+        continue-on-error: true
+        with:
+          subject-path: assets/*
+
+  publish:
+    needs: [version, draft, verify]
+    if: needs.version.outputs.rehearsal != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.draft.outputs.sha }}
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.draft.outputs.tag }}
+          REPO: ${{ github.repository }}
+        # Two versions can be on their way at once: only the higher one becomes Latest.
+        run: |
+          latest="$(gh release view --repo "$REPO" --json tagName -q .tagName 2>/dev/null || echo v0.0.0)"
+          newest="$(printf '%s\n' "$latest" "$TAG" | sort -V | tail -1)"
+          packaging/retry.sh gh release edit "$TAG" --repo "$REPO" --draft=false --latest="$([ "$newest" = "$TAG" ] && echo true || echo false)"
+
+  # The rehearsal's channels, as far as they can go without publishing: the Homebrew cask
+  # written from the draft's SHA256SUMS and audited.
+  rehearse:
+    needs: [version, draft, verify]
+    if: needs.version.outputs.rehearsal == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # reads the draft
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.draft.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.draft.outputs.sha }}
+      - name: Homebrew
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_ANALYTICS: 1
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew tap-new --no-git rehearsal/check
+          dir="$(brew --repository rehearsal/check)"
+          packaging/retry.sh packaging/taps/generate.sh "$TAG" "$dir"
+          brew audit --cask rehearsal/check/bragd
+
+  # Anything between the draft and publishing failed, or the run was cancelled: the draft this
+  # run made goes, so no half-made release is left behind. A run by hand starts again cleanly.
+  # A rehearsal's draft and branch always go.
+  discard:
+    needs: [version, draft, boms, desktop, flatpak, verify, rehearse, publish]
+    if: always() && (needs.version.outputs.rehearsal == 'true' || (needs.draft.outputs.id != '' && needs.publish.result != 'success'))
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.version.outputs.tag }}
+      REPO: ${{ github.repository }}
+      NEEDS: ${{ toJSON(needs) }}
+      REHEARSAL: ${{ needs.version.outputs.rehearsal }}
+    steps:
+      - run: |
+          if [ "$REHEARSAL" = true ]; then
+            failed=$(jq -r 'to_entries[] | select(.key != "publish" and .value.result != "success") | "\(.key) (\(.value.result))"' <<<"$NEEDS" | xargs)
+            if [ -n "$failed" ]; then
+              echo "::error title=Rehearsal failed::$TAG would not be released: $failed."
+            else
+              echo "::notice title=Rehearsal passed::$TAG: every file built and checked, the cask ready. Nothing was published."
+            fi
+            gh api -X DELETE "repos/$REPO/git/refs/heads/rehearsal/$TAG" 2>/dev/null || true
+          else
+            failed=$(jq -r 'to_entries[] | select(.value.result != "success") | "\(.key) (\(.value.result))"' <<<"$NEEDS" | xargs)
+            echo "::error title=No release::$TAG is not released: $failed. Its draft is deleted."
+          fi
+          info="$(gh release view "$TAG" --repo "$REPO" --json isDraft,body)" || exit 0
+          if [ "$(jq -r .isDraft <<<"$info")" = true ] &&
+             jq -r .body <<<"$info" | grep -qx "<!-- release run $GITHUB_RUN_ID -->"; then
+            gh release delete "$TAG" --repo "$REPO" --yes
+          fi
+
+  # After publishing, the channels. Each tries again on a passing fault (packaging/retry.sh); one
+  # that still fails turns this run red with an error naming it, and release-check.yml, which
+  # runs when this run ends, says which channel lacks the version.
+  taps:
+    needs: [draft, publish]
+    runs-on: ubuntu-24.04
+    env:
+      TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+    steps:
+      - if: env.TAP_TOKEN == ''
+        run: echo "::notice::TAP_TOKEN is not set, so Homebrew is not updated. See packaging/README.md."
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.TAP_TOKEN != ''
+        with:
+          persist-credentials: false
+          ref: ${{ needs.draft.outputs.sha }}
+      - name: Update mwo-dk/homebrew-bragd
+        if: env.TAP_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.draft.outputs.tag }}
+        run: |
+          # The commit is the token owner's, with GitHub's no-reply address.
+          read -r id login < <(GH_TOKEN="$TAP_TOKEN" gh api user -q '"\(.id) \(.login)"')
+          git config --global user.name "$login"
+          git config --global user.email "$id+$login@users.noreply.github.com"
+          packaging/retry.sh git clone -q "https://x-access-token:$TAP_TOKEN@github.com/mwo-dk/homebrew-bragd.git"
+          # A higher version released meanwhile by another run stays.
+          have="$(sed -n 's/^ *version "\(.*\)"/\1/p' homebrew-bragd/Casks/bragd.rb 2>/dev/null | head -1)"
+          if [ "$(printf '%s\n' "${have:-0}" "${TAG#v}" | sort -V | tail -1)" != "${TAG#v}" ]; then
+            echo "::notice::homebrew-bragd has $have already, higher than ${TAG#v}: left as it is."; exit 0
+          fi
+          packaging/retry.sh packaging/taps/generate.sh "$TAG" homebrew-bragd
+          git -C homebrew-bragd add -A
+          # Only "no changes" is fine; a failed push must fail the job.
+          if git -C homebrew-bragd diff --cached --quiet; then
+            echo "homebrew-bragd: already up to date"
+          else
+            git -C homebrew-bragd commit -qm "Bragd ${TAG#v}"
+            packaging/retry.sh git -C homebrew-bragd push -q
+          fi
+      - if: failure()
+        env:
+          TAG: ${{ needs.draft.outputs.tag }}
+        run: echo "::error title=Channel failed::Homebrew tap, $TAG"
