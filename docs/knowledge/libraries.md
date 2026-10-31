@@ -65,7 +65,7 @@ Yes. On the chess page the Games tab lists the Library's chess Games, on the go 
 
 #### Which Variant ids does a Library store?
 
-The ids of Bragd's own Variants, the same as in *Settings → Game families* and `config.toml`: `chess`, `chess960`, `kingofthehill`, `draughts` (international), `checkers`, `draughts-russian`, `draughts-brazilian`, `xiangqi`, `shogi`, `go-9`, `go-13` and `go-19`. A PGN `Variant` tag of `Standard` or `From Position` is `chess`. A Variant Bragd does not play keeps its own name in lower case, without spaces: `threecheck`, `go-7`, `gametype-22`.
+The ids of Bragd's own Variants, the same as in *Settings → Game families* and `config.toml`: `chess`, `chess960`, `kingofthehill`, `draughts` (international), `checkers`, `draughts-russian`, `draughts-brazilian`, `xiangqi`, `shogi`, `go-9`, `go-13` and `go-19`. A PGN `Variant` tag of `Standard` or `From Position` is `chess`. A Variant Bragd does not play keeps its own name in lower case, without spaces: `three-check`, `go-7`, `gametype-22`.
 
 ---
 [← Previous: Foreign databases](foreign-databases.md) · [Next: Duplicates →](duplicates.md)

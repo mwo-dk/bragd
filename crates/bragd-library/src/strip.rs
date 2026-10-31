@@ -75,6 +75,16 @@ pub fn speed(time_control: Option<&str>, event: Option<&str>) -> Option<Speed> {
     .map(|&(_, s)| s)
 }
 
+/// Every Family's usual Variant, by `bragd_games`' id: what a rule's `Standard` names.
+const USUAL: [&str; 5] = ["chess", "xiangqi", "shogi", "draughts", "go-19"];
+
+/// Whether a rule's Variant `v` names a Game's `variant`: alike as `library::chess_variant`
+/// writes them, and `Standard` names the usual Variant of every Family.
+fn names(v: &str, variant: &str) -> bool {
+    let (v, variant) = (crate::library::chess_variant(v), crate::library::chess_variant(variant));
+    v == variant || (v == "chess" && USUAL.contains(&variant.as_str()))
+}
+
 /// Which Games of a Source are kept. Kept in the Helper's state with the Source's options.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -137,7 +147,7 @@ impl StripRule {
         if self.rated_only && (event.contains("casual") || event.contains("unrated")) {
             return false;
         }
-        if !self.variants.is_empty() && !self.variants.iter().any(|v| crate::library::chess_variant(v) == crate::library::chess_variant(variant)) {
+        if !self.variants.is_empty() && !self.variants.iter().any(|v| names(v, variant)) {
             return false;
         }
         if !self.date_from.trim().is_empty() || !self.date_to.trim().is_empty() {
@@ -233,20 +243,25 @@ pub fn rewrite(path: &Path, rules: &[&StripRule], dry_run: bool, max_ratio: u64,
     Ok(out)
 }
 
-/// The games of `r` (a file named `name`) that `keep` keeps, written to `w`.
-fn filter(name: &str, r: impl io::Read + Send, max_ratio: u64, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>, w: &mut dyn Write) -> io::Result<()> {
+/// The games of `r` (a file named `name`) that `keep` keeps, written to `w`. `member`: `r` is
+/// a zip member of that many packed bytes, unpacked as it is read.
+fn filter(name: &str, r: impl io::Read + Send, member: Option<u64>, max_ratio: u64, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>, w: &mut dyn Write) -> io::Result<()> {
     let mut failed = None;
-    stream::games(name, r, max_ratio, stop, &mut |f, t| match keep(f, t) {
+    let mut each = |f, t: &[u8]| match keep(f, t) {
         Some(true) => w.write_all(t).map_err(|e| failed = Some(e)).is_ok(),
         Some(false) => true,
         None => false,
-    })?;
+    };
+    match member {
+        Some(packed) => stream::member_games(name, r, packed, max_ratio, stop, &mut each)?,
+        None => stream::games(name, r, max_ratio, stop, &mut each)?,
+    };
     failed.map_or(Ok(()), Err)
 }
 
 fn rewrite_file(path: &Path, tmp: &Path, max_ratio: u64, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>) -> io::Result<()> {
     let name = path.to_string_lossy();
-    let f = packed(&name, File::create(tmp)?, &mut |w| filter(&name, File::open(path)?, max_ratio, stop, keep, w))?;
+    let f = packed(&name, File::create(tmp)?, &mut |w| filter(&name, File::open(path)?, None, max_ratio, stop, keep, w))?;
     f.sync_all()
 }
 
@@ -258,7 +273,8 @@ fn rewrite_zip(path: &Path, tmp: &Path, max_ratio: u64, stop: &dyn Fn() -> bool,
         let name = m.enclosed_name().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
         if m.is_file() && stream::is_text(&name) && stream::unpacked_name(&name) == name {
             w.start_file(m.name().map_err(io::Error::other)?.into_owned(), zip::write::SimpleFileOptions::default()).map_err(io::Error::other)?;
-            filter(&name, m, max_ratio, stop, keep, &mut w)?;
+            let packed = m.compressed_size();
+            filter(&name, m, Some(packed), max_ratio, stop, keep, &mut w)?;
         } else {
             w.raw_copy_file(m).map_err(io::Error::other)?;
         }
@@ -364,6 +380,8 @@ mod tests {
         assert!(keeps(variants(&["Standard"])) && keeps(variants(&["chess"])) && !keeps(variants(&["Chess960"])));
         let fischer = NewGame { variant: crate::library::chess_variant("Chess960"), ..game(&[], 1) };
         assert!(variants(&["chess 960"]).keeps(&fischer) && !variants(&["Standard"]).keeps(&fischer));
+        let go = |v: &str| NewGame { family: "go".into(), variant: v.into(), ..game(&[], 1) };
+        assert!(variants(&["Standard"]).keeps(&go("go-19")) && !variants(&["Standard"]).keeps(&go("go-9")) && variants(&["go-9"]).keeps(&go("go-9")));
         let dates = |f: &str, t: &str| StripRule { date_from: f.into(), date_to: t.into(), ..Default::default() };
         assert!(keeps(dates("2024", "2024")) && keeps(dates("2024.06.15", "2024.06")) && !keeps(dates("2024.07", "")) && !keeps(dates("", "2024.05")));
         assert!(!dates("2000", "").keeps(&game(&[("Date", "????.??.??")], 1)), "no year, no Game");

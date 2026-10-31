@@ -128,7 +128,8 @@ impl<R: Read> Read for Count<'_, R> {
         self.n += n as u64;
         let all = self.before + self.n;
         let c = self.cap;
-        if all > c.floor && all > c.ratio.saturating_mul(c.packed.load(Ordering::Relaxed)) {
+        // A ratio of 0 would call every file a bomb, even one not packed at all.
+        if all > c.floor && all > c.ratio.max(1).saturating_mul(c.packed.load(Ordering::Relaxed)) {
             return Err(io::Error::other(format!(
                 "unpacks to more than {} times its size, so it is taken for a bomb; if the file is real, raise Settings → Knowledge → Largest unpacking ratio",
                 c.ratio
@@ -146,6 +147,13 @@ pub fn games(name: &str, r: impl Read + Send, max_ratio: u64, stop: &dyn Fn() ->
     let packed = Arc::new(AtomicU64::new(0));
     let cap = Cap { ratio: max_ratio, floor: FLOOR, packed: &packed };
     games_in(name, Tally { r, n: packed.clone() }, cap, 0, stop, each)
+}
+
+/// `games` for a zip member, already unpacked as it is read, that takes `packed` bytes in its
+/// zip.
+pub(crate) fn member_games(name: &str, r: impl Read + Send, packed: u64, max_ratio: u64, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(Format, &[u8]) -> bool) -> io::Result<Stats> {
+    let packed = AtomicU64::new(packed);
+    games_in(name, r, Cap { ratio: max_ratio, floor: FLOOR, packed: &packed }, 0, stop, each)
 }
 
 fn games_in(name: &str, r: impl Read + Send, cap: Cap, before: u64, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(Format, &[u8]) -> bool) -> io::Result<Stats> {

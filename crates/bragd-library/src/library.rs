@@ -378,9 +378,10 @@ impl Reader {
 /// A chess Variant's id, as `bragd_games` has it, from a PGN `Variant` tag as Lichess and others
 /// write it: none, `Standard` or `From Position` is `chess`; `Chess960` or `Fischerandom` is
 /// `chess960`; `King of the Hill` is `kingofthehill`. A Variant `bragd_games` does not have
-/// keeps its name, in lower case without spaces or punctuation (`threecheck`).
+/// keeps its name, in lower case without spaces or punctuation but `-` (`three-check`), so the
+/// ids of the other Families (`go-19`, `draughts-russian`) stay as they are.
 pub fn chess_variant(tag: &str) -> String {
-    let plain: String = tag.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect();
+    let plain: String = tag.chars().filter(|c| c.is_alphanumeric() || *c == '-').flat_map(char::to_lowercase).collect();
     match plain.as_str() {
         "" | "standard" | "fromposition" | "normal" => "chess".into(),
         "fischerandom" | "fischerrandom" | "960" => "chess960".into(),
