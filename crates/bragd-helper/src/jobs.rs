@@ -958,6 +958,37 @@ pub(crate) mod tests {
         assert_eq!((pruned.games, count(&d.0.join("lib/main.bragd"))), (1, 1));
     }
 
+    /// A disk check builds its report once: the container runtime is asked about the images
+    /// once, also when the check deleted a Source's oldest downloads.
+    #[test]
+    fn a_disk_check_builds_its_report_once() {
+        let d = crate::tests::Dir::new("once");
+        let asked = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let a = asked.clone();
+        let images = Box::new(move || {
+            a.fetch_add(1, Ordering::SeqCst);
+            vec![("bragd-stockfish:17.1".to_string(), 1000)]
+        });
+        let jobs = Jobs::open(&d.0, Box::new(Recorded::default()), d.0.join("lib/main.bragd"), vec![], Box::new(|| false), images);
+        let url = "https://example.org/club.zip";
+        let mut o = sources::find("custom:club", url).unwrap().about().defaults();
+        o.url = url.into();
+        o.auto = sources::Auto { strip: false, delete_oldest: true, pause: false };
+        jobs.set_source("custom:club", o).unwrap();
+        let dir = jobs.source_dir("custom:club");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("a.pgn"), [b' '; 20]).unwrap();
+        let mut cfg = Config::default();
+        cfg.tablebases.path = d.0.join("syzygy").display().to_string();
+        jobs.check_disk(&cfg, 1_000_000);
+        assert_eq!(asked.load(Ordering::SeqCst), 1, "nothing crossed");
+        cfg.disk.items.insert("downloads:custom:club".into(), 10);
+        let r = jobs.check_disk(&cfg, 1_000_100);
+        assert!(!dir.join("a.pgn").exists(), "the download over the limit went");
+        assert!(!r.items.iter().any(|i| i.id == "downloads:custom:club"), "and the report says so: {:?}", r.items);
+        assert_eq!(asked.load(Ordering::SeqCst), 2, "once a check");
+    }
+
     #[test]
     fn disk_watch_acts_only_as_allowed() {
         let d = crate::tests::Dir::new("watch");
