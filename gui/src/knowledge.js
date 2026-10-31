@@ -39,6 +39,7 @@ export const libraryGame = (/** @type {string} */ path, /** @type {number} */ id
 export const libraryReview = (/** @type {string} */ path) => invoke("library_review", { path });
 /** @returns {Promise<number>} */
 export const libraryDedupe = (/** @type {string} */ path) => invoke("library_dedupe", { path });
+export const libraryExport = (/** @type {string} */ path) => invoke("library_export", { path });
 /** @returns {Promise<number>} */
 export const libraryPrune = (/** @type {boolean} */ dryRun) => invoke("library_prune", { dryRun });
 /** @returns {Promise<string[]>} */

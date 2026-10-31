@@ -11,8 +11,9 @@ A Library is Bragd's own store of Games: one SQLite file ending in `.bragd`. Imp
 
 1. In the sidebar, open a Family and choose **Databases**, then the **Libraries** tab.
 2. The table lists every `.bragd` file in the Library folder, with its Games, size, Duplicates and Near-duplicates. Click a name to open it.
-3. An open Library has its own tabs: **Games**, **Duplicates**, **New Slice**, and one button per saved Slice (a kept copy is marked ⧉).
-4. Click a Game to step through it, as in a Foreign database: **←**, **→**, **Home** and **End**.
+3. An open Library has its own tabs: **Games**, **Duplicates**, **New Slice**, and one button per saved Slice (a kept copy is marked ⧉). **Export to Parquet** sits under them ([Export to Parquet](parquet-export.md)).
+4. **Games** lists the Library's Games of the Family whose page you are on: chess Games on the chess page, go Games on the go page.
+5. Click a Game to step through it, as in a Foreign database: **←**, **→**, **Home** and **End**.
 
 Games get into a Library in three ways:
 

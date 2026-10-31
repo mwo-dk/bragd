@@ -23,6 +23,8 @@
   let review = $state(null);
   /** @type {number | null} */
   let job = $state(null);
+  /** The Export to Parquet job. @type {number | null} */
+  let exporting = $state(null);
   /** @type {string[]} */
   let priority = $state([]);
   let newSource = $state("");
@@ -64,6 +66,15 @@
     view = "games";
     game = null;
     review = null;
+  }
+
+  async function exportLib() {
+    error = "";
+    try {
+      exporting = (await k.libraryExport(lib.path)) ?? exporting;
+    } catch (e) {
+      error = k.why(e);
+    }
   }
 
   async function saveOrder(/** @type {string[]} */ list) {
@@ -125,6 +136,10 @@
         <button class:current={view === "slice" && editing?.name === s.name} onclick={() => ((view = "slice"), (editing = s))}>{s.name}{s.materialised ? " ⧉" : ""}</button>
       {/each}
     </nav>
+    <div class="bar">
+      <button onclick={exportLib} title={t("lib.export_hint")}>{t("lib.export")}</button>
+      {#if exporting !== null}<JobLine id={exporting} />{/if}
+    </div>
 
     {#if view === "games"}
       {#if game}

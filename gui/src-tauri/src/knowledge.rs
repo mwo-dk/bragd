@@ -194,6 +194,17 @@ pub fn library_dedupe(path: String, k: State<'_, Knowledge>) -> Res<u64> {
     k.link.start(&Request::DedupeNow { library: Some(PathBuf::from(path)) })
 }
 
+/// Export to Parquet: the Library written to a `.parquet` file the user picks, as a Helper
+/// job: its id; None when the dialog was closed.
+#[tauri::command(async)]
+pub fn library_export(app: AppHandle, path: String, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Option<u64>> {
+    let library = PathBuf::from(path);
+    let name = format!("{}.parquet", library.file_stem().unwrap_or_default().to_string_lossy());
+    let ask = files::Ask { title: t!("lib.export_title"), save: Some(name), filters: vec![("Parquet".into(), vec!["parquet".into()])], start: library.parent().map(Path::to_path_buf), ..Default::default() };
+    let Some(to) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
+    k.link.start(&Request::Start { work: bragd_helper::jobs::Work::Export { library, to } }).map(Some)
+}
+
 #[tauri::command(async)]
 pub fn priority_get(ctx: State<'_, Ctx>) -> Res<Vec<String>> {
     Ok(ctx.cfg().knowledge.source_priority)

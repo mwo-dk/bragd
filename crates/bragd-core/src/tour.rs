@@ -21,6 +21,7 @@ pub const CARDS: &[Card] = &[
     card("0.2.0", "families"),
     card("0.2.0", "themes"),
     card("0.2.0", "databases"),
+    card("0.2.0", "parquet"),
     card("0.2.0", "engines"),
     card("0.2.0", "helper"),
     card("0.2.0", "disk"),
