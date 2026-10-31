@@ -71,6 +71,13 @@ fn notation(geometry: Geometry, mv: Move) -> String {
     )
 }
 
+/// The label of each legal move under *Which move?*, from its `(notation, wire)`: the notation,
+/// and for a capture whose two ends another capture shares, the squares it takes as well:
+/// `23x14 (18, 9)`.
+fn labels(moves: &[(String, String)]) -> Vec<String> {
+    todo!()
+}
+
 /// The position in PDN's FEN form: side to move, then each side's squares, kings with `K`.
 fn pdn(position: &Position) -> String {
     let geometry = position.geometry();
@@ -196,5 +203,17 @@ fn outcome_of(variant: Variant, outcome: DraughtsOutcome) -> Outcome {
             None => "1/2-1/2",
         }
         .to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_capture_sharing_its_ends_names_what_it_takes() {
+        let m = |n: &str, w: &str| (n.to_string(), w.to_string());
+        let moves = [m("23x14", "23x14:18:9"), m("23x14", "23x14:19:10"), m("31x22", "31x22:27"), m("32-28", "32-28")];
+        assert_eq!(labels(&moves), ["23x14 (18, 9)", "23x14 (19, 10)", "31x22", "32-28"]);
     }
 }
