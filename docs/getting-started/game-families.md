@@ -56,7 +56,7 @@ The Family keys are `chess`, `xiangqi`, `shogi`, `go`, `draughts`, `tafl`, `back
 
 #### What happens to my games of a Family I turn off?
 
-Nothing is deleted: its Libraries, Slices, Sources and engine settings stay as they are. Its sidebar items go, so its pages cannot be opened until you turn it on again. A banner on its files offering to turn it back on is planned, but not built yet.
+Nothing is deleted: its Libraries, Slices, Sources and engine settings stay as they are. Its sidebar items go, so its pages cannot be opened until you turn it on again. Its files still open on another Family's Databases page, with a banner saying the Family is off and a **Turn it back on** button. The button turns the Family on, and its Variants too when every one of them was off.
 
 #### What if I turn off every Variant of a Family?
 

@@ -44,9 +44,9 @@ Nothing to play against yourself. Against an Engine: Stockfish or Fairy-Stockfis
 | What you want | What you do |
 |---|---|
 | Move | Click the piece, then the target; or drag it |
-| Castle | Move the king onto its own rook. In Capablanca chess, move the king to the square it lands on (three squares) |
+| Castle | Move the king two squares towards the rook. In Chess960, move the king onto its own rook. In Capablanca chess, move the king to the square it lands on (three squares) |
 | Promote | Move the pawn to the last rank, then choose the piece under *Which move?* (`e8=Q`, `e8=N` …). In shatranj and chaturanga there is one choice, so it happens at once |
-| Gate a hawk or elephant (Seirawan) | Move a piece off a back-rank square it has not left before. *Which move?* lists the plain move and the gating ones, such as `Nc3/H` and `Nc3/E` |
+| Gate a hawk or elephant (Seirawan) | Click the hawk or elephant in your tray, then move a piece off a back-rank square it has not left before. Without the tray, *Which move?* lists the plain move and the gating ones, such as `Nc3/H` and `Nc3/E` |
 | Use a book move | Click it under the turn line (standard chess, with a book set; [Opening books](../engines/opening-books.md)) |
 
 The last move and a king in check are marked on the board. Board colours: [Board themes](../look/board-themes.md).
@@ -63,11 +63,11 @@ The last move and a king in check are marked on the board. Board colours: [Board
 
 #### How do I castle?
 
-Move the king onto its own rook: click the king, then the rook (or drag the king onto it). This is the same in every chess Variant on 8×8, Chess960 included, because it is the one way that is never ambiguous. The move list writes it `O-O` or `O-O-O`. In Capablanca chess the king moves to its landing square instead.
+Move the king two squares towards the rook: click the king, then g1 or c1 (or drag it there). In Chess960, move the king onto its own rook instead, because there the king may land on a square it can also step to, or not move at all. The move list writes a castle `O-O` or `O-O-O`. In Capablanca chess the king moves to its landing square, three squares.
 
 #### Which Chess960 array does New game set up?
 
-The standard array, number 518, which is ordinary chess's. To play another array, open **Analyse**, paste its FEN under *Position* and play on from there ([Analyse](../engines/analyse.md)).
+One of the 960 arrays, picked at random, each as likely as the others. Its number, 0 to 959, shows under the turn line as *Chess960 array 123*. Number 518 is ordinary chess's array. To play a particular array, open **Analyse**, paste its FEN under *Position* and play on from there ([Analyse](../engines/analyse.md)).
 
 #### Why does the move list show `Nc3/H`?
 

@@ -33,7 +33,7 @@ Choices in steps 1, 2 and 6 are saved at once, as in Settings. Nothing is downlo
 
 ## What it needs
 
-Nothing. The Engines step looks for Engines installed on this machine and lists those it does not find with a *Where to get it* link. The Knowledge step asks the Helper for its Sources and the system for the free space on the data disk.
+Nothing. The Engines step looks for Engines the way Play does: the path given on a Family's Engines page (`engines.paths`) first, then the programs on the PATH. It lists those it does not find with a *Where to get it* link. The Knowledge step asks the Helper for its Sources and the system for the free space on the data disk.
 
 ## Settings and config.toml
 

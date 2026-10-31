@@ -65,7 +65,7 @@ No. GNU Backgammon as an Engine Side always takes a double and never offers one.
 
 #### Can I resign?
 
-Not from the Play page yet. Start a **New game** instead.
+Yes, on your turn. The buttons under the turn line resign a single game, a gammon or a backgammon. You lose one, two or three points, times the cube. The Game ends at once, and the banner shows the points.
 
 ---
 [← Previous: Tafl](tafl.md) · [Next: Ur →](ur.md)
