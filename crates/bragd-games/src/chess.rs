@@ -5,7 +5,7 @@ use crate::{
     Placed, Seat, State, Variant,
 };
 use rules_chess::outcome::Outcome as ChessOutcome;
-use rules_chess::{Chess960, Color, Game, Position, Role, Rules, Square, Variant as _};
+use rules_chess::{CastlingNotation, Chess960, Color, Game, Position, Role, Rules, Square, Variant as _};
 use std::collections::BTreeMap;
 
 fn rules(variant: Variant) -> Rules {
@@ -42,6 +42,11 @@ pub(crate) fn replay(
     Ok(state(variant, &game))
 }
 
+/// The ply the Game's first entry is: from the starting position's move number and side to move.
+fn first_ply(start: &Position) -> u32 {
+    2 * start.fullmove_number().saturating_sub(1) + u32::from(start.side_to_move() == Color::Black)
+}
+
 fn seat(variant: Variant, color: Color) -> Seat {
     Seat::of(variant, if color == Color::White { 0 } else { 1 })
 }
@@ -63,12 +68,17 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
     let moves: Vec<LegalMove> = game
         .legal_moves()
         .into_iter()
-        .map(|mv| LegalMove {
-            wire: mv.to_uci(notation),
-            notation: game.san(mv),
-            from: Some(mv.from().to_string()),
-            to: Some(mv.to().to_string()),
-            drop: mv.gate().map(|role| sprite(variant, to_move, role)),
+        .map(|mv| {
+            let wire = mv.to_uci(notation);
+            // Where a Player drags the king: two squares on an 8×8 board, onto its rook in Chess960.
+            let to = if mv.kind().is_castle() && notation == CastlingNotation::KingDestination { wire[2..4].to_string() } else { mv.to().to_string() };
+            LegalMove {
+                notation: game.san(mv),
+                from: Some(mv.from().to_string()),
+                to: Some(to),
+                drop: mv.gate().map(|role| sprite(variant, to_move, role)),
+                wire,
+            }
         })
         .collect();
 
@@ -134,6 +144,7 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.san_history(),
+        numbers: crate::full_moves(first_ply(game.initial_position()), game.moves().len()),
         check,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {

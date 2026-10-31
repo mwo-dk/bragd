@@ -205,6 +205,21 @@ pub fn values(cfg: &Config) -> serde_json::Map<String, Value> {
         .collect()
 }
 
+/// The switches to save, in order, so the Family `id` shows again: the Family itself, and its
+/// Variants too when every one of them is off. Empty when it already shows.
+pub fn turn_on(cfg: &Config, id: &str) -> Vec<(String, Value)> {
+    let Some(family) = Family::from_key(id) else { return Vec::new() };
+    let mut out = Vec::new();
+    if !cfg.family_on(id) {
+        out.push((format!("family_{id}"), Value::Bool(true)));
+    }
+    // Read each Variant's own switch: while the Family is off, variant_on says no for them all.
+    if family.variants().all(|v| cfg.families.variant.get(v.key) == Some(&false)) {
+        out.extend(family.variants().map(|v| (format!("variant_{}", v.key), Value::Bool(true))));
+    }
+    out
+}
+
 /// Writes one option's new value to config.toml.
 pub fn save(name: &str, value: &Value) -> Result<Config, String> {
     let o = find(name).ok_or_else(|| format!("no setting {name}"))?;
@@ -341,6 +356,21 @@ mod tests {
                 assert!(find(&format!("variant_{}", v.key)).is_some(), "{}", v.key);
             }
         }
+    }
+
+    #[test]
+    fn a_family_that_is_off_is_turned_back_on() {
+        let on = |text: &str| turn_on(&Config::parse(text).unwrap(), "go");
+        assert!(on("").is_empty());
+        assert_eq!(on("[families.family]\ngo = false\n"), [("family_go".to_string(), Value::Bool(true))]);
+        let all_off = "[families.variant]\ngo-9 = false\ngo-13 = false\ngo-19 = false\n";
+        let want: Vec<_> = Family::Go.variants().map(|v| (format!("variant_{}", v.key), Value::Bool(true))).collect();
+        assert_eq!(on(all_off), want);
+        let mut both = vec![("family_go".to_string(), Value::Bool(true))];
+        both.extend(want);
+        assert_eq!(on(&format!("[families.family]\ngo = false\n{all_off}")), both);
+        // One Variant on is enough: the others stay as they were.
+        assert_eq!(on("[families.family]\ngo = false\n[families.variant]\ngo-9 = false\n"), [("family_go".to_string(), Value::Bool(true))]);
     }
 
     #[test]

@@ -7,13 +7,16 @@ export function place(/** @type {number} */ x, /** @type {number} */ y, /** @typ
 }
 
 /**
- * The moves a selection can make: from a square, or a piece dropped from hand.
+ * The moves a selection can make: from a square, or a piece dropped from hand. With a gate
+ * (a Seirawan piece chosen in the tray), only the moves from its square that bring it in.
  * @param {{moves: any[]}} state
- * @param {{from?: string, drop?: string} | null} sel
+ * @param {{from?: string, drop?: string, gate?: string} | null} sel
  */
 export function movesOf(state, sel) {
   if (!sel) return [];
   if (sel.drop) return state.moves.filter((m) => m.drop === sel.drop && !m.from);
+  if (sel.gate && sel.from) return state.moves.filter((m) => m.from === sel.from && m.drop === sel.gate);
+  if (sel.gate) return [];
   return state.moves.filter((m) => m.from === sel.from);
 }
 
@@ -24,6 +27,16 @@ export function movesTo(/** @type {{moves: any[]}} */ state, /** @type {{from?: 
 
 /** The moves with no square at all: pass, double, take, drop, accept, resume. */
 export const plainMoves = (/** @type {{moves: any[]}} */ state) => state.moves.filter((m) => !m.from && !m.to && !m.drop);
+
+/**
+ * Whether a piece in hand can gate now (Seirawan): some move from a square brings it in.
+ * @param {{moves: any[]}} state
+ * @param {string} sprite
+ * @returns {boolean}
+ */
+export function gates(state, sprite) {
+  return state.moves.some((m) => m.drop === sprite && m.from);
+}
 
 /**
  * A backgammon point's place, from White's side: points 13–24 along the top from the left,

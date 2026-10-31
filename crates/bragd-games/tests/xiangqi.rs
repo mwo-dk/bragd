@@ -43,3 +43,9 @@ fn a_janggi_soldier_cannot_step_back() {
     let err = apply("janggi", None, &["e2e2", "e9e9"], "a4a3").unwrap_err();
     assert!(matches!(err, GameError::Refused { index: 2, .. }), "{err:?}");
 }
+
+#[test]
+fn the_xiangqi_move_list_numbers_full_moves() {
+    let state = replay("xiangqi", None, &["h3e3", "h10g8", "h1g3"]).unwrap();
+    assert_eq!(state.numbers, ["1.", "", "2."]);
+}

@@ -47,7 +47,11 @@ pub(crate) fn replay(
         game.play(mv)
             .map_err(|e| GameError::refused(index, entry, e))?;
     }
-    Ok(state(variant, &game))
+    let mut state = state(variant, &game);
+    // A draughts Game always starts from the opening array, so its first entry opens move 1,
+    // whichever Side moves first (Black in English checkers).
+    state.numbers = crate::full_moves(0, state.history.len());
+    Ok(state)
 }
 
 fn wire(geometry: Geometry, mv: Move) -> String {
@@ -69,6 +73,22 @@ fn notation(geometry: Geometry, mv: Move) -> String {
         if mv.is_capture() { "x" } else { "-" },
         geometry.printed_number(mv.to)
     )
+}
+
+/// The label of each legal move under *Which move?*, from its `(notation, wire)`: the notation,
+/// and for a capture whose two ends another capture shares, the squares it takes as well:
+/// `23x14 (18, 9)`.
+fn labels(moves: &[(String, String)]) -> Vec<String> {
+    moves
+        .iter()
+        .map(|(short, wire)| {
+            if moves.iter().filter(|(other, _)| other == short).count() < 2 {
+                return short.clone();
+            }
+            let taken: Vec<&str> = wire.split(':').skip(1).collect();
+            format!("{short} ({})", taken.join(", "))
+        })
+        .collect()
 }
 
 /// The position in PDN's FEN form: side to move, then each side's squares, kings with `K`.
@@ -103,12 +123,15 @@ fn state(variant: Variant, game: &Game) -> State {
     let over = game.outcome().is_some();
     let name = |square: Square| geometry.printed_number(square).to_string();
 
-    let moves = game
-        .legal_moves()
-        .into_iter()
-        .map(|mv| LegalMove {
-            wire: wire(geometry, mv),
-            notation: notation(geometry, mv),
+    let legal = game.legal_moves();
+    let named: Vec<(String, String)> = legal.iter().map(|&mv| (notation(geometry, mv), wire(geometry, mv))).collect();
+    let moves = legal
+        .iter()
+        .zip(labels(&named))
+        .zip(named)
+        .map(|((mv, label), (_, wire))| LegalMove {
+            wire,
+            notation: label,
             from: Some(name(mv.from)),
             to: Some(name(mv.to)),
             drop: None,
@@ -166,6 +189,7 @@ fn state(variant: Variant, game: &Game) -> State {
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.moves().iter().map(|&mv| notation(geometry, mv)).collect(),
+        numbers: Vec::new(),
         check: false,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {
@@ -196,5 +220,17 @@ fn outcome_of(variant: Variant, outcome: DraughtsOutcome) -> Outcome {
             None => "1/2-1/2",
         }
         .to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_capture_sharing_its_ends_names_what_it_takes() {
+        let m = |n: &str, w: &str| (n.to_string(), w.to_string());
+        let moves = [m("23x14", "23x14:18:9"), m("23x14", "23x14:19:10"), m("31x22", "31x22:27"), m("32-28", "32-28")];
+        assert_eq!(labels(&moves), ["23x14 (18, 9)", "23x14 (19, 10)", "31x22", "32-28"]);
     }
 }

@@ -71,3 +71,27 @@ fn the_board_counts_points_in_whites_numbering() {
     assert_eq!((at(6).sprite.as_str(), at(6).count), ("backgammon-w", 5));
     assert_eq!(state.board.pieces.len(), 8);
 }
+
+/// The side to act may resign a single game, a gammon or a backgammon; it ends the Game.
+#[test]
+fn a_side_resigns_at_the_grade_it_names() {
+    let start = replay::<&str>("backgammon", None, &[]).unwrap();
+    for wire in ["resign", "resign_gammon", "resign_backgammon"] {
+        assert!(offered(&start, wire), "{wire} not in {:?}", start.moves);
+    }
+    let rolled = replay("backgammon", None, &["3-1"]).unwrap();
+    assert!(offered(&rolled, "resign"));
+    let state = replay("backgammon", None, &["3-1", "resign_gammon"]).unwrap();
+    let outcome = state.outcome.unwrap();
+    assert_eq!(outcome.winner.unwrap().name, "Black");
+    assert_eq!((outcome.reason.as_str(), outcome.result.as_str()), ("resignation", "2 points"));
+    assert_eq!(state.history, ["3-1", "resign_gammon"]);
+    assert_eq!(state.awaiting, Awaiting::Nothing);
+    assert!(state.moves.is_empty());
+    let state = replay("backgammon", None, &["3-1", "8/5 6/5", "resign_backgammon"]).unwrap();
+    assert_eq!(state.outcome.unwrap().winner.unwrap().name, "White");
+    assert!(matches!(
+        apply("backgammon", None, &["3-1", "resign"], "8/5 6/5"),
+        Err(GameError::Refused { index: 2, .. })
+    ));
+}

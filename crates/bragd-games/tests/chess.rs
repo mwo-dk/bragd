@@ -105,3 +105,30 @@ fn a_replay_generates_the_legal_moves_once_a_ply() {
     assert_eq!(used, line.len() as u64 + 1 + checks, "{checks} checking moves");
     assert_eq!(state.history.len(), line.len());
 }
+
+/// On an 8×8 board a castle is dragged the king two squares; in Chess960 onto its own rook.
+#[test]
+fn a_castle_ends_where_the_player_drags_the_king() {
+    let open = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "g8f6"];
+    let state = replay("chess", None, &open).unwrap();
+    let castle = state.moves.iter().find(|m| m.notation == "O-O").unwrap();
+    assert_eq!((castle.from.as_deref(), castle.to.as_deref(), castle.wire.as_str()), (Some("e1"), Some("g1"), "e1g1"));
+    assert!(state.targets["e1"].contains(&"g1".to_string()));
+    assert!(!state.targets["e1"].contains(&"h1".to_string()));
+    let fen = "rk2r3/pppppppp/8/8/8/8/PPPPPPPP/RK5R w KQ - 0 1";
+    let state = replay::<&str>("chess960", Some(fen), &[]).unwrap();
+    let castle = state.moves.iter().find(|m| m.notation == "O-O-O").unwrap();
+    assert_eq!((castle.from.as_deref(), castle.to.as_deref()), (Some("b1"), Some("a1")));
+}
+
+/// The move list numbers full moves, and a Game set up with Black to move opens `12…`.
+#[test]
+fn the_move_list_numbers_full_moves() {
+    let state = replay("chess", None, &["e2e4", "e7e5", "g1f3"]).unwrap();
+    assert_eq!(state.numbers, ["1.", "", "2."]);
+    let fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 12";
+    let state = replay("chess", Some(fen), &["e7e5", "g1f3"]).unwrap();
+    assert_eq!(state.numbers, ["12…", "13."]);
+    let state = replay("capablanca", None, &["e2e4", "e7e5"]).unwrap();
+    assert_eq!(state.numbers, ["1.", ""]);
+}

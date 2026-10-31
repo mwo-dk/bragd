@@ -29,7 +29,7 @@ Nothing. Every Variant can be played against yourself, with no Engine and no dow
 1. Choose the Variant in the first list of the bar. A new Game of it starts.
 2. Click a piece of the Side to move. The cells it can go to are marked.
 3. Click one of them, or drag the piece there. When several moves end on that cell (a promotion, a draughts capture by two paths), choose one under *Which move?*.
-4. Repeat for the other Side. The move list grows with each move.
+4. Repeat for the other Side. The move list grows with each move. Chess, xiangqi and draughts number full moves, `1. e4 e5`; the other Families number each move, as their own records do.
 5. When the Game ends, a banner over the board names the winner, or says *Draw*, with the rules' result text. **New game** starts again.
 
 The families with dice or sticks have a **Throw** button first ([Backgammon](backgammon.md), [Ur](ur.md), [Senet](senet.md)). Go has **Pass** and a scoring step ([Go](go.md)).

@@ -32,7 +32,7 @@ Nothing to play against yourself. Against an Engine: Scan installed, for Interna
 | What you want | What you do |
 |---|---|
 | Move or capture | Click the man or king, then the square it ends on; or drag it. A capture is one move, however many pieces it takes |
-| Choose the route | When two captures end on the same square but take different pieces, *Which move?* lists both. Each is labelled by its two ends only, so the two labels can read the same: the first is the first route the rules crate found |
+| Choose the route | When two captures end on the same square but take different pieces, *Which move?* lists both. Each names the squares it takes, such as `23x14 (18, 9)` and `23x14 (19, 10)` |
 | Choose where a king stops | A flying king's capture can end on several squares beyond the last piece taken. Each is a target of its own |
 
 Captures are compulsory: when one exists, only captures are offered. The move list writes a quiet move `31-27` and a capture by its two ends, `31x22`. The record keeps every square taken as well (`31x22:27`), so the route is never lost. Board colours: [Board themes](../look/board-themes.md).

@@ -6,6 +6,10 @@ import { invoke } from "@tauri-apps/api/core";
 export const snapshot = () => invoke("get_snapshot");
 /** @returns {Promise<any>} */
 export const saveSetting = (/** @type {string} */ name, /** @type {any} */ value) => invoke("save_setting", { name, value });
+/** Turns a Family that is off back on; the new snapshot. @returns {Promise<any>} */
+export const familyTurnOn = (/** @type {string} */ family) => invoke("family_turn_on", { family });
+/** A new Game: its start (a Chess960 array, picked by Rust) and its state. @returns {Promise<{initial: string|null, array: number|null, state: any}>} */
+export const newGame = (/** @type {string} */ variant) => invoke("game_new", { variant });
 /** @returns {Promise<any>} */
 export const replay = (/** @type {string} */ variant, /** @type {string|null} */ initial, /** @type {string[]} */ entries) =>
   invoke("game_replay", { variant, initial, entries });

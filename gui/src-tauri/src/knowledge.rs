@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use bragd_core::config::DiskConfig;
+use bragd_core::config::{Config, DiskConfig};
 use bragd_core::t;
 use bragd_helper::disk;
 use bragd_helper::helper::{Reply, Request};
@@ -69,20 +69,21 @@ const GAME_FILES: [&str; 13] = ["pgn", "gz", "zst", "bz2", "si4", "si5", "cbh", 
 pub fn db_pick(app: AppHandle, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Option<FileView>> {
     let ask = files::Ask { title: t!("files.pick_database"), filters: vec![(t!("db.game_files"), GAME_FILES.iter().map(|e| e.to_string()).collect())], ..Default::default() };
     let Some(f) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
-    db_open(&f, &k).map(Some)
+    db_open(&f, &k, &ctx.cfg()).map(Some)
 }
 
-fn db_open(path: &Path, k: &Knowledge) -> Res<FileView> {
+fn db_open(path: &Path, k: &Knowledge, cfg: &Config) -> Res<FileView> {
     let f = OpenFile::open(path)?;
-    let v = f.view();
+    let v = f.view(cfg);
     *k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()) = Some(f);
     Ok(v)
 }
 
 /// The Foreign database open now, as far as it is read.
 #[tauri::command(async)]
-pub fn db_current(k: State<'_, Knowledge>) -> Res<Option<FileView>> {
-    Ok(k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()).as_ref().map(OpenFile::view))
+pub fn db_current(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Option<FileView>> {
+    let cfg = ctx.cfg();
+    Ok(k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()).as_ref().map(|f| f.view(&cfg)))
 }
 
 #[tauri::command(async)]
@@ -105,7 +106,7 @@ pub fn db_game(id: u32, k: State<'_, Knowledge>) -> Res<Replay> {
 
 fn open_path(k: &Knowledge) -> Res<PathBuf> {
     let f = k.dbs.file.lock().unwrap_or_else(|e| e.into_inner());
-    f.as_ref().map(|f| PathBuf::from(f.view().path)).ok_or_else(|| t!("db.none_open"))
+    f.as_ref().map(|f| f.path().to_path_buf()).ok_or_else(|| t!("db.none_open"))
 }
 
 /// Imports the open Foreign database into the default Library, as a Helper job: its id.

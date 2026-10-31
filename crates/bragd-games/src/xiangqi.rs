@@ -32,12 +32,16 @@ pub(crate) fn replay(
             .ok_or_else(|| GameError::bad_position(format!("not a {} FEN", rules.key())))?,
         None => rules.starting_position(),
     };
+    let first = seat(variant, position.to_move()).index;
     let mut game = Game::from_position(position);
     for (index, entry) in entries.iter().enumerate() {
         game.play_wire(entry)
             .map_err(|e| GameError::refused(index, entry, e))?;
     }
-    Ok(state(variant, &game))
+    let mut state = state(variant, &game);
+    // shortcut: numbering starts at move 1 whatever the FEN's move number; read it when a set-up position needs it.
+    state.numbers = crate::full_moves(first.into(), state.history.len());
+    Ok(state)
 }
 
 fn seat(variant: Variant, side: Side) -> Seat {
@@ -118,6 +122,7 @@ fn state(variant: Variant, game: &Game) -> State {
             .iter()
             .map(|mv| if mv.is_pass() { "pass".to_string() } else { mv.to_wire() })
             .collect(),
+        numbers: Vec::new(),
         check,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {
