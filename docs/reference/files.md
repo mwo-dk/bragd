@@ -44,7 +44,7 @@ A file a Source downloads stays packed. Zips and packed PGN are read as a stream
 
 ## The Helper's registration
 
-`bragd-helper --service on` writes one of these. The *Start with my session* switch does not write it yet ([Command line](command-line.md#bragd-helper)):
+Turning *Start with my session* on writes one of these, as `bragd-helper --service on` does; turning it off removes it ([Command line](command-line.md#bragd-helper)):
 
 | System | What | Where |
 |---|---|---|

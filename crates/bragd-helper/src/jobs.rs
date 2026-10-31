@@ -310,6 +310,10 @@ impl Jobs {
     /// Queues a fetch of every Source due at `now` that may go on a connection `metered` and
     /// is not queued already: the ids of the jobs.
     pub fn queue_due(&self, now: u64, metered: Option<bool>) -> Vec<u64> {
+        // Offline nothing is due: a fetch could only fail.
+        if self.net.offline() {
+            return vec![];
+        }
         let sources = self.sources();
         let due: Vec<String> = {
             let st = self.lock();
@@ -505,7 +509,11 @@ impl Jobs {
     /// What Bragd keeps on disk now, against the limits in `cfg`, with a notice for each
     /// Source Disk watch holds back.
     pub fn disk_report(&self, cfg: &Config) -> disk::Report {
-        let mut r = disk::report(&self.places(cfg), &cfg.disk, &(self.images)(), &disk::free_space);
+        self.notices(disk::report(&self.places(cfg), &cfg.disk, &(self.images)(), &disk::free_space))
+    }
+
+    /// `r` with a notice for each Source Disk watch holds back.
+    fn notices(&self, mut r: disk::Report) -> disk::Report {
         for (a, o, m) in self.sources() {
             if m.paused {
                 r.crossed.push(Crossed { id: format!("disk:paused:{}", a.id), item: Some(format!("downloads:{}", a.id)), key: "notice.disk_fetch_paused".into(), args: vec![("source".into(), a.name.clone())] });
@@ -530,7 +538,11 @@ impl Jobs {
     /// again, and queues its Strip rule, at most once a day. The report after that.
     pub fn check_disk(&self, cfg: &Config, now: u64) -> disk::Report {
         const DAY: u64 = 86_400;
-        let before = disk::report(&self.places(cfg), &cfg.disk, &(self.images)(), &disk::free_space);
+        // The runtime is asked about the images once a check, and the folders walked again
+        // only when a download was deleted.
+        let images = (self.images)();
+        let before = disk::report(&self.places(cfg), &cfg.disk, &images, &disk::free_space);
+        let mut deleted = 0;
         let everyone = before.crossed.iter().any(|c| c.item.is_none());
         for (a, o, m) in self.sources() {
             let item = format!("downloads:{}", a.id);
@@ -547,14 +559,14 @@ impl Jobs {
                 self.save(&st);
             }
             if hit && o.auto.delete_oldest {
-                prune(&self.source_dir(&a.id), cfg.disk.items.get(&item).copied().filter(|&c| c > 0).or(o.disk_cap));
+                deleted += prune(&self.source_dir(&a.id), cfg.disk.items.get(&item).copied().filter(|&c| c > 0).or(o.disk_cap));
             }
             if strip {
                 crate::note(format_args!("a disk limit is crossed: the Strip rule of {} is applied", a.id));
                 self.add(Work::Strip { source: a.id, dry_run: false });
             }
         }
-        let r = self.disk_report(cfg);
+        let r = self.notices(if deleted > 0 { disk::report(&self.places(cfg), &cfg.disk, &images, &disk::free_space) } else { before });
         *self.crossed.lock().unwrap_or_else(|e| e.into_inner()) = r.crossed.clone();
         r
     }
@@ -661,9 +673,10 @@ impl Jobs {
     }
 }
 
-/// Removes the oldest files in `dir` until they take no more than `cap` bytes.
-fn prune(dir: &Path, cap: Option<u64>) {
-    let Some(cap) = cap else { return };
+/// Removes the oldest files in `dir` until they take no more than `cap` bytes: the bytes
+/// removed.
+fn prune(dir: &Path, cap: Option<u64>) -> u64 {
+    let Some(cap) = cap else { return 0 };
     let mut files: Vec<(std::time::SystemTime, u64, PathBuf)> = std::fs::read_dir(dir)
         .into_iter()
         .flatten()
@@ -674,7 +687,8 @@ fn prune(dir: &Path, cap: Option<u64>) {
         })
         .collect();
     files.sort();
-    let mut total: u64 = files.iter().map(|f| f.1).sum();
+    let all: u64 = files.iter().map(|f| f.1).sum();
+    let mut total = all;
     for (_, len, path) in files {
         if total <= cap {
             break;
@@ -683,6 +697,7 @@ fn prune(dir: &Path, cap: Option<u64>) {
             total -= len;
         }
     }
+    all - total
 }
 
 #[cfg(test)]
@@ -824,6 +839,17 @@ pub(crate) mod tests {
         assert!(jobs.set_source("nope", sources::Twic.about().defaults()).is_err());
     }
 
+    /// Offline (`BRAGD_OFFLINE`), no Source is queued on its schedule.
+    #[test]
+    fn offline_queues_no_source() {
+        let d = crate::tests::Dir::new("offline");
+        let jobs = jobs_in(&d.0, Recorded { offline: true, ..Default::default() }, Arc::default());
+        let mut o = sources::Twic.about().defaults();
+        o.enabled = true;
+        jobs.set_source("twic", o).unwrap();
+        assert!(jobs.queue_due(1_000_000, Some(false)).is_empty());
+    }
+
     #[test]
     fn cancel_and_battery() {
         let d = crate::tests::Dir::new("cancel");
@@ -956,6 +982,37 @@ pub(crate) mod tests {
         jobs.set_source(&a.id, o).unwrap();
         let pruned = run(&jobs, Work::Prune { library: d.0.join("lib/main.bragd"), dry_run: false }).report.unwrap().library.unwrap();
         assert_eq!((pruned.games, count(&d.0.join("lib/main.bragd"))), (1, 1));
+    }
+
+    /// A disk check builds its report once: the container runtime is asked about the images
+    /// once, also when the check deleted a Source's oldest downloads.
+    #[test]
+    fn a_disk_check_builds_its_report_once() {
+        let d = crate::tests::Dir::new("once");
+        let asked = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let a = asked.clone();
+        let images = Box::new(move || {
+            a.fetch_add(1, Ordering::SeqCst);
+            vec![("bragd-stockfish:17.1".to_string(), 1000)]
+        });
+        let jobs = Jobs::open(&d.0, Box::new(Recorded::default()), d.0.join("lib/main.bragd"), vec![], Box::new(|| false), images);
+        let url = "https://example.org/club.zip";
+        let mut o = sources::find("custom:club", url).unwrap().about().defaults();
+        o.url = url.into();
+        o.auto = sources::Auto { strip: false, delete_oldest: true, pause: false };
+        jobs.set_source("custom:club", o).unwrap();
+        let dir = jobs.source_dir("custom:club");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("a.pgn"), [b' '; 20]).unwrap();
+        let mut cfg = Config::default();
+        cfg.tablebases.path = d.0.join("syzygy").display().to_string();
+        jobs.check_disk(&cfg, 1_000_000);
+        assert_eq!(asked.load(Ordering::SeqCst), 1, "nothing crossed");
+        cfg.disk.items.insert("downloads:custom:club".into(), 10);
+        let r = jobs.check_disk(&cfg, 1_000_100);
+        assert!(!dir.join("a.pgn").exists(), "the download over the limit went");
+        assert!(!r.items.iter().any(|i| i.id == "downloads:custom:club"), "and the report says so: {:?}", r.items);
+        assert_eq!(asked.load(Ordering::SeqCst), 2, "once a check");
     }
 
     #[test]

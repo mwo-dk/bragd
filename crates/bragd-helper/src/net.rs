@@ -23,14 +23,28 @@ pub trait Fetcher: Send + Sync {
     fn exists(&self, url: &str) -> io::Result<bool> {
         Ok(!matches!(self.get(url, 0)?, Got::Missing))
     }
+    /// With `BRAGD_OFFLINE` set: nothing is fetched.
+    fn offline(&self) -> bool {
+        false
+    }
 }
 
-/// The real thing, over HTTPS with the system's certificate store.
-pub struct Web(ureq::Agent);
+/// The real thing, over HTTPS with the system's certificate store. With `BRAGD_OFFLINE` set it
+/// asks nobody.
+pub struct Web {
+    agent: ureq::Agent,
+    offline: bool,
+}
 
 impl Default for Web {
     fn default() -> Self {
-        Web(bragd_engines::fetch::agent(false))
+        Web { agent: bragd_engines::fetch::agent(false), offline: std::env::var_os("BRAGD_OFFLINE").is_some() }
+    }
+}
+
+impl Web {
+    fn refuse(&self) -> io::Result<()> {
+        if self.offline { Err(io::Error::other("BRAGD_OFFLINE is set: nothing is fetched")) } else { Ok(()) }
     }
 }
 
@@ -40,7 +54,8 @@ fn status_error(url: &str, status: u16) -> io::Error {
 
 impl Fetcher for Web {
     fn get(&self, url: &str, from: u64) -> io::Result<Got> {
-        let mut req = self.0.get(url);
+        self.refuse()?;
+        let mut req = self.agent.get(url);
         if from > 0 {
             req = req.header("Range", format!("bytes={from}-"));
         }
@@ -56,12 +71,17 @@ impl Fetcher for Web {
     }
 
     fn exists(&self, url: &str) -> io::Result<bool> {
-        let r = self.0.head(url).call().map_err(io::Error::other)?;
+        self.refuse()?;
+        let r = self.agent.head(url).call().map_err(io::Error::other)?;
         match r.status().as_u16() {
             404 | 410 => Ok(false),
             s if (200..400).contains(&s) => Ok(true),
             s => Err(status_error(url, s)),
         }
+    }
+
+    fn offline(&self) -> bool {
+        self.offline
     }
 }
 
@@ -191,6 +211,8 @@ pub(crate) mod tests {
         pub ranges: bool,
         /// Say how long each body is (`Content-Length`).
         pub sizes: bool,
+        /// As `BRAGD_OFFLINE` makes the real one.
+        pub offline: bool,
     }
 
     impl Fetcher for Recorded {
@@ -205,6 +227,9 @@ pub(crate) mod tests {
         fn exists(&self, url: &str) -> io::Result<bool> {
             self.asked.lock().unwrap().push(format!("HEAD {url}"));
             Ok(self.files.contains_key(url))
+        }
+        fn offline(&self) -> bool {
+            self.offline
         }
     }
 
@@ -250,6 +275,16 @@ pub(crate) mod tests {
         fs::write(part_of(&to), b"0123").unwrap();
         let e = download(&net, "u", &to, 9, &|| false, &mut |_| {}).unwrap_err();
         assert_eq!(TooBig::of(&e).and_then(|t| t.size), Some(10));
+    }
+
+    /// With `BRAGD_OFFLINE` the Helper asks nobody: the real fetcher refuses before it dials.
+    #[test]
+    fn offline_asks_nobody() {
+        let web = Web { offline: true, ..Web::default() };
+        assert!(web.offline() && !Recorded::default().offline());
+        let e = web.get("https://example.org/twic.zip", 0).err().expect("refused");
+        assert!(e.to_string().contains("BRAGD_OFFLINE"), "{e}");
+        assert!(web.exists("https://example.org/twic.zip").is_err());
     }
 
     #[test]

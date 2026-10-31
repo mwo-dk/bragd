@@ -29,10 +29,10 @@ Desktop tarballs for FreeBSD, NetBSD and OpenBSD are planned, but not yet availa
 
 | Script | Installs to |
 |---|---|
-| `./install/install.sh` | `~/.local/bin/bragd-gui` and a menu entry on Linux (`PREFIX` changes the folder); `~/Applications/Bragd.app` on macOS |
-| `install\install.ps1` | `%LOCALAPPDATA%\Programs\Bragd`, on your user `PATH`, with a Start Menu shortcut |
+| `./install/install.sh` | `~/.local/bin/bragd-gui`, `~/.local/bin/bragd-helper` and a menu entry on Linux (`PREFIX` changes the folder); `~/Applications/Bragd.app` on macOS, with `bragd-helper` inside it and both linked from `~/.local/bin` |
+| `install\install.ps1` | `bragd-gui.exe` and `bragd-helper.exe` in `%LOCALAPPDATA%\Programs\Bragd`, on your user `PATH`, with a Start Menu shortcut. Entries such as `%USERPROFILE%\bin` in your `PATH` stay as they were |
 
-The scripts copy only `bragd-gui` for now, not `bragd-helper`. Without the Helper beside it, the window shows the Helper as out of reach, and Sources, imports and Disk watch do not work.
+The window starts the Helper from beside its own program, so the scripts put `bragd-helper` next to `bragd-gui`.
 
 ### macOS
 

@@ -195,10 +195,25 @@ fn get_snapshot(ctx: tauri::State<'_, Ctx>) -> Snapshot {
 /// Saves one option to config.toml; the page redraws from the new snapshot.
 #[tauri::command]
 fn save_setting(name: String, value: Value, ctx: tauri::State<'_, Ctx>) -> Result<Snapshot, String> {
-    let cfg = settings::save(&name, &value)?;
+    let cfg = save_with(&name, &value, register_helper)?;
     let snap = snapshot(&cfg);
     *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = cfg;
     Ok(snap)
+}
+
+/// Saves one option. *Start with my session* registers the Helper with the session, or takes
+/// the registration away, first (`register`): a registration that failed saves nothing.
+fn save_with(name: &str, value: &Value, register: impl FnOnce(bool) -> std::io::Result<()>) -> Result<Config, String> {
+    if name == "start_with_session" {
+        let on = value.as_bool().ok_or_else(|| format!("{name}: not true or false"))?;
+        register(on).map_err(|e| e.to_string())?;
+    }
+    settings::save(name, value)
+}
+
+/// Registers the `bragd-helper` beside this program with the session, or unregisters it.
+fn register_helper(on: bool) -> std::io::Result<()> {
+    if on { bragd_helper::service::install(&bragd_helper::helper::program()?) } else { bragd_helper::service::uninstall() }
 }
 
 /// The Game after `entries`, from `initial` or the Variant's start.
@@ -361,4 +376,36 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Bragd");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// *Start with my session* registers the Helper with the session, or takes it away, before
+    /// the setting is saved: a registration that failed saves nothing. No other setting does.
+    #[test]
+    fn start_with_session_is_registered_before_it_is_saved() {
+        let mut asked = vec![];
+        let failed = save_with("start_with_session", &Value::Bool(true), |on| {
+            asked.push(on);
+            Err(std::io::Error::other("no session service"))
+        });
+        assert!(failed.is_err_and(|e| e.contains("no session service")));
+        assert!(!Config::load().unwrap_or_default().helper.start_with_session, "a failed registration saves nothing");
+        let cfg = save_with("start_with_session", &Value::Bool(true), |on| {
+            asked.push(on);
+            Ok(())
+        })
+        .unwrap();
+        assert!(cfg.helper.start_with_session);
+        let cfg = save_with("start_with_session", &Value::Bool(false), |on| {
+            asked.push(on);
+            Ok(())
+        })
+        .unwrap();
+        assert!(!cfg.helper.start_with_session);
+        save_with("check_updates", &Value::Bool(true), |_| panic!("only the session setting registers")).unwrap();
+        assert_eq!(asked, [true, true, false]);
+    }
 }
