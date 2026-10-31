@@ -5,7 +5,7 @@ use crate::{
     Placed, Seat, State, Variant,
 };
 use rules_chess::outcome::Outcome as ChessOutcome;
-use rules_chess::{Chess960, Color, Game, Position, Role, Rules, Square, Variant as _};
+use rules_chess::{CastlingNotation, Chess960, Color, Game, Position, Role, Rules, Square, Variant as _};
 use std::collections::BTreeMap;
 
 fn rules(variant: Variant) -> Rules {
@@ -63,12 +63,17 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
     let moves: Vec<LegalMove> = game
         .legal_moves()
         .into_iter()
-        .map(|mv| LegalMove {
-            wire: mv.to_uci(notation),
-            notation: game.san(mv),
-            from: Some(mv.from().to_string()),
-            to: Some(mv.to().to_string()),
-            drop: mv.gate().map(|role| sprite(variant, to_move, role)),
+        .map(|mv| {
+            let wire = mv.to_uci(notation);
+            // Where a Player drags the king: two squares on an 8×8 board, onto its rook in Chess960.
+            let to = if mv.kind().is_castle() && notation == CastlingNotation::KingDestination { wire[2..4].to_string() } else { mv.to().to_string() };
+            LegalMove {
+                notation: game.san(mv),
+                from: Some(mv.from().to_string()),
+                to: Some(to),
+                drop: mv.gate().map(|role| sprite(variant, to_move, role)),
+                wire,
+            }
         })
         .collect();
 

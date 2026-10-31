@@ -47,6 +47,10 @@ pub struct State {
     pub throws: Vec<String>,
     /// The entries played so far, written the way a Player reads them.
     pub history: Vec<String>,
+    /// The move list's number before each entry of `history`. Chess, xiangqi and draughts
+    /// number full moves: `1.` before the first Side's move, nothing before the reply, and `1…`
+    /// when a Game opens with the second Side. Every other Family numbers each entry: `1`, `2` …
+    pub numbers: Vec<String>,
     /// The side to move is in check (chess-like Families only).
     pub check: bool,
     pub outcome: Option<Outcome>,
@@ -306,6 +310,9 @@ pub fn replay<S: AsRef<str>>(
         Family::Senet => senet::replay(initial, &entries),
     }?;
     state.targets = targets(&state.moves);
+    if state.numbers.is_empty() {
+        state.numbers = (1..=state.history.len()).map(|n| n.to_string()).collect();
+    }
     Ok(state)
 }
 
@@ -321,6 +328,22 @@ pub fn apply<S: AsRef<str>>(
     replay(key, initial, &all)
 }
 
+/// Full-move numbers for `n` entries, the first of them ply `first` of the Game (0 is the
+/// first Side's first move, 1 the second Side's reply, 2 the first Side's second move …).
+pub(crate) fn full_moves(first: u32, n: usize) -> Vec<String> {
+    (0..n as u32)
+        .map(|i| {
+            let ply = first + i;
+            let number = ply / 2 + 1;
+            match (ply % 2, i) {
+                (0, _) => format!("{number}."),
+                (_, 0) => format!("{number}…"),
+                _ => String::new(),
+            }
+        })
+        .collect()
+}
+
 fn targets(moves: &[LegalMove]) -> BTreeMap<String, Vec<String>> {
     let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for mv in moves {
@@ -332,6 +355,16 @@ fn targets(moves: &[LegalMove]) -> BTreeMap<String, Vec<String>> {
         }
     }
     map
+}
+
+#[cfg(test)]
+mod numbering {
+    #[test]
+    fn full_moves_pair_the_two_sides() {
+        assert_eq!(super::full_moves(0, 3), ["1.", "", "2."]);
+        assert_eq!(super::full_moves(23, 3), ["12…", "13.", ""]);
+        assert!(super::full_moves(0, 0).is_empty());
+    }
 }
 
 #[cfg(test)]

@@ -124,7 +124,7 @@ fn home() -> PathBuf {
 }
 
 /// The program `k` runs as here: the path set for it, else the one found installed.
-fn installed(cfg: &Config, key: &str, k: Option<&Known>) -> Option<PathBuf> {
+pub(crate) fn installed(cfg: &Config, key: &str, k: Option<&Known>) -> Option<PathBuf> {
     cfg.engines.paths.get(key).and_then(|p| known::configured(p, &home())).or_else(|| k.and_then(Known::installed))
 }
 

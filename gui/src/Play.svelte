@@ -37,6 +37,8 @@
   let initial = $state(null);
   /** @type {string[]} */
   let entries = $state([]);
+  /** The Chess960 array the Game started from, 0–959. @type {number | null} */
+  let array = $state(null);
   /** @type {any} */
   let st = $state(null);
   // The board fits the window's height as well as its width: whatever the height left under
@@ -124,6 +126,7 @@
       initial = text;
       entries = list;
       marks = [];
+      array = null;
     });
   }
 
@@ -133,7 +136,8 @@
     entries = [];
     dead = [];
     marks = [];
-    load(api.replay(key, null, []));
+    array = null;
+    load(api.newGame(variant).then((g) => ((initial = g.initial), (array = g.array), g.state)));
   }
 
   async function playEntry(/** @type {string} */ entry) {
@@ -296,6 +300,9 @@
           <p class="turn">
             {st.awaiting === "throw" ? t("play.to_throw", { side: side(st.toMove) }) : t("play.to_move", { side: side(st.toMove) })}
           </p>
+        {/if}
+        {#if array !== null}
+          <p class="hint">{t("play.chess960_array", { n: array })}</p>
         {/if}
         {#if st.board.dice.length && family.id !== "backgammon"}
           <p class="dice">{t("play.thrown", { n: st.board.dice.join(" ") })}</p>

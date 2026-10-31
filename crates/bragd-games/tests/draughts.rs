@@ -64,3 +64,11 @@ fn only_the_opening_array_is_an_initial_position() {
         Err(GameError::BadPosition { .. })
     ));
 }
+
+#[test]
+fn the_draughts_move_list_numbers_full_moves() {
+    for (key, moves) in GAMES {
+        let state = replay(key, None, &moves[..3]).unwrap();
+        assert_eq!(state.numbers, ["1.", "", "2."], "{key}");
+    }
+}

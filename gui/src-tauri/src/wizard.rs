@@ -104,7 +104,8 @@ fn helper_sources() -> Vec<wizard::Source> {
         .collect()
 }
 
-/// The engines of each Family that is on and has outside engines, each looked for here.
+/// The engines of each Family that is on and has outside engines, each looked for here the
+/// way Play looks: the path set in Settings first, then the PATH.
 fn engines(cfg: &Config) -> Vec<FamilyEngines> {
     Family::ALL
         .iter()
@@ -115,7 +116,7 @@ fn engines(cfg: &Config) -> Vec<FamilyEngines> {
                 .iter()
                 // The engines' own Variant keys differ from the catalogue's (S5): the Family decides.
                 .filter(|k| k.variants.iter().any(|v| known::family(v).and_then(|kf| serde_json::to_value(kf).ok()).is_some_and(|kf| kf == f.key())))
-                .map(|k| EngineView { name: k.name, installed: k.installed().map(|p| p.display().to_string()), image: k.image().is_some(), site: k.site, program: k.programs[0] })
+                .map(|k| EngineView { name: k.name, installed: crate::engines::installed(cfg, k.key, Some(k)).map(|p| p.display().to_string()), image: k.image().is_some(), site: k.site, program: k.programs[0] })
                 .collect(),
         })
         .collect()
@@ -223,4 +224,19 @@ fn turn_on(ids: &[String], offline: bool) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// An engine whose path is set in Settings is installed, even when the PATH lacks it.
+    #[test]
+    fn the_wizard_sees_an_engine_set_by_path() {
+        let me = std::env::current_exe().unwrap();
+        let mut cfg = Config::default();
+        cfg.engines.paths.insert("stockfish".into(), me.display().to_string());
+        let seen = engines(&cfg).into_iter().flat_map(|f| f.engines).find(|e| e.program == "stockfish").unwrap();
+        assert_eq!(seen.installed.as_deref(), Some(me.display().to_string().as_str()));
+    }
 }

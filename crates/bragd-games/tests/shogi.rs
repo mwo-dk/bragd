@@ -113,3 +113,10 @@ fn a_replay_generates_the_legal_moves_once_a_ply() {
     assert_eq!(rules_shogi::position::generated() - before, line.len() as u64 + 1);
     assert_eq!(state.history.len(), line.len());
 }
+
+/// Shogi numbers each move, as a kifu does.
+#[test]
+fn the_shogi_move_list_numbers_each_move() {
+    let state = replay("shogi", None, &GAME[..3]).unwrap();
+    assert_eq!(state.numbers, ["1", "2", "3"]);
+}

@@ -23,7 +23,7 @@ use bragd_core::config::Config;
 use bragd_core::settings::{self, Area, Sidebar};
 use bragd_core::themes::{self, Appearance};
 use bragd_core::{i18n, update};
-use bragd_games::{Family, GameError, State};
+use bragd_games::{Family, GameError, State, Variant};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -222,6 +222,24 @@ fn game_replay(variant: String, initial: Option<String>, entries: Vec<String>) -
     bragd_games::replay(&variant, initial.as_deref(), &entries)
 }
 
+#[derive(Serialize)]
+struct Started {
+    /// The position the Game starts from: a Chess960 array, else none (the Variant's start).
+    initial: Option<String>,
+    /// The Chess960 array's number, 0–959.
+    array: Option<u16>,
+    state: State,
+}
+
+/// A new Game of `variant`: Chess960 starts from an array picked at random.
+#[tauri::command]
+fn game_new(variant: String) -> Result<Started, GameError> {
+    let array = (bragd_games::variant(&variant)? == Variant::Chess960).then(throw::chess960_array);
+    let initial = array.map(bragd_games::chess960_start);
+    let state = bragd_games::replay::<&str>(&variant, initial.as_deref(), &[])?;
+    Ok(Started { initial, array, state })
+}
+
 /// The Game after one more entry, or why the rules refuse it.
 #[tauri::command]
 fn game_play(variant: String, initial: Option<String>, entries: Vec<String>, entry: String) -> Result<State, GameError> {
@@ -296,6 +314,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
             save_setting,
+            game_new,
             game_replay,
             game_play,
             game_throw,

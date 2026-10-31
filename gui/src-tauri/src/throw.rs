@@ -23,6 +23,22 @@ fn uniform(n: u8, next: &mut impl FnMut() -> u8) -> u8 {
     }
 }
 
+/// A number in `0..n` from two bytes, rejection-sampled like [`uniform`].
+fn uniform16(n: u16, next: &mut impl FnMut() -> u8) -> u16 {
+    let limit = 65536 - 65536 % n as u32;
+    loop {
+        let v = (next() as u32) << 8 | next() as u32;
+        if v < limit {
+            return (v % n as u32) as u16;
+        }
+    }
+}
+
+/// The Chess960 array a new Game starts from, 0–959, every one equally likely.
+pub fn chess960_array() -> u16 {
+    uniform16(960, &mut os_byte)
+}
+
 /// One throw of the Family's implements, written as its entry.
 fn cast(family: Family, next: &mut impl FnMut() -> u8) -> Option<String> {
     match family {
@@ -85,6 +101,16 @@ mod tests {
         assert_eq!(counts, [42; 6]);
         // A power of two keeps every byte.
         assert_eq!(uniform(4, &mut bytes(&[255])), 3);
+    }
+
+    #[test]
+    fn a_chess960_array_is_any_of_the_960_and_only_those() {
+        // 65280..=65535 would favour the low arrays; they are thrown away.
+        assert_eq!(uniform16(960, &mut bytes(&[0xFF, 0x00, 0x03, 0xC1])), 1);
+        assert_eq!(uniform16(960, &mut bytes(&[0xFE, 0xFF])), 65279 % 960);
+        let a = chess960_array();
+        assert!(a < 960);
+        assert!(bragd_games::replay::<&str>("chess960", Some(&bragd_games::chess960_start(a)), &[]).is_ok());
     }
 
     #[test]
