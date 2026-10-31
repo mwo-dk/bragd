@@ -93,13 +93,27 @@ type Shown = Vec<(Vec<String>, Vec<(String, String)>)>;
 /// Each of `pvs` as moves to show: from `cache` when the poll before showed it, else by
 /// `render`. `cache` then holds these lines only.
 fn shown_lines(cache: &mut Shown, pvs: &[Vec<String>], render: impl Fn(&[String]) -> Vec<(String, String)>) -> Vec<Vec<(String, String)>> {
-    todo!("{} {} {}", cache.len(), pvs.len(), render(&[]).len())
+    let mut fresh = Shown::with_capacity(pvs.len());
+    let lines = pvs
+        .iter()
+        .map(|pv| {
+            let moves = match cache.iter().find(|(key, _)| key == pv) {
+                Some((_, moves)) => moves.clone(),
+                None => render(pv),
+            };
+            fresh.push((pv.clone(), moves.clone()));
+            moves
+        })
+        .collect();
+    *cache = fresh;
+    lines
 }
 
 struct Live {
     asked: Asked,
     raw: Arc<Mutex<Raw>>,
     stop: Arc<AtomicBool>,
+    shown: Arc<Mutex<Shown>>,
 }
 
 impl Drop for Live {
@@ -170,7 +184,7 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
             raw.error = Some(e);
         }
     });
-    *held.live.lock().unwrap_or_else(|e| e.into_inner()) = Some(Live { asked, raw, stop });
+    *held.live.lock().unwrap_or_else(|e| e.into_inner()) = Some(Live { asked, raw, stop, shown: Default::default() });
     Ok(())
 }
 
@@ -206,23 +220,25 @@ pub struct Now {
 /// The analysis as far as it has come; None when none was started.
 pub fn now(held: &Held) -> Option<Now> {
     // Copied out, so the replays below hold neither lock and the engine's reports never wait.
-    let (asked, raw) = {
+    let (asked, raw, shown) = {
         let live = held.live.lock().unwrap_or_else(|e| e.into_inner());
         let l = live.as_ref()?;
         let raw = l.raw.lock().unwrap_or_else(|e| e.into_inner()).clone();
-        (l.asked.clone(), raw)
+        (l.asked.clone(), raw, l.shown.clone())
     };
     let lines = raw
         .notation
         .map(|n| {
-            raw.lines
-                .iter()
-                .filter(|i| !i.pv.is_empty())
-                .map(|i| {
+            let heard: Vec<&Info> = raw.lines.iter().filter(|i| !i.pv.is_empty()).collect();
+            let pvs: Vec<Vec<String>> = heard.iter().map(|i| i.pv.iter().take(SHOWN).cloned().collect()).collect();
+            let a = &asked;
+            let moves = shown_lines(&mut shown.lock().unwrap_or_else(|e| e.into_inner()), &pvs, |pv| seam::line(&a.variant, a.initial.as_deref(), &a.entries, n, pv));
+            heard
+                .into_iter()
+                .zip(moves)
+                .map(|(i, moves)| {
                     let score = i.score.map(|s: Score| if raw.second { s.flipped() } else { s });
-                    let pv: Vec<String> = i.pv.iter().take(SHOWN).cloned().collect();
-                    let a = &asked;
-                    let moves = seam::line(&a.variant, a.initial.as_deref(), &a.entries, n, &pv).into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect();
+                    let moves = moves.into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect();
                     LineView { score: score.map(Score::shown).unwrap_or_default(), depth: i.depth, moves }
                 })
                 .filter(|v| !v.moves.is_empty())
