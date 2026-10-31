@@ -19,12 +19,14 @@ use serde::Serialize;
 use serde_json::Value;
 
 /// What the Engines items keep between calls: each engine's options as it last said them,
-/// the engine playing a Side, the pulls under way, and the network downloads, by engine.
+/// the engine playing a Side, the pulls that failed, the pulls under way (each with the flag
+/// that cuts its wait short), and the network downloads, by engine.
 #[derive(Default)]
 pub struct Held {
     info: Mutex<HashMap<String, EngineInfo>>,
     playing: Mutex<Option<(String, Engine)>>,
     pulls: std::sync::Arc<Mutex<HashMap<String, String>>>,
+    running: std::sync::Arc<Mutex<HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>>>,
     networks: std::sync::Arc<Mutex<HashMap<String, NetworkJob>>>,
 }
 
@@ -220,11 +222,33 @@ pub struct EngineRow {
     hint: String,
     /// Its download page; empty when it has none.
     site: String,
-    /// Its pull under way: the runtime's last line, or why it failed.
+    /// Its pull under way: the runtime's last line.
     pulling: Option<String>,
+    /// Its pull waiting to try again after a passing fault.
+    waiting: Option<PullWait>,
+    /// Why its pull failed for good.
+    failed: Option<String>,
     variants: Vec<String>,
     /// The network its image needs, when it needs one and is not installed.
     network: Option<NetworkView>,
+}
+
+/// A pull waiting after a passing fault: why, when it tries again (Unix seconds), and the
+/// runtime's own words.
+#[derive(Serialize)]
+pub struct PullWait {
+    why: String,
+    at: u64,
+    detail: String,
+}
+
+/// Why a pull failed, in the user's language.
+fn pull_why(e: &images::PullError) -> String {
+    match e.fault {
+        images::Fault::Network => tr("engines.pull.no_network", &[]),
+        images::Fault::Registry => tr("engines.pull.busy", &[]),
+        images::Fault::Lasting | images::Fault::Stopped => e.detail.clone(),
+    }
 }
 
 #[derive(Serialize)]
@@ -268,6 +292,7 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
         }
     }
     let pulling = images::pulling();
+    let waiting = images::waiting();
     let failed = held.pulls.lock().unwrap_or_else(|e| e.into_inner()).clone();
     let downloads = held.networks.lock().unwrap_or_else(|e| e.into_inner()).clone();
     let engines = keys
@@ -298,7 +323,9 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
                 name: k.map_or_else(|| key.clone(), |k| k.name.to_string()),
                 site: k.map(|k| k.site.to_string()).unwrap_or_default(),
                 added: k.is_none(),
-                pulling: image.as_ref().and_then(|i| pulling.get(i).cloned()).or_else(|| failed.get(&key).cloned()),
+                pulling: image.as_ref().and_then(|i| pulling.get(i).cloned()),
+                waiting: image.as_ref().and_then(|i| waiting.get(i)).map(|w| PullWait { why: pull_why(&w.error), at: w.at, detail: w.error.detail.clone() }),
+                failed: failed.get(&key).cloned(),
                 key,
                 state,
                 hint,
@@ -400,22 +427,39 @@ pub fn reset_options(held: &Held, key: &str) -> Result<EngineInfo, String> {
 }
 
 /// Pulls the image of the engine `key` on a thread of its own; its progress shows on the page.
+/// After a passing fault the pull waits and tries again by itself; asked again while it waits
+/// (Retry now), it tries at once rather than starting a second pull.
 pub fn pull(cfg: &Config, held: &Held, key: &str) -> Result<(), String> {
+    use std::sync::atomic::{AtomicBool, Ordering};
     let k = known::known(key).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
     let image = k.image().ok_or_else(|| tr("engines.state.no_image", &[]))?;
     let rt = runtime(cfg).ok_or_else(|| tr("engines.state.no_runtime", &[]))?;
-    let (key, pulls) = (key.to_string(), held.pulls.clone());
+    let wake = {
+        let mut running = held.running.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(w) = running.get(key) {
+            w.store(true, Ordering::Relaxed);
+            return Ok(());
+        }
+        let w = std::sync::Arc::new(AtomicBool::new(false));
+        running.insert(key.to_string(), w.clone());
+        w
+    };
+    let (key, pulls, running) = (key.to_string(), held.pulls.clone(), held.running.clone());
+    pulls.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
     std::thread::spawn(move || {
-        let stop = std::sync::atomic::AtomicBool::new(false);
+        let stop = AtomicBool::new(false);
         let r = images::pull(&rt.path, &image, &stop, &|d| {
-            std::thread::sleep(d);
+            let end = std::time::Instant::now() + d;
+            while std::time::Instant::now() < end && !wake.swap(false, Ordering::Relaxed) {
+                std::thread::sleep(Duration::from_millis(250));
+            }
             true
         });
-        let mut pulls = pulls.lock().unwrap_or_else(|e| e.into_inner());
-        match r {
-            Ok(()) => pulls.remove(&key),
-            Err(e) => pulls.insert(key, e.to_string()),
-        };
+        running.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
+        if let Err(e) = r {
+            let name = images::short(&e.image).to_string();
+            pulls.lock().unwrap_or_else(|e| e.into_inner()).insert(key, tr("engines.pull.failed", &[("name", &name), ("why", &pull_why(&e))]));
+        }
     });
     Ok(())
 }

@@ -219,6 +219,30 @@ mod tests {
         std::fs::remove_dir_all(&root).unwrap();
     }
 
+    /// WinGet's layout: a portable package unpacks into a folder of its own under Packages, and
+    /// its command alias lands in Links, which is on PATH only for programs started after the
+    /// install. Both are searched; PATH comes first.
+    #[test]
+    fn winget_installs_are_found() {
+        let root = crate::test_dir("winget");
+        let winget = root.join("Microsoft").join("WinGet");
+        let pkg = winget.join("Packages").join("Stockfish.Stockfish_Microsoft.Winget.Source_8wekyb3d8bbwe").join("stockfish");
+        let (links, on_path) = (winget.join("Links"), root.join("bin"));
+        for d in [&pkg, &links, &on_path] {
+            std::fs::create_dir_all(d).unwrap();
+        }
+        std::fs::write(pkg.join("stockfish-windows-x86-64-avx2.exe"), b"").unwrap();
+        std::fs::write(links.join("stockfish.exe"), b"").unwrap();
+        let dirs = || windows_dirs(Some(std::env::join_paths([&on_path]).unwrap()), Some(root.clone().into_os_string()));
+        assert_eq!(long_named("stockfish", ".exe", dirs()), Some(links.join("stockfish.exe")));
+        std::fs::remove_file(links.join("stockfish.exe")).unwrap();
+        assert_eq!(long_named("stockfish", ".exe", dirs()), Some(pkg.join("stockfish-windows-x86-64-avx2.exe")));
+        std::fs::write(on_path.join("stockfish_17.exe"), b"").unwrap();
+        assert_eq!(long_named("stockfish", ".exe", dirs()), Some(on_path.join("stockfish_17.exe")), "PATH first");
+        assert!(windows_dirs(None, None).is_empty());
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
     // AppImages exist only on Linux, and the test's search paths use its `:` separator.
     #[cfg(unix)]
     #[test]

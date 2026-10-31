@@ -555,11 +555,26 @@ mod tests {
         let e = pull(&rt, &gone, &AtomicBool::new(false), &sleep).unwrap_err();
         assert_eq!((e.fault, e.tries, waits.borrow().len()), (Fault::Lasting, 1, 0));
         assert!(e.to_string().ends_with("Error: manifest unknown"), "{e}");
-        // Always offline: every wait, then it says so plainly.
+        // Always offline: it keeps waiting, longer each time, until stopped; while it waits,
+        // `waiting()` says why and when it tries again.
         std::fs::write(d.join("n"), "-100").unwrap();
-        let e = pull(&rt, PIN, &AtomicBool::new(false), &sleep).unwrap_err();
-        assert_eq!((e.fault, e.tries), (Fault::Network, BACKOFF.len() as u32 + 1));
-        assert!(e.to_string().contains("no network. Tried 4 times."), "{e}");
+        let start = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let seen = std::cell::RefCell::new(vec![]);
+        let six = |w: Duration| {
+            let now = waiting().get(PIN).map(|x| (x.error.fault, x.error.tries, x.at));
+            seen.borrow_mut().push((w, now));
+            seen.borrow().len() < 6
+        };
+        let e = pull(&rt, PIN, &AtomicBool::new(false), &six).unwrap_err();
+        assert_eq!(e.fault, Fault::Stopped);
+        let seen = seen.into_inner();
+        assert_eq!(seen.iter().map(|s| s.0).collect::<Vec<_>>(), [BACKOFF[0], BACKOFF[1], BACKOFF[2], next_try(1), next_try(2), next_try(3)]);
+        for (i, (w, now)) in seen.iter().enumerate() {
+            let (fault, tries, at) = now.unwrap_or_else(|| panic!("wait {i} not shown"));
+            assert_eq!((fault, tries), (Fault::Network, i as u32 + 1));
+            assert!(at >= start + w.as_secs() && at <= start + w.as_secs() + 60, "wait {i}: {at}");
+        }
+        assert!(!waiting().contains_key(PIN), "no longer waiting once stopped");
         // Stopped while waiting.
         std::fs::write(d.join("n"), "0").unwrap();
         let e = pull(&rt, PIN, &AtomicBool::new(false), &|_| false).unwrap_err();
