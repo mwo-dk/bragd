@@ -100,6 +100,13 @@ CREATE TABLE IF NOT EXISTS games (
     zobrist_chain_hash INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS games_chain ON games (zobrist_chain_hash);
+-- What Slices filter on. Made on open, so an older Library gets them once, the first time.
+CREATE INDEX IF NOT EXISTS games_white ON games (white);
+CREATE INDEX IF NOT EXISTS games_black ON games (black);
+CREATE INDEX IF NOT EXISTS games_eco ON games (eco);
+CREATE INDEX IF NOT EXISTS games_date ON games (date);
+CREATE INDEX IF NOT EXISTS games_white_elo ON games (white_elo);
+CREATE INDEX IF NOT EXISTS games_black_elo ON games (black_elo);
 CREATE TABLE IF NOT EXISTS game_sources (
     game_id INTEGER NOT NULL REFERENCES games (id) ON DELETE CASCADE,
     source TEXT NOT NULL,

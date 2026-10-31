@@ -68,12 +68,15 @@ fn condition(q: &Query) -> (String, Vec<Value>) {
     text("result = ?", &q.result);
     text("family = ?", &q.family);
     text("variant = ?", &q.variant);
-    // A date bound compares as far as it is given, so `1999` takes in all of 1999.
-    for (v, op) in [(&q.date_from, ">="), (&q.date_to, "<=")] {
-        if let Some(v) = v.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-            parts.push(format!("(date GLOB '[0-9][0-9][0-9][0-9]*' AND substr(date, 1, {}) {op} ?)", v.chars().count()));
-            args.push(Value::Text(v.to_string()));
-        }
+    // A date bound compares as far as it is given, so `1999` takes in all of 1999. From a
+    // date, a plain `date >= ?` says the same and can use the index.
+    if let Some(v) = q.date_from.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+        parts.push("(date GLOB '[0-9][0-9][0-9][0-9]*' AND date >= ?)".into());
+        args.push(Value::Text(v.to_string()));
+    }
+    if let Some(v) = q.date_to.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+        parts.push(format!("(date GLOB '[0-9][0-9][0-9][0-9]*' AND substr(date, 1, {}) <= ?)", v.chars().count()));
+        args.push(Value::Text(v.to_string()));
     }
     if let Some(min) = q.rating_min {
         parts.push("(white_elo >= ? AND black_elo >= ?)".into());
@@ -190,6 +193,35 @@ mod tests {
         add(&mut lib, &[("White", "Anand, Viswanathan"), ("Black", "Kasparov, Garry"), ("ECO", "B90"), ("Date", "1999.??.??"), ("WhiteElo", "2780"), ("BlackElo", "2810")], "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6", "1-0");
         add(&mut lib, &[("White", "Unknown"), ("Black", "Player")], "1. e4 e5", "*");
         lib
+    }
+
+    /// A Library made before the Slice indexes gets them when it is opened, and a Slice's
+    /// filters use them.
+    #[test]
+    fn slice_filters_are_indexed_in_old_libraries_too() {
+        let d = Dir::new("slice-index");
+        let path = d.0.join("lib.bragd");
+        let names = ["games_white", "games_black", "games_eco", "games_date", "games_white_elo", "games_black_elo"];
+        {
+            let lib = library(&d);
+            for n in names {
+                lib.conn().execute_batch(&format!("DROP INDEX {n}")).unwrap();
+            }
+        }
+        let lib = Library::open(&path).unwrap();
+        let have: Vec<String> = lib.conn().prepare("SELECT name FROM sqlite_master WHERE type = 'index'").unwrap().query_map([], |r| r.get(0)).unwrap().map(|r| r.unwrap()).collect();
+        for n in names {
+            assert!(have.iter().any(|h| h == n), "{n} missing: {have:?}");
+        }
+        let plan = |q: Query| {
+            let (cond, args) = condition(&q);
+            let mut st = lib.conn().prepare(&format!("EXPLAIN QUERY PLAN SELECT id FROM games WHERE {cond}")).unwrap();
+            st.query_map(rusqlite::params_from_iter(args), |r| r.get::<_, String>(3)).unwrap().map(|r| r.unwrap()).collect::<Vec<_>>().join(" ")
+        };
+        assert!(plan(Query { eco_from: Some("D70".into()), ..Default::default() }).contains("games_eco"));
+        assert!(plan(Query { date_from: Some("1990".into()), ..Default::default() }).contains("games_date"));
+        assert!(plan(Query { rating_min: Some(2500), ..Default::default() }).contains("_elo"));
+        assert_eq!(lib.find(&Query { date_from: Some("1990".into()), ..Default::default() }).unwrap(), [2, 3]);
     }
 
     #[test]

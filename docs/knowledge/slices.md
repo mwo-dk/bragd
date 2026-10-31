@@ -50,6 +50,10 @@ Slices are stored inside their Library, not in `config.toml`. A kept copy is wri
 
 No. A Slice is a query. It takes no space beyond its name and fields, and it always shows the Library as it is now. Only *Keep as a separate copy* copies Games.
 
+#### Why did my Library take a while to open once?
+
+Bragd indexes the fields Slices search: White, Black, ECO, date and both Elos. A Library made by an older Bragd gets the indexes the first time it is opened, which reads every Game once. After that, a Slice finds its first page without reading the whole Library. A search by player name still reads every name, because it matches any part of it.
+
 #### What happens to a kept copy when the Library changes?
 
 Nothing. The copy is a Library of its own and does not follow the first. It is listed on the Libraries tab, and its Slice is marked ⧉.
