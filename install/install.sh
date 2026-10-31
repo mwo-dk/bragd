@@ -4,8 +4,8 @@
 #   ./install/install.sh             build and install
 #   ./install/install.sh --yes       answer yes to every question
 #
-# Installs into $PREFIX (default ~/.local): bin/bragd-gui and a menu entry on Linux. On macOS
-# the app goes to ~/Applications/Bragd.app.
+# Installs into $PREFIX (default ~/.local): bin/bragd-gui, bin/bragd-helper and a menu entry on
+# Linux. On macOS the app, with the Helper inside, goes to ~/Applications/Bragd.app.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -129,17 +129,22 @@ node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.ex
 
 bold "Building Bragd (a few minutes the first time)…"
 (cd gui && npm ci --no-audit --no-fund)
+# The Helper is a program of its own, which the app starts from beside its own.
+cargo build --release --locked -p bragd-helper
 if [ "$OS" = Darwin ]; then
   (cd gui && npx tauri build --bundles app)
   mkdir -p "$HOME/Applications" "$PREFIX/bin"
   rm -rf "$HOME/Applications/Bragd.app"
   cp -R target/release/bundle/macos/Bragd.app "$HOME/Applications/"
+  install -m 755 target/release/bragd-helper "$HOME/Applications/Bragd.app/Contents/MacOS/bragd-helper"
   ln -sf "$HOME/Applications/Bragd.app/Contents/MacOS/bragd-gui" "$PREFIX/bin/bragd-gui"
-  info "Installed ~/Applications/Bragd.app"
+  ln -sf "$HOME/Applications/Bragd.app/Contents/MacOS/bragd-helper" "$PREFIX/bin/bragd-helper"
+  info "Installed ~/Applications/Bragd.app, with bragd-helper inside"
 else
   (cd gui && npx tauri build --no-bundle)
   mkdir -p "$PREFIX/bin"
   install -m 755 target/release/bragd-gui "$PREFIX/bin/bragd-gui"
+  install -m 755 target/release/bragd-helper "$PREFIX/bin/bragd-helper"
   ICONS="$PREFIX/share/icons/hicolor/128x128/apps"
   APPS="$PREFIX/share/applications"
   mkdir -p "$ICONS" "$APPS"
@@ -155,7 +160,7 @@ Icon=bragd
 Terminal=false
 Categories=Game;BoardGame;
 EOF
-  info "Installed $PREFIX/bin/bragd-gui and a menu entry"
+  info "Installed $PREFIX/bin/bragd-gui, $PREFIX/bin/bragd-helper and a menu entry"
 fi
 
 echo

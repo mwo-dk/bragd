@@ -8,8 +8,8 @@
     powershell -ExecutionPolicy Bypass -File install\install.ps1        # asks before installing anything
     powershell -ExecutionPolicy Bypass -File install\install.ps1 -Yes   # no questions
 
-  Installs to %LOCALAPPDATA%\Programs\Bragd, adds that folder to your user PATH and creates a
-  Start Menu shortcut.
+  Installs bragd-gui.exe and bragd-helper.exe to %LOCALAPPDATA%\Programs\Bragd, adds that
+  folder to your user PATH and creates a Start Menu shortcut.
 #>
 param(
     [switch]$Yes
@@ -120,21 +120,34 @@ try {
 } finally {
     Pop-Location
 }
+# The Helper is a program of its own, which the app starts from beside its own.
+Run cargo build --release --locked -p bragd-helper
 New-Item -ItemType Directory -Force -Path $Dest | Out-Null
 Copy-Item "target\release\bragd-gui.exe" $Dest -Force
+Copy-Item "target\release\bragd-helper.exe" $Dest -Force
 $shell = New-Object -ComObject WScript.Shell
 $link = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Programs")) "Bragd.lnk"))
 $link.TargetPath = Join-Path $Dest "bragd-gui.exe"
 $link.WorkingDirectory = $env:USERPROFILE
 $link.Save()
-Info "Installed $Dest\bragd-gui.exe and a Start Menu shortcut"
+Info "Installed $Dest\bragd-gui.exe, bragd-helper.exe and a Start Menu shortcut"
 
 # ---------------------------------------------------------------- PATH
 
-$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if (($userPath -split ";") -notcontains $Dest) {
-    [Environment]::SetEnvironmentVariable("Path", "$userPath;$Dest", "User")
-    Info "Added $Dest to your PATH (open a new terminal to use it)."
+# Read and written as the registry holds it, so entries such as %USERPROFILE%\bin stay as they are.
+$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey("Environment", $true)
+try {
+    $userPath = $key.GetValue("Path", "", [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+    $entries = @($userPath -split ";" | Where-Object { $_ })
+    if (-not ($entries | Where-Object { [Environment]::ExpandEnvironmentVariables($_).TrimEnd("\") -eq $Dest })) {
+        $key.SetValue("Path", (($entries + $Dest) -join ";"), [Microsoft.Win32.RegistryValueKind]::ExpandString)
+        # Setting a variable through .NET tells running programs the environment changed.
+        [Environment]::SetEnvironmentVariable("BRAGD_PATH_CHANGED", "1", "User")
+        [Environment]::SetEnvironmentVariable("BRAGD_PATH_CHANGED", $null, "User")
+        Info "Added $Dest to your PATH (open a new terminal to use it)."
+    }
+} finally {
+    $key.Close()
 }
 
 Write-Host ""
