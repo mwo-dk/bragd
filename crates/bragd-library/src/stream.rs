@@ -40,7 +40,8 @@ pub fn is_text(name: &str) -> bool {
 /// Whether a file named `name` holds games a Library imports: PGN or PDN, packed or not
 /// (`is_text`), or an unpacked SGF, KIF or CSA file. The one list every importer asks.
 pub fn importable(name: &str) -> bool {
-    todo!("{name}")
+    let n = name.to_ascii_lowercase();
+    is_text(name) || (unpacked_name(name) == name && [".sgf", ".kif", ".kifu", ".csa"].iter().any(|e| n.ends_with(e)))
 }
 
 pub fn is_zip(path: &Path) -> bool {

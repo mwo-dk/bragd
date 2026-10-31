@@ -517,7 +517,7 @@ impl Library {
             let mut m = zip.by_index(i).map_err(io::Error::other)?;
             let Some(name) = m.enclosed_name().and_then(|n| n.file_name().map(|n| n.to_string_lossy().into_owned())) else { continue };
             let lower = name.to_ascii_lowercase();
-            if !m.is_file() || ![".sgf", ".kif", ".kifu", ".csa"].iter().any(|e| lower.ends_with(e)) {
+            if !m.is_file() || !(crate::stream::importable(&lower) && !crate::stream::is_text(&lower)) {
                 continue;
             }
             let to = path.with_file_name(format!(".{}.{name}", path.file_name().unwrap_or_default().to_string_lossy()));
