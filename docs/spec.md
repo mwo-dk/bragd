@@ -202,7 +202,6 @@ The same position turns up in thousands of Games. Bragd judges it once and keeps
   - Whole Libraries are never queued.
   - Settings limit it per machine: hours, threads, and never on battery.
   - Each job shows its progress and an estimate of the time left.
-- **Comments:** text a person wrote into a Game is translated only on demand, with a *Translate* button. The result is kept per language and labelled as machine-translated, and the original stays one click away. The language model is the one set up under *Language model* (0.5.0); until then the button is hidden.
 - **Housekeeping:** Disk watch shows the store's size per Engine and Edition. One action each prunes:
   - Editions older than the newest;
   - Engines that were removed;
@@ -224,6 +223,7 @@ The same position turns up in thousands of Games. Bragd judges it once and keeps
   - Bragd offers a local Ollama, Lemonade or LM Studio it finds running.
   - A cloud model needs a key, kept in the OS keychain, and Bragd says plainly that positions and comments then leave the machine.
   - Model jobs go through the shared queue, so one Peer's model can serve the others.
+- **Comments:** text a person wrote into a Game is translated only on demand, with a *Translate* button. The result is kept per language and labelled as machine-translated, and the original stays one click away.
 - **Commentary:** prose about a position or a move, written by the language model in the reader's language from the Evaluation and the Annotation. It is kept per language, records the model that wrote it, and is labelled as machine-written. It is stored apart from Annotations, as its own column.
 
 ## 1.0
