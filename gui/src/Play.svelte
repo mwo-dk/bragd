@@ -375,8 +375,7 @@
         <h2>{t("play.moves")}</h2>
         <p class="moves">
           {#each st.history as h, i}
-            {#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}
-            <span class="entry">{h}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")}>{marks[i]}</span>{/if}</span>
+            <span class="entry">{#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}{h}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")}>{marks[i]}</span>{/if}</span>
           {/each}
         </p>
       </aside>

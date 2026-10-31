@@ -219,13 +219,11 @@ fn register_helper(on: bool) -> std::io::Result<()> {
 /// Turns the Family `family` back on, with its Variants when every one was off.
 #[tauri::command]
 fn family_turn_on(family: String, ctx: tauri::State<'_, Ctx>) -> Result<Snapshot, String> {
-    let mut cfg = ctx.cfg();
-    for (name, value) in settings::turn_on(&cfg, &family) {
-        cfg = settings::save(&name, &value)?;
+    for (name, value) in settings::turn_on(&ctx.cfg(), &family) {
+        // Each switch saved is kept at once, so the window never disagrees with config.toml.
+        *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = settings::save(&name, &value)?;
     }
-    let snap = snapshot(&cfg);
-    *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = cfg;
-    Ok(snap)
+    Ok(snapshot(&ctx.cfg()))
 }
 
 /// The Game after `entries`, from `initial` or the Variant's start.

@@ -205,7 +205,6 @@ pub fn values(cfg: &Config) -> serde_json::Map<String, Value> {
         .collect()
 }
 
-/// Writes one option's new value to config.toml.
 /// The switches to save, in order, so the Family `id` shows again: the Family itself, and its
 /// Variants too when every one of them is off. Empty when it already shows.
 pub fn turn_on(cfg: &Config, id: &str) -> Vec<(String, Value)> {
@@ -221,6 +220,7 @@ pub fn turn_on(cfg: &Config, id: &str) -> Vec<(String, Value)> {
     out
 }
 
+/// Writes one option's new value to config.toml.
 pub fn save(name: &str, value: &Value) -> Result<Config, String> {
     let o = find(name).ok_or_else(|| format!("no setting {name}"))?;
     Config::save_value(o.path, to_toml(&as_number(o, value)?)?)
