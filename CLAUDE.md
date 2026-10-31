@@ -70,3 +70,7 @@ These rules apply to every contributor and every Claude session in this reposito
   - at most 8 s, 800 px wide, 10–12 fps, under 1.5 MB, looping
   - a still `<name>.png` of the first frame next to it
   - shown through `<picture>` with `prefers-reduced-motion`
+
+## Workers
+
+Claude Code orchestrates. Mechanical steps may go to other workers: local models, OpenCode, Codex. They are routed through the user's `harness` skill, which keeps the routing, the caps and the statistics outside this repository. `AGENTS.md` is this file, so every worker reads the same rules. A worker's change is checked like any other: by tests, then by Claude reading the diff.
