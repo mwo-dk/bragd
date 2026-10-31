@@ -60,7 +60,7 @@ These open a page in your browser. Bragd itself sends nothing:
 | Ask Lichess for tablebase positions | `tablebases.online` | `true` | Send a position your tables do not cover to the Lichess tablebase API |
 | Pull an Engine that is not installed | `engines.containers` | `true` | Allow pulling an Engine's image when you ask |
 
-Setting `BRAGD_OFFLINE` in the environment also stops the update check, every tablebase download and lookup, and the network download ([Command line](command-line.md#environment-variables)).
+Setting `BRAGD_OFFLINE` in the environment also stops the update check, every tablebase download and lookup, the network download and every Source fetch ([Command line](command-line.md#environment-variables)).
 
 ## Questions
 

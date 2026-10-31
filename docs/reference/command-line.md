@@ -44,7 +44,7 @@ On Windows, `bragd-helper` is a windowed program, so neither it nor the `reg` co
 
 | Variable | Read by | What it does |
 |---|---|---|
-| `BRAGD_OFFLINE` | `bragd-gui` | Set to anything: nothing is asked online. No update check, no tablebase download or lookup, no engine network download |
+| `BRAGD_OFFLINE` | `bragd-gui`, `bragd-helper` | Set to anything: nothing is asked online. No update check, no tablebase download or lookup, no engine network download, no Source fetch |
 | `BRAGD_DEV_IMAGES` | `bragd-gui` | `1`: also run the engine images `tools/dev/images.sh` built on this machine (`localhost/bragd-<engine>:dev`), which are not pinned ([Engine container images](../engines/container-images.md#images-built-on-your-own-machine)). Without it only pinned images run |
 | `BRAGD_WINDOW_SIZE` | `bragd-gui` | `WxH`, such as `1100x760`: the window's size at start. Used for screenshots |
 
@@ -62,11 +62,11 @@ Close every window: it leaves ten minutes later, once no job runs. A Helper star
 
 #### Is `--service on` the same as the switch in Settings?
 
-Not yet. *Start with my session* in *Settings → Knowledge* or in the wizard only keeps a running Helper from leaving when the last window closes. It does not register the Helper with your session yet: for that, run `bragd-helper --service on` once.
+Yes. Turning *Start with my session* on in *Settings → Knowledge* or in the wizard registers the Helper as `--service on` does. Turning it off is `--service off`.
 
 #### Does `BRAGD_OFFLINE` stop the Helper fetching Sources?
 
-No. It is read by the app only. To stop Sources, turn each one off on the Sources page ([Sources](../knowledge/sources.md)).
+Yes. A Helper started with `BRAGD_OFFLINE` set queues no Source on its schedule, and *Fetch now* fails with an error naming `BRAGD_OFFLINE`. A window passes the variable on to the Helper it starts. A Helper already running keeps the environment it started with.
 
 #### How do I see which version I have?
 

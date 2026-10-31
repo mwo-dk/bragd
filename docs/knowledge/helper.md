@@ -21,9 +21,9 @@ You never start the Helper yourself. A window that finds none starts the `bragd-
 ## How long it runs
 
 - It stays ten minutes after the last window closes, then leaves.
-- With *Start with my session* on, a Helper started by a window stays until you log out.
+- Turning *Start with my session* on registers the Helper with your session and starts it, so it runs from login and stays until you log out. Turning it off takes the registration away. When registering fails, the switch stays off and the error is shown.
 - It does not leave while a job runs, unless the job is paused on battery.
-- To have the session start it at login, run `bragd-helper --service on` once. That writes a systemd user unit on Linux, an XDG autostart entry on the BSDs and in the Flatpak, a LaunchAgent on macOS, or a Run entry on Windows. `bragd-helper --service off` takes it away, and `bragd-helper --service` prints `on` or `off`. See [Command line](../reference/command-line.md).
+- The registration is what `bragd-helper --service on` writes too: a systemd user unit on Linux, an XDG autostart entry on the BSDs and in the Flatpak, a LaunchAgent on macOS, or a Run entry on Windows. `bragd-helper --service off` takes it away, and `bragd-helper --service` prints `on` or `off`. See [Command line](../reference/command-line.md).
 
 Jobs run one at a time, in the order asked. While the machine runs on its battery, downloads, imports and merges pause until it is plugged in again. The BSDs and illumos always count as on mains.
 
@@ -75,7 +75,7 @@ Ten minutes after the last window closes, unless *Start with my session* is on.
 
 #### Does turning on *Start with my session* start it at login?
 
-Not by itself in this version. It keeps a running Helper from leaving. Run `bragd-helper --service on` once to have your session start it at login.
+Yes. The switch registers the Helper with your session, as `bragd-helper --service on` does, and starts it now. A Helper that was already running stays too.
 
 #### What happens to a job if the Helper stops in the middle?
 
