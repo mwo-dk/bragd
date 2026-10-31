@@ -37,6 +37,12 @@ pub fn is_text(name: &str) -> bool {
     n.ends_with(".pgn") || n.ends_with(".pdn")
 }
 
+/// Whether a file named `name` holds games a Library imports: PGN or PDN, packed or not
+/// (`is_text`), or an unpacked SGF, KIF or CSA file. The one list every importer asks.
+pub fn importable(name: &str) -> bool {
+    todo!("{name}")
+}
+
 pub fn is_zip(path: &Path) -> bool {
     path.extension().is_some_and(|e| e.eq_ignore_ascii_case("zip"))
 }
@@ -250,5 +256,15 @@ pub(crate) mod tests {
         assert!(is_text("x.PGN.BZ2") && is_text("a.pdn.gz") && !is_text("a.sgf") && !is_text("a.bz2"));
         assert_eq!(unpacked_name("Lichess.pgn.ZST"), "Lichess.pgn");
         assert!(streams(Path::new("/a/twic1600g.ZIP")) && !streams(Path::new("a.si4")));
+    }
+
+    #[test]
+    fn one_list_of_importable_names() {
+        for yes in ["twic1600.pgn", "a.pgn.zst", "A.PDN.GZ", "x.SGF", "g.kif", "g.KIFU", "g.csa", "m.pdn.bz2"] {
+            assert!(importable(yes), "{yes}");
+        }
+        for no in ["readme.txt", "a.zip", "a.sgf.gz", "a.kifu.zst", "a.bz2", "a.si4", "pgn"] {
+            assert!(!importable(no), "{no}");
+        }
     }
 }
