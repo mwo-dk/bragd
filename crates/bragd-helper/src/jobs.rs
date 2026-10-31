@@ -505,7 +505,11 @@ impl Jobs {
     /// What Bragd keeps on disk now, against the limits in `cfg`, with a notice for each
     /// Source Disk watch holds back.
     pub fn disk_report(&self, cfg: &Config) -> disk::Report {
-        let mut r = disk::report(&self.places(cfg), &cfg.disk, &(self.images)(), &disk::free_space);
+        self.notices(disk::report(&self.places(cfg), &cfg.disk, &(self.images)(), &disk::free_space))
+    }
+
+    /// `r` with a notice for each Source Disk watch holds back.
+    fn notices(&self, mut r: disk::Report) -> disk::Report {
         for (a, o, m) in self.sources() {
             if m.paused {
                 r.crossed.push(Crossed { id: format!("disk:paused:{}", a.id), item: Some(format!("downloads:{}", a.id)), key: "notice.disk_fetch_paused".into(), args: vec![("source".into(), a.name.clone())] });
@@ -530,7 +534,11 @@ impl Jobs {
     /// again, and queues its Strip rule, at most once a day. The report after that.
     pub fn check_disk(&self, cfg: &Config, now: u64) -> disk::Report {
         const DAY: u64 = 86_400;
-        let before = disk::report(&self.places(cfg), &cfg.disk, &(self.images)(), &disk::free_space);
+        // The runtime is asked about the images once a check, and the folders walked again
+        // only when a download was deleted.
+        let images = (self.images)();
+        let before = disk::report(&self.places(cfg), &cfg.disk, &images, &disk::free_space);
+        let mut deleted = 0;
         let everyone = before.crossed.iter().any(|c| c.item.is_none());
         for (a, o, m) in self.sources() {
             let item = format!("downloads:{}", a.id);
@@ -547,14 +555,14 @@ impl Jobs {
                 self.save(&st);
             }
             if hit && o.auto.delete_oldest {
-                prune(&self.source_dir(&a.id), cfg.disk.items.get(&item).copied().filter(|&c| c > 0).or(o.disk_cap));
+                deleted += prune(&self.source_dir(&a.id), cfg.disk.items.get(&item).copied().filter(|&c| c > 0).or(o.disk_cap));
             }
             if strip {
                 crate::note(format_args!("a disk limit is crossed: the Strip rule of {} is applied", a.id));
                 self.add(Work::Strip { source: a.id, dry_run: false });
             }
         }
-        let r = self.disk_report(cfg);
+        let r = self.notices(if deleted > 0 { disk::report(&self.places(cfg), &cfg.disk, &images, &disk::free_space) } else { before });
         *self.crossed.lock().unwrap_or_else(|e| e.into_inner()) = r.crossed.clone();
         r
     }
@@ -661,9 +669,10 @@ impl Jobs {
     }
 }
 
-/// Removes the oldest files in `dir` until they take no more than `cap` bytes.
-fn prune(dir: &Path, cap: Option<u64>) {
-    let Some(cap) = cap else { return };
+/// Removes the oldest files in `dir` until they take no more than `cap` bytes: the bytes
+/// removed.
+fn prune(dir: &Path, cap: Option<u64>) -> u64 {
+    let Some(cap) = cap else { return 0 };
     let mut files: Vec<(std::time::SystemTime, u64, PathBuf)> = std::fs::read_dir(dir)
         .into_iter()
         .flatten()
@@ -674,7 +683,8 @@ fn prune(dir: &Path, cap: Option<u64>) {
         })
         .collect();
     files.sort();
-    let mut total: u64 = files.iter().map(|f| f.1).sum();
+    let all: u64 = files.iter().map(|f| f.1).sum();
+    let mut total = all;
     for (_, len, path) in files {
         if total <= cap {
             break;
@@ -683,6 +693,7 @@ fn prune(dir: &Path, cap: Option<u64>) {
             total -= len;
         }
     }
+    all - total
 }
 
 #[cfg(test)]
