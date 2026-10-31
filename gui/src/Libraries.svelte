@@ -9,8 +9,8 @@
   import JobLine from "./JobLine.svelte";
   import SliceEditor from "./SliceEditor.svelte";
 
-  /** @type {{ family: string, slice: any, position: any, onstep: (family: string, step: any) => void, onslices: () => void }} */
-  let { family, slice = null, position, onstep, onslices } = $props();
+  /** @type {{ family: string, variants: any[], slice: any, position: any, onstep: (family: string, step: any) => void, onslices: () => void }} */
+  let { family, variants, slice = null, position, onstep, onslices } = $props();
   /** @type {any[]} */
   let libs = $state([]);
   /** @type {any} */
@@ -59,7 +59,7 @@
     if (lib && view === "review") k.libraryReview(lib.path).then((r) => (review = r), (e) => (error = k.why(e)));
   });
 
-  const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(lib.path, { players: player.trim() ? [player] : [] }, from, count);
+  const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(lib.path, { players: player.trim() ? [player] : [], family }, from, count);
 
   function choose(/** @type {any} */ l) {
     lib = l;
@@ -146,7 +146,7 @@
         <Replay replay={game} onclose={() => (game = null)} onstep={(s) => onstep(game.family, s)} />
       {:else}
         <input type="text" bind:value={player} placeholder={t("db.filter_player")} aria-label={t("db.filter_player")} />
-        <GameList {fetch} version={[lib.path, player, lib.games]} onopen={async (r) => (game = await k.libraryGame(lib.path, r.id))} />
+        <GameList {fetch} version={[lib.path, player, lib.games, family]} onopen={async (r) => (game = await k.libraryGame(lib.path, r.id))} />
       {/if}
     {:else if view === "review"}
       <div class="bar">
@@ -178,7 +178,7 @@
       {/if}
     {:else if view === "slice"}
       {#key `${lib.path}/${editing?.name ?? ""}`}
-        <SliceEditor library={lib.path} slice={editing} {family} {position} {onstep} onsaved={() => (load(), onslices())} />
+        <SliceEditor library={lib.path} slice={editing} {family} {variants} {position} {onstep} onsaved={() => (load(), onslices())} />
       {/key}
     {/if}
   {/if}

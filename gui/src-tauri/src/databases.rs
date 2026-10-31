@@ -362,7 +362,7 @@ pub fn stored_replay(s: &Stored) -> Replay {
         }
         text.push_str(&s.result);
         let mut r = replay(&pgn::parse(&text), "chess");
-        if s.variant != "standard" {
+        if s.variant != "chess" {
             r.variant = board_variant("chess", Some(&s.variant)).into();
         }
         return r;
@@ -575,7 +575,7 @@ mod tests {
 
     #[test]
     fn a_stored_chess_game_replays_on_the_board() {
-        let s = Stored { id: 1, family: "chess".into(), variant: "standard".into(), moves: vec!["e4".into(), "e5".into(), "Qh5".into()], result: "*".into(), ..Default::default() };
+        let s = Stored { id: 1, family: "chess".into(), variant: "chess".into(), moves: vec!["e4".into(), "e5".into(), "Qh5".into()], result: "*".into(), ..Default::default() };
         let r = stored_replay(&s);
         assert_eq!((r.variant.as_str(), r.steps.len()), ("chess", 4));
         assert_eq!(r.steps[3].label, "2. Qh5");
