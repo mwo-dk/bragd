@@ -49,7 +49,7 @@ Each image holds one Engine, built from its released source, and nothing else: n
 | Files | A read-only root, a 256 MB `/tmp` in memory, the tablebase folder read-only at `/syzygy`, and Pikafish's network read-only at `/network.nnue` |
 | Rights | No capabilities, no new privileges, user `65534:65534` (nobody) |
 | Bounds | 3 GB of memory and 256 processes, unless a rootless podman cannot keep them |
-| Pulls | Progress shows on the card. A passing network or registry fault is tried again after 5 s, 30 s and 2 min |
+| Pulls | Progress shows on the card. A passing network or registry fault is tried again after 5 s, 30 s and 2 min, then after 5 min, 15 min and every hour, until it works. **Retry now** tries at once |
 | Updates | A new Bragd brings new pins. The new copy is pulled and only Bragd's old copy is removed |
 | Pruning | An image no Engine used for 90 days is removed |
 
@@ -108,7 +108,7 @@ No. Bragd removes only its own copies, by their id or old pin. It never runs `im
 
 #### What happens when a pull fails?
 
-A passing fault, such as a dropped connection or a busy registry, is tried again after 5 s, 30 s and 2 min. After that the card says "no network" or "the registry is busy". A lasting fault, such as a full disk, is not tried again.
+A passing fault, such as a dropped connection or a busy registry, does not give up. Bragd tries again after 5 s, 30 s and 2 min, then after 5 min, 15 min and every hour after that. Meanwhile the card says why in plain words, for example "Stockfish couldn't be downloaded: no network. Trying again at 15:10.", with **Retry now** to try at once and the runtime's own words under *Details*. A lasting fault, such as an image that is gone or a full disk, is not tried again: the card says why.
 
 #### Why does my card say neither podman nor docker is there?
 

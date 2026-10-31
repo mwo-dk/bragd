@@ -444,7 +444,7 @@ pub fn pull(cfg: &Config, held: &Held, key: &str) -> Result<(), String> {
         running.insert(key.to_string(), w.clone());
         w
     };
-    let (key, pulls, running) = (key.to_string(), held.pulls.clone(), held.running.clone());
+    let (key, name, pulls, running) = (key.to_string(), k.name.to_string(), held.pulls.clone(), held.running.clone());
     pulls.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
     std::thread::spawn(move || {
         let stop = AtomicBool::new(false);
@@ -457,7 +457,6 @@ pub fn pull(cfg: &Config, held: &Held, key: &str) -> Result<(), String> {
         });
         running.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
         if let Err(e) = r {
-            let name = images::short(&e.image).to_string();
             pulls.lock().unwrap_or_else(|e| e.into_inner()).insert(key, tr("engines.pull.failed", &[("name", &name), ("why", &pull_why(&e))]));
         }
     });
