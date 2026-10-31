@@ -104,7 +104,7 @@
         <Jobs />
       {:else if family && page.item === "databases"}
         {#key family.id}
-          <Databases {family} slice={page.slice} onslices={loadSlices} />
+          <Databases {family} slice={page.slice} onslices={loadSlices} onsnap={apply} />
         {/key}
       {:else if family && page.item === "rules"}
         <Rules {family} />

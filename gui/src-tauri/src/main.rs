@@ -216,6 +216,18 @@ fn register_helper(on: bool) -> std::io::Result<()> {
     if on { bragd_helper::service::install(&bragd_helper::helper::program()?) } else { bragd_helper::service::uninstall() }
 }
 
+/// Turns the Family `family` back on, with its Variants when every one was off.
+#[tauri::command]
+fn family_turn_on(family: String, ctx: tauri::State<'_, Ctx>) -> Result<Snapshot, String> {
+    let mut cfg = ctx.cfg();
+    for (name, value) in settings::turn_on(&cfg, &family) {
+        cfg = settings::save(&name, &value)?;
+    }
+    let snap = snapshot(&cfg);
+    *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = cfg;
+    Ok(snap)
+}
+
 /// The Game after `entries`, from `initial` or the Variant's start.
 #[tauri::command]
 fn game_replay(variant: String, initial: Option<String>, entries: Vec<String>) -> Result<State, GameError> {
@@ -315,6 +327,7 @@ fn main() {
             get_snapshot,
             save_setting,
             game_new,
+            family_turn_on,
             game_replay,
             game_play,
             game_throw,

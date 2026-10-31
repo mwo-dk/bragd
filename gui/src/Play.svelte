@@ -6,7 +6,7 @@
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
-  import { movesOf, movesTo, plainMoves } from "./board.js";
+  import { gates, movesOf, movesTo, plainMoves } from "./board.js";
   import Board from "./Board.svelte";
   import BackgammonBoard from "./BackgammonBoard.svelte";
   import Analysis from "./Analysis.svelte";
@@ -49,7 +49,8 @@
   let trayH = $state([0, 0]);
   const aspect = $derived(!st ? 1 : family.id === "backgammon" ? 14.2 / 11.9 : (st.board.files + 0.16) / (st.board.ranks + 0.16));
   const fit = $derived(innerWidth > 760 && gameH ? `${Math.max(180, (gameH - trayH[0] - trayH[1] - 12) * aspect)}px` : null);
-  /** @type {{from?: string, drop?: string} | null} */
+  /** A square, a piece dropped from hand, or a Seirawan piece to gate (with its square once
+   * chosen). @type {{from?: string, drop?: string, gate?: string} | null} */
   let sel = $state(null);
   /** @type {any[]} */
   let choose = $state([]);
@@ -181,13 +182,20 @@
     // A placement (Go): a move with no start.
     const placed = st.moves.filter((/** @type {any} */ m) => !m.from && !m.drop && m.to === square);
     if (placed.length) return pick(placed);
-    sel = movesOf(st, { from: square }).length ? { from: square } : null;
+    sel = select(square);
+  }
+
+  /** The selection of the piece on `square`, keeping a gate chosen from the tray when it can gate. */
+  function select(/** @type {string} */ square) {
+    const gated = sel?.gate ? { from: square, gate: sel.gate } : null;
+    if (gated && movesOf(st, gated).length) return gated;
+    return movesOf(st, { from: square }).length ? { from: square } : null;
   }
 
   /** Dragging: press on a piece selects it, letting go over a target plays there. */
   function press(/** @type {string} */ square, /** @type {PointerEvent} */ e) {
     if (!st || scoring || !movesOf(st, { from: square }).length) return;
-    sel = { from: square };
+    sel = select(square);
     const up = (/** @type {PointerEvent} */ u) => {
       window.removeEventListener("pointerup", up);
       const el = document.elementFromPoint(u.clientX, u.clientY);
@@ -204,6 +212,11 @@
   function hand(/** @type {any} */ h, /** @type {any} */ piece) {
     if (!st || st.awaiting !== "move") return;
     if (st.moves.some((/** @type {any} */ m) => m.drop === piece.sprite && !m.from)) sel = { drop: piece.sprite };
+    // Seirawan: the piece to gate, chosen before or after the piece that leaves its square.
+    else if (gates(st, piece.sprite)) {
+      const gate = sel?.gate === piece.sprite ? undefined : piece.sprite;
+      sel = sel?.from && gate && movesOf(st, { from: sel.from, gate }).length ? { from: sel.from, gate } : gate ? { gate } : sel?.from ? { from: sel.from } : null;
+    }
     else if (h.seat === st.toMove?.index && st.moves.some((/** @type {any} */ m) => m.from === "waiting")) sel = { from: "waiting" };
   }
 
@@ -249,7 +262,7 @@
                 {#each h.pieces as p}
                   <button
                     class="hand"
-                    class:current={sel?.drop === p.sprite || (sel?.from === "waiting" && h.seat === st.toMove?.index)}
+                    class:current={sel?.drop === p.sprite || sel?.gate === p.sprite || (sel?.from === "waiting" && h.seat === st.toMove?.index)}
                     disabled={!p.count}
                     onclick={() => hand(h, p)}
                   >
@@ -358,11 +371,12 @@
         {/if}
 
         <h2>{t("play.moves")}</h2>
-        <ol class="moves">
+        <p class="moves">
           {#each st.history as h, i}
-            <li>{h}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")}>{marks[i]}</span>{/if}</li>
+            {#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}
+            <span class="entry">{h}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")}>{marks[i]}</span>{/if}</span>
           {/each}
-        </ol>
+        </p>
       </aside>
     </div>
   {/if}
@@ -493,10 +507,17 @@
     align-items: center;
   }
   .moves {
-    columns: 2;
-    padding-inline-start: 1.6rem;
     margin: 0;
+    line-height: 1.6;
     font-variant-numeric: tabular-nums;
+  }
+  .moves .no {
+    color: var(--dim);
+    margin-inline-end: 0.2rem;
+  }
+  .moves .entry {
+    margin-inline-end: 0.5rem;
+    white-space: nowrap;
   }
   h2 {
     font-size: 1rem;

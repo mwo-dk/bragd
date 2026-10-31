@@ -8,8 +8,8 @@
   import Sources from "./Sources.svelte";
   import DiskUse from "./DiskUse.svelte";
 
-  /** @type {{ family: any, slice?: any, onslices: () => void }} */
-  let { family, slice = null, onslices } = $props();
+  /** @type {{ family: any, slice?: any, onslices: () => void, onsnap: (snap: any) => void }} */
+  let { family, slice = null, onslices, onsnap } = $props();
   // svelte-ignore state_referenced_locally
   let tab = $state(slice ? "libraries" : "files");
   /** @type {{family: string, fen: string} | null} */
@@ -31,7 +31,7 @@
     {/each}
   </div>
   {#if tab === "files"}
-    <ForeignDb {onstep} />
+    <ForeignDb {onstep} {onsnap} />
   {:else if tab === "libraries"}
     <Libraries family={family.id} {slice} {position} {onstep} {onslices} />
   {:else if tab === "sources"}

@@ -3,13 +3,14 @@
   // sort them), open one in replay, import the file into the Library as a Helper job, or save it
   // as another file. The file stays open in Rust while the window runs.
   import * as k from "./knowledge.js";
+  import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import GameList from "./GameList.svelte";
   import Replay from "./Replay.svelte";
   import JobLine from "./JobLine.svelte";
 
-  /** @type {{ onstep: (family: string, step: any) => void }} */
-  let { onstep } = $props();
+  /** @type {{ onstep: (family: string, step: any) => void, onsnap: (snap: any) => void }} */
+  let { onstep, onsnap } = $props();
   /** @type {any} */
   let file = $state(null);
   let player = $state("");
@@ -120,6 +121,12 @@
       <strong>{file.name}</strong> · {file.familyName} · {file.status}
       {#if !file.done}<progress max="1" value={file.read}></progress>{/if}
     </p>
+    {#if file.familyOff}
+      <p class="notice" role="status">
+        {t("db.family_off", { family: file.familyName })}
+        <button onclick={() => api.familyTurnOn(file.family).then((s) => (onsnap(s), k.dbCurrent().then((f) => (file = f))), fail)}>{t("db.turn_on")}</button>
+      </p>
+    {/if}
     {#if file.downloaded}
       <p class="notice">{t("db.downloaded")}</p>
     {/if}

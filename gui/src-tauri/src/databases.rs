@@ -50,6 +50,8 @@ pub struct FileView {
     /// The Game family its Games belong to.
     pub family: String,
     pub family_name: String,
+    /// Its Family is turned off in Settings: the page offers to turn it back on.
+    pub family_off: bool,
     /// Downloaded (a Source's download, or in the Downloads folder): writing over it is
     /// discouraged.
     pub downloaded: bool,
@@ -170,7 +172,11 @@ impl OpenFile {
         }
     }
 
-    pub fn view(&self) -> FileView {
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
+    pub fn view(&self, cfg: &Config) -> FileView {
         let p = match &self.reader {
             Reader::Table(t) => t.progress(),
             Reader::Go(c) => c.progress(),
@@ -190,6 +196,7 @@ impl OpenFile {
             name: file_name(&self.path),
             family: family.into(),
             family_name: t!(&format!("family.{family}")),
+            family_off: !cfg.family_shown(family),
             downloaded: downloaded(&self.path),
             games: p.games,
             done: p.done,
@@ -586,6 +593,21 @@ mod tests {
         assert_eq!(query_in(v).unwrap(), q);
         assert!(position_key("chess", "not a fen").is_err());
         assert_eq!(position_key("chess", pgn::START).unwrap(), "5060803636482931868");
+    }
+
+    /// A file of a Family that is off still opens, and says its Family is off.
+    #[test]
+    fn a_file_of_a_family_that_is_off_says_so() {
+        let d = std::env::temp_dir().join(format!("bragd-off-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("one.sgf");
+        std::fs::write(&p, "(;GM[1]SZ[9];B[ee];W[cc])").unwrap();
+        let f = OpenFile::open(&p).unwrap();
+        assert!(!f.view(&Config::default()).family_off);
+        let off = Config::parse("[families.family]\ngo = false\n").unwrap();
+        let v = f.view(&off);
+        assert_eq!((v.family.as_str(), v.family_off), ("go", true));
+        std::fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
