@@ -27,27 +27,19 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       code: ${{ steps.files.outputs.code }}
-      native: ${{ steps.files.outputs.native }}
     steps:
       - id: files
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          if [ -z "$PR" ]; then printf 'code=true\nnative=true\n' >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ -z "$PR" ]; then printf 'code=true\n' >> "$GITHUB_OUTPUT"; exit 0; fi
           files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate --jq '.[] | if .status != "modified" and (.filename | test("^docs/.*\\.md$")) then "page:" + .filename else .filename end')
           printf '%s\n' "$files"
           if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvP '^(docs/(?!changelog\.md$)|CLAUDE\.md$|GLOSSARY\.md$|LICENSE$|packaging/.*/SUBMIT\.md$)'; then
             echo code=false >> "$GITHUB_OUTPUT"
           else
             echo code=true >> "$GITHUB_OUTPUT"
-          fi
-          # Only texts (docs, README, changelog rows, locales, pictures): Linux builds and tests
-          # them; macOS and Windows have nothing of their own to find there.
-          if [ -n "$files" ] && ! printf '%s\n' "$files" | sed 's/^page://' | grep -qvP '^(docs/|changelog\.d/|crates/bragd-core/locales/|README\.md$|CLAUDE\.md$|GLOSSARY\.md$|LICENSE$|packaging/.*/SUBMIT\.md$)'; then
-            echo native=false >> "$GITHUB_OUTPUT"
-          else
-            echo native=true >> "$GITHUB_OUTPUT"
           fi
 
   test:
@@ -56,11 +48,12 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
-      # The ARM machines run on every push to master and every release (called from release.yml),
-      # not on pull requests; a pull request of texts only runs Linux. A skipped matrix entry is
-      # simply absent, so "CI result" is unaffected.
+      # Until 1.0.0 nothing is released (CLAUDE.md), so a pull request builds on Linux only. Every
+      # push to master, and every release, runs all five machines; a fault found there is fixed
+      # in the next pull request. A skipped matrix entry is simply absent, so "CI result" is
+      # unaffected.
       matrix:
-        os: ${{ fromJSON(github.event_name != 'pull_request' && '["ubuntu-24.04", "ubuntu-24.04-arm", "macos-latest", "windows-latest", "windows-11-arm"]' || needs.changes.outputs.native == 'true' && '["ubuntu-24.04", "macos-latest", "windows-latest"]' || '["ubuntu-24.04"]') }}
+        os: ${{ fromJSON(github.event_name != 'pull_request' && '["ubuntu-24.04", "ubuntu-24.04-arm", "macos-latest", "windows-latest", "windows-11-arm"]' || '["ubuntu-24.04"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

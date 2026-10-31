@@ -29,6 +29,7 @@ These rules apply to every contributor and every Claude session in this reposito
 ## Building and checking
 
 - **GUI:** `cd gui && npm run build`, then `cargo build --release -p bragd-gui`, which embeds `gui/dist`. For the live dev server: `npx tauri dev -- --no-default-features`.
+- **CI until 1.0.0:** a pull request builds and tests on Linux only; every push to master runs all five machines. A fault master finds is fixed in the next pull request.
 - **Check before pushing:** `cargo test --workspace` and `cargo clippy --workspace --all-targets -- -D warnings`. For GUI changes also `cd gui && npx svelte-check && npm test && npm run build`.
 - **The UI check:** after a release build, `cd docs/screenshots && uv run --with websocket-client python ui-check.py [--shots DIR] [screen …]`. It opens every main screen at 390 × 844, 1100 × 760 and 1100 × 700 in the screenshot sandbox and fails on text that does not fit its box, a page wider than the window, axe-core's contrast, label and focus rules (axe-core comes from `gui/node_modules`, so `npm ci` first), and a board that does not fit a 700 px window. CI runs it in the *UI check* job; on a failure its pictures are an artifact.
 - **A test must be able to fail.** A test that passes whatever the code does is deleted.
