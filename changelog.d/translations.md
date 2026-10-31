@@ -1,0 +1,1 @@
+| **Bragd's own languages are translated throughout, not only in their menus.** Engines, Sources, Libraries, Tablebases, F1 and the tour cards now show in your language. Many are first translations: *Suggest a better translation* sends a better one. | [Docs](look/languages.md#why-are-some-texts-in-english-in-my-language) |
