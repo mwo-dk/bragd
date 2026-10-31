@@ -237,6 +237,8 @@ pub struct VariantRow {
     chosen: String,
     /// The one it gets now.
     current: Option<String>,
+    /// Engines play it, but none is ready yet.
+    waiting: bool,
 }
 
 #[derive(Serialize)]
@@ -252,8 +254,9 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
         .map(|v| {
             let chosen = cfg.engines.default.get(v.key).cloned().unwrap_or_default();
             // Only engines there to run are offered, and the one chosen before, whatever it is now.
-            let engines = engines_for(cfg, v.key).into_iter().filter(|k| *k == chosen || availability(cfg, k).ready()).collect();
-            VariantRow { key: v.key, name: tr(&format!("variant.{}", v.key), &[]), engines, chosen, current: default_for(cfg, v.key) }
+            let all = engines_for(cfg, v.key);
+            let engines: Vec<String> = all.iter().filter(|k| **k == chosen || availability(cfg, k).ready()).cloned().collect();
+            VariantRow { key: v.key, name: tr(&format!("variant.{}", v.key), &[]), waiting: engines.is_empty() && !all.is_empty(), engines, chosen, current: default_for(cfg, v.key) }
         })
         .collect();
     let mut keys: Vec<String> = vec![];
@@ -275,13 +278,15 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             let hint = match (&state, k) {
                 // Running from a checkout with images allowed: the image can be built here.
                 (Availability::NoImage, Some(k)) if k.dev_image(known::dev_images()).is_some() => tr("engines.build_here", &[("command", &format!("tools/dev/images.sh {}", k.key))]),
-                (Availability::NoImage | Availability::NoRuntime | Availability::ContainersOff | Availability::Pull { .. }, Some(k)) => install_hint(k),
+                (Availability::NoImage | Availability::NoRuntime | Availability::ContainersOff | Availability::Pull { .. }, Some(k)) => tr("engines.install_hint_package", &[("program", k.programs[0])]), // its download page is a button
                 (Availability::Gone { .. }, _) => tr("engines.gone", &[("name", &key)]),
                 _ => String::new(),
             };
             let image = k.and_then(Known::image);
             let variants = family.variants().filter(|v| engines_for(cfg, v.key).contains(&key)).map(|v| tr(&format!("variant.{}", v.key), &[])).collect();
-            let network = network::for_engine(&key).filter(|_| !matches!(state, Availability::Installed { .. })).map(|n| NetworkView {
+            // Only an image needs the network: an installed engine brings its own, and an image
+            // that cannot be had yet needs none.
+            let network = network::for_engine(&key).filter(|_| matches!(state, Availability::Pull { .. } | Availability::Pulled { .. } | Availability::Built { .. })).map(|n| NetworkView {
                 present: n.path(&networks_folder()).is_file(),
                 size: bragd_helper::disk::bytes(n.archive_size),
                 from: n.archive.to_string(),

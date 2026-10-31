@@ -27,7 +27,8 @@ BRAGD_OFFLINE=1 also means no tablebase download or lookup is made.
 The demo home is $DEMO_HOME (default <tmp>/bragd-cap-<uid>/demo-home, made with demo-home.sh).
 `SANDBOX_ARGS` (extra bwrap arguments) is passed to sandbox.sh; keep the network, the page is
 reached over 127.0.0.1. Run with `uv run --with websocket-client python my-script.py` from this
-folder. Linux only; needs bwrap, broadwayd, chromium, cc, ffmpeg and ImageMagick (magick).
+folder. Linux only; needs bwrap, broadwayd, chromium (or the browser $CHROMIUM names), cc, ffmpeg
+and ImageMagick (magick).
 """
 
 import base64, json, os, shutil, socket, subprocess, tempfile, threading, time, urllib.request
@@ -161,8 +162,8 @@ class Desktop:
             except OSError:
                 time.sleep(0.2)
         self.profile = tempfile.mkdtemp(prefix="cap-chromium-", dir=RUNTIME)
-        self.procs.append(subprocess.Popen(["chromium", "--headless=new", *OFFLINE, "--no-sandbox", "--hide-scrollbars", f"--user-data-dir={self.profile}",
-                                            f"--window-size={w + 100},{h + 160}", f"--remote-debugging-port={self.debug}", f"http://127.0.0.1:{self.port}/"],
+        self.procs.append(subprocess.Popen([os.environ.get("CHROMIUM", "chromium"), "--headless=new", *OFFLINE, "--no-sandbox", "--hide-scrollbars", f"--user-data-dir={self.profile}",
+                                            f"--window-size={w + 100},{h + 300}", f"--remote-debugging-port={self.debug}", f"http://127.0.0.1:{self.port}/"],
                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
         for _ in range(50):
             try:
@@ -172,8 +173,9 @@ class Desktop:
             except (OSError, IndexError):
                 time.sleep(0.2)
         # Room for the window's title bar and its place on the display: a picture is clipped to
-        # the page, and a window larger than the page loses its bottom and right edge.
-        self.call("Emulation.setDeviceMetricsOverride", width=w + 160, height=h + 160, deviceScaleFactor=1, mobile=False)
+        # the page, and a window larger than the page loses its bottom and right edge: +160 cut
+        # about 29 px off the bottom of a 1100 px picture, so the page is 300 px taller.
+        self.call("Emulation.setDeviceMetricsOverride", width=w + 160, height=h + 300, deviceScaleFactor=1, mobile=False)
         time.sleep(1.5)
         go.touch()
 

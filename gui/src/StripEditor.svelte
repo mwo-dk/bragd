@@ -2,6 +2,7 @@
   // A Strip rule's fields (bragd_library::strip::StripRule), edited in place. Every part set must
   // agree for a Game to be kept; a part left empty keeps everything.
   import { t } from "./i18n.svelte.js";
+  import Picker from "./Picker.svelte";
 
   /** @type {{ rule: any, page: any, disabled?: boolean }} */
   let { rule, page, disabled = false } = $props();
@@ -19,9 +20,7 @@
     <label>{t("strip.min_rating")} <input type="number" min="0" step="50" bind:value={rule.min_rating} /></label>
     <label
       >{t("strip.rating_of_label")}
-      <select bind:value={rule.rating_of}>
-        {#each page.ratingOf as p}<option value={p.value}>{p.label}</option>{/each}
-      </select>
+      <Picker value={rule.rating_of} choices={page.ratingOf} label={t("strip.rating_of_label")} onchange={(v) => (rule.rating_of = v)} />
     </label>
     <label>{t("strip.min_plies")} <input type="number" min="0" bind:value={rule.min_plies} /></label>
   </div>

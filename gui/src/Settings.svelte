@@ -2,6 +2,7 @@
   // Settings, built from bragd-core's option descriptors: each option's area, label, hint, value
   // and choices come from Rust, and each change is saved to config.toml there.
   import { t } from "./i18n.svelte.js";
+  import Picker from "./Picker.svelte";
   import { guide } from "./guide.svelte.js";
   import FamilyToggles from "./FamilyToggles.svelte";
   import SettingsExtras from "./SettingsExtras.svelte";
@@ -19,18 +20,6 @@
   const byName = $derived(new Map(snap.settings.map((/** @type {any} */ o) => [o.name, o])));
   const shown = $derived(snap.families.filter((/** @type {any} */ f) => f.shown));
   const variantsOn = $derived(shown.reduce((/** @type {number} */ n, /** @type {any} */ f) => n + f.variants.filter((/** @type {any} */ v) => v.on).length, 0));
-
-  /** Choices under their headings, for <optgroup>. */
-  function groups(/** @type {any[]} */ choices) {
-    /** @type {[string, any[]][]} */
-    const out = [];
-    for (const c of choices) {
-      const last = out[out.length - 1];
-      if (last && last[0] === c.group) last[1].push(c);
-      else out.push([c.group, [c]]);
-    }
-    return out;
-  }
 </script>
 
 <section class="settings">
@@ -59,17 +48,7 @@
           {:else}
             <label for="opt-{o.name}">{o.label}</label>
             {#if o.choices.length}
-              <select id="opt-{o.name}" value={o.value} onchange={(e) => save(o.name, e.currentTarget.value)}>
-                {#each groups(o.choices) as [group, list]}
-                  {#if group}
-                    <optgroup label={group}>
-                      {#each list as c}<option value={c.value}>{c.label}</option>{/each}
-                    </optgroup>
-                  {:else}
-                    {#each list as c}<option value={c.value}>{c.label}</option>{/each}
-                  {/if}
-                {/each}
-              </select>
+              <Picker id="opt-{o.name}" value={o.value} choices={o.choices} label={o.label} onchange={(v) => save(o.name, v)} />
             {:else if Array.isArray(o.value)}
               <input
                 id="opt-{o.name}"

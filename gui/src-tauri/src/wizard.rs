@@ -64,7 +64,9 @@ struct EngineView {
     installed: Option<String>,
     /// Its sealed image is published, so it can be pulled.
     image: bool,
+    /// Its download page; empty: install it from the system's packages, as `program`.
     site: &'static str,
+    program: &'static str,
 }
 
 #[derive(Serialize)]
@@ -113,7 +115,7 @@ fn engines(cfg: &Config) -> Vec<FamilyEngines> {
                 .iter()
                 // The engines' own Variant keys differ from the catalogue's (S5): the Family decides.
                 .filter(|k| k.variants.iter().any(|v| known::family(v).and_then(|kf| serde_json::to_value(kf).ok()).is_some_and(|kf| kf == f.key())))
-                .map(|k| EngineView { name: k.name, installed: k.installed().map(|p| p.display().to_string()), image: k.image().is_some(), site: k.site })
+                .map(|k| EngineView { name: k.name, installed: k.installed().map(|p| p.display().to_string()), image: k.image().is_some(), site: k.site, program: k.programs[0] })
                 .collect(),
         })
         .collect()

@@ -84,9 +84,12 @@
 {/if}
 
 {#if snap}
-  <div class="shell">
+  <!-- Under the splash nothing scrolls: WebKitGTK draws a scrollbar above a fixed layer. -->
+  <div class="shell" class:behind={splashing}>
     <Sidebar {snap} {page} {collapsed} {go} {slices} toggle={() => (collapsed = !collapsed)} />
-    <main class="page">
+    <!-- Focusable, so the keyboard can scroll a page that has nothing else to focus. -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <main class="page" tabindex="0">
       {#if page.kind === "settings"}
         <Settings {snap} {save} />
       {:else if page.kind === "help"}
@@ -136,6 +139,10 @@
     position: relative;
     display: flex;
     height: 100vh;
+    overflow: hidden;
+  }
+  .behind :global(nav),
+  .behind .page {
     overflow: hidden;
   }
   .page {

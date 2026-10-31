@@ -7,12 +7,14 @@ es-AR) hold only the words they write differently, and take the rest from their 
 
 ## In every language of its own
 
-341 keys:
+343 keys:
 
 - `board_theme.match`
 - `board_theme.racing`
 - `board_theme.slate`
 - `board_theme.walnut`
+- `common.no_match`
+- `common.search`
 - `config.no_folder`
 - `disk.item.cache`
 - `disk.item.downloads`

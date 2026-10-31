@@ -162,9 +162,7 @@
   }
   .path {
     max-width: 18rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     color: var(--dim);
     font-size: 0.85em;
   }

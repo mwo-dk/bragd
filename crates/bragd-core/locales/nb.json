@@ -724,5 +724,7 @@
  "files.books": "Polyglot opening books",
  "files.pick_tablebases": "Choose the tablebase folder",
  "files.pick_database": "Open a database",
- "files.save_database": "Save the database as"
+ "files.save_database": "Save the database as",
+ "common.search": "Search",
+ "common.no_match": "Nothing matches."
 }

@@ -271,7 +271,11 @@ fn main() {
                 (window.width, window.height) = (w, h);
                 window.min_width = window.min_width.map(|m| m.min(w));
             }
-            tauri::WebviewWindowBuilder::from_config(app.handle(), &window)?.build()?;
+            let main = tauri::WebviewWindowBuilder::from_config(app.handle(), &window)?.build()?;
+            // Ask for focus once, so a compositor that opens new windows out of sight (niri, a
+            // scrolling one) brings this one into view. On Wayland GTK presents the window with
+            // the XDG_ACTIVATION_TOKEN (or DESKTOP_STARTUP_ID) the launcher gave Bragd.
+            let _ = main.set_focus();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

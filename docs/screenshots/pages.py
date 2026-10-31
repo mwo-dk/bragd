@@ -66,11 +66,13 @@ def fold(d, family):
 
 
 def select(d, label, value):
-    """Set the <select> named `label` (its aria-label) to the option shown as `value`."""
-    r = js(d, f"""const s = document.querySelector('select[aria-label={json.dumps(label)}]');
-      if (!s) return 'none';
-      const o = [...s.options].find(o => o.textContent.trim() === {json.dumps(value)});
-      if (!o) return 'no option'; s.value = o.value; s.dispatchEvent(new Event('change', {{bubbles: true}})); return 'ok';""")
+    """Choose `value` (the text it shows) in the list named `label` (a Picker's aria-label)."""
+    r = js(d, f"""const b = document.querySelector('button[aria-haspopup=listbox][aria-label={json.dumps(label)}]');
+      if (!b) return 'none'; b.click(); return 'ok';""")
+    d.wait(0.4)
+    if r == "ok":
+        r = js(d, f"""const o = [...document.querySelectorAll('[role=option]')].find(o => o.querySelector('span').textContent.trim() === {json.dumps(value)});
+          if (!o) return 'no option'; o.click(); return 'ok';""")
     if r != "ok":
         raise RuntimeError(f"select {label}: {r}")
     d.wait(0.8)

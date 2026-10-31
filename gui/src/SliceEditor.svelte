@@ -3,6 +3,7 @@
   // copy on request. "Use current board position" takes the position of the Game in replay.
   import * as k from "./knowledge.js";
   import { t } from "./i18n.svelte.js";
+  import Picker from "./Picker.svelte";
   import GameList from "./GameList.svelte";
   import Replay from "./Replay.svelte";
 
@@ -68,10 +69,7 @@
     <label>{t("slice.rating_min")} <input type="number" min="0" step="50" bind:value={q.rating_min} /></label>
     <label
       >{t("slice.result")}
-      <select bind:value={q.result}>
-        <option value="">{t("slice.any")}</option>
-        {#each ["1-0", "0-1", "1/2-1/2", "*"] as r}<option value={r}>{r}</option>{/each}
-      </select>
+      <Picker value={q.result} choices={[{ value: "", label: t("slice.any") }, ...["1-0", "0-1", "1/2-1/2", "*"].map((r) => ({ value: r, label: r }))]} label={t("slice.result")} onchange={(v) => (q.result = v)} />
     </label>
     <label>{t("slice.variant")} <input type="text" bind:value={q.variant} placeholder="standard" size="10" /></label>
     <div class="position">

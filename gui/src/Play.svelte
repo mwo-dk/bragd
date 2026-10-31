@@ -5,6 +5,7 @@
   // knows a rule.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
+  import Picker from "./Picker.svelte";
   import { movesOf, movesTo, plainMoves } from "./board.js";
   import Board from "./Board.svelte";
   import BackgammonBoard from "./BackgammonBoard.svelte";
@@ -38,6 +39,14 @@
   let entries = $state([]);
   /** @type {any} */
   let st = $state(null);
+  // The board fits the window's height as well as its width: whatever the height left under
+  // the bar and the trays allows, times the board's own width to height.
+  let gameH = $state(0);
+  let innerWidth = $state(window.innerWidth);
+  /** The trays' heights, by seat. @type {number[]} */
+  let trayH = $state([0, 0]);
+  const aspect = $derived(!st ? 1 : family.id === "backgammon" ? 14.2 / 11.9 : (st.board.files + 0.16) / (st.board.ranks + 0.16));
+  const fit = $derived(innerWidth > 760 && gameH ? `${Math.max(180, (gameH - trayH[0] - trayH[1] - 12) * aspect)}px` : null);
   /** @type {{from?: string, drop?: string} | null} */
   let sel = $state(null);
   /** @type {any[]} */
@@ -204,37 +213,20 @@
   const homeTarget = $derived(targets.find((x) => x === "home" || x === "off"));
 </script>
 
+<svelte:window bind:innerWidth />
+
 <section class="play">
   <header class="bar">
-    <select value={key} onchange={(e) => newGame(e.currentTarget.value)} aria-label={t("play.variant")}>
-      {#each variants as v}
-        <option value={v.key}>{v.name}</option>
-      {/each}
-    </select>
+    <Picker value={key} choices={variants.map((/** @type {any} */ v) => ({ value: v.key, label: v.name }))} label={t("play.variant")} onchange={(v) => newGame(v)} />
     <button class="primary" onclick={() => newGame()}>{t("play.new_game")}</button>
     <button onclick={undo} disabled={!entries.length}>{t("play.undo")}</button>
     <button onclick={() => (flipped = !flipped)} aria-pressed={flipped}>{t("play.flip")}</button>
     {#if !analyse && choices.engines.length}
-      <select bind:value={opponent} aria-label={t("play.opponent")}>
-        <option value="self">{t("play.against_self")}</option>
-        <option value="engine">{t("play.against_engine")}</option>
-      </select>
+      <Picker value={opponent} choices={[{ value: "self", label: t("play.against_self") }, { value: "engine", label: t("play.against_engine") }]} label={t("play.opponent")} onchange={(v) => (opponent = v)} />
       {#if opponent === "engine"}
-        <select bind:value={engineKey} aria-label={t("analyse.engine")}>
-          {#each choices.engines as c}
-            <option value={c.key}>{c.name}</option>
-          {/each}
-        </select>
-        <select bind:value={engineSeat} aria-label={t("play.engine_side")}>
-          {#each choices.sides as side, seat}
-            <option value={seat}>{t("play.engine_plays", { side })}</option>
-          {/each}
-        </select>
-        <select bind:value={thinkMs} aria-label={t("play.think_time")}>
-          {#each [100, 1000, 3000, 10000] as ms}
-            <option value={ms}>{t("play.seconds", { n: ms / 1000 })}</option>
-          {/each}
-        </select>
+        <Picker value={engineKey} choices={choices.engines.map((c) => ({ value: c.key, label: c.name }))} label={t("analyse.engine")} onchange={(v) => (engineKey = v)} />
+        <Picker value={engineSeat} choices={choices.sides.map((side, seat) => ({ value: seat, label: t("play.engine_plays", { side }) }))} label={t("play.engine_side")} onchange={(v) => (engineSeat = v)} />
+        <Picker value={thinkMs} choices={[100, 1000, 3000, 10000].map((ms) => ({ value: ms, label: t("play.seconds", { n: ms / 1000 }) }))} label={t("play.think_time")} onchange={(v) => (thinkMs = v)} />
         <label class="skill">{t("play.strength")} <input type="range" min="0" max="20" bind:value={skill} /></label>
       {/if}
     {/if}
@@ -244,11 +236,11 @@
   </header>
 
   {#if st}
-    <div class="game">
-      <div class="board-side">
+    <div class="game" bind:clientHeight={gameH}>
+      <div class="board-side" style:max-width={fit}>
         {#snippet tray(/** @type {number} */ seat)}
           {#if hands(seat).length || offs(seat).length}
-            <div class="tray">
+            <div class="tray" bind:offsetHeight={trayH[seat]}>
               {#each hands(seat) as h}
                 {#each h.pieces as p}
                   <button
@@ -385,6 +377,7 @@
   }
   .game {
     display: flex;
+    flex: 1 1 auto;
     gap: 1rem;
     align-items: flex-start;
     min-height: 0;
@@ -392,7 +385,6 @@
   .board-side {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: min(100%, calc(100vh - 9rem) * 1.1);
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
@@ -406,8 +398,10 @@
     overflow: auto;
   }
   @media (max-width: 760px) {
+    /* One column that scrolls: the board takes the width, the panel follows it. */
     .game {
       flex-direction: column;
+      flex: none;
     }
     .info {
       flex: none;
@@ -416,6 +410,7 @@
       max-height: none;
     }
     .board-side {
+      flex: none;
       width: 100%;
       max-width: 100%;
     }

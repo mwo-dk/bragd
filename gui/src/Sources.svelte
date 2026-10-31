@@ -7,6 +7,7 @@
   // with their notice. A custom URL can be added.
   import * as k from "./knowledge.js";
   import { t } from "./i18n.svelte.js";
+  import Picker from "./Picker.svelte";
   import StripEditor from "./StripEditor.svelte";
   import JobLine from "./JobLine.svelte";
 
@@ -117,18 +118,14 @@
         <div class="options">
           <label
             >{t("source.schedule")}
-            <select bind:value={draft.schedule}>
-              {#each page.schedules as p}<option value={p.value}>{p.label}</option>{/each}
-            </select>
+            <Picker value={draft.schedule} choices={page.schedules} label={t("source.schedule")} onchange={(v) => draft && (draft.schedule = v)} />
           </label>
           <label class="check"><input type="checkbox" bind:checked={draft.only_unmetered} /> {t("source.only_unmetered")}</label>
           <label>{t("source.disk_cap")} <input type="text" bind:value={cap} placeholder={t("disk.no_limit")} size="10" /></label>
           <label>{t("source.max_download")} <input type="text" bind:value={maxDownload} placeholder={s.maxDownloadDefault} size="10" /></label>
           <label
             >{t("source.after_import_label")}
-            <select bind:value={draft.after_import}>
-              {#each page.afterImport as p}<option value={p.value}>{p.label}</option>{/each}
-            </select>
+            <Picker value={draft.after_import} choices={page.afterImport} label={t("source.after_import_label")} onchange={(v) => draft && (draft.after_import = v)} />
           </label>
           {#if s.custom}
             <label class="wide">{t("source.url")} <input type="text" bind:value={draft.url} /></label>
@@ -142,10 +139,12 @@
               <div class="bar">
                 <label
                   >{t("source.route_library", { n: i + 1 })}
-                  <select value={page.libraries.includes(r.library) ? r.library : NEW} onchange={(e) => (r.library = e.currentTarget.value === NEW ? "" : e.currentTarget.value)}>
-                    {#each page.libraries as l}<option value={l}>{l}</option>{/each}
-                    <option value={NEW}>{t("source.route_new")}</option>
-                  </select>
+                  <Picker
+                    value={page.libraries.includes(r.library) ? r.library : NEW}
+                    choices={[...page.libraries.map((/** @type {string} */ l) => ({ value: l, label: l })), { value: NEW, label: t("source.route_new") }]}
+                    label={t("source.route_library", { n: i + 1 })}
+                    onchange={(v) => (r.library = v === NEW ? "" : v)}
+                  />
                 </label>
                 {#if !page.libraries.includes(r.library)}
                   <label>{t("source.route_new_name")} <input type="text" bind:value={r.library} size="14" /></label>
@@ -191,8 +190,10 @@
     flex-direction: column;
     gap: 0.4rem;
   }
+  /* A Source that is off reads as such by its switch and border, not by fading its text below
+     a readable contrast. */
   .source.off {
-    opacity: 0.75;
+    border-style: dashed;
   }
   .head,
   .bar,

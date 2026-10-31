@@ -21,6 +21,11 @@
   const stay = (/** @type {MouseEvent} */ e) => {
     if (e.target instanceof Element && e.target.closest("a")) e.preventDefault();
   };
+
+  // A diagram wider than the page scrolls on its own; the keyboard can reach it to scroll it.
+  const scrollable = (/** @type {HTMLElement} */ node) => {
+    for (const pre of node.querySelectorAll("pre")) pre.tabIndex = 0;
+  };
 </script>
 
 <section class="rules">
@@ -47,7 +52,7 @@
       </div>
     {/if}
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-    <div class="doc" onclick={stay}>{@html page.html}</div>
+    <div class="doc" onclick={stay} use:scrollable>{@html page.html}</div>
   {/if}
 </section>
 
@@ -70,9 +75,16 @@
   .answer {
     color: var(--dim);
   }
+  /* A long reference or a wide table never widens the page: words break, tables scroll. */
+  .doc {
+    overflow-wrap: anywhere;
+  }
   .doc :global(table) {
     border-collapse: collapse;
     font-size: 0.9em;
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
   }
   .doc :global(td),
   .doc :global(th) {
@@ -81,6 +93,15 @@
   }
   .doc :global(code) {
     font-family: var(--mono-font);
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+  .doc :global(pre) {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .doc :global(pre code) {
+    word-break: normal;
   }
   .doc :global(a) {
     color: var(--accent);

@@ -5,6 +5,7 @@
   // Closed in any way, it is not shown by itself again.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
+  import Picker from "./Picker.svelte";
   import { guide } from "./guide.svelte.js";
   import FamilyToggles from "./FamilyToggles.svelte";
 
@@ -63,17 +64,6 @@
   const theme = (/** @type {string} */ name, /** @type {string} */ value) => save(name, value).then(open);
   const tick = (/** @type {string} */ id, /** @type {boolean} */ on) => (chosen = on ? [...chosen, id] : chosen.filter((c) => c !== id));
 
-  /** Choices under their headings, for <optgroup>. */
-  function groups(/** @type {any[]} */ choices) {
-    /** @type {[string, any[]][]} */
-    const out = [];
-    for (const c of choices) {
-      const g = out[out.length - 1];
-      if (g && g[0] === c.group) g[1].push(c);
-      else out.push([c.group, [c]]);
-    }
-    return out;
-  }
   const SERVERS = ["https://lichess.org/", "https://lishogi.org/", "https://www.pychess.org/", "https://online-go.com/"];
 </script>
 
@@ -97,18 +87,10 @@
       {:else if current?.id === "welcome"}
         <p class="lead">{t("wizard.welcome")}</p>
         <div class="welcome">
-          <label class="col">
+          <div class="col">
             <span>{t("wizard.languages")}</span>
-            <select size="7" value={opt("language").value} onchange={(e) => save("language", e.currentTarget.value).then(open)}>
-              {#each groups(opt("language").choices) as [group, list]}
-                {#if group}
-                  <optgroup label={group}>{#each list as c}<option value={c.value} dir="auto">{c.label}</option>{/each}</optgroup>
-                {:else}
-                  {#each list as c}<option value={c.value}>{c.label}</option>{/each}
-                {/if}
-              {/each}
-            </select>
-          </label>
+            <Picker value={opt("language").value} choices={opt("language").choices} label={t("wizard.languages")} onchange={(v) => save("language", v).then(open)} />
+          </div>
           <div class="col">
             <span>{t("setting.theme")}</span>
             <div class="swatches" role="radiogroup" aria-label={t("setting.theme")}>
@@ -118,11 +100,7 @@
                 </button>
               {/each}
             </div>
-            <select value={opt("theme").value} onchange={(e) => theme("theme", e.currentTarget.value)} aria-label={t("setting.theme")}>
-              {#each groups(opt("theme").choices) as [group, list]}
-                <optgroup label={group}>{#each list as c}<option value={c.value}>{c.label}</option>{/each}</optgroup>
-              {/each}
-            </select>
+            <Picker value={opt("theme").value} choices={opt("theme").choices} label={t("setting.theme")} onchange={(v) => theme("theme", v)} />
             <span>{t("setting.board_theme")}</span>
             <div class="swatches" role="radiogroup" aria-label={t("setting.board_theme")}>
               {#each data.boards as s (s.id)}
@@ -160,7 +138,7 @@
                 <b>{e.name}</b>:
                 {#if e.installed}<span class="ok">{t("wizard.engine_found", { path: e.installed })}</span>{:else}{t("wizard.engine_missing")}.{/if}
                 <span class="dim">{e.image ? t("wizard.image_ready") : t("wizard.image_unpublished")}</span>
-                {#if !e.installed && e.site}<button class="link" onclick={() => api.openUrl(e.site)}>{t("wizard.engine_get")}</button>{/if}
+                {#if !e.installed && e.site}<button class="link" onclick={() => api.openUrl(e.site)}>{t("wizard.engine_get")}</button>{:else if !e.installed}<span class="dim">{t("engines.install_hint_package", { program: e.program })}</span>{/if}
               </li>
             {/each}
           </ul>
@@ -305,8 +283,9 @@
     margin: 0.1rem 0 0 1.6rem !important;
     color: var(--dim);
   }
+  /* Red darkened towards the text colour: a warning stays readable on the panel. */
   .note.warn {
-    color: var(--red);
+    color: color-mix(in srgb, var(--red) 65%, var(--fg));
   }
   .link {
     border: none;
@@ -328,9 +307,6 @@
   }
   .col > span {
     font-weight: 600;
-  }
-  select[size] {
-    padding: 0;
   }
   .swatches {
     display: flex;
@@ -399,8 +375,9 @@
     list-style: none;
     padding: 0;
   }
+  /* An offer that is not ticked keeps readable text: its box says it is off. */
   .offers li.off {
-    opacity: 0.7;
+    color: var(--dim);
   }
   .badge {
     font-size: 0.75em;

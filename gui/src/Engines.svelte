@@ -5,6 +5,7 @@
   // checks, downloads and saves all of it.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
+  import Picker from "./Picker.svelte";
   import { guide } from "./guide.svelte.js";
 
   /** @type {{ family: any, go: (page: any) => void }} */
@@ -91,12 +92,17 @@
             <th scope="row">{v.name}</th>
             <td>
               {#if v.engines.length}
-                <select value={v.chosen} onchange={(e) => act(api.engineDefault(v.key, e.currentTarget.value))} aria-label={v.name}>
-                  <option value="">{t("engines.automatic", { name: page.engines.find((/** @type {any} */ e) => e.key === v.current)?.name ?? "—" })}</option>
-                  {#each v.engines as k}
-                    <option value={k}>{page.engines.find((/** @type {any} */ e) => e.key === k)?.name ?? k}</option>
-                  {/each}
-                </select>
+                <Picker
+                  value={v.chosen}
+                  choices={[
+                    { value: "", label: t("engines.automatic", { name: page.engines.find((/** @type {any} */ e) => e.key === v.current)?.name ?? "—" }) },
+                    ...v.engines.map((/** @type {string} */ k) => ({ value: k, label: page.engines.find((/** @type {any} */ e) => e.key === k)?.name ?? k })),
+                  ]}
+                  label={v.name}
+                  onchange={(k) => act(api.engineDefault(v.key, k))}
+                />
+              {:else if v.waiting}
+                <span class="dim">{t("engines.none_ready")}</span>
               {:else}
                 <span class="dim">{t("engines.none_for")}</span>
               {/if}
@@ -179,9 +185,7 @@
             {:else}
               <label for="eo-{o.name}">{o.name}</label>
               {#if o.kind === "combo"}
-                <select id="eo-{o.name}" value={o.value ?? o.default} onchange={(e) => setOption(o.name, e.currentTarget.value)}>
-                  {#each o.vars as v}<option value={v}>{v}</option>{/each}
-                </select>
+                <Picker id="eo-{o.name}" value={o.value ?? o.default} choices={o.vars.map((/** @type {string} */ v) => ({ value: v, label: v }))} label={o.name} onchange={(v) => setOption(o.name, v)} />
               {:else if o.kind === "spin"}
                 <input id="eo-{o.name}" type="number" min={o.min} max={o.max} value={o.value ?? o.default} onchange={(e) => setOption(o.name, e.currentTarget.value)} />
               {:else}
@@ -229,7 +233,7 @@
     width: 100%;
     max-width: 36rem;
   }
-  td select {
+  td :global(.picker) {
     width: 100%;
   }
   table th {

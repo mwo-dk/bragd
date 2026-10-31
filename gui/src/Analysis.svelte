@@ -5,6 +5,7 @@
   // shows. Rust runs the engine and turns its moves into entries.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
+  import Picker from "./Picker.svelte";
   import { current } from "./current.svelte.js";
 
   /** @type {{ family: any, game: {variant: string, initial: string|null, entries: string[]}, over: boolean, onentries: (entries: string[]) => void, onsetup: (initial: string|null, entries?: string[]) => void, marks: string[], onmore: (() => void) | null }} */
@@ -112,11 +113,7 @@
 
   {#if choices.length}
     <div class="row">
-      <select bind:value={engine} aria-label={t("analyse.engine")}>
-        {#each choices as c}
-          <option value={c.key}>{c.name}</option>
-        {/each}
-      </select>
+      <Picker value={engine} choices={choices.map((c) => ({ value: c.key, label: c.name }))} label={t("analyse.engine")} onchange={(v) => (engine = v)} />
       <button class="primary" onclick={toggle} aria-pressed={on} disabled={over && !on}>{on ? t("analyse.stop") : t("analyse.start")}</button>
     </div>
   {:else if more}
@@ -192,7 +189,7 @@
     gap: 0.3rem;
     align-items: center;
   }
-  .row select {
+  .row :global(.picker) {
     flex: 1 1 8rem;
     min-width: 0;
     max-width: 100%;
