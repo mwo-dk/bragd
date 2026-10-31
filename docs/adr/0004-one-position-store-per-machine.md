@@ -1,0 +1,5 @@
+# One Position store per machine, shared by every Library and synced between Peers
+
+Engine Evaluations, Annotations and Commentary are kept by position in one store per machine. They are not kept per Game or per Library. The store is keyed by Family, Variant and position key, and tagged by Edition. A user's own machines (Peers) swap what is new in their stores and share the background queue.
+
+We chose this over a table in each Library and over the per-Game review cache Bragd had. The same position recurs across Games, Libraries and Foreign databases, so storing by position means each position is analysed once. Keeping it out of the Libraries means deleting a Library loses no analysis. Every row is a fact about one Edition at one depth, so merging between Peers never conflicts: the deeper row wins. In return, the store grows with everything a user ever analyses, so it needs its own housekeeping in Disk watch. It also needs pairing and network security of its own once Peers arrive, and go needs a position key it did not have.

@@ -182,3 +182,58 @@ Everything is local in 0.3.0. Online sync comes later, on Bragd's own server.
   - books, adjudication (including tablebases), and parallel games in the Helper;
   - results go into a Library.
 - **Every Family** can run tournaments. Go has handicap pairing as an option, and backgammon has match play to N points.
+
+## Position store (0.4.0)
+
+The same position turns up in thousands of Games. Bragd judges it once and keeps the judgement (`docs/adr/0004-one-position-store-per-machine.md`).
+
+- **Position store:** one SQLite file per machine. It is shared by every Library, Foreign database and Game played, and deleting a Library does not touch it.
+  - Rows are keyed by Family, Variant and position key: the Polyglot Zobrist key for chess, a FEN or SFEN hash for draughts, xiangqi and shogi, and a new Zobrist key for go (stones, side to move, ko point).
+  - Export and import go through Parquet, for backups, moving a store by hand, and reading it in DuckDB.
+- **Evaluation:** one Edition's score, depth and best line for one position.
+  - A score has a kind: centipawns, mate in N, win rate (go) or equity (backgammon).
+  - Every Edition is kept. Bragd shows the newest Edition's result, and the deepest within it.
+  - A new Edition never re-queues anything by itself. It analyses positions you open, or a Slice you ask for.
+- **Annotation:** a move's mark (?? ? ?! ! !!), the better move and its line, and named motifs. Bragd words it from its own texts, so it shows in every language.
+  - Marks and better moves come in every Family with an Engine. Named motifs (fork, pin, hangs a piece, missed mate) start with chess.
+- **Background analysis:** a queue in the Helper.
+  - It is filled by positions and Games you open (low priority), and by Slices you mark *Analyse in background*, each with its Engines, Editions and a depth or time per position.
+  - Within a job, the positions that occur most often go first.
+  - Whole Libraries are never queued.
+  - Settings limit it per machine: hours, threads, and never on battery.
+  - Each job shows its progress and an estimate of the time left.
+- **Comments:** text a person wrote into a Game is translated only on demand, with a *Translate* button. The result is kept per language and labelled as machine-translated, and the original stays one click away. The language model is the one set up under *Language model* (0.5.0); until then the button is hidden.
+- **Housekeeping:** Disk watch shows the store's size per Engine and Edition. One action each prunes:
+  - Editions older than the newest;
+  - Engines that were removed;
+  - shallow Evaluations where a deeper one of the same Edition exists.
+- **Families:** every Family with an Engine: chess and its Variants, shogi, xiangqi, janggi, draughts, go and backgammon. Tafl, ur and senet join when their Bots do.
+
+## Peers and Commentary (0.5.0)
+
+- **Peers:** your own machines, paired in Settings → Peers.
+  - One machine shows a 6-digit code, and you type it on the other. Each keeps the other's public key.
+  - They talk only TLS with those pinned keys. They find each other on the home network (mDNS), or by an address you type, such as a Tailscale name.
+  - Either side can unpair.
+  - Peers share only the Position store and the queue. Libraries, Slices and Settings stay on each machine. A job carries its positions, so a Peer can work on a Slice it does not have.
+  - Merging never conflicts: rows are facts tagged by Edition, and the deeper one wins.
+- **Shared queue:** a Peer takes a job when it is idle, inside its own limits, and only if it has a qualifying Edition.
+  - A job names the Engine and a minimum Edition, such as "Stockfish 17.1 or newer". Each result records the exact Edition.
+  - Container Engines run the same Edition on every Peer, pinned by image digest, so they are preferred for shared jobs.
+- **Language model:** Settings → *Language model*, an OpenAI-compatible address, off by default.
+  - Bragd offers a local Ollama, Lemonade or LM Studio it finds running.
+  - A cloud model needs a key, kept in the OS keychain, and Bragd says plainly that positions and comments then leave the machine.
+  - Model jobs go through the shared queue, so one Peer's model can serve the others.
+- **Commentary:** prose about a position or a move, written by the language model in the reader's language from the Evaluation and the Annotation. It is kept per language, records the model that wrote it, and is labelled as machine-written. It is stored apart from Annotations, as its own column.
+
+## 1.0
+
+1.0 follows 0.5.0, once all of these hold:
+
+- the Known broken list in `BASELINE.md` is empty;
+- every Family has been played against a real Engine;
+- the installers are signed on macOS and Windows;
+- online play on Lichess works;
+- Settings and file formats are stable: nothing breaks without a migration.
+
+Bragd's own online server comes after 1.0.
