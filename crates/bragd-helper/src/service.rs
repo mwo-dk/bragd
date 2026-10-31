@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use bragd_core::update::FLATPAK_ID;
+use bragd_engines::tools;
 
 /// The argument of a Helper that stays when the last window has gone.
 pub const STAY: &str = "--stay";
@@ -205,11 +206,11 @@ fn run(c: &mut Command) -> io::Result<()> {
 }
 
 fn systemctl(args: &[&str]) -> io::Result<()> {
-    run(Command::new("systemctl").arg("--user").args(args))
+    run(tools::command("systemctl").arg("--user").args(args))
 }
 
 fn launchctl(args: &[&str]) -> io::Result<()> {
-    run(Command::new("launchctl").args(args))
+    run(tools::command("launchctl").args(args))
 }
 
 /// launchd's name for this user's login session: `gui/501`.
@@ -233,7 +234,7 @@ fn log() -> PathBuf {
 /// Whether the Helper is registered here.
 pub fn installed() -> bool {
     match Kind::here() {
-        Kind::RunKey => Command::new("reg").args(["query", RUN_KEY, "/v", NAME]).output().is_ok_and(|o| o.status.success()),
+        Kind::RunKey => tools::command("reg").args(["query", RUN_KEY, "/v", NAME]).output().is_ok_and(|o| o.status.success()),
         k => homes().ok().and_then(|(h, c)| k.file(&h, &c)).is_some_and(|f| f.exists()),
     }
 }
@@ -271,7 +272,7 @@ pub fn kick() {
 pub fn install(exe: &Path) -> io::Result<()> {
     let k = Kind::here();
     if k == Kind::RunKey {
-        run(Command::new("reg").args(["add", RUN_KEY, "/v", NAME, "/t", "REG_SZ", "/d", &k.unit(exe, &log()), "/f"]))?;
+        run(tools::command("reg").args(["add", RUN_KEY, "/v", NAME, "/t", "REG_SZ", "/d", &k.unit(exe, &log()), "/f"]))?;
         return crate::helper::launch(exe, true);
     }
     let (home, config) = homes()?;
@@ -295,7 +296,7 @@ pub fn install(exe: &Path) -> io::Result<()> {
 pub fn uninstall() -> io::Result<()> {
     let k = Kind::here();
     if k == Kind::RunKey {
-        return run(Command::new("reg").args(["delete", RUN_KEY, "/v", NAME, "/f"]));
+        return run(tools::command("reg").args(["delete", RUN_KEY, "/v", NAME, "/f"]));
     }
     match k {
         Kind::Launchd => {

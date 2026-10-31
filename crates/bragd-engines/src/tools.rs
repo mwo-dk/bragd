@@ -116,13 +116,28 @@ pub fn command(program: impl AsRef<std::ffi::OsStr>) -> Command {
     if let Some(appdir) = std::env::var_os("APPDIR") {
         outside(&mut c, Path::new(&appdir), std::env::vars_os());
     }
+    no_window(&mut c);
+    c
+}
+
+/// A command for one of Bragd's own programs (the Helper, started by a window): the program
+/// as it is, environment and all, with no console window on Windows. Every process Bragd
+/// starts goes through this or `command`.
+pub fn own(program: impl AsRef<std::ffi::OsStr>) -> Command {
+    let mut c = Command::new(program);
+    no_window(&mut c);
+    c
+}
+
+/// Windows gives a console program its own window when its parent has none: not this one.
+fn no_window(c: &mut Command) {
     #[cfg(windows)]
-    // Windows gives a console program its own window when its parent has none.
     if unsafe { windows_sys::Win32::System::Console::GetConsoleWindow() }.is_null() {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        std::os::windows::process::CommandExt::creation_flags(&mut c, CREATE_NO_WINDOW);
+        std::os::windows::process::CommandExt::creation_flags(c, CREATE_NO_WINDOW);
     }
-    c
+    #[cfg(not(windows))]
+    let _ = c;
 }
 
 /// `c` without what an AppImage unpacked at `appdir` put in the environment `vars`.
@@ -220,5 +235,55 @@ mod tests {
     #[test]
     fn no_runtime_when_containers_are_off() {
         assert_eq!(container_runtime("off"), None);
+    }
+
+    /// The Rust files of `dir` and below, test folders left out.
+    fn sources(dir: &Path, out: &mut Vec<PathBuf>) {
+        for e in std::fs::read_dir(dir).unwrap().flatten() {
+            let p = e.path();
+            if p.is_dir() && !matches!(p.file_name().and_then(|n| n.to_str()), Some("tests" | "target" | "node_modules")) {
+                sources(&p, out);
+            } else if p.extension().is_some_and(|x| x == "rs") {
+                out.push(p);
+            }
+        }
+    }
+
+    /// The code of a Rust file before its test module.
+    fn shipped(text: &str) -> &str {
+        let lines: Vec<&str> = text.lines().collect();
+        let at = lines.windows(2).position(|w| w[0].trim() == "#[cfg(test)]" && w[1].contains("mod "));
+        at.map_or(text, |i| {
+            let cut: usize = lines[..i].iter().map(|l| l.len() + 1).sum();
+            &text[..cut.min(text.len())]
+        })
+    }
+
+    /// Every process Bragd starts goes through `command` or `own`, so none opens a console
+    /// window on Windows: no other shipped code makes a `Command` itself.
+    #[test]
+    fn every_process_is_started_without_a_console_window() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let mut files = vec![];
+        sources(&root.join("crates"), &mut files);
+        sources(&root.join("gui/src-tauri/src"), &mut files);
+        let helper = Path::new(file!()).file_name().unwrap();
+        let mut seen_here = 0;
+        let mut bypass = vec![];
+        for f in &files {
+            let text = std::fs::read_to_string(f).unwrap();
+            let n = shipped(&text).matches("Command::new(").count();
+            if f.ends_with(Path::new("bragd-engines/src").join(helper)) {
+                seen_here = n;
+            } else if n > 0 {
+                bypass.push(f.display().to_string());
+            }
+        }
+        assert!(files.len() > 50, "the scan found the sources: {}", files.len());
+        assert_eq!(seen_here, 3, "the helpers' own Command::new calls are found");
+        assert!(bypass.is_empty(), "these start a process without tools::command or tools::own: {bypass:?}");
+        // The test module is what is left out, and only it.
+        assert_eq!(shipped("a\n#[cfg(test)]\nmod tests {\nCommand::new(x)\n}\n"), "a\n");
+        assert_eq!(shipped("#[cfg(test)]\nfn f() {}\nCommand::new(x)\n").matches("Command::new(").count(), 1);
     }
 }

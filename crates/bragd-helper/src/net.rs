@@ -158,7 +158,7 @@ pub fn metered() -> Option<bool> {
     if !cfg!(target_os = "linux") {
         return None;
     }
-    let out = std::process::Command::new("busctl")
+    let out = bragd_engines::tools::command("busctl")
         .args(["--system", "get-property", "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager", "org.freedesktop.NetworkManager", "Metered"])
         .output()
         .ok()?;

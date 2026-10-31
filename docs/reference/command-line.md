@@ -25,7 +25,7 @@ usage: bragd-helper [--stay | --service [on|off]]
 |---|---|
 | none | Runs the Helper. It leaves ten minutes after the last window closes and no job runs |
 | `--stay` | Runs the Helper and keeps it running when no window is open. The session starts it this way once `--service on` has registered it |
-| `--service` | Prints `on` when the Helper is registered to start with your session, `off` when not |
+| `--service` | Prints `on` when the Helper is registered to start with your session, `off` when not. The exit code says it too: 0 for on, 3 for off |
 | `--service on` | Registers the Helper to start with your session, and starts it |
 | `--service off` | Takes the registration away. A Helper the system started stops too |
 
@@ -36,6 +36,9 @@ The registration is a systemd user unit on Linux, a LaunchAgent on macOS, a Run 
 | 0 | Done |
 | 1 | It failed; the reason is printed after `bragd-helper:` |
 | 2 | An unknown flag; the usage line is printed |
+| 3 | `--service` alone: the Helper is not registered |
+
+On Windows, `bragd-helper` is a windowed program, so neither it nor the `reg` commands it runs open a console window. It has no console to print to either: read the exit code (`$LASTEXITCODE` in PowerShell, `%ERRORLEVEL%` in `cmd`) or `helper.log` in the Helper's folder, where every `--service` run writes what it did.
 
 ## Environment variables
 

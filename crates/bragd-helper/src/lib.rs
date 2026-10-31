@@ -52,6 +52,21 @@ pub(crate) fn utc(secs: u64) -> String {
 }
 
 /// A line in helper.log (the Helper's stderr), with the time.
+/// Appends `line`, with the time, to `helper.log`: for what a Helper started by hand did,
+/// whose stderr goes nowhere when it has no console.
+pub fn log_line(line: &str) {
+    use std::io::Write;
+    let Some(dir) = folder() else { return };
+    let _ = std::fs::create_dir_all(&dir);
+    let mut o = std::fs::OpenOptions::new();
+    o.create(true).append(true);
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::mode(&mut o, 0o600);
+    if let Ok(mut f) = o.open(dir.join("helper.log")) {
+        let _ = writeln!(f, "{} bragd-helper {VERSION}: {line}", utc(bragd_core::fs::now()));
+    }
+}
+
 pub(crate) fn note(what: std::fmt::Arguments) {
     eprintln!("{} bragd-helper {VERSION}: {what}", utc(bragd_core::fs::now()));
 }

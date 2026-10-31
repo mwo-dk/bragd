@@ -40,7 +40,7 @@ fn on_battery_in(root: &Path) -> bool {
 
 #[cfg(target_os = "macos")]
 fn battery_now() -> bool {
-    std::process::Command::new("/usr/bin/pmset")
+    bragd_engines::tools::command("/usr/bin/pmset")
         .args(["-g", "batt"])
         .output()
         .is_ok_and(|o| String::from_utf8_lossy(&o.stdout).contains("'Battery Power'"))

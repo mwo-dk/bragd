@@ -497,7 +497,7 @@ pub fn connect_or_start(program: &Path) -> io::Result<Conn> {
 /// its stderr into `helper.log`. Waited for in a thread, so one that leaves first is no zombie.
 pub fn launch(exe: &Path, stay: bool) -> io::Result<()> {
     use std::process::Stdio;
-    let mut c = std::process::Command::new(exe);
+    let mut c = bragd_engines::tools::own(exe);
     if stay {
         c.arg(service::STAY);
     }
