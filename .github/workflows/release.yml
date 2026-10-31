@@ -29,11 +29,8 @@ name: Release
 # before the draft; a missing file stops it before publishing, and the draft is deleted. A
 # channel that still fails after its retries turns the run red, named. release-check.yml then
 # installs the release and checks every channel.
+# Nothing is released before 1.0.0 (CLAUDE.md), so it runs only by hand until then.
 on:
-  push:
-    branches: [master]
-  schedule:
-    - cron: "17 6 * * 6" # Saturdays, 06:17 UTC: the rehearsal
   workflow_dispatch: # again by hand, from master: tests everything again and releases what is missing
     inputs:
       rehearsal:

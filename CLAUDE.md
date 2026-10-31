@@ -19,7 +19,7 @@ These rules apply to every contributor and every Claude session in this reposito
   - Exit 3: the current version is unpublished.
   - Exit 4: the version's milestone still has open issues.
   - Exit 5: a feature row has no tour card in `crates/bragd-core/src/tour.rs`.
-  Releases run weekly on Sunday, with a rehearsal on Saturday. The nightly run tests every system whenever `master` changed.
+  **Nothing is released before 1.0.0.** Milestones 0.2.0 to 0.5.0 are steps towards it, and no release PR is made for them. From 1.0.0, releases run weekly on Sunday, with a rehearsal on Saturday. The nightly run tests every system whenever `master` changed.
 - **Never a partial release.** Every installer, each with its `.sha256`, one `SHA256SUMS` over all of them, and every channel, or the release does not go out. No `continue-on-error` on anything that makes a release file. Channels: GitHub release, Homebrew cask, WinGet, Flatpak, Nix (`docs/spec.md`). A new build target goes into the matrix and into `packaging/release-assets.sh` together.
 - **Done = milestone empty.** Every agreed piece of work is an issue in its version's milestone. Every cut or deferral becomes its own issue.
 - **Dependabot PRs are not merged as they are.** Apply the update in a PR of our own, then close the Dependabot PR naming ours.

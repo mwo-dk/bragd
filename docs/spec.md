@@ -150,6 +150,8 @@ Every step can be skipped, and each links to its Settings area. The wizard can b
 | Nix | flake, nixpkgs `bragd` |
 | Scripts | `install/*.sh`, `install/*.ps1` |
 
+No installer is signed with a paid certificate. The macOS app is ad-hoc signed and not notarised; the Homebrew cask clears the quarantine flag, and the install page says how to open the `.dmg` the first time. On Windows, SmartScreen warns once; the install page says to choose *More info*, then *Run anyway*.
+
 The app identifier is `dk.mwo.bragd`. The code is under the MIT licence, and the art notices are listed in [`CREDITS.md`](CREDITS.md).
 
 ## Clubs and tournaments (0.3.0)
@@ -228,11 +230,10 @@ The same position turns up in thousands of Games. Bragd judges it once and keeps
 
 ## 1.0
 
-1.0 follows 0.5.0, once all of these hold:
+1.0.0 is the first release. Nothing is published before it. It follows 0.5.0, once all of these hold:
 
 - the Known broken list in `BASELINE.md` is empty;
 - every Family has been played against a real Engine;
-- the installers are signed on macOS and Windows;
 - online play on Lichess works;
 - Settings and file formats are stable: nothing breaks without a migration.
 

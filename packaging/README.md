@@ -20,8 +20,8 @@ Without its secret a channel's job leaves a notice and does nothing.
 |---|---|
 | Every night, 02:17 | `nightly.yml`: Flatpak and Nix on master when it changed; red when the version in `Cargo.toml` has no published release (`unreleased.sh`) |
 | Saturday, 03:47 | `images.yml`: the engine images built again ([images/](images/README.md)) |
-| Saturday, 06:17 | `release.yml`, rehearsal: tomorrow's release built and checked, nothing published |
-| Sunday, 06:17 | `release-pr.yml`: the release pull request, with auto-merge on; its merge releases |
+| Saturday, 06:17 | `release.yml`, rehearsal: tomorrow's release built and checked, nothing published. Only by hand until 1.0.0 |
+| Sunday, 06:17 | `release-pr.yml`: the release pull request, with auto-merge on; its merge releases. Only by hand until 1.0.0 |
 | Monday, 05:23 | `coxswain-sync.yml`: the upstream sync issue |
 | Monday, 06:00 | `winget.yml`: the newest release to WinGet |
 | Monday, 06:17 | `deps.yml`: advisories, licences, bills of materials |
