@@ -46,6 +46,10 @@ _Avoid_: collection, filter, view
 A filter on a Source that decides which of its Games are kept, for example rating 2000+ or slow time controls only. It applies to Games as they arrive and to what is already stored.
 _Avoid_: filter (a Slice filters for viewing; a Strip rule removes), prune rule
 
+**Route**:
+A Strip rule paired with the Library its Games go to. A Source has one or more Routes. Its download is read once, and each Game lands in every Library whose Route keeps it.
+_Avoid_: pipe, channel, destination
+
 **Disk watch**:
 The sizes of Libraries, downloads, Tablebases and images held against limits you set, with a warning when one is crossed.
 _Avoid_: quota, disk monitor

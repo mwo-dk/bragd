@@ -247,3 +247,18 @@ Each one is listed here, so the owner can overturn it in the morning.
   - The Duplicates count stops at 500, a Library's Games list is not limited to the page's Family, and a custom URL Source cannot be removed.
   - In draughts, *Which move?* names a capture by its two ends, so two routes can read the same.
   - Seirawan gating works only through *Which move?*; clicking a hawk or elephant in the tray does nothing. Backgammon has no resign button.
+
+## The owner's decisions (2026-10-31)
+
+- D1: the icon is draft 1, the plain roundel (done).
+- D2: the Pikafish image ships without its network. On first use, Bragd shows the network's licence and, with the user's consent, downloads it from Pikafish's own release (digest-checked) into its data folder and mounts it read-only.
+- D3: real draughts rules. Black moves first in English checkers. White moves first in international, Brazilian and Russian.
+- D4: throws come from the OS random source, with no modulo bias.
+- D5 (R33): each download has a default cap of 2 GB, which can be changed per Source. A bigger download asks first, using `Content-Length`. If the server gives no size, the cap applies while the download streams.
+- D6 (R36): Slice indexes are added now (white, black, eco, date, Elos). The changelog says Libraries are re-indexed.
+- D6b: Routes. A Source holds one or more Routes, each a Strip rule plus a destination Library. Its download is streamed once, and a Game can land in several Libraries.
+- D7 (R34): each custom Source gets its own downloads folder. No migration, because no downloads exist yet.
+- D8 (R37): legal moves are generated once per ply in chess and shogi, proven by the full perft runs, the ignored deep ones included. If it can't be proven identical, it is dropped.
+- D9 (R39): the Homebrew cask keeps clearing the quarantine flag. A "Sign and notarise the macOS app" issue is filed, and the decision will be shared with coxswain.
+- Windows console windows: the Helper's `reg` calls get `CREATE_NO_WINDOW`, and `bragd-helper` is a GUI-subsystem program in release builds. A test fails if any process spawn bypasses the no-window helper.
+- D10: once the batch is in, BASELINE's Known broken items, the review's left items, notarisation and the 14 carried-over coxswain issues are filed as GitHub issues in milestone 0.2.0.
