@@ -38,7 +38,27 @@ The page has four parts:
 
 ## What it needs
 
-- An Engine installed on this machine, found on your `PATH` by its usual program name (`stockfish`, `fairy-stockfish`, `pikafish`, `YaneuraOu`, `katago`, `gnugo`, `scan`, `gnubg`), or a path you give.
+- An Engine installed on this machine, found on your `PATH` by its usual program name, or a path you give (**Choose…** opens the file picker). The Engines Bragd knows:
+
+  | Engine | Plays | Program names looked for | Where to get it |
+  |---|---|---|---|
+  | Stockfish | chess, Chess960 | `stockfish` | <https://stockfishchess.org/download/> |
+  | Leela Chess Zero | chess, Chess960 | `lc0` | <https://lczero.org/play/download/>. Its image needs a network, downloaded once you agree |
+  | Berserk | chess, Chess960 | `berserk` | <https://github.com/jhonnold/berserk/releases> |
+  | Ethereal | chess, Chess960 | `ethereal`, `Ethereal`, `ethereal-chess` | <https://github.com/AndyGrant/Ethereal> |
+  | RubiChess | chess, Chess960 | `rubichess`, `RubiChess` | <https://github.com/Matthies/RubiChess/releases> |
+  | Koivisto | chess | `koivisto`, `Koivisto` | <https://github.com/Luecx/Koivisto/releases> |
+  | Igel | chess | `igel` | <https://github.com/vshcherbyna/igel/releases>. No image: install it yourself |
+  | Arasan | chess | `arasanx-64`, `arasanx` | <https://www.arasanchess.org/> |
+  | Fruit 2.1 | chess | `fruit` | Your system's packages: its site is gone |
+  | Fairy-Stockfish | chess and its Variants, xiangqi, janggi, shogi | `fairy-stockfish` | <https://github.com/fairy-stockfish/Fairy-Stockfish/releases> |
+  | Pikafish | xiangqi | `pikafish` | <https://github.com/official-pikafish/Pikafish/releases> |
+  | YaneuraOu | shogi | `YaneuraOu`, `yaneuraou` | <https://github.com/yaneurao/YaneuraOu/releases> |
+  | KataGo | go | `katago` | <https://github.com/lightvector/KataGo/releases> |
+  | GNU Go | go | `gnugo` | <https://www.gnu.org/software/gnugo/> |
+  | Scan | international draughts | `scan` | <https://hjetten.home.xs4all.nl/scan/scan.html> |
+  | GNU Backgammon | backgammon | `gnubg` | <https://www.gnu.org/software/gnubg/> |
+
 - Bragd's own images are not published yet, so today an Engine runs only when it is installed. See [Engine container images](container-images.md).
 
 ## Settings and config.toml

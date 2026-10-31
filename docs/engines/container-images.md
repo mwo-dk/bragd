@@ -21,6 +21,25 @@ When an Engine is not installed, Bragd can run it from a sealed container image 
 - podman or docker on the machine. *Automatic* tries podman first, then docker.
 - The image, pulled once. It shows its size before it downloads.
 
+## The images
+
+Each image holds one Engine, built from its released source, and nothing else: no shell and no package manager. Each is built for amd64 and arm64. Igel has no image: it needs AVX2 and cannot be built for arm64, so install it yourself.
+
+| Image | Engine | Network |
+|---|---|---|
+| `bragd-stockfish` | Stockfish | Built in |
+| `bragd-fairy-stockfish` | Fairy-Stockfish | Built in |
+| `bragd-berserk` | Berserk | Built in |
+| `bragd-koivisto` | Koivisto | Built in |
+| `bragd-rubichess` | RubiChess | Built in |
+| `bragd-arasan` | Arasan | In the image, beside the Engine |
+| `bragd-ethereal` | Ethereal | None: it plays with its hand-crafted evaluation |
+| `bragd-fruit` | Fruit 2.1 | None: it has no network |
+| `bragd-lc0` | Leela Chess Zero | Not in the image: network 791556 (18.6 MB) is downloaded once you agree, from the Lc0 project's own storage |
+| `bragd-pikafish` | Pikafish | Not in the image: downloaded once you agree to its licence |
+| `bragd-katago` | KataGo | In the image |
+| `bragd-gnugo` | GNU Go | None: it has no network |
+
 ## How an image runs
 
 | What | How |

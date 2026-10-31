@@ -38,6 +38,13 @@ pub const PIN_FAIRY_STOCKFISH: Option<&str> = None;
 pub const PIN_PIKAFISH: Option<&str> = None;
 pub const PIN_KATAGO: Option<&str> = None;
 pub const PIN_GNUGO: Option<&str> = None;
+pub const PIN_LC0: Option<&str> = None;
+pub const PIN_BERSERK: Option<&str> = None;
+pub const PIN_ETHEREAL: Option<&str> = None;
+pub const PIN_RUBICHESS: Option<&str> = None;
+pub const PIN_KOIVISTO: Option<&str> = None;
+pub const PIN_ARASAN: Option<&str> = None;
+pub const PIN_FRUIT: Option<&str> = None;
 
 /// An engine Bragd knows.
 #[derive(Debug, PartialEq)]
@@ -64,13 +71,26 @@ pub struct Known {
 }
 
 const CHESS: &[&str] = &["chess", "chess960"];
+/// Engines without `UCI_Chess960`.
+const CHESS_ONLY: &[&str] = &["chess"];
 const FAIRY: &[&str] = &["chess", "chess960", "shatranj", "chaturanga", "kingofthehill", "racingkings", "seirawan", "capablanca", "xiangqi", "janggi", "shogi"];
 const GO: &[&str] = &["go-9", "go-13", "go-19"];
 
-/// The engines of the spec. English, Brazilian and Russian draughts have none: Scan plays
-/// international draughts.
+/// The engines of the spec, and more UCI chess engines, strongest-known first after Stockfish;
+/// Fairy-Stockfish comes last of the chess ones, as it plays chess as one Variant of many. Igel
+/// has no image: it needs AVX2 and cannot be built for arm64. English, Brazilian and Russian
+/// draughts have no engine: Scan plays international draughts.
 pub const KNOWN: &[Known] = &[
     Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: PIN_STOCKFISH, image_size: 65_244_394, site: "https://stockfishchess.org/download/", syzygy: true },
+    Known { key: "lc0", name: "Leela Chess Zero", programs: &["lc0"], args: &[], variants: CHESS, tag: Some("0.32.1"), pin: PIN_LC0, image_size: 1_548_746, site: "https://lczero.org/play/download/", syzygy: true },
+    Known { key: "berserk", name: "Berserk", programs: &["berserk"], args: &[], variants: CHESS, tag: Some("14"), pin: PIN_BERSERK, image_size: 18_313_378, site: "https://github.com/jhonnold/berserk/releases", syzygy: true },
+    Known { key: "ethereal", name: "Ethereal", programs: &["ethereal", "Ethereal", "ethereal-chess"], args: &[], variants: CHESS, tag: Some("14.00"), pin: PIN_ETHEREAL, image_size: 200_582, site: "https://github.com/AndyGrant/Ethereal", syzygy: true },
+    Known { key: "rubichess", name: "RubiChess", programs: &["rubichess", "RubiChess"], args: &[], variants: CHESS, tag: Some("20240817"), pin: PIN_RUBICHESS, image_size: 22_029_340, site: "https://github.com/Matthies/RubiChess/releases", syzygy: true },
+    Known { key: "koivisto", name: "Koivisto", programs: &["koivisto", "Koivisto"], args: &[], variants: CHESS_ONLY, tag: Some("9.0"), pin: PIN_KOIVISTO, image_size: 9_159_930, site: "https://github.com/Luecx/Koivisto/releases", syzygy: true },
+    Known { key: "igel", name: "Igel", programs: &["igel"], args: &[], variants: CHESS_ONLY, tag: None, pin: None, image_size: 0, site: "https://github.com/vshcherbyna/igel/releases", syzygy: true },
+    Known { key: "arasan", name: "Arasan", programs: &["arasanx-64", "arasanx"], args: &[], variants: CHESS_ONLY, tag: Some("26.1"), pin: PIN_ARASAN, image_size: 14_429_650, site: "https://www.arasanchess.org/", syzygy: true },
+    // Fruit 2.1 (2005) has no site any more: install it from your system's packages.
+    Known { key: "fruit", name: "Fruit", programs: &["fruit"], args: &[], variants: CHESS_ONLY, tag: Some("2.1"), pin: PIN_FRUIT, image_size: 112_384, site: "", syzygy: false },
     Known {
         key: "fairy-stockfish",
         name: "Fairy-Stockfish",

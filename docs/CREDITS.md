@@ -12,3 +12,4 @@
 | Brand art: icon, splash | Bragd's author | MIT | `assets/brand/` |
 | Opening names | lichess.org `chess-openings` | CC0 | `crates/bragd-library/` |
 | Pikafish's evaluation network (`pikafish.nnue`), not shipped | The Pikafish developers | Pikafish NNUE-License: legal use only, no commercial use without permission. Bragd does not bundle it: with your consent it is downloaded from Pikafish's own release; the licence shown is in `crates/bragd-engines/licences/pikafish-nnue.md` | `<data>/bragd/networks/pikafish/` |
+| Leela Chess Zero's network 791556 (`791556.pb.gz`), not shipped | The Leela Chess Zero project | The file states no licence of its own; the project ships it inside its GPL-3.0 releases and publishes its training data under the ODbL. Bragd does not bundle it: with your consent it is downloaded from storage.lczero.org and checked by SHA-256; the note shown is in `crates/bragd-engines/licences/lc0-network.md` | `<data>/bragd/networks/lc0/` |

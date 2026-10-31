@@ -179,8 +179,9 @@ impl Engine {
             let path = if self.container.is_some() { CONTAINER_SYZYGY } else { path };
             text.push_str(&self.dialect.set_option(&o.name, path));
         }
+        // Pikafish names its network EvalFile, Lc0 WeightsFile.
         if self.network
-            && let Some(o) = self.about.option("EvalFile")
+            && let Some(o) = self.about.option("EvalFile").or_else(|| self.about.option("WeightsFile"))
         {
             text.push_str(&self.dialect.set_option(&o.name, CONTAINER_NETWORK));
         }

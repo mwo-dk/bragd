@@ -1,5 +1,6 @@
-//! Evaluation networks Bragd's engine images leave out because of their licences: Pikafish's
-//! network may not be used commercially, so Bragd does not ship it. It is downloaded only
+//! Evaluation networks Bragd's engine images leave out: Pikafish's network may not be used
+//! commercially, so Bragd does not ship it, and Lc0's networks are large, many, and published
+//! apart from the program under terms of their own. It is downloaded only
 //! once the user has read its licence and agreed, from the engine's own release, checked by
 //! its digest, into Bragd's data folder; an image of the engine is then given it read-only. An
 //! installed engine brings its own and is not affected.
@@ -19,13 +20,16 @@ pub struct Network {
     pub engine: &'static str,
     /// The file, as the engine names it.
     pub file: &'static str,
-    /// The engine's release archive (7z) the file is in, its size and SHA-256.
+    /// What is downloaded, its size and SHA-256: the engine's release archive (7z) the file is
+    /// in, or, when not `packed`, the file itself.
     pub archive: &'static str,
     pub archive_size: u64,
     pub archive_sha256: &'static str,
     /// The file's own size and SHA-256.
     pub size: u64,
     pub sha256: &'static str,
+    /// The download is a 7z archive the file is taken out of.
+    pub packed: bool,
     /// The engine option that names the file.
     pub option: &'static str,
     /// The licence the user agrees to, as the release ships it.
@@ -41,12 +45,28 @@ pub const PIKAFISH: Network = Network {
     archive_sha256: "41952bbfe2520faceb5902c69e6ab4845cc999841d2b49a95cc1be7867a25e5b",
     size: 50_706_378,
     sha256: "7d13d73569a9b571ba0eb20cf1596247bc2a42738967e61afef6482b231e900e",
+    packed: true,
     option: "EvalFile",
     licence: include_str!("../licences/pikafish-nnue.md"),
 };
 
+/// Lc0's network 791556 (192x15), the one Lc0's own CPU releases bundle: one gzip file, from
+/// the project's network storage, named by the SHA-256 of what it unpacks to.
+pub const LC0: Network = Network {
+    engine: "lc0",
+    file: "791556.pb.gz",
+    archive: "https://storage.lczero.org/files/networks/f404e156ceb2882470fd8c032b8754af0fa0b71168328912eaef14671a256e34",
+    archive_size: 18_648_209,
+    archive_sha256: "b1c7047582a8ad37620849bf328935cb46f2ccbbecb7f2696c30c6b913ed690d",
+    size: 18_648_209,
+    sha256: "b1c7047582a8ad37620849bf328935cb46f2ccbbecb7f2696c30c6b913ed690d",
+    packed: false,
+    option: "WeightsFile",
+    licence: include_str!("../licences/lc0-network.md"),
+};
+
 /// Every network Bragd downloads.
-pub const NETWORKS: &[Network] = &[PIKAFISH];
+pub const NETWORKS: &[Network] = &[PIKAFISH, LC0];
 
 /// The network the engine `key` needs, if any.
 pub fn for_engine(key: &str) -> Option<&'static Network> {
@@ -85,13 +105,14 @@ impl Network {
     }
 
     /// Downloads the release archive into `dir`, checks it, takes the network out of it, checks
-    /// that, and keeps only the network. `progress` hears the bytes so far of the archive's;
+    /// that, and keeps only the network; a network that is not `packed` is downloaded and checked
+    /// as it is. `progress` hears the bytes so far of the archive's;
     /// false stops. Nothing is left behind but a whole, checked network.
     pub fn download(&self, dir: &Path, net: &dyn Fetch, progress: &mut dyn FnMut(u64, u64) -> bool) -> Result<PathBuf, String> {
         let folder = dir.join(self.engine);
         fs::create_dir_all(&folder).map_err(|e| format!("{}: {e}", folder.display()))?;
         let (archive, part, to) = (folder.join(".release.7z.part"), folder.join(format!(".{}.part", self.file)), self.path(dir));
-        let got = self.fetch_and_take(net, &archive, &part, progress);
+        let got = if self.packed { self.fetch_and_take(net, &archive, &part, progress) } else { self.fetch(net, &part, progress) };
         let _ = fs::remove_file(&archive);
         match got {
             Ok(()) => fs::rename(&part, &to).map_err(|e| format!("{}: {e}", to.display()))?,
@@ -101,6 +122,19 @@ impl Network {
             }
         }
         Ok(to)
+    }
+
+    /// Downloads what `archive` names into `to` and checks it by its digest.
+    fn fetch(&self, net: &dyn Fetch, to: &Path, progress: &mut dyn FnMut(u64, u64) -> bool) -> Result<(), String> {
+        let mut w = Hashing { out: File::create(to).map_err(|e| e.to_string())?, hash: Sha256::new() };
+        let total = self.archive_size;
+        // Never more than its size: a server that keeps sending is cut off.
+        net.download(self.archive, &mut w, &mut |done| done <= total && progress(done, total)).map_err(|e| format!("{}: {e}", self.archive))?;
+        w.out.sync_all().map_err(|e| e.to_string())?;
+        if hex(&w.hash.finalize()) != self.archive_sha256 {
+            return Err(format!("{} is not the release Bragd knows: its digest differs", self.archive));
+        }
+        Ok(())
     }
 
     fn fetch_and_take(&self, net: &dyn Fetch, archive: &Path, part: &Path, progress: &mut dyn FnMut(u64, u64) -> bool) -> Result<(), String> {
@@ -167,6 +201,25 @@ mod tests {
     /// `tests/release.7z`: a solid LZMA2 7z of `Copying.txt`, `NNUE-License.md` and
     /// `pikafish.nnue` (the text `not a real network\n`), as Pikafish's release lays them out.
     const FIXTURE: &[u8] = include_bytes!("../tests/release.7z");
+
+    /// A network that is one file, not packed: downloaded, checked, kept as it is.
+    #[test]
+    fn a_network_that_is_one_file_is_kept_as_it_comes() {
+        let d = crate::test_dir("network-file");
+        let body = b"gzip of weights".to_vec();
+        let n = Network { archive: "https://example.org/net", archive_size: body.len() as u64, archive_sha256: Box::leak(sha(&body).into_boxed_str()), size: body.len() as u64, sha256: Box::leak(sha(&body).into_boxed_str()), ..LC0 };
+        let at = n.download(&d, &Release { url: n.archive, body: body.clone() }, &mut |_, _| true).unwrap();
+        assert_eq!(at, d.join("lc0/791556.pb.gz"));
+        assert_eq!(fs::read(&at).unwrap(), body);
+        let mut bad = body.clone();
+        bad[0] ^= 1;
+        fs::remove_file(&at).unwrap();
+        assert!(n.download(&d, &Release { url: n.archive, body: bad }, &mut |_, _| true).unwrap_err().contains("digest differs"));
+        assert_eq!(fs::read_dir(d.join("lc0")).unwrap().count(), 0, "nothing is left");
+        assert_eq!(for_engine("lc0"), Some(&LC0));
+        assert_eq!((LC0.size, LC0.sha256), (LC0.archive_size, LC0.archive_sha256), "one file: what comes is what is kept");
+        fs::remove_dir_all(&d).unwrap();
+    }
 
     fn sha(b: &[u8]) -> String {
         hex(&Sha256::digest(b))

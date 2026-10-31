@@ -160,7 +160,7 @@
                 <b>{e.name}</b>:
                 {#if e.installed}<span class="ok">{t("wizard.engine_found", { path: e.installed })}</span>{:else}{t("wizard.engine_missing")}.{/if}
                 <span class="dim">{e.image ? t("wizard.image_ready") : t("wizard.image_unpublished")}</span>
-                {#if !e.installed}<button class="link" onclick={() => api.openUrl(e.site)}>{t("wizard.engine_get")}</button>{/if}
+                {#if !e.installed && e.site}<button class="link" onclick={() => api.openUrl(e.site)}>{t("wizard.engine_get")}</button>{/if}
               </li>
             {/each}
           </ul>

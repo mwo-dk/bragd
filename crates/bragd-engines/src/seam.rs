@@ -322,8 +322,8 @@ mod tests {
     #[test]
     fn every_variant_has_its_engines() {
         let want: &[(&str, &[&str], Option<&str>)] = &[
-            ("chess", &["stockfish", "fairy-stockfish"], Some("chess")),
-            ("chess960", &["stockfish", "fairy-stockfish"], Some("chess")),
+            ("chess", &["stockfish", "lc0", "berserk", "ethereal", "rubichess", "koivisto", "igel", "arasan", "fruit", "fairy-stockfish"], Some("chess")),
+            ("chess960", &["stockfish", "lc0", "berserk", "ethereal", "rubichess", "fairy-stockfish"], Some("chess")),
             ("shatranj", &["fairy-stockfish"], Some("shatranj")),
             ("chaturanga", &["fairy-stockfish"], Some("chaturanga")),
             ("kingofthehill", &["fairy-stockfish"], Some("kingofthehill")),
