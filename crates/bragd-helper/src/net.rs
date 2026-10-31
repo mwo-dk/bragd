@@ -191,6 +191,8 @@ pub(crate) mod tests {
         pub ranges: bool,
         /// Say how long each body is (`Content-Length`).
         pub sizes: bool,
+        /// As `BRAGD_OFFLINE` makes the real one.
+        pub offline: bool,
     }
 
     impl Fetcher for Recorded {
@@ -250,6 +252,16 @@ pub(crate) mod tests {
         fs::write(part_of(&to), b"0123").unwrap();
         let e = download(&net, "u", &to, 9, &|| false, &mut |_| {}).unwrap_err();
         assert_eq!(TooBig::of(&e).and_then(|t| t.size), Some(10));
+    }
+
+    /// With `BRAGD_OFFLINE` the Helper asks nobody: the real fetcher refuses before it dials.
+    #[test]
+    fn offline_asks_nobody() {
+        let web = Web { offline: true, ..Web::default() };
+        assert!(web.offline() && !Recorded::default().offline());
+        let e = web.get("https://example.org/twic.zip", 0).err().expect("refused");
+        assert!(e.to_string().contains("BRAGD_OFFLINE"), "{e}");
+        assert!(web.exists("https://example.org/twic.zip").is_err());
     }
 
     #[test]

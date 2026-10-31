@@ -824,6 +824,17 @@ pub(crate) mod tests {
         assert!(jobs.set_source("nope", sources::Twic.about().defaults()).is_err());
     }
 
+    /// Offline (`BRAGD_OFFLINE`), no Source is queued on its schedule.
+    #[test]
+    fn offline_queues_no_source() {
+        let d = crate::tests::Dir::new("offline");
+        let jobs = jobs_in(&d.0, Recorded { offline: true, ..Default::default() }, Arc::default());
+        let mut o = sources::Twic.about().defaults();
+        o.enabled = true;
+        jobs.set_source("twic", o).unwrap();
+        assert!(jobs.queue_due(1_000_000, Some(false)).is_empty());
+    }
+
     #[test]
     fn cancel_and_battery() {
         let d = crate::tests::Dir::new("cancel");
