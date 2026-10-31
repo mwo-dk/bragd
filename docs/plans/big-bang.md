@@ -37,7 +37,7 @@ Out of scope: Online play, built-in Bots, the big Sources (the Lichess dump, Lum
 Each one is listed here, so the owner can overturn it in the morning.
 - Commits and the PR body carry no Claude attribution, following the commit rule in `CLAUDE.md`.
 - Sprite ids are `<sheet>-<side><ROLE>`. Capablanca and seirawan have their own sheets. Janggi `r` is Cho, painted green (`assets/pieces/README.md`).
-- Icon draft 1 (plain roundel) is the provisional app icon until the owner picks one of the three in `assets/brand/`.
+- Icon: the owner chose draft 1, the plain roundel. It is now `assets/brand/icon.svg`.
 - `tools/pieces/compose-capablanca-pieces.mjs` draws an older design than the committed pieces. Running it overwrites them. It needs an update or deletion.
 - There are 30 Themes, not 31. The source has 33, and removing Cyber and the four DOS themes leaves 28. Racing green light and Racing green dark bring it to 30.
 - "Match theme" board colours come from the Theme. The light square is the lighter of page and text; the dark square is the first clearly darker of accent, selection, border and dim.
