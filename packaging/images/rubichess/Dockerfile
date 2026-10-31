@@ -39,6 +39,7 @@ COPY --from=build /src/src/rubichess /rubichess
 COPY --from=build /src/copying /COPYING
 LABEL org.opencontainers.image.title="bragd-rubichess" \
       org.opencontainers.image.description="RubiChess 20240817 with its network, static, for Bragd's chess engine when none is installed" \
+      org.opencontainers.image.version="20240817" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="GPL-3.0-or-later"
 USER 65534:65534

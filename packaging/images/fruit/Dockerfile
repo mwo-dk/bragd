@@ -28,6 +28,7 @@ COPY --from=build /src/src/fruit /fruit
 COPY --from=build /src/copying.txt /COPYING
 LABEL org.opencontainers.image.title="bragd-fruit" \
       org.opencontainers.image.description="Fruit 2.1, static, for Bragd's chess engine when none is installed" \
+      org.opencontainers.image.version="2.1" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="GPL-2.0-or-later"
 USER 65534:65534

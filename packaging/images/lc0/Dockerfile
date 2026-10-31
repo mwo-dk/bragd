@@ -47,6 +47,7 @@ COPY --from=build /src/build/lc0 /lc0
 COPY --from=build /src/COPYING /COPYING
 LABEL org.opencontainers.image.title="bragd-lc0" \
       org.opencontainers.image.description="Leela Chess Zero 0.32.1 for the CPU, static, without a network, for Bragd's chess engine when none is installed" \
+      org.opencontainers.image.version="0.32.1" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="GPL-3.0-or-later"
 USER 65534:65534

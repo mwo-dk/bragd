@@ -38,6 +38,7 @@ COPY --from=build /src/LICENSE.md /COPYING
 COPY --from=build /src/LICENSE.network /COPYING.network
 LABEL org.opencontainers.image.title="bragd-koivisto" \
       org.opencontainers.image.description="Koivisto 9.0 with its network, static, for Bragd's chess engine when none is installed" \
+      org.opencontainers.image.version="9.0" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="GPL-3.0-or-later AND MIT"
 USER 65534:65534

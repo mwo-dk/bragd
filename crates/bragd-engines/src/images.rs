@@ -3,12 +3,12 @@
 //!
 //! Every image is pinned by its digest (`name:tag@sha256:…`): a pull fetches exactly that
 //! build, never whatever the tag points at that day, and an unpinned image is never pulled. A
-//! new version of Bragd brings new pins; a round of updates then pulls the new pin of each
-//! image whose old pin an engine ran in, and removes the old copy (`superseded`, `move_pins`).
+//! new version of Bragd brings new pins; a round of `housekeeping` then pulls the new pin of each
+//! image whose old pin an engine ran in, removes the old copy (`superseded`, `move_pins`), and
+//! removes the images no engine used for 90 days.
 //!
-//! Only Bragd's own images are ever touched: an update removes the copy it replaced by that
-//! copy's id or its old pin, never with `image prune`, which would take the user's other
-//! untagged images too.
+//! Only Bragd's own images are ever touched: they are removed by their pin, never with
+//! `image prune`, which would take the user's other untagged images too.
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -278,21 +278,12 @@ pub fn short(image: &str) -> &str {
     image.split('@').next().unwrap_or(image)
 }
 
-/// When each image was last used, and when updates were last looked for: kept by the caller
-/// with the app's state.
+/// When each of Bragd's pinned images was last used, and when `housekeeping` last ran: kept by
+/// the caller with the app's state.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ImageState {
     pub used: BTreeMap<String, u64>,
     pub checked: u64,
-}
-
-/// Days between two rounds of updates for the setting `updates`; none when off.
-pub fn every(updates: &str) -> Option<u64> {
-    match updates {
-        "weekly" => Some(7),
-        "monthly" => Some(30),
-        _ => None,
-    }
 }
 
 impl ImageState {
@@ -301,9 +292,9 @@ impl ImageState {
         self.used.insert(image.to_string(), now);
     }
 
-    /// Is a round of updates due at `now`?
-    pub fn update_due(&self, updates: &str, now: u64) -> bool {
-        every(updates).is_some_and(|d| now.saturating_sub(self.checked) >= d * DAY)
+    /// Is a round of `housekeeping` due at `now`: once a day.
+    pub fn due(&self, now: u64) -> bool {
+        now.saturating_sub(self.checked) >= DAY
     }
 
     /// Of `pulled`, the images no engine used for `UNUSED_DAYS`. One with no use recorded counts
@@ -353,13 +344,6 @@ pub fn image_size(rt: &Path, image: &str) -> Option<u64> {
     out.status.success().then(|| String::from_utf8_lossy(&out.stdout).trim().parse().ok()).flatten()
 }
 
-/// The id of the copy of `image` the runtime has.
-pub fn id(rt: &Path, image: &str) -> Option<String> {
-    let out = tools::command(rt).args(["image", "inspect", "--format", "{{.Id}}", image]).stdin(Stdio::null()).output().ok()?;
-    let id = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    (out.status.success() && !id.is_empty()).then_some(id)
-}
-
 /// `<rt> image rm what`, a name or an id; the runtime's last error line when it refuses.
 pub fn remove(rt: &Path, what: &str) -> Result<(), String> {
     let out = tools::command(rt).args(["image", "rm", what]).stdin(Stdio::null()).output().map_err(|e| e.to_string())?;
@@ -406,27 +390,22 @@ pub fn remove_freeing(rt: &Path, image: &str) -> Result<Option<u64>, String> {
     Ok(before.zip(storage(rt)).map(|(b, a)| b.saturating_sub(a)))
 }
 
-/// Updates `image` with `pull`; when that brought a new copy, the one it replaced is removed by
-/// its id at once. A copy that cannot go (a container still uses it) stays, quietly.
-pub fn update(rt: &Path, image: &str, pull: impl FnOnce() -> Result<(), PullError>) -> Result<(), PullError> {
-    let old = id(rt, image);
-    pull()?;
-    if let Some(old) = replaced(old, id(rt, image)) {
-        let _ = remove(rt, &old);
+/// A round of housekeeping at `now`: each image an engine ran in whose pin a new Bragd moved on
+/// is pulled at its new pin and the old copy removed (`superseded`, `move_pins`); then each of
+/// Bragd's images the runtime has that no engine used for `UNUSED_DAYS` is removed. Only images
+/// of `current` (today's pins) and of `st` are looked at, never the user's others. What is gone
+/// is forgotten.
+pub fn housekeeping(rt: &Path, st: &mut ImageState, current: &[String], now: u64, pull: impl Fn(&str) -> Result<(), PullError>) {
+    for old in move_pins(rt, &st.superseded(current), pull) {
+        st.used.remove(&old);
     }
-    Ok(())
-}
-
-/// A round of updates: every image in `images` is tried, each with `pull`. Done when there was
-/// none or at least one pull worked; when all fail (offline) it stays due.
-pub fn update_round(rt: &Path, images: &[String], pull: impl Fn(&str) -> Result<(), PullError>) -> bool {
-    let ok: Vec<bool> = images.iter().map(|i| update(rt, i, || pull(i)).is_ok()).collect();
-    ok.is_empty() || ok.contains(&true)
-}
-
-/// The copy a pull replaced: the old id, only when a new copy with another id is there.
-fn replaced(old: Option<String>, new: Option<String>) -> Option<String> {
-    old.filter(|o| new.is_some_and(|n| &n != o))
+    let ours: Vec<String> = current.iter().chain(st.used.keys()).cloned().collect();
+    for old in st.stale(&pulled(rt, &ours), now) {
+        if remove(rt, &old).is_ok() {
+            st.used.remove(&old);
+        }
+    }
+    st.checked = now;
 }
 
 #[cfg(test)]
@@ -446,15 +425,14 @@ mod tests {
     }
 
     #[test]
-    fn updates_come_weekly_or_monthly() {
+    fn housekeeping_comes_once_a_day() {
         let mut st = ImageState::default();
         let now = 100 * DAY;
-        assert!(!st.update_due("off", now));
-        assert!(st.update_due("weekly", now));
-        st.checked = now - 6 * DAY;
-        assert!(!st.update_due("weekly", now));
-        st.checked = now - 7 * DAY;
-        assert!(st.update_due("weekly", now) && !st.update_due("monthly", now));
+        assert!(st.due(now));
+        st.checked = now - DAY + 1;
+        assert!(!st.due(now));
+        st.checked = now - DAY;
+        assert!(st.due(now));
     }
 
     #[test]
@@ -468,15 +446,6 @@ mod tests {
         assert_eq!(st.used.get("c"), Some(&now), "first seen: counted as used now");
         assert_eq!(st.stale(&pulled, now + 89 * DAY), ["a", "b"]);
         assert_eq!(st.stale(&pulled, now + 90 * DAY), ["a", "b", "c"]);
-    }
-
-    #[test]
-    fn an_update_removes_the_old_copy_only_when_a_new_one_is_there() {
-        let s = |x: &str| Some(x.to_string());
-        assert_eq!(replaced(s("old"), s("new")), s("old"));
-        assert_eq!(replaced(s("old"), s("old")), None, "nothing new pulled");
-        assert_eq!(replaced(s("old"), None), None, "the new id unread: keep the old");
-        assert_eq!(replaced(None, s("new")), None);
     }
 
     #[test]
@@ -617,29 +586,29 @@ mod tests {
         std::fs::remove_dir_all(&d).unwrap();
     }
 
-    /// An update removes the copy it replaced, by its id, and never prunes.
+    /// Housekeeping moves an old pin on, removes Bragd's images unused for 90 days, and touches
+    /// nothing else the runtime has.
     #[cfg(unix)]
     #[test]
-    fn an_update_removes_only_the_copy_it_replaced() {
-        let d = crate::test_dir("update");
-        let rt = crate::fake_program(&d, "podman", &format!("echo \"$*\" >> {0}/log\ncase \"$1 $2\" in\n'image inspect') cat {0}/id;;\n'image rm') ;;\nesac\n", d.display()));
-        std::fs::write(d.join("id"), "sha256:aaa\n").unwrap();
-        update(&rt, PIN, || {
-            std::fs::write(d.join("id"), "sha256:bbb\n").unwrap();
+    fn housekeeping_moves_pins_and_removes_what_went_unused() {
+        let d = crate::test_dir("housekeeping");
+        let rt = crate::fake_program(&d, "podman", &format!("echo \"$*\" >> {0}/log\ncase \"$1 $2\" in\n'image inspect') grep -qxF \"$5\" {0}/has && echo 1;;\n'image rm') grep -vxF \"$3\" {0}/has > {0}/t; mv {0}/t {0}/has;;\nesac\n", d.display()));
+        let (old, new, idle, mine) = ("a:1@sha256:old", "a:1@sha256:new", "b:1@sha256:b", "docker.io/library/alpine:3");
+        std::fs::write(d.join("has"), format!("{old}\n{idle}\n{mine}\n")).unwrap();
+        let now = 1000 * DAY;
+        let mut st = ImageState::default();
+        st.used(old, now - DAY);
+        st.used(idle, now - 91 * DAY);
+        let current = [new.to_string(), idle.to_string()];
+        housekeeping(&rt, &mut st, &current, now, |i| {
+            let has = std::fs::read_to_string(d.join("has")).unwrap();
+            std::fs::write(d.join("has"), format!("{has}{i}\n")).unwrap();
             Ok(())
-        })
-        .unwrap();
-        let log = std::fs::read_to_string(d.join("log")).unwrap();
-        assert!(log.lines().any(|l| l == "image rm sha256:aaa"), "{log}");
-        assert!(!log.contains("prune"), "{log}");
-        let tried = std::cell::RefCell::new(vec![]);
-        let images = ["a", "bad", "c"].map(String::from);
-        let ok = update_round(&rt, &images, |i| {
-            tried.borrow_mut().push(i.to_string());
-            if i == "bad" { Err(PullError { image: i.into(), fault: Fault::Network, tries: 1, detail: String::new() }) } else { Ok(()) }
         });
-        assert!(ok && *tried.borrow() == images, "every image tried");
-        assert!(!update_round(&rt, &images, |i| Err(PullError { image: i.into(), fault: Fault::Network, tries: 1, detail: String::new() })), "all failing: still due");
+        assert_eq!(std::fs::read_to_string(d.join("has")).unwrap(), format!("{mine}\n{new}\n"), "the old pin and the idle image gone, the user's own kept");
+        assert_eq!(st.used.keys().collect::<Vec<_>>(), [new], "what is gone is forgotten; the new pin starts now");
+        assert_eq!((st.used[new], st.checked), (now, now));
+        assert!(!std::fs::read_to_string(d.join("log")).unwrap().contains("prune"));
         std::fs::remove_dir_all(&d).unwrap();
     }
 }

@@ -40,6 +40,7 @@ COPY --from=build /arasan /arasanv8-20261005.nnue /
 COPY --from=build /src/LICENSE /COPYING
 LABEL org.opencontainers.image.title="bragd-arasan" \
       org.opencontainers.image.description="Arasan 26.1 with its network, static, for Bragd's chess engine when none is installed" \
+      org.opencontainers.image.version="26.1" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="MIT"
 USER 65534:65534

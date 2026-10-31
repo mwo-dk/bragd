@@ -36,6 +36,7 @@ COPY --from=build /src/src/berserk /berserk
 COPY --from=build /src/LICENSE /COPYING
 LABEL org.opencontainers.image.title="bragd-berserk" \
       org.opencontainers.image.description="Berserk 14 with its network, static, for Bragd's chess engine when none is installed" \
+      org.opencontainers.image.version="14" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="GPL-3.0-or-later"
 USER 65534:65534

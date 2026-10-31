@@ -8,6 +8,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use bragd_core::config::Config;
+use bragd_core::state::AppState;
 use bragd_core::i18n;
 use bragd_engines::known::{self, Known, Missing};
 use bragd_engines::options::{self, EngineInfo, OptionStore};
@@ -201,6 +202,7 @@ pub fn default_for(cfg: &Config, variant: &str) -> Option<String> {
 /// and how it writes moves. Refused when it does not play the Variant.
 pub fn start(cfg: &Config, chosen: &Chosen, variant: &str, stop: &dyn Fn() -> bool) -> Result<(Engine, Notation), String> {
     let mut e = Engine::start_any(&chosen.program, &chosen.protocols, Duration::from_secs(30), stop).map_err(|e| tr("engines.no_start", &[("name", &chosen.key), ("why", &e.to_string())]))?;
+    used(&chosen.program);
     if !seam::plays(e.about(), e.protocol(), variant) {
         return Err(tr("engines.not_this_variant", &[("name", &e.about().name)]));
     }
@@ -208,6 +210,50 @@ pub fn start(cfg: &Config, chosen: &Chosen, variant: &str, stop: &dyn Fn() -> bo
     e.configure(&store, syzygy(cfg).as_deref()).map_err(|e| e.to_string())?;
     let notation = seam::notation(variant, e.protocol(), &e.about().name);
     Ok((e, notation))
+}
+
+/// An engine just started in `program`: when that is one of Bragd's pinned images, it was used
+/// now, so `housekeeping` keeps it for another 90 days. Images built here are never recorded.
+fn used(program: &Program) {
+    if let Program::Container { image, .. } = program
+        && image.contains("@sha256:")
+    {
+        let mut st = AppState::load();
+        st.images_used.insert(image.clone(), bragd_core::fs::now());
+        let _ = st.save();
+    }
+}
+
+/// Once a day: moves the pins of Bragd's images on to this version's and removes those no
+/// engine used for 90 days (`images::housekeeping`). Nothing when containers are off, without a
+/// runtime, or with `BRAGD_OFFLINE`. Pulls a new pin only of an image that was already pulled,
+/// so it can take a while: run it on a thread.
+pub fn housekeeping(cfg: &Config) {
+    // One round at a time in this process: the check that starts it may come again meanwhile.
+    static BUSY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if BUSY.swap(true, std::sync::atomic::Ordering::AcqRel) {
+        return;
+    }
+    housekeep(cfg);
+    BUSY.store(false, std::sync::atomic::Ordering::Release);
+}
+
+fn housekeep(cfg: &Config) {
+    let now = bragd_core::fs::now();
+    let st = AppState::load();
+    let mut images = images::ImageState { used: st.images_used, checked: st.images_checked };
+    if std::env::var_os("BRAGD_OFFLINE").is_some() || !images.due(now) {
+        return;
+    }
+    let Some(rt) = runtime(cfg) else { return };
+    let stop = std::sync::atomic::AtomicBool::new(false);
+    // One try per round: a pin that could not move is tried again tomorrow.
+    images::housekeeping(&rt.path, &mut images, &known::images(), now, |i| images::pull(&rt.path, i, &stop, &|_| false));
+    // Read again: a window may have saved the state meanwhile.
+    let mut st = AppState::load();
+    st.images_used = images.used;
+    st.images_checked = images.checked;
+    let _ = st.save();
 }
 
 /// An engine as the Engines page lists it.

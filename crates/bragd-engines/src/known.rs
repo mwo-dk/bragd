@@ -45,6 +45,8 @@ pub const PIN_RUBICHESS: Option<&str> = None;
 pub const PIN_KOIVISTO: Option<&str> = None;
 pub const PIN_ARASAN: Option<&str> = None;
 pub const PIN_FRUIT: Option<&str> = None;
+pub const PIN_SCAN: Option<&str> = None;
+pub const PIN_GNUBG: Option<&str> = None;
 
 /// An engine Bragd knows.
 #[derive(Debug, PartialEq)]
@@ -107,8 +109,8 @@ pub const KNOWN: &[Known] = &[
     Known { key: "yaneuraou", name: "YaneuraOu", programs: &["YaneuraOu", "yaneuraou", "YaneuraOu-by-gcc"], args: &[], variants: &["shogi"], tag: None, pin: None, image_size: 0, site: "https://github.com/yaneurao/YaneuraOu/releases", syzygy: false },
     Known { key: "katago", name: "KataGo", programs: &["katago"], args: &["gtp"], variants: GO, tag: Some("1.18.2-eigen"), pin: PIN_KATAGO, image_size: 51_764_399, site: "https://github.com/lightvector/KataGo/releases", syzygy: false },
     Known { key: "gnugo", name: "GNU Go", programs: &["gnugo"], args: &["--mode", "gtp"], variants: GO, tag: Some("3.8"), pin: PIN_GNUGO, image_size: 1_459_667, site: "https://www.gnu.org/software/gnugo/", syzygy: false },
-    Known { key: "scan", name: "Scan", programs: &["scan"], args: &["hub"], variants: &["draughts"], tag: None, pin: None, image_size: 0, site: "https://hjetten.home.xs4all.nl/scan/scan.html", syzygy: false },
-    Known { key: "gnubg", name: "GNU Backgammon", programs: &["gnubg"], args: &["-t", "-q"], variants: &["backgammon"], tag: None, pin: None, image_size: 0, site: "https://www.gnu.org/software/gnubg/", syzygy: false },
+    Known { key: "scan", name: "Scan", programs: &["scan"], args: &["hub"], variants: &["draughts"], tag: Some("3.1"), pin: PIN_SCAN, image_size: 0, site: "https://hjetten.home.xs4all.nl/scan/scan.html", syzygy: false },
+    Known { key: "gnubg", name: "GNU Backgammon", programs: &["gnubg"], args: &["-t", "-q"], variants: &["backgammon"], tag: Some("1.08.003"), pin: PIN_GNUBG, image_size: 0, site: "https://www.gnu.org/software/gnubg/", syzygy: false },
 ];
 
 impl Known {
@@ -273,6 +275,23 @@ mod tests {
         assert!(images().iter().all(|i| i.contains("@sha256:")));
     }
 
+    /// Each image folder is an engine with a tag, and its Dockerfile's version label is that tag:
+    /// images.yml pushes the image under it, so the pin's `name:tag` exists on the registry.
+    #[test]
+    fn every_image_folder_is_a_known_engine_tagged_as_its_label_says() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packaging/images");
+        let mut folders: Vec<String> = std::fs::read_dir(&dir).unwrap().flatten().filter(|e| e.path().join("Dockerfile").is_file()).map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        folders.sort();
+        let mut tagged: Vec<String> = KNOWN.iter().filter(|k| k.tag.is_some()).map(|k| k.key.to_string()).collect();
+        tagged.sort();
+        assert_eq!(folders, tagged, "an image folder for every engine with a tag, and no other");
+        for k in KNOWN.iter().filter(|k| k.tag.is_some()) {
+            let file = std::fs::read_to_string(dir.join(k.key).join("Dockerfile")).unwrap();
+            let label = format!("org.opencontainers.image.version=\"{}\"", k.tag.unwrap());
+            assert!(file.contains(&label), "packaging/images/{}/Dockerfile has no {label}", k.key);
+        }
+    }
+
     #[test]
     fn installed_first_else_the_image() {
         let rt = Runtime { name: "podman", path: PathBuf::from("/nonexistent/podman") };
@@ -323,8 +342,8 @@ mod tests {
         // A published image is still pulled when nothing was built here.
         let p = Known { pin: Some("sha256:3333333333333333333333333333333333333333333333333333333333333333"), ..*k };
         assert_eq!(choose(&p, None, Some(&rt), |_, _| false, None, nets, true), Err(Missing::NotPulled { image: p.image().unwrap() }));
-        // Bragd builds no image of Scan: nothing to build here either.
-        assert_eq!(known("scan").unwrap().dev_image(true), None);
+        // Bragd builds no image of Igel: nothing to build here either.
+        assert_eq!(known("igel").unwrap().dev_image(true), None);
     }
 
     /// Pikafish's image runs only once its network is downloaded, and is then given it; an

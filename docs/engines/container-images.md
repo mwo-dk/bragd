@@ -39,6 +39,8 @@ Each image holds one Engine, built from its released source, and nothing else: n
 | `bragd-pikafish` | Pikafish | Not in the image: downloaded once you agree to its licence |
 | `bragd-katago` | KataGo | In the image |
 | `bragd-gnugo` | GNU Go | None: it has no network |
+| `bragd-scan` | Scan | In the image, with its opening book; no endgame tables |
+| `bragd-gnubg` | GNU Backgammon | In the image, with its bear-off databases |
 
 ## How an image runs
 
@@ -50,10 +52,10 @@ Each image holds one Engine, built from its released source, and nothing else: n
 | Rights | No capabilities, no new privileges, user `65534:65534` (nobody) |
 | Bounds | 3 GB of memory and 256 processes, unless a rootless podman cannot keep them |
 | Pulls | Progress shows on the card. A passing network or registry fault is tried again after 5 s, 30 s and 2 min, then after 5 min, 15 min and every hour, until it works. **Retry now** tries at once |
-| Updates | A new Bragd brings new pins. The new copy is pulled and only Bragd's old copy is removed |
-| Pruning | An image no Engine used for 90 days is removed |
+| Updates | A new Bragd brings new pins. Once a day, an image an Engine ran in is pulled at its new pin, and only Bragd's old copy is removed |
+| Pruning | Once a day, an image of Bragd's that no Engine used for 90 days is removed |
 
-The update and pruning rounds are written but the app does not run them yet: they start once images are published.
+The daily round runs when Bragd starts, and again each day it stays open. It skips when *Pull an Engine that is not installed* is off, when there is no runtime, and with `BRAGD_OFFLINE`. An image built on your own machine is never pruned.
 
 ## Images built on your own machine
 
@@ -70,7 +72,7 @@ Bragd runs an image built this way only when it is started with `BRAGD_DEV_IMAGE
 
 ## Old image versions
 
-Every master build pushes the images again, so old versions pile up on ghcr.io. After each master build, `tools/ghcr-prune.py` deletes the old untagged ones. It keeps:
+Every master build pushes the images again, tagged `latest` and the Engine's version (such as `bragd-stockfish:17.1`), so old versions pile up on ghcr.io. After each master build, `tools/ghcr-prune.py` deletes the old untagged ones. It keeps:
 
 - every tagged version, such as `latest`
 - every digest pinned on master and in the newest 3 releases, so a pinned image can always be pulled
@@ -101,6 +103,10 @@ No. It runs with no network, a read-only filesystem, no capabilities and an unpr
 Pikafish's evaluation network comes under its own licence: legal use only, and no commercial use without permission. So Bragd's Pikafish image holds only the program. Its card on the xiangqi Engines page says the network is missing, with **Read the network's licence…**. That shows the licence as Pikafish's release has it, the size and where it comes from. **Agree and download** downloads Pikafish's own release archive, about 53.6 MB, from GitHub. Bragd checks the archive against its SHA-256, takes `pikafish.nnue` out of it, checks that too, and keeps only the network, in `<data>/bragd/networks/pikafish/`. The image then gets it read-only, and Bragd sets its `EvalFile` option to it. Nothing is downloaded until you agree, and `BRAGD_OFFLINE` stops it. An installed Pikafish brings its own network and needs none of this.
 
 ![The licence of Pikafish's evaluation network shown before anything is downloaded, with Agree and download and Cancel](../screenshots/engines-network-licence-1100.png)
+
+#### Why did Bragd download an image again after an upgrade?
+
+A new Bragd can pin a newer build of an image. Once a day, each image an Engine ran in is pulled at its new pin, and Bragd's old copy is removed. Only images you already pulled are updated; an image you never pulled is not downloaded.
 
 #### Will Bragd remove my other images?
 

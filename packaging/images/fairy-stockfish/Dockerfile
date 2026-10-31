@@ -29,6 +29,7 @@ COPY --from=build /src/src/fairy-stockfish /fairy-stockfish
 COPY --from=build /src/Copying.txt /COPYING
 LABEL org.opencontainers.image.title="bragd-fairy-stockfish" \
       org.opencontainers.image.description="Fairy-Stockfish 14.0.1 with large boards, static, for Bragd's chess Variants, xiangqi, janggi and shogi" \
+      org.opencontainers.image.version="14.0.1" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="GPL-3.0-only"
 USER 65534:65534
