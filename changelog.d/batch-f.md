@@ -1,0 +1,1 @@
+| **An engine image download rides out a network outage.** A pull that fails because the network or the registry had a moment keeps trying, says when it tries next, and has Retry now. | [Engine container images](engines/container-images.md#what-happens-when-a-pull-fails) |

@@ -959,4 +959,54 @@ mod tests {
             }
         }
     }
+
+    /// Each language names one thing one way: the variants a file once mixed stay out, and a
+    /// file writes its apostrophes inside words either straight or curly, not both.
+    #[test]
+    fn i18n_one_term_for_one_thing() {
+        // (language, word prefixes it no longer uses: the term it chose is in the comment)
+        const NOT: &[(&str, &[&str])] = &[
+            ("fi", &["levykuv", "säiliö"]), // konttikuva, kontti
+            ("et", &["seade"]),             // sätted
+            ("lt", &["parametrai"]),        // nustatymai
+            ("da", &["aftryk"]),            // image
+            ("nl", &["u ", "uw "]),         // je, jouw
+        ];
+        let words = |s: &str| -> Vec<String> {
+            s.split(|c: char| !c.is_alphanumeric() && c != '\'' && c != '’').map(|w| w.to_lowercase()).collect()
+        };
+        let mut bad = vec![];
+        for code in LANGUAGES.iter().map(|l| l.code) {
+            let own: Map = serde_json::from_str(source(code)).unwrap();
+            let texts: Vec<(String, String)> = own
+                .iter()
+                .flat_map(|(k, v)| match v {
+                    serde_json::Value::String(s) => vec![(k.clone(), s.clone())],
+                    serde_json::Value::Object(o) => o.values().filter_map(|x| x.as_str()).map(|s| (k.clone(), s.to_string())).collect(),
+                    _ => vec![],
+                })
+                .collect();
+            for (lang, not) in NOT.iter().filter(|(l, _)| *l == code) {
+                for (k, t) in &texts {
+                    for n in *not {
+                        let hit = match n.strip_suffix(' ') {
+                            Some(whole) => words(t).iter().any(|w| w == whole),
+                            None => words(t).iter().any(|w| w.starts_with(n)),
+                        };
+                        if hit {
+                            bad.push(format!("{lang}: {k} says {n:?}: {t}"));
+                        }
+                    }
+                }
+            }
+            let inside = |q: char| -> Vec<&String> {
+                texts.iter().filter(|(_, t)| t.chars().collect::<Vec<_>>().windows(3).any(|w| w[0].is_alphabetic() && w[1] == q && w[2].is_alphabetic())).map(|(k, _)| k).collect()
+            };
+            let (straight, curly) = (inside('\''), inside('’'));
+            if !straight.is_empty() && !curly.is_empty() {
+                bad.push(format!("{code}: apostrophes both straight ({straight:?}) and curly ({curly:?})"));
+            }
+        }
+        assert!(bad.is_empty(), "{}", bad.join("\n"));
+    }
 }

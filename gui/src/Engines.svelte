@@ -4,7 +4,7 @@
   // Bragd does not ship (Pikafish's) shows its licence first; agreeing downloads it. Rust finds,
   // checks, downloads and saves all of it.
   import * as api from "./api.js";
-  import { t } from "./i18n.svelte.js";
+  import { t, i18n } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
   import { guide } from "./guide.svelte.js";
 
@@ -23,9 +23,9 @@
   const fail = (/** @type {any} */ e) => (error = String(e));
   const load = () => api.enginesPage(family.id).then((p) => ((page = p), (error = ""))).catch(fail);
   load();
-  // A pull or a network download under way shows its progress.
+  // A pull or a network download under way shows its progress; a waiting pull, when it tries again.
   $effect(() => {
-    if (!page?.engines.some((/** @type {any} */ e) => e.pulling || (e.network?.job && !e.network.job.finished))) return;
+    if (!page?.engines.some((/** @type {any} */ e) => e.pulling || e.waiting || (e.network?.job && !e.network.job.finished))) return;
     const id = setInterval(load, 1000);
     return () => clearInterval(id);
   });
@@ -125,7 +125,11 @@
           {#if e.pulling}
             <progress aria-label={t("engines.pulling", { name: e.name })}></progress>
             <p class="dim" role="status">{t("engines.pulling", { name: e.name })} {e.pulling}</p>
+          {:else if e.waiting}
+            <p role="status">{t("engines.pull.waiting", { name: e.name, why: e.waiting.why, at: new Date(e.waiting.at * 1000).toLocaleTimeString(i18n.lang, { hour: "2-digit", minute: "2-digit" }) })}</p>
+            {#if e.waiting.detail}<details class="dim"><summary>{t("engines.pull.details")}</summary><pre>{e.waiting.detail}</pre></details>{/if}
           {/if}
+          {#if e.failed}<p class="error" role="alert">{e.failed}</p>{/if}
           {#if e.network}
             {@const job = e.network.job}
             <p class="dim">
@@ -138,7 +142,7 @@
           <p class="dim">{t("engines.plays", { variants: e.variants.join(", ") })}</p>
           <div class="actions">
             {#if e.state.kind === "pull"}
-              <button class="primary" disabled={busy || !!e.pulling} onclick={() => act(api.enginePull(e.key))}>{t("engines.get", { size: e.state.size })}</button>
+              <button class="primary" disabled={busy || !!e.pulling} onclick={() => act(api.enginePull(e.key))}>{e.waiting ? t("engines.pull.retry") : t("engines.get", { size: e.state.size })}</button>
             {/if}
             {#if e.state.kind === "containersOff" || e.state.kind === "noRuntime"}
               <button onclick={engineSettings}>{t("engines.open_settings")}</button>
