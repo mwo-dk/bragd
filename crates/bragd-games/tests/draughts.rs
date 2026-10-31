@@ -1,10 +1,12 @@
 use bragd_games::{Awaiting, GameError, apply, replay, start_position};
 
 const SMALL: &[&str] = &["23-19", "10-14", "22-17", "11-15", "17x10:14", "7x14:10"];
+/// The same game turned half a turn: Black moves first in English checkers.
+const CHECKERS: &[&str] = &["10-14", "23-19", "11-16", "22-18", "16x23:19", "26x19:23"];
 
 /// A short legal game in each Variant, each with a capture on both sides.
 const GAMES: &[(&str, &[&str])] = &[
-    ("checkers", SMALL),
+    ("checkers", CHECKERS),
     ("draughts", &["33-29", "18-22", "32-27", "19-23", "27x18:22", "13x22:18"]),
     ("draughts-brazilian", SMALL),
     ("draughts-russian", SMALL),
@@ -17,7 +19,9 @@ fn a_short_game_with_captures_replays_in_every_draughts_variant() {
         assert_eq!(state.history.len(), moves.len(), "{key}");
         assert_eq!(state.history[4], moves[4].split(':').next().unwrap(), "{key}");
         assert_eq!(state.awaiting, Awaiting::Move, "{key}");
-        assert_eq!(state.to_move.unwrap().name, "White", "{key}");
+        // Six plies later the first Side is to move again: Black in checkers, else White.
+        let first = if *key == "checkers" { "Black" } else { "White" };
+        assert_eq!(state.to_move.unwrap().name, first, "{key}");
         // Each side lost one man.
         let count = |sprite: &str| state.board.pieces.iter().filter(|p| p.sprite == sprite).count();
         let men = if *key == "draughts" { 19 } else { 11 };
@@ -32,7 +36,7 @@ fn an_illegal_move_is_refused_with_its_index() {
         assert!(matches!(err, GameError::Refused { index: 1, .. }), "{key}: {err:?}");
     }
     // A capture written without what it takes is not the wire form.
-    let err = apply("checkers", None, &SMALL[..4], "17x10").unwrap_err();
+    let err = apply("checkers", None, &CHECKERS[..4], "16x23").unwrap_err();
     assert!(matches!(err, GameError::Refused { index: 4, .. }), "{err:?}");
 }
 
@@ -52,10 +56,11 @@ fn the_board_is_numbered_as_printed() {
 #[test]
 fn only_the_opening_array_is_an_initial_position() {
     let start = start_position("checkers").unwrap();
-    assert!(start.starts_with("W:W21,22,"), "{start}");
+    assert!(start.starts_with("B:W21,22,"), "{start}");
+    assert!(start.ends_with(":B1,2,3,4,5,6,7,8,9,10,11,12"), "{start}");
     assert!(replay::<&str>("checkers", Some(&start), &[]).is_ok());
     assert!(matches!(
-        replay::<&str>("checkers", Some("W:W32:B1"), &[]),
+        replay::<&str>("checkers", Some("B:W32:B1"), &[]),
         Err(GameError::BadPosition { .. })
     ));
 }

@@ -72,7 +72,7 @@ pub struct Game {
 
 impl Game {
     pub fn new(rules: Ruleset) -> Game {
-        Game::from_position(rules, Position::start(rules.geometry))
+        Game::from_position(rules, Position::start(rules))
     }
 
     pub fn from_position(rules: Ruleset, position: Position) -> Game {
@@ -194,11 +194,11 @@ mod tests {
 
     #[test]
     fn a_new_game_has_moves_and_no_outcome() {
-        for rules in [INTERNATIONAL, ENGLISH] {
+        for (rules, first) in [(INTERNATIONAL, Side::White), (ENGLISH, Side::Black)] {
             let game = Game::new(rules);
             assert_eq!(game.outcome(), None);
             assert!(!game.legal_moves().is_empty());
-            assert_eq!(game.position().to_move(), Side::White);
+            assert_eq!(game.position().to_move(), first);
         }
     }
 

@@ -4,10 +4,11 @@
 //! **different games with different names**, each with its own federation and
 //! its own literature. "Checkers" is not a game you can offer; one of these is.
 //!
-//! Four rules do the separating, and every field below is one of them.
+//! Four rules do the separating, and every field below is one of them, plus who
+//! moves first: White in three, Black in English draughts.
 
 use crate::board::Geometry;
-use crate::position::Move;
+use crate::position::{Move, Side};
 
 /// When a man that reaches the far rank becomes a king.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -65,6 +66,10 @@ pub struct Ruleset {
     /// flag on the harness would be the harness learning a rule. The harness counts what it is given; the variant owns what a
     /// move is.
     pub counts_duplicate_captures: bool,
+
+    /// The side that makes the first move. Black (the dark men, on printed
+    /// squares 1–12) in English draughts; White in the others.
+    pub first: Side,
 }
 
 /// **International draughts**, 10×10. The FMJD game, and the engine's core.
@@ -82,6 +87,7 @@ pub const INTERNATIONAL: Ruleset = Ruleset {
     promotion: Promotion::OnStopping,
     capture_choice: CaptureChoice::Maximum,
     counts_duplicate_captures: false,
+    first: Side::White,
 };
 
 /// **English draughts**, 8×8 — what most English speakers mean by "checkers".
@@ -98,6 +104,7 @@ pub const ENGLISH: Ruleset = Ruleset {
     promotion: Promotion::OnStopping,
     capture_choice: CaptureChoice::Any,
     counts_duplicate_captures: true,
+    first: Side::Black,
 };
 
 /// **Brazilian draughts** — International's rules on the small board.
@@ -110,6 +117,7 @@ pub const BRAZILIAN: Ruleset = Ruleset {
     promotion: Promotion::OnStopping,
     capture_choice: CaptureChoice::Maximum,
     counts_duplicate_captures: false,
+    first: Side::White,
 };
 
 /// **Russian draughts** — Brazilian's board and pieces, two rules apart.
@@ -126,6 +134,7 @@ pub const RUSSIAN: Ruleset = Ruleset {
     promotion: Promotion::MidSequence,
     capture_choice: CaptureChoice::Any,
     counts_duplicate_captures: true,
+    first: Side::White,
 };
 
 impl Ruleset {

@@ -46,7 +46,7 @@ const INTERNATIONAL_COUNTS: &[u64] = &[
 
 #[test]
 fn international_shallow() {
-    let start = Position::start(INTERNATIONAL.geometry);
+    let start = Position::start(INTERNATIONAL);
     for (index, &expected) in INTERNATIONAL_COUNTS.iter().take(6).enumerate() {
         let depth = index as u32 + 1;
         assert_eq!(
@@ -60,7 +60,7 @@ fn international_shallow() {
 #[test]
 #[ignore = "minutes: run with --release -- --ignored"]
 fn international_deep() {
-    let start = Position::start(INTERNATIONAL.geometry);
+    let start = Position::start(INTERNATIONAL);
     for (index, &expected) in INTERNATIONAL_COUNTS.iter().enumerate() {
         let depth = index as u32 + 1;
         assert_eq!(
@@ -82,7 +82,7 @@ const ENGLISH_COUNTS: &[u64] = &[7, 49, 302, 1_469, 7_361, 36_768, 179_740, 845_
 
 #[test]
 fn english_shallow() {
-    let start = Position::start(ENGLISH.geometry);
+    let start = Position::start(ENGLISH);
     for (index, &expected) in ENGLISH_COUNTS.iter().take(6).enumerate() {
         let depth = index as u32 + 1;
         assert_eq!(
@@ -96,7 +96,7 @@ fn english_shallow() {
 #[test]
 #[ignore = "run with --release -- --ignored"]
 fn english_deep() {
-    let start = Position::start(ENGLISH.geometry);
+    let start = Position::start(ENGLISH);
     for (index, &expected) in ENGLISH_COUNTS.iter().enumerate() {
         let depth = index as u32 + 1;
         assert_eq!(
@@ -131,7 +131,7 @@ fn the_two_counting_conventions_really_do_differ() {
     let mut diverged = false;
     walk(
         &INTERNATIONAL,
-        &Position::start(INTERNATIONAL.geometry),
+        &Position::start(INTERNATIONAL),
         9,
         &mut diverged,
     );
@@ -144,9 +144,30 @@ fn the_two_counting_conventions_really_do_differ() {
 
 #[test]
 fn the_opening_array_is_what_the_rules_say() {
-    let start = Position::start(INTERNATIONAL.geometry);
+    let start = Position::start(INTERNATIONAL);
     assert_eq!(start.side(rules_draughts::Side::White).count(), 20);
     assert_eq!(start.side(rules_draughts::Side::Black).count(), 20);
     assert!(start.kings().is_empty());
     assert_eq!(start.to_move(), rules_draughts::Side::White);
+}
+
+/// English draughts: Black, on printed squares 1–12, makes the first move (11-15 is the most
+/// played opening move), and only Black's men can move.
+#[test]
+fn black_moves_first_in_english_draughts() {
+    use rules_draughts::Side;
+    let start = Position::start(ENGLISH);
+    assert_eq!(start.to_move(), Side::Black);
+    let g = ENGLISH.geometry;
+    let mut froms: Vec<u16> = rules_draughts::Game::new(ENGLISH)
+        .legal_moves()
+        .into_iter()
+        .map(|mv| g.printed_number(mv.from))
+        .collect();
+    froms.sort();
+    froms.dedup();
+    assert_eq!(froms, [9, 10, 11, 12]);
+    for rules in [INTERNATIONAL, rules_draughts::ruleset::BRAZILIAN, rules_draughts::ruleset::RUSSIAN] {
+        assert_eq!(Position::start(rules).to_move(), Side::White, "{}", rules.key);
+    }
 }

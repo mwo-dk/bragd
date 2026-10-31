@@ -19,7 +19,7 @@ fn rules(variant: Variant) -> Ruleset {
 
 pub(crate) fn start(variant: Variant) -> String {
     let rules = rules(variant);
-    pdn(&Position::start(rules.geometry))
+    pdn(&Position::start(rules))
 }
 
 pub(crate) fn replay(

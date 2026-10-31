@@ -2,7 +2,7 @@
 
 # Draughts
 
-Four draughts rulesets, each a Variant of its own. They share men, kings and the dark squares, and differ in how men capture, how far kings fly, whether you must take the most, and when a man is crowned. In Bragd, White moves first in all four.
+Four draughts rulesets, each a Variant of its own. They share men, kings and the dark squares, and differ in how men capture, how far kings fly, whether you must take the most, and when a man is crowned. Black moves first in English checkers, as its rules say; White moves first in the other three.
 
 ![International draughts in Play: the 10×10 board with twenty men a Side](../screenshots/play-draughts-1100.png)
 
@@ -47,9 +47,9 @@ Captures are compulsory: when one exists, only captures are offered. The move li
 
 ## Questions
 
-#### Why does White move first in English checkers?
+#### Why does Black move first in English checkers?
 
-The rules crate starts every ruleset with White. English checkers traditionally starts with Black; the colours are only names for the two Sides, and the play is the same.
+Its rules say so. Black's men stand on squares 1 to 12, at the top of the board, so a Game opens with a move such as `11-15`. International, Brazilian and Russian draughts start with White.
 
 #### Why can I not make the capture I want?
 

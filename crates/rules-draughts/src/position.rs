@@ -101,8 +101,10 @@ pub struct Position {
 
 impl Position {
     /// The opening array: men on the first four ranks each for International,
-    /// three each for the 8×8 variants, with two empty ranks between.
-    pub fn start(geometry: Geometry) -> Position {
+    /// three each for the 8×8 variants, with two empty ranks between, and the
+    /// ruleset's first side to move.
+    pub fn start(rules: Ruleset) -> Position {
+        let geometry = rules.geometry;
         let filled = if geometry.side == 10 { 4 } else { 3 };
         let mut white = Bitboard::EMPTY;
         let mut black = Bitboard::EMPTY;
@@ -119,8 +121,7 @@ impl Position {
             geometry,
             by_side: [white, black],
             kings: Bitboard::EMPTY,
-            // White moves first in every variant this crate plays.
-            to_move: Side::White,
+            to_move: rules.first,
         }
     }
 

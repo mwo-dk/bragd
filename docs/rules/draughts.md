@@ -52,6 +52,7 @@ Four fields separate them:
 | `flying_kings` | no | yes | yes | yes |
 | `promotion` | `OnStopping` | `OnStopping` | `OnStopping` | `MidSequence` |
 | `capture` | `Any` | `Maximum` | `Maximum` | `Any` |
+| `first` | Black | White | White | White |
 
 Whether a man may jump backwards is a separate rule from its walking direction;
 conflating them is a real bug that the field's comment warns about. A flying king
@@ -63,6 +64,11 @@ differ in three of the four rules, so a key that opened the wrong one would not
 misplay a game, it would play a different game, and the moves would replay
 without error. Russian is Brazilian's board and pieces with two rules changed,
 and the one that matters is the crowning.
+
+`first` is the side that makes the first move. English draughts starts with Black,
+the dark men on printed squares 1 to 12, so its first move is one like `11-15`.
+The other three start with White. The perft counts do not change: the opening
+array turned half a turn is the same position with the colours swapped.
 
 `Ruleset::filter_captures` is where "take the most" lives, and it counts pieces
 only. A king counts the same as a man, because International has no quality
