@@ -23,11 +23,13 @@ RUN curl -fsSLo arasan.tar.gz https://github.com/jdart1/arasan-chess/archive/ref
  && echo "ba4553045d796f0521a8554ef21bad44b20fd4a7657eb08ff85d17c9f27ff8ac  fathom.tar.gz" | sha256sum -c - \
  && tar xzf fathom.tar.gz -C src/syzygy --strip-components=1 && rm fathom.tar.gz
 # Any CPU of its kind: the makefile's modern build on amd64 (SSE4.1, SSSE3 and POPCNT), its
-# NEON build on arm64. Linked by the default linker: gold, which the makefile asks for, cannot
-# link statically against musl.
+# NEON build on arm64, where gcc needs -flax-vector-conversions for its NEON code, as clang
+# does not. Linked by the default linker: gold, which the makefile asks for, cannot link
+# statically against musl.
 RUN cd src \
  && type=$([ "$TARGETARCH" = arm64 ] && echo neon || echo modern) \
- && make -j"$(nproc)" BUILD_TYPE="$type" CC=g++ LDFLAGS="\$(OPT) -static" \
+ && lax=$([ "$TARGETARCH" = arm64 ] && echo -flax-vector-conversions || true) \
+ && make -j"$(nproc)" BUILD_TYPE="$type" CC="g++ $lax" LDFLAGS="\$(OPT) -static" \
  && mv ../bin/arasanx-64-"$type" /arasan \
  && strip /arasan \
  && cp ../network/arasanv8-20261005.nnue / \
