@@ -11,10 +11,9 @@ name: Release PR
 # Needs RELEASE_PR_TOKEN: a pull request made with GITHUB_TOKEN starts no checks, so it could
 # never merge. A fine-grained token for mwo-dk/bragd with Contents and Pull requests read and
 # write (packaging/README.md).
+# Nothing is released before 1.0.0 (CLAUDE.md): no weekly schedule until then.
 on:
-  schedule:
-    - cron: "17 6 * * 0" # Sundays, 06:17 UTC
-  workflow_dispatch: # by hand: the same, now
+  workflow_dispatch: # by hand
 
 permissions:
   contents: read

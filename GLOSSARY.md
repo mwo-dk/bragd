@@ -111,6 +111,36 @@ _Avoid_: AI
 A precomputed table of perfect play for positions with few pieces.
 _Avoid_: endgame database, EGTB
 
+**Edition**:
+One exact build of an Engine: its version, plus its network where it has one. Two Editions of the same Engine can judge a position differently.
+_Avoid_: release, version (alone)
+
+### Analysis
+
+**Evaluation**:
+One Edition's verdict on one position: its score, the depth it reached and its best line.
+_Avoid_: eval, analysis, score (alone)
+
+**Annotation**:
+The structured judgement of a move: a mark such as ?? or !, the better move, and named motifs such as "hangs a piece". Bragd words it in the reader's language from its own texts.
+_Avoid_: comment, NAG
+
+**Commentary**:
+Prose about a position or a move, written by a language model in one language and labelled as machine-written.
+_Avoid_: annotation, notes
+
+**Comment**:
+Text a person wrote into a Game, as it came from its file. A translation of it is shown beside it and never replaces it.
+_Avoid_: annotation, commentary
+
+**Position store**:
+The one store on a machine that keeps Evaluations, Annotations and Commentary by position, for every Library, Foreign database and Game played. Deleting a Library does not touch it.
+_Avoid_: cache, evaluation database
+
+**Peer**:
+Another of your own machines whose Helper is paired with yours. Peers swap what is new in their Position stores and share the background analysis.
+_Avoid_: node, remote, server, client
+
 ## Flagged ambiguities
 
 **"Light" and "dark"**: these name both a square colour (a rule of the game) and an appearance. Always say which one: "dark square" or "dark theme".
