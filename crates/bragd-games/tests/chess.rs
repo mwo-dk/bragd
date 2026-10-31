@@ -82,3 +82,26 @@ fn the_state_serialises_for_the_front_end() {
     assert_eq!(json["board"]["geometry"], "squares");
     assert_eq!(json["board"]["highlights"][0]["kind"], "lastMove");
 }
+
+/// A replay generates each position's legal moves once: one per ply, one for the start, and
+/// one more for each legal move now that gives check (to tell `+` from `#` in its notation).
+/// Counted, not timed.
+#[test]
+fn a_replay_generates_the_legal_moves_once_a_ply() {
+    let line = [
+        "e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6", "b5a4", "g8f6", "e1g1", "f8e7", "f1e1",
+        "b7b5", "a4b3", "d7d6", "c2c3", "e8g8", "h2h3", "c6b8", "d2d4", "b8d7",
+    ];
+    let before = rules_chess::movegen::generated();
+    let state = bragd_games::replay("chess", None, &line).unwrap();
+    let used = rules_chess::movegen::generated() - before;
+    let position = rules_chess::Position::from_fen(&state.position).unwrap();
+    let checks = position
+        .legal_moves()
+        .as_slice()
+        .iter()
+        .filter(|&&mv| position.make_move(mv).is_check())
+        .count() as u64;
+    assert_eq!(used, line.len() as u64 + 1 + checks, "{checks} checking moves");
+    assert_eq!(state.history.len(), line.len());
+}

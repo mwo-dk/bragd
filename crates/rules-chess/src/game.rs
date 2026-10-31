@@ -35,6 +35,12 @@ pub struct Game<V: Variant = Chess> {
     /// than `moves`.
     keys: Vec<u64>,
     outcome: Option<Outcome>,
+    /// The current position's legal moves, generated once when it is reached:
+    /// the next move is checked against them and the outcome read from them.
+    legal: MoveList,
+    /// Each move in SAN, written as it is played from the moves already
+    /// generated, so `san_history` replays nothing.
+    san: Vec<String>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -105,7 +111,8 @@ impl<V: Variant> Game<V> {
     /// Starts from an arbitrary position — a Chess960 setup, a puzzle, an
     /// stored Game being resumed.
     pub fn from_position(variant: V, position: Position) -> Game<V> {
-        let outcome = variant.outcome(&position);
+        let legal = variant.legal_moves(&position);
+        let outcome = variant.outcome_given(&position, &legal);
         Game {
             variant,
             initial: position,
@@ -113,6 +120,8 @@ impl<V: Variant> Game<V> {
             moves: Vec::new(),
             keys: vec![position.key()],
             outcome,
+            legal,
+            san: Vec::new(),
         }
     }
 
@@ -152,7 +161,7 @@ impl<V: Variant> Game<V> {
         if self.is_over() {
             return MoveList::new();
         }
-        self.variant.legal_moves(&self.position)
+        self.legal.clone()
     }
 
     /// The moves as a person would write them: `Nf3`, not `g1f3`.
@@ -162,14 +171,20 @@ impl<V: Variant> Game<V> {
     /// `Ngf3` in another. Storing it would be storing a fact about a position
     /// alongside the move that left it, which is the sort of thing that goes
     /// stale silently.
+    ///
+    /// Each is written as its move is played, from the legal moves the Game
+    /// generates then anyway; nothing here is kept apart from the moves.
     pub fn san_history(&self) -> Vec<String> {
-        let mut position = self.initial;
-        let mut written = Vec::with_capacity(self.moves.len());
-        for &mv in &self.moves {
-            written.push(crate::san::to_san(&self.variant, &position, mv));
-            position = position.make_move(mv);
-        }
-        written
+        self.san.clone()
+    }
+
+    /// A legal move of the current position in SAN, from the moves the Game
+    /// already has. Only a move that gives check generates its replies, to
+    /// tell `+` from `#`.
+    pub fn san(&self, mv: Move) -> String {
+        crate::san::san_given(&self.position, mv, &self.legal, |after| {
+            self.variant.legal_moves(after).is_empty()
+        })
     }
 
     /// How many times the current position has occurred, counting now.
@@ -215,11 +230,17 @@ impl<V: Variant> Game<V> {
         if let Some(outcome) = self.outcome {
             return Err(MoveError::AlreadyOver(outcome));
         }
-        if !self.variant.legal_moves(&self.position).contains(mv) {
+        if !self.legal.contains(mv) {
             return Err(MoveError::NotLegal(mv));
         }
 
-        self.position = self.variant.make_move(&self.position, mv);
+        // `Position::make_move`: every variant's `make_move` is a legality
+        // assertion and then this call, and legality was checked just above.
+        let after = self.position.make_move(mv);
+        let next = self.variant.legal_moves(&after);
+        self.san.push(crate::san::san_given(&self.position, mv, &self.legal, |_| next.is_empty()));
+        self.position = after;
+        self.legal = next;
         self.moves.push(mv);
         self.keys.push(self.position.key());
         self.outcome = self.automatic_outcome();
@@ -236,9 +257,10 @@ impl<V: Variant> Game<V> {
             return Err(MoveError::AlreadyOver(outcome));
         }
         match self
-            .variant
-            .legal_moves(&self.position)
-            .into_iter()
+            .legal
+            .as_slice()
+            .iter()
+            .copied()
             .find(|mv| mv.to_uci(self.variant.castling_notation()) == uci)
         {
             Some(mv) => self.play(mv),
@@ -305,7 +327,7 @@ impl<V: Variant> Game<V> {
     /// Endings that apply themselves. Checkmate is tested first: a move that
     /// mates ends the Game even if it also completes the seventy-fifth move.
     fn automatic_outcome(&self) -> Option<Outcome> {
-        if let Some(outcome) = self.variant.outcome(&self.position) {
+        if let Some(outcome) = self.variant.outcome_given(&self.position, &self.legal) {
             return Some(outcome);
         }
         if self.repetition_count() >= AUTOMATIC_REPETITIONS {
@@ -559,5 +581,44 @@ mod tests {
         assert_eq!(replayed.position(), game.position());
         assert_eq!(replayed.position().key(), game.position().key());
         assert_eq!(replayed.position().to_fen(), game.position().to_fen());
+    }
+
+    /// The moves, outcome and SAN a Game keeps from its once-a-ply generation
+    /// are exactly what asking the variant afresh gives, in every variant, over
+    /// random games played to their end.
+    #[test]
+    fn what_the_game_keeps_is_what_the_variant_says() {
+        use crate::variant::Rules;
+        let mut state = 0x9E37_79B9_7F4A_7C15u64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        for rules in Rules::ALL {
+            for _ in 0..4 {
+                let mut game = Game::start(rules);
+                let mut position = *game.position();
+                let mut written = Vec::new();
+                for _ in 0..300 {
+                    let fresh = rules.legal_moves(&position);
+                    // The variant's own ending comes first; repetition and the
+                    // move count only add to it.
+                    assert_eq!(game.outcome(), rules.outcome(&position).or(game.outcome()), "{}", rules.key());
+                    if game.is_over() {
+                        break;
+                    }
+                    assert_eq!(game.legal_moves(), fresh, "{}", rules.key());
+                    let mv = fresh.as_slice()[(next() % fresh.len() as u64) as usize];
+                    assert_eq!(game.san(mv), crate::san::to_san(&rules, &position, mv));
+                    written.push(crate::san::to_san(&rules, &position, mv));
+                    game.play(mv).unwrap();
+                    position = rules.make_move(&position, mv);
+                    assert_eq!(game.position(), &position);
+                }
+                assert_eq!(game.san_history(), written, "{}", rules.key());
+            }
+        }
     }
 }

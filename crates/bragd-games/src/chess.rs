@@ -65,7 +65,7 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
         .into_iter()
         .map(|mv| LegalMove {
             wire: mv.to_uci(notation),
-            notation: rules_chess::to_san(game.variant(), position, mv),
+            notation: game.san(mv),
             from: Some(mv.from().to_string()),
             to: Some(mv.to().to_string()),
             drop: mv.gate().map(|role| sprite(variant, to_move, role)),

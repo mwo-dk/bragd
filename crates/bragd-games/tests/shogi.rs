@@ -99,3 +99,17 @@ fn the_board_is_nine_by_nine_from_sentes_side() {
         Err(GameError::BadPosition { .. })
     ));
 }
+
+/// A replay generates each position's legal moves once: one per ply and one for the start.
+/// Counted, not timed.
+#[test]
+fn a_replay_generates_the_legal_moves_once_a_ply() {
+    let line = [
+        "7g7f", "3c3d", "2g2f", "8c8d", "2f2e", "8d8e", "6i7h", "4a3b", "2e2d", "2c2d", "2h2d",
+        "P*2c",
+    ];
+    let before = rules_shogi::position::generated();
+    let state = bragd_games::replay("shogi", None, &line).unwrap();
+    assert_eq!(rules_shogi::position::generated() - before, line.len() as u64 + 1);
+    assert_eq!(state.history.len(), line.len());
+}

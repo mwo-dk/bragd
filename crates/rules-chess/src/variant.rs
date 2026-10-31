@@ -52,7 +52,14 @@ pub trait Variant {
 
     /// The ending this position produces on its own, if any. Does not consider
     /// history; see [`crate::Game`].
-    fn outcome(&self, position: &Position) -> Option<Outcome>;
+    fn outcome(&self, position: &Position) -> Option<Outcome> {
+        self.outcome_given(position, &self.legal_moves(position))
+    }
+
+    /// [`Variant::outcome`] when the position's legal moves are already known:
+    /// `legal` must be `self.legal_moves(position)`. A [`crate::Game`] has them
+    /// for its next move anyway, so asking here generates them only once a ply.
+    fn outcome_given(&self, position: &Position, legal: &MoveList) -> Option<Outcome>;
 
     /// Whether neither side could mate even with the other's cooperation.
     fn is_insufficient_material(&self, position: &Position) -> bool;
@@ -89,13 +96,13 @@ impl Variant for Chess {
         position.make_move(mv)
     }
 
-    fn outcome(&self, position: &Position) -> Option<Outcome> {
+    fn outcome_given(&self, position: &Position, legal: &MoveList) -> Option<Outcome> {
         if self.is_insufficient_material(position) {
             return Some(Outcome::Draw {
                 reason: DrawReason::InsufficientMaterial,
             });
         }
-        if !position.legal_moves().is_empty() {
+        if !legal.is_empty() {
             return None;
         }
         // No legal move: mate if the king is attacked, stalemate if not. The
@@ -327,8 +334,8 @@ impl Variant for Chess960 {
         Chess.make_move(position, mv)
     }
 
-    fn outcome(&self, position: &Position) -> Option<Outcome> {
-        Chess.outcome(position)
+    fn outcome_given(&self, position: &Position, legal: &MoveList) -> Option<Outcome> {
+        Chess.outcome_given(position, legal)
     }
 
     fn is_insufficient_material(&self, position: &Position) -> bool {
@@ -387,10 +394,10 @@ impl Variant for Shatranj {
     /// No-legal-move is tested first because it settles both checkmate and
     /// stalemate, and because a side with no move cannot bare anyone in reply —
     /// so asking about baring first would have to ask about moves anyway.
-    fn outcome(&self, position: &Position) -> Option<Outcome> {
+    fn outcome_given(&self, position: &Position, legal: &MoveList) -> Option<Outcome> {
         let us = position.side_to_move();
         let them = us.opponent();
-        let moves = crate::shatranj::legal_moves(position);
+        let moves = legal;
 
         if moves.is_empty() {
             // Both are wins for the opponent. What differs is only the reason,
@@ -415,7 +422,7 @@ impl Variant for Shatranj {
                 });
             }
             // The deferred half: bared, but with a reply that bares back.
-            return Some(if crate::shatranj::can_bare_opponent(position, &moves) {
+            return Some(if crate::shatranj::can_bare_opponent(position, moves) {
                 Outcome::Draw {
                     reason: DrawReason::BothKingsBared,
                 }
@@ -497,11 +504,11 @@ impl Variant for Chaturanga {
     /// win to the side that cannot move rather than to the side that trapped
     /// it. That single `us` in place of `them` is the whole variant, which is
     /// why it is worth a test of its own rather than a comment.
-    fn outcome(&self, position: &Position) -> Option<Outcome> {
+    fn outcome_given(&self, position: &Position, legal: &MoveList) -> Option<Outcome> {
         let us = position.side_to_move();
         let them = us.opponent();
 
-        if crate::chaturanga::legal_moves(position).is_empty() {
+        if legal.is_empty() {
             return Some(if position.is_check() {
                 Outcome::Win {
                     winner: them,
@@ -608,7 +615,7 @@ impl Variant for KingOfTheHill {
     /// Only the opponent's king is checked for arrival: the side to move cannot
     /// have a king on the hill, because the game would have ended on the ply
     /// that put it there.
-    fn outcome(&self, position: &Position) -> Option<Outcome> {
+    fn outcome_given(&self, position: &Position, legal: &MoveList) -> Option<Outcome> {
         let them = position.side_to_move().opponent();
         if Self::on_the_hill(position, them) {
             return Some(Outcome::Win {
@@ -628,7 +635,7 @@ impl Variant for KingOfTheHill {
         //
         // The rest is chess's exactly: no legal move is mate if the king is
         // attacked and stalemate if it is not.
-        if !position.legal_moves().is_empty() {
+        if !legal.is_empty() {
             return None;
         }
         Some(if position.is_check() {
@@ -713,7 +720,7 @@ impl Variant for RacingKings {
     /// 4. No legal move is a **draw**, never a loss. A side with nothing to
     ///    play cannot be in check, because a move that gives check is illegal,
     ///    so there is no checkmate in this variant at all.
-    fn outcome(&self, position: &Position) -> Option<Outcome> {
+    fn outcome_given(&self, position: &Position, legal: &MoveList) -> Option<Outcome> {
         let white_home = crate::racing::has_arrived(position, Color::White);
         let black_home = crate::racing::has_arrived(position, Color::Black);
 
@@ -735,7 +742,7 @@ impl Variant for RacingKings {
             });
         }
 
-        if crate::racing::legal_moves(position).is_empty() {
+        if legal.is_empty() {
             return Some(Outcome::Draw {
                 reason: DrawReason::Stalemate,
             });
@@ -803,13 +810,13 @@ impl Variant for Seirawan {
         position.make_move(mv)
     }
 
-    fn outcome(&self, position: &Position) -> Option<Outcome> {
+    fn outcome_given(&self, position: &Position, legal: &MoveList) -> Option<Outcome> {
         if self.is_insufficient_material(position) {
             return Some(Outcome::Draw {
                 reason: DrawReason::InsufficientMaterial,
             });
         }
-        if !crate::seirawan::legal_moves(position).is_empty() {
+        if !legal.is_empty() {
             return None;
         }
         Some(if position.is_check() {
@@ -990,15 +997,15 @@ impl Variant for Rules {
         }
     }
 
-    fn outcome(&self, position: &Position) -> Option<Outcome> {
+    fn outcome_given(&self, position: &Position, legal: &MoveList) -> Option<Outcome> {
         match self {
-            Rules::Chess => Chess.outcome(position),
-            Rules::Chess960 => Chess960.outcome(position),
-            Rules::Shatranj => Shatranj.outcome(position),
-            Rules::KingOfTheHill => KingOfTheHill.outcome(position),
-            Rules::Seirawan => Seirawan.outcome(position),
-            Rules::RacingKings => RacingKings.outcome(position),
-            Rules::Chaturanga => Chaturanga.outcome(position),
+            Rules::Chess => Chess.outcome_given(position, legal),
+            Rules::Chess960 => Chess960.outcome_given(position, legal),
+            Rules::Shatranj => Shatranj.outcome_given(position, legal),
+            Rules::KingOfTheHill => KingOfTheHill.outcome_given(position, legal),
+            Rules::Seirawan => Seirawan.outcome_given(position, legal),
+            Rules::RacingKings => RacingKings.outcome_given(position, legal),
+            Rules::Chaturanga => Chaturanga.outcome_given(position, legal),
         }
     }
 

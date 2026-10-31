@@ -71,6 +71,9 @@ pub struct Game {
     /// whole run, which a count cannot answer.
     seen: Vec<(String, bool)>,
     outcome: Option<Outcome>,
+    /// The current position's legal moves, generated once when it is reached:
+    /// the next move is checked against them and the ending read from them.
+    legal: Vec<Move>,
 }
 
 impl Game {
@@ -86,6 +89,7 @@ impl Game {
             moves: Vec::new(),
             seen: vec![(key, position.is_check())],
             outcome: None,
+            legal: position.legal_moves(),
         }
     }
 
@@ -113,7 +117,7 @@ impl Game {
         if self.is_over() {
             return Vec::new();
         }
-        self.position.legal_moves()
+        self.legal.clone()
     }
 
     /// Plays a move, or says why not.
@@ -121,10 +125,11 @@ impl Game {
         if self.is_over() {
             return Err(MoveError::GameOver);
         }
-        if !self.position.legal_moves().contains(&mv) {
+        if !self.legal.contains(&mv) {
             return Err(MoveError::Illegal);
         }
         self.position = self.position.after(mv);
+        self.legal = self.position.legal_moves();
         self.moves.push(mv);
         self.seen
             .push((Game::key(&self.position), self.position.is_check()));
@@ -150,7 +155,7 @@ impl Game {
     fn settle(&self) -> Option<Outcome> {
         // No legal move: **a loss**, whether or not it is check. Chess's
         // stalemate draw does not exist here.
-        if self.position.legal_moves().is_empty() {
+        if self.legal.is_empty() {
             return Some(Outcome::Win {
                 winner: self.position.to_move().other(),
                 reason: if self.position.is_check() {

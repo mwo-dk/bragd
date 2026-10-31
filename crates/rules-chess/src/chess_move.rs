@@ -525,6 +525,16 @@ impl MoveList {
     }
 }
 
+/// Equal when they hold the same moves in the same order; the unused tail of
+/// the array is not part of the list.
+impl PartialEq for MoveList {
+    fn eq(&self, other: &MoveList) -> bool {
+        self.as_slice() == other.as_slice()
+    }
+}
+
+impl Eq for MoveList {}
+
 impl Default for MoveList {
     fn default() -> Self {
         Self::new()

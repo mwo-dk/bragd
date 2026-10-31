@@ -44,7 +44,7 @@
 //! wrong for four of the seven variants".
 
 
-use crate::chess_move::{Move, MoveKind};
+use crate::chess_move::{Move, MoveKind, MoveList};
 use crate::piece::Role;
 use crate::position::Position;
 use crate::variant::Variant;
@@ -56,6 +56,19 @@ use crate::variant::Variant;
 /// relative to a position — "which knight" has no answer otherwise — so there
 /// is nothing sensible to return.
 pub fn to_san<V: Variant + ?Sized>(variant: &V, position: &Position, mv: Move) -> String {
+    let legal = variant.legal_moves(position);
+    san_given(position, mv, &legal, |after| variant.legal_moves(after).is_empty())
+}
+
+/// [`to_san`] when the position's legal moves (`legal`, the variant's) are
+/// known, and `no_reply` says whether the position after the move has none. A
+/// [`crate::Game`] knows both from the moves it generates once a ply.
+pub(crate) fn san_given(
+    position: &Position,
+    mv: Move,
+    legal: &MoveList,
+    no_reply: impl FnOnce(&Position) -> bool,
+) -> String {
     // **Asked of the variant, which is what makes it true for every one of
     // them.** It used to be asked of `Position::is_legal` and of the move with
     // its gate stripped off, because chess's generator has never heard of
@@ -66,15 +79,12 @@ pub fn to_san<V: Variant + ?Sized>(variant: &V, position: &Position, mv: Move) -
     // Note what this is *not*: an assertion weakened until it passes. It is
     // stronger than the one it replaces — it now checks the gate as well, which
     // `without_gate` explicitly did not.
-    debug_assert!(
-        variant.legal_moves(position).contains(mv),
-        "SAN is only defined for a legal move"
-    );
+    debug_assert!(legal.contains(mv), "SAN is only defined for a legal move");
 
     let mut san = match mv.kind() {
         MoveKind::KingsideCastle => "O-O".to_string(),
         MoveKind::QueensideCastle => "O-O-O".to_string(),
-        _ => body(variant, position, mv),
+        _ => body(legal, position, mv),
     };
     san.push_str(&gate(position, mv));
 
@@ -84,15 +94,10 @@ pub fn to_san<V: Variant + ?Sized>(variant: &V, position: &Position, mv: Move) -
     // `Position::make_move` rather than `Variant::make_move`: every variant's
     // is an assertion of legality followed by exactly this call, and the
     // assertion is the one already made above. Going through the variant would
-    // generate the move list a second time on every move written, which
-    // `san_history` does once per ply of every game a Library renders.
+    // generate the move list a second time on every move written.
     let after = position.make_move(mv);
     if after.is_check() {
-        san.push(if variant.legal_moves(&after).is_empty() {
-            '#'
-        } else {
-            '+'
-        });
+        san.push(if no_reply(&after) { '#' } else { '+' });
     }
     san
 }
@@ -124,7 +129,7 @@ fn gate(position: &Position, mv: Move) -> String {
     }
 }
 
-fn body<V: Variant + ?Sized>(variant: &V, position: &Position, mv: Move) -> String {
+fn body(legal: &MoveList, position: &Position, mv: Move) -> String {
     let piece = position
         .piece_at(mv.from())
         .expect("a legal move starts on an occupied square");
@@ -139,7 +144,7 @@ fn body<V: Variant + ?Sized>(variant: &V, position: &Position, mv: Move) -> Stri
         san.push_str(&mv.to().to_string());
     } else {
         san.push(piece.role.letter().expect("only a pawn has no letter"));
-        san.push_str(&disambiguation(variant, position, mv));
+        san.push_str(&disambiguation(legal, position, mv));
         if mv.is_capture() {
             san.push('x');
         }
@@ -155,11 +160,10 @@ fn body<V: Variant + ?Sized>(variant: &V, position: &Position, mv: Move) -> Stri
 
 /// The least that distinguishes this move from another of the same piece to the
 /// same square: nothing, a file, a rank, or both.
-fn disambiguation<V: Variant + ?Sized>(variant: &V, position: &Position, mv: Move) -> String {
+fn disambiguation(legal: &MoveList, position: &Position, mv: Move) -> String {
     let piece = position.piece_at(mv.from()).expect("occupied");
 
-    let rivals: Vec<Move> = variant
-        .legal_moves(position)
+    let rivals: Vec<Move> = legal
         .into_iter()
         .filter(|other| {
             other.to() == mv.to()

@@ -23,8 +23,20 @@ use crate::position::Position;
 
 const PROMOTION_ROLES: [Role; 4] = [Role::Queen, Role::Rook, Role::Bishop, Role::Knight];
 
+std::thread_local! {
+    static GENERATED: core::cell::Cell<u64> = const { core::cell::Cell::new(0) };
+}
+
+/// How many times this thread has generated a position's legal moves with
+/// chess's generator. A cost meter: tests prove a replay generates them once
+/// a ply by counting, not by timing.
+pub fn generated() -> u64 {
+    GENERATED.with(|n| n.get())
+}
+
 /// Every legal move for the side to move.
 pub fn legal_moves(position: &Position) -> MoveList {
+    GENERATED.with(|n| n.set(n.get() + 1));
     let mut moves = pseudo_legal_moves(position);
     let us = position.side_to_move();
     moves.retain(|mv| !position.make_move(mv).is_check_against(us));

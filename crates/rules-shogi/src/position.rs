@@ -12,6 +12,17 @@ use crate::board::{Bitboard, FILES, RANKS, SQUARES, Square};
 use crate::piece::{Piece, Role, Side};
 use core::fmt;
 
+std::thread_local! {
+    static GENERATED: core::cell::Cell<u64> = const { core::cell::Cell::new(0) };
+}
+
+/// How many times this thread has generated a position's legal moves. A cost
+/// meter: tests prove a replay generates them once a ply by counting, not by
+/// timing.
+pub fn generated() -> u64 {
+    GENERATED.with(|n| n.get())
+}
+
 /// A move: something from the board, or something from the hand.
 ///
 /// Two shapes rather than one with an optional origin. A drop has no origin, no
@@ -217,6 +228,7 @@ impl Position {
     /// attacked is not generated, and neither is a drop that breaks one of the
     /// three drop rules.
     pub fn legal_moves(&self) -> Vec<Move> {
+        GENERATED.with(|n| n.set(n.get() + 1));
         self.pseudo_legal()
             .into_iter()
             .filter(|&mv| !self.after(mv).is_check_against(self.to_move))
