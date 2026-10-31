@@ -79,7 +79,16 @@ fn notation(geometry: Geometry, mv: Move) -> String {
 /// and for a capture whose two ends another capture shares, the squares it takes as well:
 /// `23x14 (18, 9)`.
 fn labels(moves: &[(String, String)]) -> Vec<String> {
-    todo!()
+    moves
+        .iter()
+        .map(|(short, wire)| {
+            if moves.iter().filter(|(other, _)| other == short).count() < 2 {
+                return short.clone();
+            }
+            let taken: Vec<&str> = wire.split(':').skip(1).collect();
+            format!("{short} ({})", taken.join(", "))
+        })
+        .collect()
 }
 
 /// The position in PDN's FEN form: side to move, then each side's squares, kings with `K`.
@@ -114,12 +123,15 @@ fn state(variant: Variant, game: &Game) -> State {
     let over = game.outcome().is_some();
     let name = |square: Square| geometry.printed_number(square).to_string();
 
-    let moves = game
-        .legal_moves()
-        .into_iter()
-        .map(|mv| LegalMove {
-            wire: wire(geometry, mv),
-            notation: notation(geometry, mv),
+    let legal = game.legal_moves();
+    let named: Vec<(String, String)> = legal.iter().map(|&mv| (notation(geometry, mv), wire(geometry, mv))).collect();
+    let moves = legal
+        .iter()
+        .zip(labels(&named))
+        .zip(named)
+        .map(|((mv, label), (_, wire))| LegalMove {
+            wire,
+            notation: label,
             from: Some(name(mv.from)),
             to: Some(name(mv.to)),
             drop: None,

@@ -209,7 +209,16 @@ pub fn values(cfg: &Config) -> serde_json::Map<String, Value> {
 /// The switches to save, in order, so the Family `id` shows again: the Family itself, and its
 /// Variants too when every one of them is off. Empty when it already shows.
 pub fn turn_on(cfg: &Config, id: &str) -> Vec<(String, Value)> {
-    todo!()
+    let Some(family) = Family::from_key(id) else { return Vec::new() };
+    let mut out = Vec::new();
+    if !cfg.family_on(id) {
+        out.push((format!("family_{id}"), Value::Bool(true)));
+    }
+    // Read each Variant's own switch: while the Family is off, variant_on says no for them all.
+    if family.variants().all(|v| cfg.families.variant.get(v.key) == Some(&false)) {
+        out.extend(family.variants().map(|v| (format!("variant_{}", v.key), Value::Bool(true))));
+    }
+    out
 }
 
 pub fn save(name: &str, value: &Value) -> Result<Config, String> {

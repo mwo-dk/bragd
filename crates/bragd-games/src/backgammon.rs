@@ -18,7 +18,7 @@ use crate::{
 };
 use rules_backgammon::board::{index_of, number_at};
 use rules_backgammon::{
-    Destination, Game, Needed, Origin, POINTS, Position, Side, Turn, WinReason,
+    Concession, Destination, Game, Needed, Origin, POINTS, Position, Side, Turn, WinReason,
 };
 use std::collections::BTreeMap;
 
@@ -39,11 +39,36 @@ fn first_mover(text: &str) -> Result<Side, GameError> {
 pub(crate) fn replay(initial: Option<&str>, entries: &[&str]) -> Result<State, GameError> {
     let first = initial.map(first_mover).transpose()?.unwrap_or(Side::White);
     let mut game = Game::from_position(Position::starting_with(first));
+    let mut resigned = None;
     for (index, entry) in entries.iter().enumerate() {
+        if let Some(grade) = concession(entry) {
+            let side = game
+                .needs()
+                .ok_or_else(|| GameError::refused(index, entry, "the Game is over"))?
+                .side();
+            game.resign(side, grade)
+                .map_err(|e| GameError::refused(index, entry, e))?;
+            resigned = Some(entry.to_string());
+            continue;
+        }
         game.play_wire(entry)
             .map_err(|e| GameError::refused(index, entry, e))?;
     }
-    Ok(state(&game))
+    let mut state = state(&game);
+    // A resignation is not one of the crate's entries, so the record carries it here.
+    state.history.extend(resigned);
+    Ok(state)
+}
+
+/// The three resignations, as entries: the side to act concedes at the grade it names.
+const RESIGNATIONS: [(&str, Concession); 3] = [
+    ("resign", Concession::Single),
+    ("resign_gammon", Concession::Gammon),
+    ("resign_backgammon", Concession::Backgammon),
+];
+
+fn concession(entry: &str) -> Option<Concession> {
+    RESIGNATIONS.iter().find(|(word, _)| *word == entry.trim()).map(|&(_, grade)| grade)
 }
 
 fn seat(side: Side) -> Seat {
@@ -103,7 +128,7 @@ fn state(game: &Game) -> State {
     let cube = game.cube();
     let needs = game.needs();
 
-    let (awaiting, moves, throws) = match needs {
+    let (awaiting, mut moves, throws) = match needs {
         None => (Awaiting::Nothing, Vec::new(), Vec::new()),
         Some(Needed::Roll { side }) => {
             let mut moves = Vec::new();
@@ -129,6 +154,11 @@ fn state(game: &Game) -> State {
             Vec::new(),
         ),
     };
+
+    // Offered on a roll or a turn; a Side answering a double concedes by dropping.
+    if matches!(needs, Some(Needed::Roll { .. } | Needed::Turn { .. })) {
+        moves.extend(RESIGNATIONS.iter().map(|(word, _)| LegalMove::plain(word.to_string())));
+    }
 
     let mut pieces = Vec::new();
     for index in 0..POINTS {
