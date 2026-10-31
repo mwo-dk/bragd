@@ -24,7 +24,7 @@ Bragd sends nothing unless you ask, with one exception: the update check, which 
 | Tablebase sizes | When you press **Show size** | A request for one small list of file sizes | `tablebase.lichess.ovh` | Do not press it |
 | Tablebase downloads | When you press **Download**, or **Done** in the wizard with Syzygy ticked | Requests for the files | `tablebase.lichess.ovh` | Untick Syzygy in the wizard; do not press Download ([Tablebases](../engines/tablebases.md)) |
 | Tablebase lookups | In Analyse, for a chess position of seven pieces or fewer that your tables do not cover | The position, as a FEN | the Lichess tablebase API, `tablebase.lichess.ovh` | *Ask Lichess for tablebase positions* off (`tablebases.online`) |
-| Engine images | When you press **Download image** | A pull of the pinned image | `ghcr.io` | Do not press it, or turn off `engines.containers`. No image is published yet ([Engine container images](../engines/container-images.md)) |
+| Engine images | When you press **Get it** on an Engine's card | A pull of the pinned image | `ghcr.io` | Do not press it, or turn off `engines.containers`. No image is published yet ([Engine container images](../engines/container-images.md)) |
 | Pikafish's evaluation network | When you press **Agree and download** under its licence on the Engines page | A request for Pikafish's release archive | `github.com`, Pikafish's release | Do not press it. An installed Pikafish needs none ([Engine container images](../engines/container-images.md#why-does-the-pikafish-image-need-a-download-of-its-own)) |
 
 An Engine Bragd runs from an image has no network at all. An installed Engine is your own program: Bragd gives it no network rules.

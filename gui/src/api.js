@@ -60,7 +60,7 @@ export const engineResetOptions = (/** @type {string} */ key) => invoke("engine_
 /** @returns {Promise<void>} */
 export const enginePull = (/** @type {string} */ key) => invoke("engine_pull", { key });
 export const engineNetworkDownload = (/** @type {string} */ key) => invoke("engine_network_download", { key });
-/** @returns {Promise<{engines: {key: string, name: string, ready: boolean}[], default: string|null, sides: string[]}>} */
+/** The engines there to run for a Variant, and whether more could be got. @returns {Promise<{engines: {key: string, name: string}[], default: string|null, more: boolean, sides: string[]}>} */
 export const engineChoices = (/** @type {string} */ variant) => invoke("engine_choices", { variant });
 /** @returns {Promise<{entry: string, notation: string}>} */
 export const engineMove = (/** @type {Game} */ g, /** @type {string|null} */ engine, /** @type {number} */ ms, /** @type {number|null} */ skill) =>

@@ -95,7 +95,7 @@
         <WhatsNew />
       {:else if family && page.item === "play"}
         {#key family.id}
-          <Play {family} />
+          <Play {family} {go} />
         {/key}
       {:else if page.kind === "jobs"}
         <Jobs />
@@ -107,11 +107,11 @@
         <Rules {family} />
       {:else if family && page.item === "analyse"}
         {#key family.id}
-          <Play {family} mode="analyse" />
+          <Play {family} mode="analyse" {go} />
         {/key}
       {:else if family && page.item === "engines"}
         {#key family.id}
-          <Engines {family} />
+          <Engines {family} {go} />
         {/key}
       {:else if family && page.item === "tablebases"}
         <Tablebases {snap} {save} />

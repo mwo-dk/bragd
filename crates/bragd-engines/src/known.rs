@@ -54,6 +54,10 @@ pub struct Known {
     /// The image's tag and digest; no tag: Bragd builds no image of it.
     pub tag: Option<&'static str>,
     pub pin: Option<&'static str>,
+    /// About how many bytes its image takes to download, shown before a pull; 0 without one.
+    pub image_size: u64,
+    /// Its download page; empty when it has none any more (install it from your system's
+    /// packages).
     pub site: &'static str,
     /// It reads Syzygy tablebases (`SyzygyPath`).
     pub syzygy: bool,
@@ -66,7 +70,7 @@ const GO: &[&str] = &["go-9", "go-13", "go-19"];
 /// The engines of the spec. English, Brazilian and Russian draughts have none: Scan plays
 /// international draughts.
 pub const KNOWN: &[Known] = &[
-    Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: PIN_STOCKFISH, site: "https://stockfishchess.org/download/", syzygy: true },
+    Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: PIN_STOCKFISH, image_size: 65_244_394, site: "https://stockfishchess.org/download/", syzygy: true },
     Known {
         key: "fairy-stockfish",
         name: "Fairy-Stockfish",
@@ -75,15 +79,16 @@ pub const KNOWN: &[Known] = &[
         variants: FAIRY,
         tag: Some("14.0.1"),
         pin: PIN_FAIRY_STOCKFISH,
+        image_size: 917_359,
         site: "https://github.com/fairy-stockfish/Fairy-Stockfish/releases",
         syzygy: true,
     },
-    Known { key: "pikafish", name: "Pikafish", programs: &["pikafish"], args: &[], variants: &["xiangqi"], tag: Some("2026-09-06"), pin: PIN_PIKAFISH, site: "https://github.com/official-pikafish/Pikafish/releases", syzygy: false },
-    Known { key: "yaneuraou", name: "YaneuraOu", programs: &["YaneuraOu", "yaneuraou", "YaneuraOu-by-gcc"], args: &[], variants: &["shogi"], tag: None, pin: None, site: "https://github.com/yaneurao/YaneuraOu/releases", syzygy: false },
-    Known { key: "katago", name: "KataGo", programs: &["katago"], args: &["gtp"], variants: GO, tag: Some("1.18.2-eigen"), pin: PIN_KATAGO, site: "https://github.com/lightvector/KataGo/releases", syzygy: false },
-    Known { key: "gnugo", name: "GNU Go", programs: &["gnugo"], args: &["--mode", "gtp"], variants: GO, tag: Some("3.8"), pin: PIN_GNUGO, site: "https://www.gnu.org/software/gnugo/", syzygy: false },
-    Known { key: "scan", name: "Scan", programs: &["scan"], args: &["hub"], variants: &["draughts"], tag: None, pin: None, site: "https://hjetten.home.xs4all.nl/scan/scan.html", syzygy: false },
-    Known { key: "gnubg", name: "GNU Backgammon", programs: &["gnubg"], args: &["-t", "-q"], variants: &["backgammon"], tag: None, pin: None, site: "https://www.gnu.org/software/gnubg/", syzygy: false },
+    Known { key: "pikafish", name: "Pikafish", programs: &["pikafish"], args: &[], variants: &["xiangqi"], tag: Some("2026-09-06"), pin: PIN_PIKAFISH, image_size: 957_480, site: "https://github.com/official-pikafish/Pikafish/releases", syzygy: false },
+    Known { key: "yaneuraou", name: "YaneuraOu", programs: &["YaneuraOu", "yaneuraou", "YaneuraOu-by-gcc"], args: &[], variants: &["shogi"], tag: None, pin: None, image_size: 0, site: "https://github.com/yaneurao/YaneuraOu/releases", syzygy: false },
+    Known { key: "katago", name: "KataGo", programs: &["katago"], args: &["gtp"], variants: GO, tag: Some("1.18.2-eigen"), pin: PIN_KATAGO, image_size: 51_764_399, site: "https://github.com/lightvector/KataGo/releases", syzygy: false },
+    Known { key: "gnugo", name: "GNU Go", programs: &["gnugo"], args: &["--mode", "gtp"], variants: GO, tag: Some("3.8"), pin: PIN_GNUGO, image_size: 1_459_667, site: "https://www.gnu.org/software/gnugo/", syzygy: false },
+    Known { key: "scan", name: "Scan", programs: &["scan"], args: &["hub"], variants: &["draughts"], tag: None, pin: None, image_size: 0, site: "https://hjetten.home.xs4all.nl/scan/scan.html", syzygy: false },
+    Known { key: "gnubg", name: "GNU Backgammon", programs: &["gnubg"], args: &["-t", "-q"], variants: &["backgammon"], tag: None, pin: None, image_size: 0, site: "https://www.gnu.org/software/gnubg/", syzygy: false },
 ];
 
 impl Known {
@@ -251,7 +256,7 @@ mod tests {
     #[test]
     fn installed_first_else_the_image() {
         let rt = Runtime { name: "podman", path: PathBuf::from("/nonexistent/podman") };
-        let k = Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: Some("sha256:1111111111111111111111111111111111111111111111111111111111111111"), site: "", syzygy: true };
+        let k = Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: Some("sha256:1111111111111111111111111111111111111111111111111111111111111111"), image_size: 1, site: "", syzygy: true };
         let here = PathBuf::from("/usr/games/stockfish");
         let nets = Path::new("/nonexistent/networks");
         assert_eq!(choose(&k, Some(here.clone()), Some(&rt), |_, _| true, None, nets, false), Ok(Program::Installed { path: here, args: vec![] }));

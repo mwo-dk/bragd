@@ -22,7 +22,7 @@ Analyse is the Play board with an analysis panel. You move on the board as in Pl
 
 ## What it needs
 
-- An Engine for the Variant ([The Engines page](engines.md)). Tafl, Ur and Senet have none, so they have no Analyse item.
+- An Engine for the Variant that is ready ([The Engines page](engines.md)). The Engine list offers only ready ones; **Get more engines…** under it opens the Engines page. Tafl, Ur and Senet have none, so they have no Analyse item.
 - For **Review the game**, at least one move. See [Game review](review.md).
 
 ## Settings and config.toml

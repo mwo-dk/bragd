@@ -7,11 +7,12 @@
   import { t } from "./i18n.svelte.js";
   import { current } from "./current.svelte.js";
 
-  /** @type {{ family: any, game: {variant: string, initial: string|null, entries: string[]}, over: boolean, onentries: (entries: string[]) => void, onsetup: (initial: string|null, entries?: string[]) => void, marks: string[] }} */
-  let { family, game, over, onentries, onsetup, marks = $bindable() } = $props();
+  /** @type {{ family: any, game: {variant: string, initial: string|null, entries: string[]}, over: boolean, onentries: (entries: string[]) => void, onsetup: (initial: string|null, entries?: string[]) => void, marks: string[], onmore: (() => void) | null }} */
+  let { family, game, over, onentries, onsetup, marks = $bindable(), onmore } = $props();
 
-  /** @type {{key: string, name: string, ready: boolean}[]} */
+  /** The engines there to run. @type {{key: string, name: string}[]} */
   let choices = $state([]);
+  let more = $state(false);
   let engine = $state("");
   let on = $state(false);
   /** @type {any} */
@@ -26,7 +27,8 @@
   $effect(() => {
     api.engineChoices(game.variant).then((c) => {
       choices = c.engines;
-      if (!c.engines.some((e) => e.key === engine)) engine = c.default ?? "";
+      more = c.more;
+      if (!c.engines.some((e) => e.key === engine)) engine = c.default ?? c.engines[0]?.key ?? "";
     });
   });
 
@@ -112,13 +114,18 @@
     <div class="row">
       <select bind:value={engine} aria-label={t("analyse.engine")}>
         {#each choices as c}
-          <option value={c.key}>{c.name}{c.ready ? "" : ` (${t("engines.not_ready")})`}</option>
+          <option value={c.key}>{c.name}</option>
         {/each}
       </select>
       <button class="primary" onclick={toggle} aria-pressed={on} disabled={over && !on}>{on ? t("analyse.stop") : t("analyse.start")}</button>
     </div>
+  {:else if more}
+    <p class="dim">{t("engines.none_ready")}</p>
   {:else}
     <p class="dim">{t("engines.none_for")}</p>
+  {/if}
+  {#if more && onmore}
+    <button class="link" onclick={onmore}>{t("engines.get_more")}</button>
   {/if}
 
   {#if now && on}

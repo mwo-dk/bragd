@@ -57,3 +57,13 @@ button.primary {
 input[type="checkbox"] {
   accent-color: var(--accent);
 }
+
+/* A button that reads as a link: it goes somewhere rather than doing something. */
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  text-align: start;
+}

@@ -26,7 +26,7 @@ When the Engine's Side is to move, *The engine is thinking…* shows and the Eng
 
 ## What it needs
 
-An Engine for the Variant, installed on your machine or added by its path ([The Engines page](../engines/engines.md)). Without one, the *Opponent* list does not show.
+An Engine for the Variant that is ready: installed on your machine, added by its path, or run from its container image ([The Engines page](../engines/engines.md)). The Engine list offers only ready Engines. Without one, the *Opponent* list does not show; when the Variant has Engines that are not ready yet, **Get more engines…** opens the Engines page.
 
 | Game family | Engines |
 |---|---|

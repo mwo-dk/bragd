@@ -12,8 +12,10 @@
   import Known from "./Known.svelte";
   import { current } from "./current.svelte.js";
 
-  /** @type {{ family: any, mode?: "play" | "analyse" }} */
-  let { family, mode = "play" } = $props();
+  /** @type {{ family: any, mode?: "play" | "analyse", go: (page: any) => void }} */
+  let { family, mode = "play", go } = $props();
+  /** The Engines page of this Family, where more engines are got. */
+  const moreEngines = () => go({ kind: "item", family: family.id, item: "engines" });
   const analyse = $derived(mode === "analyse");
   /** The review's mark of each entry. @type {string[]} */
   let marks = $state([]);
@@ -23,8 +25,8 @@
   let engineSeat = $state(1);
   let thinkMs = $state(1000);
   let skill = $state(20);
-  /** @type {{engines: {key: string, name: string, ready: boolean}[], sides: string[]}} */
-  let choices = $state({ engines: [], sides: [] });
+  /** The Engines there to run, and whether more could be got. @type {{engines: {key: string, name: string}[], more: boolean, sides: string[]}} */
+  let choices = $state({ engines: [], more: false, sides: [] });
   let engineKey = $state("");
   let thinking = $state(false);
 
@@ -79,7 +81,8 @@
     if (!analyse && key)
       api.engineChoices(key).then((c) => {
         choices = c;
-        engineKey = c.default ?? "";
+        engineKey = c.default ?? c.engines[0]?.key ?? "";
+        if (!c.engines.length) opponent = "self";
       });
   });
 
@@ -219,7 +222,7 @@
       {#if opponent === "engine"}
         <select bind:value={engineKey} aria-label={t("analyse.engine")}>
           {#each choices.engines as c}
-            <option value={c.key}>{c.name}{c.ready ? "" : ` (${t("engines.not_ready")})`}</option>
+            <option value={c.key}>{c.name}</option>
           {/each}
         </select>
         <select bind:value={engineSeat} aria-label={t("play.engine_side")}>
@@ -234,6 +237,9 @@
         </select>
         <label class="skill">{t("play.strength")} <input type="range" min="0" max="20" bind:value={skill} /></label>
       {/if}
+    {/if}
+    {#if !analyse && choices.more}
+      <button class="link" onclick={moreEngines}>{t("engines.get_more")}</button>
     {/if}
   </header>
 
@@ -349,7 +355,7 @@
           <Known game={{ variant: key, initial, entries }} onplay={playEntry} />
         {/if}
         {#if analyse}
-          <Analysis {family} game={{ variant: key, initial, entries }} over={!!st.outcome} onentries={setEntries} onsetup={setUp} bind:marks />
+          <Analysis {family} onmore={choices.more || analyse ? moreEngines : null} game={{ variant: key, initial, entries }} over={!!st.outcome} onentries={setEntries} onsetup={setUp} bind:marks />
         {/if}
 
         <h2>{t("play.moves")}</h2>

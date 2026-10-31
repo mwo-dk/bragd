@@ -4,7 +4,7 @@
 
 When an Engine is not installed, Bragd can run it from a sealed container image with podman or docker. The images are Bragd's own, at `ghcr.io/mwo-dk/bragd-<engine>`, and each is pinned by its digest.
 
-**Not yet available.** No image is published yet, so no image is ever pulled. Each Engine that is not installed says *Not installed, and Bragd's image of it is not yet published*, with the program to install and its download page. Until the images come, install the Engine yourself.
+**Not yet available.** No image is published yet, so no image is ever pulled. Each Engine that is not installed says *Not installed, and its container image is not published yet*, with the program to install and a **Download page** button. Until the images come, install the Engine yourself, or build its image on your own machine ([below](#images-built-on-your-own-machine)).
 
 ![The Engines page of chess: a card for an Engine that is not installed, saying its image is not yet published and naming its package and download page](../screenshots/engines-chess-1100.png)
 *A card on the Engines page says where the Engine stands.*
@@ -13,7 +13,7 @@ When an Engine is not installed, Bragd can run it from a sealed container image 
 
 | Where | What to do |
 |---|---|
-| Sidebar | A Family → **Engines**. *Download image* shows on a card when an image can be pulled |
+| Sidebar | A Family → **Engines**. **Get it (…)** shows on a card when an image can be pulled, with its size |
 | Settings | *Settings → Engines*: *Pull an Engine that is not installed* and *Container runtime* |
 
 ## What it needs

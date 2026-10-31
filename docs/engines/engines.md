@@ -20,8 +20,19 @@ Each Game family with an Engine has an Engines page. It lists the Engines Bragd 
 
 The page has four parts:
 
-1. **Engine for each variant.** One list per Variant. *Automatic* names the Engine it picks now. Choosing one writes `engines.default`.
-2. **Engines.** One card per Engine: *ready* or *not installed*, where it is installed, and which Variants it plays. A card that is not ready says why and names the program to install and its download page.
+1. **Engine for each variant.** One list per Variant, offering the Engines that are ready. *Automatic* names the Engine it picks now. Choosing one writes `engines.default`.
+2. **Engines.** One card per Engine: *ready* or *not ready*, where it stands, and which Variants it plays. A card that is not ready says why and gives a way forward:
+
+   | The card says | What you can do |
+   |---|---|
+   | *Installed at …* | Nothing: it is ready |
+   | *Container image ready.* | Nothing: it runs from Bragd's image |
+   | *Container image built on this machine, ready.* | Nothing: it runs from an image you built ([Images built on your own machine](container-images.md#images-built-on-your-own-machine)) |
+   | *Its container image can be downloaded: about …* | **Get it (…)** pulls the image; a bar and the runtime's last line show its progress |
+   | *Its container image is not published yet.* | Install the program with your package manager, or **Download page**. Started with `BRAGD_DEV_IMAGES=1`, the card names the command that builds the image here |
+   | *Its container image needs podman or docker* | Install podman or docker, or the Engine itself. **Settings → Engines** opens the container settings |
+   | *Container images are turned off in Settings.* | **Settings → Engines** turns them back on |
+
 3. **Options.** *Options* on a ready Engine starts it and lists the options it offers: switches, lists, numbers and text. ↺ puts one back to the Engine's default, and *Reset all* puts them all back.
 4. **Add an engine.** Type the path to a program and press *Add*.
 

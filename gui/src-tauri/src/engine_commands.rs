@@ -70,18 +70,22 @@ pub fn engine_pull(key: String, ctx: Managed<'_, Ctx>, held: Managed<'_, engines
     engines::pull(&ctx.cfg(), &held, &key)
 }
 
-/// An engine as Play and Analyse offer it.
+/// An engine as Play and Analyse offer it: only one there to run.
 #[derive(Serialize)]
 pub struct Choice {
     key: String,
     name: String,
-    ready: bool,
 }
 
+/// What Play and Analyse offer for a Variant.
 #[derive(Serialize)]
 pub struct Choices {
+    /// The engines there to run now.
     engines: Vec<Choice>,
+    /// The one used unless another is picked, when it is there to run.
     default: Option<String>,
+    /// More engines play this Variant but are not there to run yet: the Engines page gets them.
+    more: bool,
     /// The Variant's two Sides, named in the current language.
     sides: Vec<String>,
 }
@@ -89,16 +93,11 @@ pub struct Choices {
 #[tauri::command(async)]
 pub fn engine_choices(variant: String, ctx: Managed<'_, Ctx>) -> Choices {
     let cfg = ctx.cfg();
-    let engines = engines::engines_for(&cfg, &variant)
-        .into_iter()
-        .map(|key| {
-            let ready = engines::availability(&cfg, &key).ready();
-            let name = bragd_engines::known::known(&key).map_or_else(|| key.clone(), |k| k.name.to_string());
-            Choice { key, name, ready }
-        })
-        .collect();
+    let all = engines::engines_for(&cfg, &variant);
+    let ready: Vec<String> = all.iter().filter(|k| engines::availability(&cfg, k).ready()).cloned().collect();
+    let engines = ready.iter().map(|key| Choice { key: key.clone(), name: bragd_engines::known::known(key).map_or_else(|| key.clone(), |k| k.name.to_string()) }).collect();
     let sides = bragd_games::Variant::from_key(&variant).map(|v| v.info().sides.iter().map(|s| tr(&format!("side.{}", s.to_lowercase()), &[])).collect()).unwrap_or_default();
-    Choices { engines, default: engines::default_for(&cfg, &variant), sides }
+    Choices { engines, default: engines::default_for(&cfg, &variant).filter(|d| ready.contains(d)), more: all.len() > ready.len(), sides }
 }
 
 #[tauri::command(async)]

@@ -100,12 +100,14 @@ pub enum Availability {
     /// Runs from its image built on this machine (`tools/dev/images.sh`), as
     /// `BRAGD_DEV_IMAGES=1` allows.
     Built { image: String },
-    /// Its image can be pulled.
-    Pull { image: String },
+    /// Its image can be pulled: about `size` to download.
+    Pull { image: String, size: String },
     /// Not installed, and Bragd's image of it is not published yet.
     NoImage,
     /// Not installed, its image published, but neither podman nor docker is there.
     NoRuntime,
+    /// Not installed, and running images is turned off in Settings.
+    ContainersOff,
     /// Added by a path that is no longer there.
     Gone { path: String },
 }
@@ -142,13 +144,16 @@ pub fn availability(cfg: &Config, key: &str) -> Availability {
     if local.is_none() && pinned.is_none() {
         return Availability::NoImage;
     }
+    if !cfg.engines.containers {
+        return Availability::ContainersOff;
+    }
     let Some(rt) = runtime(cfg) else { return Availability::NoRuntime };
     let has = |i: &String| !images::pulled(&rt.path, std::slice::from_ref(i)).is_empty();
     match (local.filter(has), pinned) {
         (Some(image), _) => Availability::Built { image },
         (None, None) => Availability::NoImage,
         (None, Some(image)) if has(&image) => Availability::Pulled { image },
-        (None, Some(image)) => Availability::Pull { image },
+        (None, Some(image)) => Availability::Pull { image, size: bragd_helper::disk::bytes(k.image_size) },
     }
 }
 
@@ -157,7 +162,7 @@ pub fn resolve(cfg: &Config, key: &str, variant: &str) -> Result<Chosen, String>
     if let Some(k) = known::known(key) {
         let dev = known::dev_images();
         let rt = (k.image().is_some() || k.dev_image(dev).is_some()).then(|| runtime(cfg)).flatten();
-        let program = known::choose(k, installed(cfg, key, Some(k)), rt.as_ref(), |rt, i| !images::pulled(&rt.path, &[i.to_string()]).is_empty(), Some(&tablebase_folder(cfg)), &networks_folder(), dev).map_err(|m| missing(k, &m))?;
+        let program = known::choose(k, installed(cfg, key, Some(k)), rt.as_ref(), |rt, i| !images::pulled(&rt.path, &[i.to_string()]).is_empty(), Some(&tablebase_folder(cfg)), &networks_folder(), dev).map_err(|m| missing(cfg, k, &m))?;
         return Ok(Chosen { key: key.into(), program, protocols: vec![k.protocol(variant)] });
     }
     let family = cfg.engines.added.get(key).and_then(|f| Family::from_key(f)).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
@@ -165,13 +170,19 @@ pub fn resolve(cfg: &Config, key: &str, variant: &str) -> Result<Chosen, String>
     Ok(Chosen { key: key.into(), program: Program::Installed { path, args: vec![] }, protocols: seam::protocols(family).to_vec() })
 }
 
-fn missing(k: &Known, m: &Missing) -> String {
+fn missing(cfg: &Config, k: &Known, m: &Missing) -> String {
     match m {
-        Missing::NotPulled { .. } => tr("engines.state.pull", &[]),
+        Missing::NotPulled { .. } => tr("engines.state.get", &[("size", &bragd_helper::disk::bytes(k.image_size))]),
+        Missing::NoRuntime if !cfg.engines.containers => tr("engines.state.containers_off", &[]),
         Missing::NoRuntime => tr("engines.state.no_runtime", &[]),
         Missing::NoNetwork => tr("engines.network.missing", &[("name", k.name)]),
-        Missing::NoImage => format!("{} {}", tr("engines.state.no_image", &[]), tr("engines.install_hint", &[("program", k.programs[0]), ("site", k.site)])),
+        Missing::NoImage => format!("{} {}", tr("engines.state.no_image", &[]), install_hint(k)),
     }
+}
+
+/// How to install `k` here: its package, and its download page when it has one.
+fn install_hint(k: &Known) -> String {
+    if k.site.is_empty() { tr("engines.install_hint_package", &[("program", k.programs[0])]) } else { tr("engines.install_hint", &[("program", k.programs[0]), ("site", k.site)]) }
 }
 
 /// The engine a Variant is played and analysed with: the one chosen for it, else the first
@@ -207,6 +218,8 @@ pub struct EngineRow {
     state: Availability,
     /// What to do when it is not there to run.
     hint: String,
+    /// Its download page; empty when it has none.
+    site: String,
     /// Its pull under way: the runtime's last line, or why it failed.
     pulling: Option<String>,
     variants: Vec<String>,
@@ -236,7 +249,12 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
     let variants: Vec<VariantRow> = family
         .variants()
         .filter(|v| cfg.variant_on(v.key))
-        .map(|v| VariantRow { key: v.key, name: tr(&format!("variant.{}", v.key), &[]), engines: engines_for(cfg, v.key), chosen: cfg.engines.default.get(v.key).cloned().unwrap_or_default(), current: default_for(cfg, v.key) })
+        .map(|v| {
+            let chosen = cfg.engines.default.get(v.key).cloned().unwrap_or_default();
+            // Only engines there to run are offered, and the one chosen before, whatever it is now.
+            let engines = engines_for(cfg, v.key).into_iter().filter(|k| *k == chosen || availability(cfg, k).ready()).collect();
+            VariantRow { key: v.key, name: tr(&format!("variant.{}", v.key), &[]), engines, chosen, current: default_for(cfg, v.key) }
+        })
         .collect();
     let mut keys: Vec<String> = vec![];
     for v in family.variants() {
@@ -257,7 +275,7 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             let hint = match (&state, k) {
                 // Running from a checkout with images allowed: the image can be built here.
                 (Availability::NoImage, Some(k)) if k.dev_image(known::dev_images()).is_some() => tr("engines.build_here", &[("command", &format!("tools/dev/images.sh {}", k.key))]),
-                (Availability::NoImage | Availability::NoRuntime | Availability::Pull { .. }, Some(k)) => tr("engines.install_hint", &[("program", k.programs[0]), ("site", k.site)]),
+                (Availability::NoImage | Availability::NoRuntime | Availability::ContainersOff | Availability::Pull { .. }, Some(k)) => install_hint(k),
                 (Availability::Gone { .. }, _) => tr("engines.gone", &[("name", &key)]),
                 _ => String::new(),
             };
@@ -273,6 +291,7 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             EngineRow {
                 network,
                 name: k.map_or_else(|| key.clone(), |k| k.name.to_string()),
+                site: k.map(|k| k.site.to_string()).unwrap_or_default(),
                 added: k.is_none(),
                 pulling: image.as_ref().and_then(|i| pulling.get(i).cloned()).or_else(|| failed.get(&key).cloned()),
                 key,

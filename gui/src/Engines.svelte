@@ -5,9 +5,10 @@
   // checks, downloads and saves all of it.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
+  import { guide } from "./guide.svelte.js";
 
-  /** @type {{ family: any }} */
-  let { family } = $props();
+  /** @type {{ family: any, go: (page: any) => void }} */
+  let { family, go } = $props();
   /** @type {any} */
   let page = $state(null);
   let error = $state("");
@@ -33,9 +34,10 @@
       installed: t("engines.state.installed", { path: s.path }),
       pulled: t("engines.state.pulled"),
       built: t("engines.state.built"),
-      pull: t("engines.state.pull"),
+      pull: t("engines.state.get", { size: s.size }),
       noImage: t("engines.state.no_image"),
       noRuntime: t("engines.state.no_runtime"),
+      containersOff: t("engines.state.containers_off"),
       gone: t("engines.state.gone", { path: s.path }),
     })[/** @type {string} */ (s.kind)];
   const ready = (/** @type {any} */ e) => ["installed", "pulled", "built"].includes(e.state.kind);
@@ -50,6 +52,9 @@
     }
     busy = false;
   }
+
+  /** Settings → Engines, where images and the runtime are chosen. */
+  const engineSettings = () => ((guide.area = "engines"), go({ kind: "settings" }));
 
   async function showOptions(/** @type {any} */ e) {
     const variant = page.variants.find((/** @type {any} */ v) => v.engines.includes(e.key))?.key;
@@ -111,7 +116,10 @@
           </header>
           <p class="state">{stateText(e.state)}</p>
           {#if e.hint}<p class="dim">{e.hint}</p>{/if}
-          {#if e.pulling}<p class="dim">{e.pulling}</p>{/if}
+          {#if e.pulling}
+            <progress aria-label={t("engines.pulling", { name: e.name })}></progress>
+            <p class="dim" role="status">{t("engines.pulling", { name: e.name })} {e.pulling}</p>
+          {/if}
           {#if e.network}
             {@const job = e.network.job}
             <p class="dim">
@@ -124,7 +132,13 @@
           <p class="dim">{t("engines.plays", { variants: e.variants.join(", ") })}</p>
           <div class="actions">
             {#if e.state.kind === "pull"}
-              <button class="primary" disabled={busy || !!e.pulling} onclick={() => act(api.enginePull(e.key))}>{t("engines.pull")}</button>
+              <button class="primary" disabled={busy || !!e.pulling} onclick={() => act(api.enginePull(e.key))}>{t("engines.get", { size: e.state.size })}</button>
+            {/if}
+            {#if e.state.kind === "containersOff" || e.state.kind === "noRuntime"}
+              <button onclick={engineSettings}>{t("engines.open_settings")}</button>
+            {/if}
+            {#if !ready(e) && e.site}
+              <button onclick={() => api.openUrl(e.site)} title={e.site}>{t("engines.open_site")}</button>
             {/if}
             {#if e.network && !e.network.present}
               <button disabled={busy || (e.network.job && !e.network.job.finished)} onclick={() => (licence = e)}>{t("engines.network.read")}</button>
