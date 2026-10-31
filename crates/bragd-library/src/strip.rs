@@ -187,8 +187,9 @@ fn stopped() -> io::Error {
 /// packed as it was, and puts it in place of the old one at once: until then the old one is
 /// untouched, so a stop or a crash leaves it whole. A zip keeps its other members as they are,
 /// and so are its packed members. `dry_run`: nothing is written; the counts and the size it
-/// would have are reported. `stop` is asked between Games.
-pub fn rewrite(path: &Path, rules: &[&StripRule], dry_run: bool, stop: &dyn Fn() -> bool) -> io::Result<Rewritten> {
+/// would have are reported. `stop` is asked between Games. A packed file stops past
+/// `max_ratio` (`stream::games`).
+pub fn rewrite(path: &Path, rules: &[&StripRule], dry_run: bool, max_ratio: u64, stop: &dyn Fn() -> bool) -> io::Result<Rewritten> {
     let mut out = Rewritten { path: path.to_path_buf(), bytes_before: fs::metadata(path)?.len(), dry_run, ..Default::default() };
     let (mut kept_bytes, mut all_bytes, mut halted) = (0u64, 0u64, false);
     let mut keep = |f: Format, t: &[u8]| -> Option<bool> {
@@ -208,7 +209,7 @@ pub fn rewrite(path: &Path, rules: &[&StripRule], dry_run: bool, stop: &dyn Fn()
         Some(k)
     };
     if dry_run {
-        stream::file_games(path, stop, &mut |_, f, t| keep(f, t).is_some()).map_err(|e| if stop() { stopped() } else { e })?;
+        stream::file_games(path, max_ratio, stop, &mut |_, f, t| keep(f, t).is_some()).map_err(|e| if stop() { stopped() } else { e })?;
         if halted {
             return Err(stopped());
         }
@@ -217,7 +218,7 @@ pub fn rewrite(path: &Path, rules: &[&StripRule], dry_run: bool, stop: &dyn Fn()
     }
     let name = path.file_name().unwrap_or_default().to_string_lossy();
     let tmp = path.with_file_name(format!(".{name}.strip-{}.tmp", std::process::id()));
-    let written = if stream::is_zip(path) { rewrite_zip(path, &tmp, stop, &mut keep) } else { rewrite_file(path, &tmp, stop, &mut keep) };
+    let written = if stream::is_zip(path) { rewrite_zip(path, &tmp, max_ratio, stop, &mut keep) } else { rewrite_file(path, &tmp, max_ratio, stop, &mut keep) };
     match written {
         Ok(()) if !halted => fs::rename(&tmp, path)?,
         other => {
@@ -233,9 +234,9 @@ pub fn rewrite(path: &Path, rules: &[&StripRule], dry_run: bool, stop: &dyn Fn()
 }
 
 /// The games of `r` (a file named `name`) that `keep` keeps, written to `w`.
-fn filter(name: &str, r: impl io::Read + Send, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>, w: &mut dyn Write) -> io::Result<()> {
+fn filter(name: &str, r: impl io::Read + Send, max_ratio: u64, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>, w: &mut dyn Write) -> io::Result<()> {
     let mut failed = None;
-    stream::games(name, r, stop, &mut |f, t| match keep(f, t) {
+    stream::games(name, r, max_ratio, stop, &mut |f, t| match keep(f, t) {
         Some(true) => w.write_all(t).map_err(|e| failed = Some(e)).is_ok(),
         Some(false) => true,
         None => false,
@@ -243,13 +244,13 @@ fn filter(name: &str, r: impl io::Read + Send, stop: &dyn Fn() -> bool, keep: &m
     failed.map_or(Ok(()), Err)
 }
 
-fn rewrite_file(path: &Path, tmp: &Path, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>) -> io::Result<()> {
+fn rewrite_file(path: &Path, tmp: &Path, max_ratio: u64, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>) -> io::Result<()> {
     let name = path.to_string_lossy();
-    let f = packed(&name, File::create(tmp)?, &mut |w| filter(&name, File::open(path)?, stop, keep, w))?;
+    let f = packed(&name, File::create(tmp)?, &mut |w| filter(&name, File::open(path)?, max_ratio, stop, keep, w))?;
     f.sync_all()
 }
 
-fn rewrite_zip(path: &Path, tmp: &Path, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>) -> io::Result<()> {
+fn rewrite_zip(path: &Path, tmp: &Path, max_ratio: u64, stop: &dyn Fn() -> bool, keep: &mut dyn FnMut(Format, &[u8]) -> Option<bool>) -> io::Result<()> {
     let mut src = zip::ZipArchive::new(File::open(path)?).map_err(io::Error::other)?;
     let mut w = zip::ZipWriter::new(File::create(tmp)?);
     for i in 0..src.len() {
@@ -257,7 +258,7 @@ fn rewrite_zip(path: &Path, tmp: &Path, stop: &dyn Fn() -> bool, keep: &mut dyn 
         let name = m.enclosed_name().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
         if m.is_file() && stream::is_text(&name) && stream::unpacked_name(&name) == name {
             w.start_file(m.name().map_err(io::Error::other)?.into_owned(), zip::write::SimpleFileOptions::default()).map_err(io::Error::other)?;
-            filter(&name, m, stop, keep, &mut w)?;
+            filter(&name, m, max_ratio, stop, keep, &mut w)?;
         } else {
             w.raw_copy_file(m).map_err(io::Error::other)?;
         }
@@ -387,7 +388,7 @@ mod tests {
 
     fn count(path: &Path) -> (u64, u64) {
         let (mut all, mut kept) = (0, 0);
-        crate::stream::file_games(path, &|| false, &mut |_, f, t| {
+        crate::stream::file_games(path, 50, &|| false, &mut |_, f, t| {
             all += 1;
             kept += u64::from(strong().keeps(&read_game(f, t)));
             true
@@ -407,11 +408,11 @@ mod tests {
         for (name, bytes) in [("a.pgn", text.clone().into_bytes()), ("a.pgn.gz", gz(&text)), ("a.pgn.zst", zst(&text)), ("a.pgn.bz2", bz2(&text)), ("a.zip", zip_of(&[("a.pgn", text.as_bytes()), ("readme.txt", b"kept")]))] {
             let p = d.0.join(name);
             std::fs::write(&p, &bytes).unwrap();
-            let dry = rewrite(&p, &[&strong()], true, &|| false).unwrap();
+            let dry = rewrite(&p, &[&strong()], true, 50, &|| false).unwrap();
             assert_eq!((dry.kept, dry.stripped), (want, all - want), "{name}");
             assert!(dry.bytes_after < dry.bytes_before, "{name}");
             assert_eq!(std::fs::read(&p).unwrap(), bytes, "{name}: a dry run changes nothing");
-            let done = rewrite(&p, &[&strong()], false, &|| false).unwrap();
+            let done = rewrite(&p, &[&strong()], false, 50, &|| false).unwrap();
             assert_eq!((done.kept, done.stripped), (want, all - want), "{name}");
             assert_eq!(done.bytes_after, std::fs::metadata(&p).unwrap().len());
             assert_eq!(count(&p), (want, want), "{name}: only the Games kept are left, still read as before");
@@ -427,7 +428,7 @@ mod tests {
         let p = d.0.join("b.pgn.gz");
         std::fs::write(&p, gz(&text)).unwrap();
         let asked = std::cell::Cell::new(0);
-        let err = rewrite(&p, &[&strong()], false, &|| {
+        let err = rewrite(&p, &[&strong()], false, 50, &|| {
             asked.set(asked.get() + 1);
             asked.get() > 100
         })

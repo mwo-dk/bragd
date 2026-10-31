@@ -3,11 +3,13 @@
 //! out whole. The pass is `chess::games::scan`'s, so one game's text is held at a time (at most
 //! `games::MAX_GAME` bytes) and one line (`lex::MAX_LINE`), whatever the size of the download:
 //! a month of the Lichess database or a year of FICS goes in straight from the packed file.
+//! A file that unpacks past `knowledge.max_unpack_ratio` times its size stops (`Cap`).
 
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Read};
+use std::io::{self, BufRead, BufReader, Read, Seek};
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::chess::{Format, games};
 
@@ -71,11 +73,48 @@ impl Stats {
     }
 }
 
-/// Counts what is read through it, and ends the read when `stop` says so: a packed stream can
-/// unpack to terabytes with no game in it, and games are the only other place a stop is heard.
+/// Bytes a file may unpack to whatever its ratio: the first blocks of a small file of real
+/// games can unpack to more than the ratio while its packer warms up.
+const FLOOR: u64 = 64 << 20;
+
+/// How far a file may unpack: to `ratio` times the packed bytes read so far, and `floor`
+/// bytes at least. Counted over the whole file, every member of a zip together.
+#[derive(Clone, Copy)]
+struct Cap<'s> {
+    ratio: u64,
+    floor: u64,
+    packed: &'s AtomicU64,
+}
+
+/// The file's own bytes read through it, counted where `Cap` sees them.
+struct Tally<R> {
+    r: R,
+    n: Arc<AtomicU64>,
+}
+
+impl<R: Read> Read for Tally<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let n = self.r.read(buf)?;
+        self.n.fetch_add(n as u64, Ordering::Relaxed);
+        Ok(n)
+    }
+}
+
+impl<R: Seek> Seek for Tally<R> {
+    fn seek(&mut self, to: io::SeekFrom) -> io::Result<u64> {
+        self.r.seek(to)
+    }
+}
+
+/// Counts what is read through it, and ends the read when `stop` says so or the bytes pass
+/// `cap`: a packed stream can unpack to terabytes with no game in it, and games are the only
+/// other place a stop is heard.
 struct Count<'s, R> {
     r: R,
     n: u64,
+    /// Unpacked before this stream: the zip members already read.
+    before: u64,
+    cap: Cap<'s>,
     stop: &'s dyn Fn() -> bool,
 }
 
@@ -87,15 +126,30 @@ impl<R: Read> Read for Count<'_, R> {
         }
         let n = self.r.read(buf)?;
         self.n += n as u64;
+        let all = self.before + self.n;
+        let c = self.cap;
+        if all > c.floor && all > c.ratio.saturating_mul(c.packed.load(Ordering::Relaxed)) {
+            return Err(io::Error::other(format!(
+                "unpacks to more than {} times its size, so it is taken for a bomb; if the file is real, raise Settings → Knowledge → Largest unpacking ratio",
+                c.ratio
+            )));
+        }
         Ok(n)
     }
 }
 
 /// The games of `r`, the bytes of a file named `name`, each handed to `each` (whose games they
 /// are, and the game's text) until it says false. `stop` is asked as the bytes come, and a stop
-/// ends the read with an error.
-pub fn games(name: &str, r: impl Read + Send, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(Format, &[u8]) -> bool) -> io::Result<Stats> {
-    let mut buf = BufReader::with_capacity(1 << 16, Count { r: unpack(name, r)?, n: 0, stop });
+/// ends the read with an error, as do more than `max_ratio` times the bytes of `r` unpacked
+/// (past the first 64 MB).
+pub fn games(name: &str, r: impl Read + Send, max_ratio: u64, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(Format, &[u8]) -> bool) -> io::Result<Stats> {
+    let packed = Arc::new(AtomicU64::new(0));
+    let cap = Cap { ratio: max_ratio, floor: FLOOR, packed: &packed };
+    games_in(name, Tally { r, n: packed.clone() }, cap, 0, stop, each)
+}
+
+fn games_in(name: &str, r: impl Read + Send, cap: Cap, before: u64, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(Format, &[u8]) -> bool) -> io::Result<Stats> {
+    let mut buf = BufReader::with_capacity(1 << 16, Count { r: unpack(name, r)?, n: 0, before, cap, stop });
     let format = if unpacked_name(name).to_ascii_lowercase().ends_with(".pdn") {
         Format::Pdn
     } else if crate::xiangqi::is_xiangqi(buf.fill_buf()?) {
@@ -115,12 +169,19 @@ pub fn games(name: &str, r: impl Read + Send, stop: &dyn Fn() -> bool, each: &mu
 
 /// The games of the file at `path` (`streams`), each handed to `each` with the zip member it is
 /// in (`""` for a file of its own) until it says false. Members of a zip that are not game text
-/// are left out. `stop` as for `games`.
-pub fn file_games(path: &Path, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(&str, Format, &[u8]) -> bool) -> io::Result<Stats> {
+/// are left out. `max_ratio` and `stop` as for `games`, the ratio over the whole file.
+pub fn file_games(path: &Path, max_ratio: u64, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(&str, Format, &[u8]) -> bool) -> io::Result<Stats> {
+    file_games_from(path, max_ratio, FLOOR, stop, each)
+}
+
+fn file_games_from(path: &Path, max_ratio: u64, floor: u64, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(&str, Format, &[u8]) -> bool) -> io::Result<Stats> {
+    let packed = Arc::new(AtomicU64::new(0));
+    let cap = Cap { ratio: max_ratio, floor, packed: &packed };
+    let file = Tally { r: File::open(path)?, n: packed.clone() };
     if !is_zip(path) {
-        return games(&path.to_string_lossy(), File::open(path)?, stop, &mut |f, t| each("", f, t));
+        return games_in(&path.to_string_lossy(), file, cap, 0, stop, &mut |f, t| each("", f, t));
     }
-    let mut zip = zip::ZipArchive::new(File::open(path)?).map_err(io::Error::other)?;
+    let mut zip = zip::ZipArchive::new(file).map_err(io::Error::other)?;
     let mut stats = Stats::default();
     for i in 0..zip.len() {
         let member = zip.by_index(i).map_err(io::Error::other)?;
@@ -129,7 +190,7 @@ pub fn file_games(path: &Path, stop: &dyn Fn() -> bool, each: &mut dyn FnMut(&st
             continue;
         }
         let mut go = true;
-        stats.add(games(&name, member, stop, &mut |f, t| {
+        stats.add(games_in(&name, member, cap, stats.unpacked, stop, &mut |f, t| {
             go = each(&name, f, t);
             go
         })?);
@@ -213,7 +274,7 @@ pub(crate) mod tests {
             std::fs::write(&p, &bytes).unwrap();
             let mut seen = 0u64;
             let mut members = std::collections::BTreeSet::new();
-            let s = file_games(&p, &|| false, &mut |m, f, t| {
+            let s = file_games(&p, 50, &|| false, &mut |m, f, t| {
                 assert_eq!(f, Format::Pgn);
                 assert!(t.starts_with(b"[Event"), "{name}: a game starts at its first tag");
                 members.insert(m.to_string());
@@ -232,13 +293,50 @@ pub(crate) mod tests {
         }
     }
 
+    /// A bomb of blank blocks stops at the ratio, packed or in a zip; raised, it is read whole;
+    /// real games of every packing pass at the default ratio.
+    #[test]
+    fn a_stream_stops_past_its_unpacking_ratio() {
+        let d = crate::library::tests::Dir::new("stream-ratio");
+        let blank = "\n".repeat(8 << 20);
+        let ratio = bragd_core::config::MAX_UNPACK_RATIO;
+        for (name, bytes) in [("blank.pgn.zst", zst(&blank)), ("blank.pgn.gz", gz(&blank)), ("blank.zip", zip_of(&[("a.pgn", blank.as_bytes())]))] {
+            let p = d.0.join(name);
+            std::fs::write(&p, &bytes).unwrap();
+            let e = file_games_from(&p, ratio, 1 << 20, &|| false, &mut |_, _, _| true).unwrap_err();
+            assert!(e.to_string().contains(&format!("more than {ratio} times")), "{name}: {e}");
+            assert_eq!(file_games_from(&p, u64::MAX, 1 << 20, &|| false, &mut |_, _, _| true).unwrap().unpacked, blank.len() as u64, "{name}");
+        }
+        // Games as varied as real ones: players, ratings, dates and moves drawn at random. (The
+        // knight dances of `many` pack 50 to 1, far past any real file.)
+        let mut seed = 0x9e37_79b9_7f4a_7c15u64;
+        let mut next = |n: u64| {
+            seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+            (seed >> 33) % n
+        };
+        let sans = ["e4", "d4", "Nf3", "c4", "e5", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O", "Be7", "Re1", "b5", "Bb3", "d6", "c3", "h6", "Qe2", "Rd8", "exd5", "Nxe4", "Bxf7+", "Kh1", "g6", "Qxd8", "Rxa1"];
+        let mut text = String::new();
+        for _ in 0..3000 {
+            text.push_str(&format!("[Event \"Rated game\"]\n[White \"p{}\"]\n[Black \"p{}\"]\n[WhiteElo \"{}\"]\n[BlackElo \"{}\"]\n[UTCDate \"2024.{:02}.{:02}\"]\n[Result \"1-0\"]\n\n", next(50_000), next(50_000), 800 + next(2000), 800 + next(2000), 1 + next(12), 1 + next(28)));
+            for m in 0..20 + next(60) {
+                text.push_str(&format!("{}. {} {{ [%clk 0:0{}:{:02}] }} ", m + 1, sans[next(sans.len() as u64) as usize], next(10), next(60)));
+            }
+            text.push_str("1-0\n\n");
+        }
+        for (name, bytes) in [("a.pgn.gz", gz(&text)), ("a.pgn.zst", zst(&text)), ("a.pgn.bz2", bz2(&text)), ("a.zip", zip_of(&[("a.pgn", text.as_bytes())]))] {
+            let p = d.0.join(name);
+            std::fs::write(&p, &bytes).unwrap();
+            assert_eq!(file_games_from(&p, ratio, 64 << 10, &|| false, &mut |_, _, _| true).unwrap().games, 3000, "{name}: {} bytes packed", bytes.len());
+        }
+    }
+
     #[test]
     fn a_stream_stops_when_asked_and_knows_its_names() {
         let d = crate::library::tests::Dir::new("stream-stop");
         let p = d.0.join("a.pgn.bz2");
         std::fs::write(&p, bz2(&many(50))).unwrap();
         let mut n = 0;
-        let s = file_games(&p, &|| false, &mut |_, _, _| {
+        let s = file_games(&p, 50, &|| false, &mut |_, _, _| {
             n += 1;
             n < 10
         })
@@ -248,7 +346,7 @@ pub(crate) mod tests {
         let blank = d.0.join("blank.pgn.bz2");
         std::fs::write(&blank, bz2(&"\n".repeat(1 << 20))).unwrap();
         let asked = std::cell::Cell::new(0);
-        let e = file_games(&blank, &|| {
+        let e = file_games(&blank, 50, &|| {
             asked.set(asked.get() + 1);
             asked.get() > 3
         }, &mut |_, _, _| true)

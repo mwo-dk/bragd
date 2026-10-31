@@ -451,6 +451,9 @@ pub struct Library {
     priority: Vec<String>,
     /// Games written in one transaction during an import.
     pub batch: usize,
+    /// How many times its size a packed file may unpack to during an import (`stream::games`):
+    /// `knowledge.max_unpack_ratio`.
+    pub max_ratio: u64,
 }
 
 impl Library {
@@ -461,7 +464,7 @@ impl Library {
         // older one stays as it was made.
         conn.execute_batch("PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
         conn.execute_batch(SCHEMA)?;
-        Ok(Library { conn, path: path.to_path_buf(), priority: DEFAULT_PRIORITY.map(String::from).to_vec(), batch: DEFAULT_BATCH })
+        Ok(Library { conn, path: path.to_path_buf(), priority: DEFAULT_PRIORITY.map(String::from).to_vec(), batch: DEFAULT_BATCH, max_ratio: bragd_core::config::MAX_UNPACK_RATIO })
     }
 
     pub fn path(&self) -> &Path {
@@ -770,6 +773,8 @@ pub fn import_routes(path: &Path, source: &str, routes: &mut [(&mut Library, Opt
 
 /// The streamed part of `import_routes`: one read of `path`, each Game offered to every way.
 fn stream_into(path: &Path, source: &str, ways: &[(&Library, Option<&StripRule>)], stop: &dyn Fn() -> bool, progress: &mut dyn FnMut(usize, &Progress)) -> Result<Vec<Progress>> {
+    // Every Library has the user's ratio; the strictest wins if they differ.
+    let max_ratio = ways.iter().map(|(lib, _)| lib.max_ratio).min().unwrap_or(bragd_core::config::MAX_UNPACK_RATIO);
     /// One Library's side of the import: the last batch written, and the one under way.
     struct Way<'c> {
         conn: &'c Connection,
@@ -788,7 +793,7 @@ fn stream_into(path: &Path, source: &str, ways: &[(&Library, Option<&StripRule>)
         })
         .collect::<Result<_>>()?;
     let (mut failed, mut n, mut cancelled) = (None::<Error>, 0usize, false);
-    let read = crate::stream::file_games(path, stop, &mut |member, format, text| {
+    let read = crate::stream::file_games(path, max_ratio, stop, &mut |member, format, text| {
         if stop() {
             cancelled = true;
             return false;

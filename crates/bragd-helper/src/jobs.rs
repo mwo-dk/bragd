@@ -138,6 +138,11 @@ fn upgrade(mut v: serde_json::Value) -> serde_json::Value {
     v
 }
 
+/// `knowledge.max_unpack_ratio`, read at each job so a change in Settings needs no restart.
+fn max_ratio() -> u64 {
+    Config::load().unwrap_or_default().knowledge.max_unpack_ratio
+}
+
 /// A Source's id as a folder name of its own: letters, digits and `-` stay, and every other
 /// byte is written `_` and its two hex digits, so no two ids share a folder (`custom:club.a` is
 /// `custom_3aclub_2ea`, `custom:club_a` is `custom_3aclub_5fa`).
@@ -380,6 +385,7 @@ impl Jobs {
         }
         let mut lib = Library::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
         lib.set_priority(&self.priority.iter().map(String::as_str).collect::<Vec<_>>());
+        lib.max_ratio = max_ratio();
         Ok(lib)
     }
 
@@ -499,7 +505,7 @@ impl Jobs {
                 }
                 report.removed.push((f.clone(), len));
             } else if let Some(rules) = &rules {
-                report.files.push(strip::rewrite(f, rules, dry_run, &stop).map_err(|e| format!("{}: {e}", f.display()))?);
+                report.files.push(strip::rewrite(f, rules, dry_run, max_ratio(), &stop).map_err(|e| format!("{}: {e}", f.display()))?);
             }
             self.progress(id, n as u64 + 1, Some(files.len() as u64));
         }
@@ -645,7 +651,7 @@ impl Jobs {
                 match (options.after_import, &rules) {
                     (AfterImport::Delete, _) => std::fs::remove_file(f).map_err(|e| format!("{}: {e}", f.display()))?,
                     (AfterImport::Strip, Some(rules)) => {
-                        strip::rewrite(f, rules, false, &stop).map_err(|e| format!("{}: {e}", f.display()))?;
+                        strip::rewrite(f, rules, false, max_ratio(), &stop).map_err(|e| format!("{}: {e}", f.display()))?;
                     }
                     _ => {}
                 }
@@ -941,7 +947,7 @@ pub(crate) mod tests {
     }
 
     fn games_in(path: &Path) -> u64 {
-        bragd_library::stream::file_games(path, &|| false, &mut |_, _, _| true).unwrap().games
+        bragd_library::stream::file_games(path, 50, &|| false, &mut |_, _, _| true).unwrap().games
     }
 
     /// A custom URL Source of RATED, set up with its options changed by `set`.
