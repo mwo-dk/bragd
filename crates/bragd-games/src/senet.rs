@@ -149,6 +149,7 @@ fn state(game: &Game, last: Option<rules_senet::Move>) -> State {
         targets: BTreeMap::new(),
         throws,
         history: game.entries().iter().map(|entry| entry.to_wire()).collect(),
+        numbers: Vec::new(),
         check: false,
         outcome: game.outcome().map(|outcome| Outcome {
             winner: Some(seat(outcome.winner)),

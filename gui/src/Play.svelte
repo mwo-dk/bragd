@@ -214,8 +214,10 @@
     if (st.moves.some((/** @type {any} */ m) => m.drop === piece.sprite && !m.from)) sel = { drop: piece.sprite };
     // Seirawan: the piece to gate, chosen before or after the piece that leaves its square.
     else if (gates(st, piece.sprite)) {
-      const gate = sel?.gate === piece.sprite ? undefined : piece.sprite;
-      sel = sel?.from && gate && movesOf(st, { from: sel.from, gate }).length ? { from: sel.from, gate } : gate ? { gate } : sel?.from ? { from: sel.from } : null;
+      const gate = sel?.gate === piece.sprite ? null : piece.sprite;
+      const from = sel?.from;
+      if (!gate) sel = from ? { from } : null;
+      else sel = from && movesOf(st, { from, gate }).length ? { from, gate } : { gate };
     }
     else if (h.seat === st.toMove?.index && st.moves.some((/** @type {any} */ m) => m.from === "waiting")) sel = { from: "waiting" };
   }

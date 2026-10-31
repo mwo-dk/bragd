@@ -19,11 +19,15 @@ pub(crate) fn replay(initial: Option<&str>, entries: &[&str]) -> Result<State, G
         ),
         None => Game::start(),
     };
+    let first = game.position().side_to_move();
     for (index, entry) in entries.iter().enumerate() {
         game.play_uci(entry)
             .map_err(|e| GameError::refused(index, entry, format!("{e:?}")))?;
     }
-    Ok(state(&game))
+    let mut state = state(&game);
+    // shortcut: numbering starts at move 1 whatever the FEN's move number; read it when a set-up position needs it.
+    state.numbers = crate::full_moves(seat(first).index.into(), state.history.len());
+    Ok(state)
 }
 
 fn seat(color: Color) -> Seat {
@@ -95,6 +99,7 @@ fn state(game: &Game) -> State {
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.moves().iter().map(|mv| mv.to_uci()).collect(),
+        numbers: Vec::new(),
         check,
         outcome: game.outcome().map(outcome_of),
         board: Board {

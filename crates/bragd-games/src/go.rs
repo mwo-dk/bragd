@@ -215,6 +215,7 @@ fn state(variant: Variant, game: &Game) -> State {
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.entries().iter().map(Entry::to_wire).collect(),
+        numbers: Vec::new(),
         check: false,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {

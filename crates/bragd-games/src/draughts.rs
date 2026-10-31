@@ -47,7 +47,11 @@ pub(crate) fn replay(
         game.play(mv)
             .map_err(|e| GameError::refused(index, entry, e))?;
     }
-    Ok(state(variant, &game))
+    let mut state = state(variant, &game);
+    // A draughts Game always starts from the opening array, so its first entry opens move 1,
+    // whichever Side moves first (Black in English checkers).
+    state.numbers = crate::full_moves(0, state.history.len());
+    Ok(state)
 }
 
 fn wire(geometry: Geometry, mv: Move) -> String {
@@ -173,6 +177,7 @@ fn state(variant: Variant, game: &Game) -> State {
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.moves().iter().map(|&mv| notation(geometry, mv)).collect(),
+        numbers: Vec::new(),
         check: false,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {

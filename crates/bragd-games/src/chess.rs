@@ -42,6 +42,11 @@ pub(crate) fn replay(
     Ok(state(variant, &game))
 }
 
+/// The ply the Game's first entry is: from the starting position's move number and side to move.
+fn first_ply(start: &Position) -> u32 {
+    2 * start.fullmove_number().saturating_sub(1) + u32::from(start.side_to_move() == Color::Black)
+}
+
 fn seat(variant: Variant, color: Color) -> Seat {
     Seat::of(variant, if color == Color::White { 0 } else { 1 })
 }
@@ -139,6 +144,7 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.san_history(),
+        numbers: crate::full_moves(first_ply(game.initial_position()), game.moves().len()),
         check,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {

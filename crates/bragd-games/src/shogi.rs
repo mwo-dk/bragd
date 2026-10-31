@@ -133,6 +133,7 @@ fn state(game: &Game) -> State {
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.moves().iter().map(|mv| mv.to_usi()).collect(),
+        numbers: Vec::new(),
         check,
         outcome: game.outcome().map(outcome_of),
         board: Board {
