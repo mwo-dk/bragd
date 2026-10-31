@@ -371,7 +371,6 @@
  "db.games": {
   "one": "{n} partija",
   "few": "{n} partijos",
-  "many": "{n} partijos",
   "other": "{n} partijų"
  },
  "db.import": "Importuoti į biblioteką",
@@ -423,7 +422,6 @@
  "helper.active": {
   "one": "{n} užduotis",
   "few": "{n} užduotys",
-  "many": "{n} užduoties",
   "other": "{n} užduočių"
  },
  "helper.connecting": "Jungiamasi prie pagalbininko…",
@@ -524,7 +522,6 @@
  "source.days_ago": {
   "one": "prieš {n} dieną",
   "few": "prieš {n} dienas",
-  "many": "prieš {n} dienos",
   "other": "prieš {n} dienų"
  },
  "source.disk_cap": "Laikyti daugiausia",
