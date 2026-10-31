@@ -151,3 +151,34 @@ Every step can be skipped, and each links to its Settings area. The wizard can b
 | Scripts | `install/*.sh`, `install/*.ps1` |
 
 The app identifier is `dk.mwo.bragd`. The code is under the MIT licence, and the art notices are listed in [`CREDITS.md`](CREDITS.md).
+
+## Clubs and tournaments (0.3.0)
+
+Everything is local in 0.3.0. Online sync comes later, on Bragd's own server.
+
+- **Club:** members with roles (director, arbiter, member), IDs from FIDE, the national federation and Lichess, and a club rating.
+  - The rating is Elo or Glicko-2, chosen per Club; Glicko-2 is the default.
+  - A director can edit a rating. Every edit is kept in an audit log: who, when, old value, new value and why.
+  - A Club is one file. Copying it shares it, and a lock stops two directors working on it at once.
+- **Rating lists:**
+  - FIDE, the Danish Chess Union (DSU), and every federation in Bragd's locale countries that publishes a usable list ([`reference/rating-lists.md`](reference/rating-lists.md)).
+  - The Helper fetches them monthly in the background, once you agree in the wizard.
+  - At check-in, players are found in them by name or ID.
+- **Pairing systems:** Swiss (FIDE Dutch), Monrad, Nordic Swiss, round-robin (Berger tables), knockout, Scheveningen, team Leagues, and the Drop-in tournament ("spil når du vil").
+  - Bragd pairs automatically. The director can change any pairing. Bragd warns when a change breaks a rule and logs the change with its reason.
+- **Drop-in tournament:** whoever turns up on an evening is paired among themselves.
+  - Standings are by total points, percentage (the default), or best N results.
+  - An absence counts as half a point for pairing only.
+- **Tiebreaks:** the FIDE set (C.07), ordered per Tournament. Danish defaults come from the DSU rules.
+- **On the night:** register, check in, pair, print or show on a second screen, enter results, correct, late entries and withdrawals, publish.
+- **Exports:**
+  - FIDE TRF;
+  - the DSU submission format, if one is published;
+  - PGN;
+  - a `.bragd-tournament` bundle;
+  - standings and crosstable as static HTML.
+- **Engine matches:**
+  - round-robin, gauntlet, or a two-engine match with SPRT;
+  - books, adjudication (including tablebases), and parallel games in the Helper;
+  - results go into a Library.
+- **Every Family** can run tournaments. Go has handicap pairing as an option, and backgammon has match play to N points.

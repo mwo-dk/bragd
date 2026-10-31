@@ -83,6 +83,20 @@ _Avoid_: skin, style
 The four colours of a board: light square, dark square, highlight and marker. It is chosen independently of the Theme, or set to match it. It never controls how a board is built, because that belongs to the Game family.
 _Avoid_: board colour, board skin
 
+### Clubs and competition
+
+**Club**:
+A named group of members who play together. Each member has a role (director, arbiter or member) and may carry IDs from FIDE, a national federation or Lichess, plus a rating kept by the club. A Club owns its Tournaments and its own ratings.
+_Avoid_: group, society, team (a Team is what a Club fields in a League)
+
+**Pairing system**:
+The rule that decides who plays whom in each Round. The options are Swiss (FIDE Dutch), Monrad, Nordic Swiss, round-robin (Berger tables), knockout and Scheveningen.
+_Avoid_: draw (a draw is a result), schedule
+
+**Rating list**:
+A published list of players with their federation IDs and ratings, such as the FIDE list or the Danish Chess Union's (DSU) list. Bragd downloads it like a Source and uses it to find and update members.
+_Avoid_: player database, ranking
+
 ### Engines
 
 **Engine**:
