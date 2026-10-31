@@ -33,11 +33,16 @@ pub(crate) fn test_dir(name: &str) -> std::path::PathBuf {
 }
 
 /// A shell script standing in for an engine or a container runtime: never a real one.
+///
+/// Written by a `sh` of its own, not by this process: a file this process holds open for
+/// writing can be inherited by another test thread's child between its fork and its exec,
+/// and running the script then fails with "Text file busy".
 #[cfg(all(test, unix))]
 pub(crate) fn fake_program(dir: &std::path::Path, name: &str, body: &str) -> std::path::PathBuf {
-    use std::os::unix::fs::PermissionsExt;
+    use std::io::Write;
     let p = dir.join(name);
-    std::fs::write(&p, format!("#!/bin/sh\n{body}\n")).unwrap();
-    std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let mut sh = tools::own("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(&p).stdin(std::process::Stdio::piped()).spawn().unwrap();
+    sh.stdin.take().unwrap().write_all(format!("#!/bin/sh\n{body}\n").as_bytes()).unwrap();
+    assert!(sh.wait().unwrap().success());
     p
 }
