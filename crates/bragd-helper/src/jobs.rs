@@ -310,6 +310,10 @@ impl Jobs {
     /// Queues a fetch of every Source due at `now` that may go on a connection `metered` and
     /// is not queued already: the ids of the jobs.
     pub fn queue_due(&self, now: u64, metered: Option<bool>) -> Vec<u64> {
+        // Offline nothing is due: a fetch could only fail.
+        if self.net.offline() {
+            return vec![];
+        }
         let sources = self.sources();
         let due: Vec<String> = {
             let st = self.lock();

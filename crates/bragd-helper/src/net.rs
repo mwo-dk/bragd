@@ -23,14 +23,28 @@ pub trait Fetcher: Send + Sync {
     fn exists(&self, url: &str) -> io::Result<bool> {
         Ok(!matches!(self.get(url, 0)?, Got::Missing))
     }
+    /// With `BRAGD_OFFLINE` set: nothing is fetched.
+    fn offline(&self) -> bool {
+        false
+    }
 }
 
-/// The real thing, over HTTPS with the system's certificate store.
-pub struct Web(ureq::Agent);
+/// The real thing, over HTTPS with the system's certificate store. With `BRAGD_OFFLINE` set it
+/// asks nobody.
+pub struct Web {
+    agent: ureq::Agent,
+    offline: bool,
+}
 
 impl Default for Web {
     fn default() -> Self {
-        Web(bragd_engines::fetch::agent(false))
+        Web { agent: bragd_engines::fetch::agent(false), offline: std::env::var_os("BRAGD_OFFLINE").is_some() }
+    }
+}
+
+impl Web {
+    fn refuse(&self) -> io::Result<()> {
+        if self.offline { Err(io::Error::other("BRAGD_OFFLINE is set: nothing is fetched")) } else { Ok(()) }
     }
 }
 
@@ -40,7 +54,8 @@ fn status_error(url: &str, status: u16) -> io::Error {
 
 impl Fetcher for Web {
     fn get(&self, url: &str, from: u64) -> io::Result<Got> {
-        let mut req = self.0.get(url);
+        self.refuse()?;
+        let mut req = self.agent.get(url);
         if from > 0 {
             req = req.header("Range", format!("bytes={from}-"));
         }
@@ -56,12 +71,17 @@ impl Fetcher for Web {
     }
 
     fn exists(&self, url: &str) -> io::Result<bool> {
-        let r = self.0.head(url).call().map_err(io::Error::other)?;
+        self.refuse()?;
+        let r = self.agent.head(url).call().map_err(io::Error::other)?;
         match r.status().as_u16() {
             404 | 410 => Ok(false),
             s if (200..400).contains(&s) => Ok(true),
             s => Err(status_error(url, s)),
         }
+    }
+
+    fn offline(&self) -> bool {
+        self.offline
     }
 }
 
@@ -207,6 +227,9 @@ pub(crate) mod tests {
         fn exists(&self, url: &str) -> io::Result<bool> {
             self.asked.lock().unwrap().push(format!("HEAD {url}"));
             Ok(self.files.contains_key(url))
+        }
+        fn offline(&self) -> bool {
+            self.offline
         }
     }
 
