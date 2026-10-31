@@ -36,7 +36,7 @@ In the Flatpak, the XDG folders are the app's own: `~/.var/app/io.github.mwo_dk.
 | data/`helper/helper.addr` | The Helper's address and a token, readable by you only |
 | data/`helper/helper.log` | What the Helper did, with times in UTC |
 | data/`helper/state.json` | Sources, their options and Strip rules, what each fetch remembered, and the jobs |
-| data/`helper/sources/<source>/` | Each Source's downloads, kept as they came |
+| data/`helper/sources/<source>/` | Each Source's downloads, kept as they came, one folder per Source id (`custom:club.a` is `custom_3aclub_2ea`) |
 | cache/`reviews/` | [Game reviews](../engines/review.md), the newest 1,000 |
 
 A file a Source downloads stays packed. Zips and packed PGN are read as a stream and never unpacked to disk.

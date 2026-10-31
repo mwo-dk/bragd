@@ -122,9 +122,11 @@ impl State {
     }
 }
 
-/// A Source's id as a folder name.
+/// A Source's id as a folder name of its own: letters, digits and `-` stay, and every other
+/// byte is written `_` and its two hex digits, so no two ids share a folder (`custom:club.a` is
+/// `custom_3aclub_2ea`, `custom:club_a` is `custom_3aclub_5fa`).
 fn folder_name(id: &str) -> String {
-    id.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' }).collect()
+    id.bytes().map(|b| if b.is_ascii_alphanumeric() || b == b'-' { (b as char).to_string() } else { format!("_{b:02x}") }).collect()
 }
 
 /// The jobs and the Sources, shared by the connections and the worker.
@@ -678,7 +680,7 @@ pub(crate) mod tests {
         let l = Library::open(&lib).unwrap();
         assert_eq!(l.sources(1).unwrap()[0].0, "custom:club");
         // The zip stays as it came, and nothing was unpacked beside it; the fetch is remembered.
-        let src = d.0.join("sources/custom_club");
+        let src = d.0.join("sources/custom_3aclub");
         assert_eq!(std::fs::read_dir(&src).unwrap().count(), 1);
         assert!(src.join("games.zip").exists());
         let memo = jobs.lock().sources["custom:club"].memo.clone();
@@ -699,7 +701,7 @@ pub(crate) mod tests {
         o.url = url.into();
         jobs.set_source("custom:club", o).unwrap();
         // What an older version of the file left when its fetch stopped.
-        let src = d.0.join("sources/custom_club");
+        let src = d.0.join("sources/custom_3aclub");
         std::fs::create_dir_all(&src).unwrap();
         std::fs::write(src.join("games.pgn.part"), "[Event \"Old version, longer than the head\"]\n").unwrap();
         run(&jobs, Work::Fetch { source: "custom:club".into() });
@@ -831,13 +833,13 @@ pub(crate) mod tests {
         });
         run(&jobs, Work::Fetch { source: "custom:club".into() });
         assert_eq!(count(&d.0.join("lib/main.bragd")), 1, "the weak Game was never stored");
-        assert_eq!(games_in(&d.0.join("sources/custom_club/club.zip")), 1, "nor kept in the download");
+        assert_eq!(games_in(&d.0.join("sources/custom_3aclub/club.zip")), 1, "nor kept in the download");
         // Deleted once imported, when the user says so.
         let d = crate::tests::Dir::new("delete-fetch");
         let jobs = club(&d.0, |o| o.after_import = AfterImport::Delete);
         run(&jobs, Work::Fetch { source: "custom:club".into() });
         assert_eq!(count(&d.0.join("lib/main.bragd")), 2);
-        assert_eq!(std::fs::read_dir(d.0.join("sources/custom_club")).unwrap().count(), 0);
+        assert_eq!(std::fs::read_dir(d.0.join("sources/custom_3aclub")).unwrap().count(), 0);
     }
 
     #[test]
@@ -851,7 +853,7 @@ pub(crate) mod tests {
         let lib = d.0.join("lib/main.bragd");
         run(&jobs, Work::Import { path: mine, library: lib.clone(), source: "file".into() });
         assert_eq!(count(&lib), 2);
-        let zip = d.0.join("sources/custom_club/club.zip");
+        let zip = d.0.join("sources/custom_3aclub/club.zip");
         let before = std::fs::read(&zip).unwrap();
         let no_rule = jobs.add(Work::Strip { source: "custom:club".into(), dry_run: true });
         while jobs.run_next() {}
@@ -927,5 +929,23 @@ pub(crate) mod tests {
         let r = jobs.check_disk(&cfg, 1_000_000);
         assert_eq!(r.crossed.iter().map(|c| c.key.as_str()).collect::<Vec<_>>(), ["notice.disk_item_over"]);
         assert!(dir.join("a.pgn").exists() && jobs.queue_due(1_000_000, None).len() == 1 && jobs.list().len() == 1);
+    }
+
+    /// Every Source has a downloads folder of its own, named by its id, so deleting one Source's
+    /// downloads never touches another's.
+    #[test]
+    fn each_source_has_its_own_downloads_folder() {
+        let ids = ["twic", "lichess-db", "custom:club.a", "custom:club_a", "custom:club a", "custom:Club-A", "custom:klubb_ø"];
+        let names: Vec<String> = ids.iter().map(|id| folder_name(id)).collect();
+        assert_eq!(names[..4], ["twic", "lichess-db", "custom_3aclub_2ea", "custom_3aclub_5fa"]);
+        let mut unique = names.clone();
+        unique.sort();
+        unique.dedup();
+        assert_eq!(unique.len(), ids.len(), "{names:?}");
+        assert!(names.iter().all(|n| n.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')), "{names:?}");
+        let d = crate::tests::Dir::new("own-folders");
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::new(AtomicBool::new(false)));
+        assert_ne!(jobs.source_dir("custom:club.a"), jobs.source_dir("custom:club_a"));
+        assert_eq!(jobs.source_dir("twic"), d.0.join("sources").join("twic"));
     }
 }

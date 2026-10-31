@@ -76,7 +76,7 @@ A connection NetworkManager marks as metered, such as a phone hotspot. On system
 
 #### Where do the downloads go?
 
-Into the Helper's folder, `<data>/bragd/helper/sources/<source>/`. They are kept unless *After import* says otherwise or *Keep at most* is passed.
+Into the Helper's folder, `<data>/bragd/helper/sources/<source>/`, one folder per Source, named by its id. Letters, digits and `-` stay as they are, and any other character is written `_` and its hex code, so `custom:club.a` is `custom_3aclub_2ea`. Two Sources never share a folder. The downloads are kept unless *After import* says otherwise or *Keep at most* is passed.
 
 #### Why was a Source not fetched on time?
 
