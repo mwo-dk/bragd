@@ -1,7 +1,9 @@
 name: CI
 
 on:
-  workflow_call: # from release.yml, for every push to master and every release
+  push:
+    branches: [master] # all five machines on every merge; pull requests run Linux only until 1.0.0
+  workflow_call: # from release.yml, for every release
   pull_request:
 
 permissions:
