@@ -284,7 +284,9 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     }
     while !quit.load(Ordering::SeqCst) {
         let idle = last.lock().unwrap_or_else(|e| e.into_inner()).elapsed();
-        if idle_exit(clients.load(Ordering::SeqCst), idle, jobs.busy(), stays, linger) {
+        // *Start with my session* turned on since this Helper started: it stays, as the one
+        // the session would start does.
+        if idle_exit(clients.load(Ordering::SeqCst), idle, jobs.busy(), stays, linger) && !bragd_core::config::Config::load().unwrap_or_default().helper.start_with_session {
             break;
         }
         std::thread::sleep(linger.min(Duration::from_millis(200)));
