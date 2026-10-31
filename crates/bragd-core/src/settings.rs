@@ -114,7 +114,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 14] = [
+const OTHER_OPTS: [Opt; 15] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -124,6 +124,7 @@ const OTHER_OPTS: [Opt; 14] = [
         Look,
         "setting.board_theme",
     ),
+    opt("file_picker", &["look", "file_picker"], Look, "setting.file_picker"),
     opt(
         "engines_containers",
         &["engines", "containers"],

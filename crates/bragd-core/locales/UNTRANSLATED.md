@@ -7,7 +7,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 
 ## In every language of its own
 
-329 keys:
+341 keys:
 
 - `board_theme.match`
 - `board_theme.racing`
@@ -115,6 +115,13 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `features.filter`
 - `features.none`
 - `features.show_me`
+- `files.books`
+- `files.choose`
+- `files.pick_book`
+- `files.pick_database`
+- `files.pick_engine`
+- `files.pick_tablebases`
+- `files.save_database`
 - `hint.features`
 - `hint.sidebar`
 - `hint.wizard`
@@ -178,6 +185,8 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `setting.engines_containers.hint`
 - `setting.engines_runtime`
 - `setting.engines_runtime.hint`
+- `setting.file_picker`
+- `setting.file_picker.hint`
 - `setting.language.hint`
 - `setting.library`
 - `setting.library.hint`
@@ -198,6 +207,9 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `settings.area.knowledge`
 - `settings.area.look`
 - `settings.area.online`
+- `settings.file_picker_auto`
+- `settings.file_picker_auto_found`
+- `settings.file_picker_system`
 - `settings.open_failed`
 - `settings.overview`
 - `settings.run_wizard`

@@ -712,5 +712,17 @@
  "engines.open_settings": "Settings → Engines",
  "engines.open_site": "Download page",
  "engines.get_more": "Get more engines…",
- "engines.none_ready": "No engine for this variant is ready yet."
+ "engines.none_ready": "No engine for this variant is ready yet.",
+ "setting.file_picker": "File picker",
+ "setting.file_picker.hint": "The dialog that opens and saves files. Coxswain's picker needs coxswain-gui on your PATH; without it the system's dialog opens.",
+ "settings.file_picker_auto": "Automatic: the system's dialog, as Coxswain is not found",
+ "settings.file_picker_auto_found": "Automatic: Coxswain's picker, found on your PATH",
+ "settings.file_picker_system": "The system's dialog",
+ "files.choose": "Choose…",
+ "files.pick_engine": "Choose the engine's program",
+ "files.pick_book": "Choose an opening book",
+ "files.books": "Polyglot opening books",
+ "files.pick_tablebases": "Choose the tablebase folder",
+ "files.pick_database": "Open a database",
+ "files.save_database": "Save the database as"
 }

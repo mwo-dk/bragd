@@ -71,6 +71,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Looks](look/looks.md) | The chrome laid over a Theme |
 | [Board themes](look/board-themes.md) | Racing green, Slate, Walnut and Match theme, on every Family's board |
 | [Languages](look/languages.md) | Choosing a language, *Automatic*, right to left, mending a translation |
+| [File picker](look/file-picker.md) | Coxswain's picker or the system's dialog, for every file Bragd opens or saves |
 
 ## [Online](online/README.md)
 

@@ -206,6 +206,7 @@
     <h2>{t("engines.add")}</h2>
     <form class="add" onsubmit={(e) => (e.preventDefault(), act(api.engineAdd(family.id, path)).then(() => (path = "")))}>
       <input type="text" bind:value={path} placeholder={t("engines.add_path")} aria-label={t("engines.add_path")} />
+      <button type="button" disabled={busy} onclick={() => api.pickPath("engine").then((p) => p && (path = p), fail)}>{t("files.choose")}</button>
       <button class="primary" disabled={busy || !path.trim()}>{t("engines.add_button")}</button>
     </form>
     <p class="dim">{t("engines.add_hint")}</p>

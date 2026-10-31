@@ -9,4 +9,4 @@ Playing against people on other servers, and later on Bragd's own. None of it is
 | [Playing online](playing-online.md) | What is coming: other servers, then Bragd's own. Not yet available |
 
 ---
-[← Previous: Languages](../look/languages.md) · [Next: Playing online →](playing-online.md)
+[← Previous: File picker](../look/file-picker.md) · [Next: Playing online →](playing-online.md)

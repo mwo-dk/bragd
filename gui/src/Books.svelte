@@ -42,6 +42,7 @@
   {/each}
   <form class="row" onsubmit={(e) => (e.preventDefault(), run(api.bookAdd(path)))}>
     <input type="text" bind:value={path} placeholder={t("books.path")} aria-label={t("books.path")} />
+    <button type="button" onclick={() => api.pickPath("book").then((p) => p && (path = p), (e) => (error = String(e)))}>{t("files.choose")}</button>
     <button class="primary" disabled={!path.trim()}>{t("books.add")}</button>
   </form>
   {#if error}<p class="error" role="alert">{error}</p>{/if}

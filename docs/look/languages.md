@@ -66,4 +66,4 @@ In counts, such as the number of jobs, yes: Persian writes ۰ to ۹. Paths, keys
 The Helper's notices, such as those of Disk watch, are sent as a key with its values, and each window shows them in its own language.
 
 ---
-[← Previous: Board themes](board-themes.md) · [Next: Online →](../online/README.md)
+[← Previous: Board themes](board-themes.md) · [Next: File picker →](file-picker.md)

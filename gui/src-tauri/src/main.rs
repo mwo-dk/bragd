@@ -10,6 +10,7 @@ mod knowledge;
 mod analyse;
 mod engine_commands;
 mod engines;
+mod files;
 mod rules;
 mod tablebases;
 mod throw;
@@ -123,6 +124,19 @@ fn choices(name: &str, cfg: &Config) -> Vec<Choice> {
         "language" => std::iter::once(choice("auto", tr("settings.language_auto"), ""))
             .chain(i18n::LANGUAGES.iter().map(|l| choice(l.code, l.name.to_string(), l.group)))
             .collect(),
+        "file_picker" => vec![
+            choice(
+                "auto",
+                tr(if files::coxswain().is_some() {
+                    "settings.file_picker_auto_found"
+                } else {
+                    "settings.file_picker_auto"
+                }),
+                "",
+            ),
+            choice("coxswain", "Coxswain".into(), ""),
+            choice("system", tr("settings.file_picker_system"), ""),
+        ],
         "engines_runtime" => vec![
             choice("auto", tr("settings.runtime_auto"), ""),
             choice("podman", "podman".into(), ""),
@@ -274,6 +288,7 @@ fn main() {
             help::open_config,
             help::suggest_translation,
             help::open_url,
+            files::pick_path,
             wizard::guide_due,
             wizard::wizard_open,
             wizard::wizard_chosen,

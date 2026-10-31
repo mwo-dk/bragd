@@ -10,6 +10,7 @@ How Bragd looks and which language it speaks: the Theme for the app's colours, t
 | [Looks](looks.md) | The chrome laid over a Theme |
 | [Board themes](board-themes.md) | Racing green, Slate, Walnut and Match theme, on every Family's board |
 | [Languages](languages.md) | Choosing a language, *Automatic*, right to left, mending a translation |
+| [File picker](file-picker.md) | Coxswain's picker or the system's dialog, for every file Bragd opens or saves |
 
 | Setting | `config.toml` key | Default |
 |---|---|---|
@@ -17,6 +18,7 @@ How Bragd looks and which language it speaks: the Theme for the app's colours, t
 | Look | `look.look` | `""`, the Theme's own |
 | Board theme | `look.board_theme` | `"racing"` |
 | Language | `language` | `"auto"` |
+| File picker | `look.file_picker` | `"auto"` |
 
 ---
 [← Previous: Opening books](../engines/opening-books.md) · [Next: Themes →](themes.md)

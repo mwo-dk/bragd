@@ -51,6 +51,9 @@ pub struct LookConfig {
     pub look: String,
     /// `racing`, `slate`, `walnut`, or `match` for colours taken from the Theme.
     pub board_theme: String,
+    /// The file dialog: `auto` (Coxswain's picker when it is on PATH, else the system's),
+    /// `coxswain` or `system`.
+    pub file_picker: String,
 }
 
 impl Default for LookConfig {
@@ -59,6 +62,7 @@ impl Default for LookConfig {
             theme: "racing-green".into(),
             look: String::new(),
             board_theme: "racing".into(),
+            file_picker: "auto".into(),
         }
     }
 }

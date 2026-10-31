@@ -62,6 +62,7 @@ One switch per Game family, and under it one per Variant. All are on by default 
 | `theme` | Theme | `look.theme` | The app's colours, and with some Themes their own shapes. Racing green is the default |
 | `look` | Look | `look.look` | The shapes and chrome laid over the Theme's colours. Empty: the Theme's own |
 | `board_theme` | Board theme | `look.board_theme` | The four colours of every board. Match theme takes them from the Theme |
+| `file_picker` | File picker | `look.file_picker` | The dialog that opens and saves files: Automatic (Coxswain's picker when found, else the system's), Coxswain or the system's ([File picker](../look/file-picker.md)) |
 
 ## Engines
 

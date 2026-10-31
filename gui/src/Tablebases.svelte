@@ -50,6 +50,7 @@
       <label for="tb-folder">{t("tablebases.folder")}</label>
       <form class="row" onsubmit={(e) => (e.preventDefault(), run(() => save("tablebases_path", folder.trim())))}>
         <input id="tb-folder" type="text" bind:value={folder} placeholder={page.folder} />
+        <button type="button" onclick={() => api.pickPath("tablebases").then((p) => p && (folder = p), (e) => (error = String(e)))}>{t("files.choose")}</button>
         <button>{t("tablebases.use_folder")}</button>
       </form>
       <p class="dim">{page.custom ? t("tablebases.folder_set") : t("tablebases.folder_default", { path: page.folder })}</p>

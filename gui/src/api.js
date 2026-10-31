@@ -38,6 +38,8 @@ export const noticeDismiss = (/** @type {string} */ id) => invoke("notice_dismis
 export const updateCheck = () => invoke("update_check");
 export const openConfig = () => invoke("open_config");
 export const suggestTranslation = (/** @type {string} */ shown) => invoke("suggest_translation", { shown });
+/** A path chosen with the file picker for a field: "engine", "book" or "tablebases"; null when cancelled. @returns {Promise<string|null>} */
+export const pickPath = (/** @type {string} */ what) => invoke("pick_path", { what });
 export const openUrl = (/** @type {string} */ url) => invoke("open_url", { url });
 
 // Engines, Analyse, Tablebases and Opening books (gui/src-tauri/src/engine_commands.rs).

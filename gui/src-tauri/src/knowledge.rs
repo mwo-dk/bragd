@@ -17,9 +17,8 @@ use bragd_library::library::Library;
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
-use tauri_plugin_dialog::DialogExt;
 
-use crate::Ctx;
+use crate::{Ctx, files};
 use crate::databases::{self, Databases, FileView, LibraryView, OpenFile, Replay, Review, Rows, SliceView};
 use crate::helper_link::{self, HelperView, Link};
 
@@ -39,10 +38,6 @@ pub fn start(app: &AppHandle) {
     std::thread::spawn(move || {
         let _ = app.state::<Knowledge>().link.ask(&Request::Status);
     });
-}
-
-fn path_of(f: tauri_plugin_dialog::FilePath) -> Res<PathBuf> {
-    f.into_path().map_err(|e| e.to_string())
 }
 
 // ---------------------------------------------------------------- the Helper and its jobs
@@ -71,9 +66,10 @@ const GAME_FILES: [&str; 13] = ["pgn", "gz", "zst", "bz2", "si4", "si5", "cbh", 
 
 /// Asks for a Foreign database with the file dialog and opens it; `None` when none was chosen.
 #[tauri::command(async)]
-pub fn db_pick(app: AppHandle, k: State<'_, Knowledge>) -> Res<Option<FileView>> {
-    let Some(f) = app.dialog().file().add_filter(t!("db.game_files"), &GAME_FILES).blocking_pick_file() else { return Ok(None) };
-    db_open(&path_of(f)?, &k).map(Some)
+pub fn db_pick(app: AppHandle, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Option<FileView>> {
+    let ask = files::Ask { title: t!("files.pick_database"), filters: vec![(t!("db.game_files"), GAME_FILES.iter().map(|e| e.to_string()).collect())], ..Default::default() };
+    let Some(f) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
+    db_open(&f, &k).map(Some)
 }
 
 fn db_open(path: &Path, k: &Knowledge) -> Res<FileView> {
@@ -146,15 +142,11 @@ fn save_to(from: &Path, to: &Path, confirmed: bool) -> Res<Saved> {
 /// Save as…: the open Foreign database written to a file the user picks. Writing over a
 /// downloaded file waits for `db_save_to` with the user's yes.
 #[tauri::command(async)]
-pub fn db_save_as(app: AppHandle, k: State<'_, Knowledge>) -> Res<Option<Saved>> {
+pub fn db_save_as(app: AppHandle, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Option<Saved>> {
     let from = open_path(&k)?;
     let name = from.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let mut d = app.dialog().file().set_file_name(name);
-    if let Some(dir) = from.parent() {
-        d = d.set_directory(dir);
-    }
-    let Some(to) = d.blocking_save_file() else { return Ok(None) };
-    let to = path_of(to)?;
+    let ask = files::Ask { title: t!("files.save_database"), save: Some(name), start: from.parent().map(Path::to_path_buf), ..Default::default() };
+    let Some(to) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
     let saved = save_to(&from, &to, false)?;
     *k.to_confirm.lock().unwrap_or_else(|e| e.into_inner()) = saved.confirm.then_some(to);
     Ok(Some(saved))
