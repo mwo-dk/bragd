@@ -24,7 +24,7 @@ pub fn which(program: &str) -> Option<PathBuf> {
 
 /// An engine program called `name`: on PATH, on Debian and its kin in `/usr/games` (where
 /// their engines go), and on Windows a download that kept its long name
-/// (`stockfish-windows-x86-64-avx2.exe`) in a PATH folder or WinGet's package folders. Only
+/// (`stockfish-windows-x86-64-avx2.exe`) in a PATH folder, WinGet's Links or its package folders. Only
 /// looked for, never run.
 pub fn find(name: &str) -> Option<PathBuf> {
     which(name)
@@ -32,16 +32,19 @@ pub fn find(name: &str) -> Option<PathBuf> {
             let p = Path::new("/usr/games").join(name);
             (cfg!(unix) && p.is_file()).then_some(p)
         })
-        .or_else(|| if cfg!(windows) { long_named(name, ".exe", windows_dirs()) } else { None })
+        .or_else(|| if cfg!(windows) { long_named(name, ".exe", windows_dirs(std::env::var_os("PATH"), std::env::var_os("LOCALAPPDATA"))) } else { None })
 }
 
-/// PATH's folders, then WinGet's package folders and the one level inside each (its zips
-/// unpack into a folder of their own). Never the Downloads folder: whatever lands there
-/// would run as the engine.
-fn windows_dirs() -> Vec<PathBuf> {
-    let mut dirs: Vec<PathBuf> = std::env::var_os("PATH").map(|p| std::env::split_paths(&p).filter(|d| d.is_absolute()).collect()).unwrap_or_default();
-    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-        let packages = Path::new(&local).join(r"Microsoft\WinGet\Packages");
+/// PATH's folders, then WinGet's `Links` folder (its command aliases: on PATH only for programs
+/// started after the install), then its package folders and the one level inside each (its zips
+/// unpack into a folder of their own). Never the Downloads folder: whatever lands there would
+/// run as the engine.
+fn windows_dirs(path: Option<OsString>, local: Option<OsString>) -> Vec<PathBuf> {
+    let mut dirs: Vec<PathBuf> = path.map(|p| std::env::split_paths(&p).filter(|d| d.is_absolute()).collect()).unwrap_or_default();
+    if let Some(local) = local {
+        let winget = Path::new(&local).join("Microsoft").join("WinGet");
+        dirs.push(winget.join("Links"));
+        let packages = winget.join("Packages");
         for pkg in std::fs::read_dir(packages).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
             dirs.extend(std::fs::read_dir(&pkg).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.is_dir()));
             dirs.push(pkg);
@@ -50,8 +53,9 @@ fn windows_dirs() -> Vec<PathBuf> {
     dirs
 }
 
-/// The first file (by name) in the first of `dirs` that has one named `<name>-…` or `<name>_…`
-/// and ending in `ext`, letter case aside: an engine downloaded under its long name.
+/// The first file (by name) in the first of `dirs` that is named `<name>-…`, `<name>_…` or
+/// exactly `<name><ext>` (WinGet's command alias), ending in `ext`, letter case aside: an engine
+/// downloaded under its long name.
 pub(crate) fn long_named(name: &str, ext: &str, dirs: impl IntoIterator<Item = PathBuf>) -> Option<PathBuf> {
     let name = name.to_ascii_lowercase();
     dirs.into_iter().filter_map(|d| std::fs::read_dir(d).ok()).find_map(|rd| {
@@ -60,7 +64,8 @@ pub(crate) fn long_named(name: &str, ext: &str, dirs: impl IntoIterator<Item = P
             .map(|e| e.path())
             .filter(|p| {
                 let f = p.file_name().and_then(|f| f.to_str()).unwrap_or_default().to_ascii_lowercase();
-                f.strip_prefix(&name).is_some_and(|r| r.starts_with(['-', '_'])) && f.ends_with(ext) && p.is_file()
+                let long = f.strip_prefix(&name).is_some_and(|r| r.starts_with(['-', '_'])) && f.ends_with(ext);
+                (long || f == format!("{name}{ext}")) && p.is_file()
             })
             .collect();
         hits.sort();
