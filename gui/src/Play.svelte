@@ -508,6 +508,9 @@
     align-items: center;
   }
   .moves {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.5rem;
     margin: 0;
     line-height: 1.6;
     font-variant-numeric: tabular-nums;
@@ -517,7 +520,6 @@
     margin-inline-end: 0.2rem;
   }
   .moves .entry {
-    margin-inline-end: 0.5rem;
     white-space: nowrap;
   }
   h2 {
