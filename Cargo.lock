@@ -354,6 +354,7 @@ dependencies = [
  "bragd-games",
  "bragd-helper",
  "bragd-library",
+ "getrandom 0.4.3",
  "pulldown-cmark",
  "serde",
  "serde_json",

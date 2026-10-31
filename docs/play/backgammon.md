@@ -57,7 +57,7 @@ One for a single game, two for a gammon, three for a backgammon, each times the 
 
 #### Are the dice fair?
 
-They are random, drawn from the standard library's randomly seeded hasher. That is not a cryptographic generator, which a die at home does not need. Online play would need a stronger one.
+Yes. Each die comes from the operating system's random source, one byte at a time. A byte from the top four values (252 to 255) is thrown away and another taken, so every face is exactly as likely as the others. Ur's dice and Senet's sticks come from the same source.
 
 #### Does the Engine double?
 

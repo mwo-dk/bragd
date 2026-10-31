@@ -17,6 +17,8 @@ bragd-engines = { path = "../../crates/bragd-engines" }
 tauri-plugin-opener = "2"
 # Engines, tablebases and their downloads; opening books and names from the library.
 bragd-library = { path = "../../crates/bragd-library" }
+# Dice and sticks are thrown from the operating system's random source.
+getrandom = "0.4"
 # Lists written into config.toml (the opening books), as bragd-core writes them.
 toml_edit = "0.25"
 # No `devtools` feature: a release build has no inspector.
