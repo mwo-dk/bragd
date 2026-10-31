@@ -33,8 +33,11 @@ pub type Ours = (&'static str, u32);
 const OURS: Ours = (VERSION, PROTOCOL);
 /// A request longer than this is nobody's: the connection is dropped.
 const LINE_MAX: u64 = 1 << 20;
-/// How long a connection has to say hello; a window does so at once.
+/// How long a connection has to say hello, all told; a window does so at once.
 const HELLO_WAIT: Duration = Duration::from_secs(5);
+/// Connections that have not said hello yet, at most: more are dropped at once, so nobody can
+/// open threads without limit.
+const HELLO_PENDING: usize = 64;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
@@ -266,13 +269,15 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     {
         let (jobs, clients, quit, last) = (jobs.clone(), clients.clone(), quit.clone(), last.clone());
         std::thread::spawn(move || {
+            let pending = Arc::new(AtomicUsize::new(0));
             for stream in listener.incoming().flatten() {
-                let (jobs, token, clients, quit, last) = (jobs.clone(), token.clone(), clients.clone(), quit.clone(), last.clone());
+                if pending.fetch_add(1, Ordering::SeqCst) >= HELLO_PENDING {
+                    pending.fetch_sub(1, Ordering::SeqCst);
+                    continue;
+                }
+                let (jobs, token, clients, quit, last, pending) = (jobs.clone(), token.clone(), clients.clone(), quit.clone(), last.clone(), pending.clone());
                 std::thread::spawn(move || {
-                    clients.fetch_add(1, Ordering::SeqCst);
-                    let _ = answer(ours, stream, &jobs, &token, stays, &clients, &quit);
-                    clients.fetch_sub(1, Ordering::SeqCst);
-                    *last.lock().unwrap_or_else(|e| e.into_inner()) = Instant::now();
+                    let _ = answer(ours, stream, &jobs, &token, stays, Hello { clients: &clients, last: &last, pending: &pending, counted: Counted::Waiting }, &quit);
                 });
             }
         });
@@ -290,10 +295,71 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     Ok(if quit.load(Ordering::SeqCst) { Ended::Asked } else { Ended::Idle })
 }
 
-fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, clients: &AtomicUsize, quit: &AtomicBool) -> io::Result<()> {
-    stream.set_read_timeout(Some(HELLO_WAIT))?;
+/// Where a connection stands: waiting for its hello, or a window.
+#[derive(PartialEq)]
+enum Counted {
+    Waiting,
+    Window,
+}
+
+/// A connection's place in the counts: pending until its token is checked, then a window
+/// (`clients`) until it goes, when `last` says so. Only a window keeps the Helper from leaving.
+struct Hello<'a> {
+    clients: &'a AtomicUsize,
+    last: &'a Mutex<Instant>,
+    pending: &'a AtomicUsize,
+    counted: Counted,
+}
+
+impl Hello<'_> {
+    /// The token was right: a window from now on.
+    fn window(&mut self) {
+        if self.counted == Counted::Waiting {
+            self.pending.fetch_sub(1, Ordering::SeqCst);
+            self.clients.fetch_add(1, Ordering::SeqCst);
+            self.counted = Counted::Window;
+        }
+    }
+}
+
+impl Drop for Hello<'_> {
+    fn drop(&mut self) {
+        match self.counted {
+            Counted::Waiting => {
+                self.pending.fetch_sub(1, Ordering::SeqCst);
+            }
+            Counted::Window => {
+                self.clients.fetch_sub(1, Ordering::SeqCst);
+                *self.last.lock().unwrap_or_else(|e| e.into_inner()) = Instant::now();
+            }
+        }
+    }
+}
+
+/// A stream read up to a deadline over all its reads, not per read: a connection that sends
+/// a byte at a time cannot stretch its hello. No deadline once it has said hello.
+struct Timed {
+    stream: Stream,
+    by: Option<Instant>,
+}
+
+impl Read for Timed {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if let Some(by) = self.by {
+            let left = by.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                return Err(io::ErrorKind::TimedOut.into());
+            }
+            self.stream.set_read_timeout(Some(left))?;
+        }
+        self.stream.read(buf)
+    }
+}
+
+fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, mut hello: Hello, quit: &AtomicBool) -> io::Result<()> {
+    let clients = hello.clients;
     let mut out = stream.try_clone()?;
-    let mut from = BufReader::new(stream);
+    let mut from = BufReader::new(Timed { stream, by: Some(Instant::now() + HELLO_WAIT) });
     let mut said_hello = false;
     let mut line = String::new();
     loop {
@@ -310,7 +376,9 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, cli
                     return Ok(());
                 }
                 said_hello = true;
+                hello.window();
                 // A window keeps its line open for as long as it runs.
+                from.get_mut().by = None;
                 out.set_read_timeout(None)?;
                 match greet(ours, &version, protocol) {
                     // A Helper on its way out sends newcomers to the next one.
@@ -584,6 +652,47 @@ mod tests {
         drop(c);
         assert_eq!(h.join().unwrap().unwrap(), Ended::Idle);
         assert!(!d.0.join("helper.addr").exists());
+    }
+
+    /// Two ends of a connection.
+    fn pair() -> (Stream, Stream) {
+        #[cfg(unix)]
+        return Stream::pair().unwrap();
+        #[cfg(not(unix))]
+        {
+            let l = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+            let b = Stream::connect(l.local_addr().unwrap()).unwrap();
+            (l.accept().unwrap().0, b)
+        }
+    }
+
+    /// The hello has one deadline over all its reads: bytes that keep coming do not stretch it.
+    #[test]
+    fn the_hello_has_one_deadline() {
+        let (a, mut b) = pair();
+        b.write_all(b"xy").unwrap();
+        let mut t = Timed { stream: a, by: Some(Instant::now()) };
+        assert_eq!(t.read(&mut [0; 1]).unwrap_err().kind(), io::ErrorKind::TimedOut, "past its deadline, with bytes waiting");
+        t.by = None;
+        assert_eq!(t.read(&mut [0; 1]).unwrap(), 1, "a window reads without one");
+    }
+
+    /// A connection that has not brought the token is no window: it does not count, and does
+    /// not keep the Helper from leaving.
+    #[test]
+    fn only_a_connection_with_the_token_counts() {
+        let d = crate::tests::Dir::new("count");
+        let h = start(OURS, &d.0, Duration::from_millis(300));
+        let Dialled::Line(mut c) = line(&d.0, OURS) else { panic!("the right token is served") };
+        let text = std::fs::read_to_string(d.0.join("helper.addr")).unwrap();
+        let silent: Vec<Stream> = (0..3).map(|_| dial(text.lines().next().unwrap()).unwrap()).collect();
+        // Dialled after the silent ones, so they were taken in first.
+        let Dialled::Line(mut c2) = line(&d.0, OURS) else { panic!() };
+        drop(c2.ask(&Request::Status));
+        assert!(matches!(c.ask(&Request::Status), Ok(Reply::Status(s)) if s.clients == 2), "the two windows only");
+        drop((c, c2));
+        assert_eq!(h.join().unwrap().unwrap(), Ended::Idle, "left with the silent ones still open");
+        drop(silent);
     }
 
     #[test]
