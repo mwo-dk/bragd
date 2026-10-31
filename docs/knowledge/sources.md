@@ -44,6 +44,7 @@ The Sources marked *Not yet* are listed so you know they are coming. They are gr
 | Fetch | Daily, Weekly, Monthly, Only when I ask | How often the Helper fetches it. A month is 30 days |
 | Only on a connection that is not metered | on, off | Skips a fetch on a metered connection |
 | Keep at most | a size such as `500 MB`, or empty | The oldest downloads go first when the Source's downloads pass this |
+| Largest download | a size such as `5 GB`, or empty for `2 GB` | The most one download may take without asking. A bigger one waits for your yes |
 | After import | Keep the download, Keep only what the Strip rule keeps, Delete the download | What becomes of a download once imported |
 | Address | | A custom URL Source's address |
 
@@ -77,6 +78,10 @@ A connection NetworkManager marks as metered, such as a phone hotspot. On system
 #### Where do the downloads go?
 
 Into the Helper's folder, `<data>/bragd/helper/sources/<source>/`, one folder per Source, named by its id. Letters, digits and `-` stay as they are, and any other character is written `_` and its hex code, so `custom:club.a` is `custom_3aclub_2ea`. Two Sources never share a folder. The downloads are kept unless *After import* says otherwise or *Keep at most* is passed.
+
+#### Why does a Source ask before a big download?
+
+Each download may take at most 2 GB, or what you set as *Largest download*. When the server says a file is bigger, nothing is downloaded. The Source's line then says how big it is, with **Download it anyway**, and a notice says so. Your yes covers that one download, and the limit applies again after it. When the server does not say how big a file is, the download stops as it passes the limit. Raise *Largest download* to take it.
 
 #### Why was a Source not fetched on time?
 

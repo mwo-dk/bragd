@@ -48,6 +48,10 @@ pub struct Options {
     /// The most bytes its downloads may keep on disk; older ones go first.
     #[serde(default)]
     pub disk_cap: Option<u64>,
+    /// The most bytes one download may take; none: `MAX_DOWNLOAD`. A larger one waits for
+    /// the user's yes (`Memo::too_big`).
+    #[serde(default)]
+    pub max_download: Option<u64>,
     /// A custom URL Source's address.
     #[serde(default)]
     pub url: String,
@@ -102,6 +106,19 @@ pub struct Memo {
     pub paused: bool,
     /// Unix time Disk watch last queued its Strip rule by itself (`Auto::strip`).
     pub last_auto_strip: Option<u64>,
+    /// The size the server gave for a download over the cap: it waits for the user's yes.
+    pub too_big: Option<u64>,
+    /// The user's yes: the next download may be this big, once.
+    pub allowed: Option<u64>,
+}
+
+/// The most bytes one download takes unless its Source says otherwise: 2 GB.
+pub const MAX_DOWNLOAD: u64 = 2_000_000_000;
+
+/// The most bytes the next download of a Source may take: what the user allowed once, else
+/// its own cap or `MAX_DOWNLOAD`, and never more than its disk cap.
+pub fn cap(o: &Options, m: &Memo) -> u64 {
+    m.allowed.unwrap_or_else(|| o.max_download.unwrap_or(MAX_DOWNLOAD).min(o.disk_cap.unwrap_or(u64::MAX)))
 }
 
 /// A Source as Settings lists it.
@@ -125,15 +142,17 @@ pub struct About {
 impl About {
     /// What a Source starts as: off, on its usual schedule.
     pub fn defaults(&self) -> Options {
-        Options { enabled: false, schedule: self.schedule, only_unmetered: false, disk_cap: None, url: String::new(), strip: None, after_import: AfterImport::Keep, auto: Auto::default() }
+        Options { enabled: false, schedule: self.schedule, only_unmetered: false, disk_cap: None, max_download: None, url: String::new(), strip: None, after_import: AfterImport::Keep, auto: Auto::default() }
     }
 }
 
 /// What a fetch works with: the network, its own folder for downloads, what was remembered
-/// (changed by the fetch, kept only once its files are imported) and the user's options.
+/// (changed by the fetch, kept only once its files are imported), the user's options and the
+/// most bytes one download may take (`cap`).
 pub struct Cx<'a> {
     pub net: &'a dyn Fetcher,
     pub dir: &'a Path,
+    pub cap: u64,
     pub memo: &'a mut Memo,
     pub options: &'a Options,
     pub stop: &'a dyn Fn() -> bool,
@@ -215,7 +234,7 @@ impl Source for Twic {
         let mut files = vec![];
         for n in issues {
             let zip = cx.dir.join(format!("twic{n}g.zip"));
-            if !zip.exists() && !net::download(cx.net, &twic_url(n), &zip, cx.options.disk_cap, cx.stop, cx.progress)? {
+            if !zip.exists() && !net::download(cx.net, &twic_url(n), &zip, cx.cap, cx.stop, cx.progress)? {
                 return Err(io::Error::other(format!("{} is not there", twic_url(n))));
             }
             files.push(zip);
@@ -260,7 +279,7 @@ impl Source for CustomUrl {
         // a `.part` of the old one resumed would splice two versions together.
         let _ = std::fs::remove_file(&to);
         let _ = std::fs::remove_file(net::part_of(&to));
-        if !net::download(cx.net, &self.url, &to, cx.options.disk_cap, cx.stop, cx.progress)? {
+        if !net::download(cx.net, &self.url, &to, cx.cap, cx.stop, cx.progress)? {
             return Err(io::Error::other(format!("{} is not there", self.url)));
         }
         Ok(vec![to])
@@ -375,7 +394,7 @@ pub(crate) mod tests {
 
     fn fetch(net: &Recorded, dir: &Path, memo: &mut Memo) -> Vec<PathBuf> {
         let o = Twic.about().defaults();
-        Twic.fetch(&mut Cx { net, dir, memo, options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap()
+        Twic.fetch(&mut Cx { net, dir, cap: MAX_DOWNLOAD, memo, options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap()
     }
 
     #[test]
@@ -439,7 +458,7 @@ pub(crate) mod tests {
         let d = crate::tests::Dir::new("later");
         let net = Recorded::default();
         let o = Twic.about().defaults();
-        let err = find("ogs", "").unwrap().fetch(&mut Cx { net: &net, dir: &d.0, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap_err();
+        let err = find("ogs", "").unwrap().fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap_err();
         assert!(err.to_string().contains("OGS archive"), "{err}");
         assert!(net.asked.lock().unwrap().is_empty(), "nothing is asked of the network");
         assert!(find("custom:club", "https://example.org/a.pgn").unwrap().about().fetchable);
@@ -453,7 +472,7 @@ pub(crate) mod tests {
         let o = Twic.about().defaults();
         for url in ["https://example.org/page.html", "file:///etc/passwd.pgn", "https://example.org/"] {
             let s = CustomUrl { id: "custom:x".into(), url: url.into() };
-            assert!(s.fetch(&mut Cx { net: &net, dir: &d.0, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).is_err(), "{url}");
+            assert!(s.fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).is_err(), "{url}");
         }
         assert!(net.asked.lock().unwrap().is_empty());
     }

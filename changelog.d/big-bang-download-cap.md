@@ -1,0 +1,1 @@
+| **No download passes 2 GB without asking first.** Each Source has a largest download, 2 GB unless you change it; a bigger file waits for **Download it anyway**, and one of unknown size stops at the limit. | [Docs](knowledge/sources.md#why-does-a-source-ask-before-a-big-download) |

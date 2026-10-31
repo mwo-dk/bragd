@@ -266,6 +266,19 @@ impl Jobs {
         Ok(())
     }
 
+    /// The user's yes to a download over a Source's cap: its next fetch may download what the
+    /// server said, once, and is queued now. The job's id.
+    pub fn allow_download(&self, id: &str) -> Result<u64, String> {
+        {
+            let mut st = self.lock();
+            let memo = &mut st.sources.get_mut(id).ok_or_else(|| format!("no Source {id}"))?.memo;
+            let size = memo.too_big.take().ok_or_else(|| format!("{id} has no download waiting for a yes"))?;
+            memo.allowed = Some(size);
+            self.save(&st);
+        }
+        Ok(self.add(Work::Fetch { source: id.into() }))
+    }
+
     /// Queues a fetch of every Source due at `now` that may go on a connection `metered` and
     /// is not queued already: the ids of the jobs.
     pub fn queue_due(&self, now: u64, metered: Option<bool>) -> Vec<u64> {
@@ -447,8 +460,14 @@ impl Jobs {
     /// Source Disk watch holds back.
     pub fn disk_report(&self, cfg: &Config) -> disk::Report {
         let mut r = disk::report(&self.places(cfg), &cfg.disk, &(self.images)(), &disk::free_space);
-        for (a, _, _) in self.sources().into_iter().filter(|(_, _, m)| m.paused) {
-            r.crossed.push(Crossed { id: format!("disk:paused:{}", a.id), item: Some(format!("downloads:{}", a.id)), key: "notice.disk_fetch_paused".into(), args: vec![("source".into(), a.name)] });
+        for (a, o, m) in self.sources() {
+            if m.paused {
+                r.crossed.push(Crossed { id: format!("disk:paused:{}", a.id), item: Some(format!("downloads:{}", a.id)), key: "notice.disk_fetch_paused".into(), args: vec![("source".into(), a.name.clone())] });
+            }
+            if let Some(size) = m.too_big {
+                let args = vec![("source".into(), a.name), ("size".into(), disk::bytes(size)), ("cap".into(), disk::bytes(sources::cap(&o, &m)))];
+                r.crossed.push(Crossed { id: format!("download:too_big:{}", a.id), item: Some(format!("downloads:{}", a.id)), key: "notice.download_too_big".into(), args });
+            }
         }
         r
     }
@@ -512,11 +531,17 @@ impl Jobs {
         let options = options.unwrap_or_else(|| src.about().defaults());
         let dir = self.source_dir(source);
         let stop = || self.should_stop(id);
+        let cap = sources::cap(&options, &memo);
+        // The size the server gave for a download over the cap, for the user to say yes to.
+        let mut too_big = None;
         let got = (|| {
             std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
             let files = src
-                .fetch(&mut Cx { net: self.net.as_ref(), dir: &dir, memo: &mut memo, options: &options, stop: &stop, progress: &mut |b| self.progress(id, b, None) })
-                .map_err(|e| e.to_string())?;
+                .fetch(&mut Cx { net: self.net.as_ref(), dir: &dir, cap, memo: &mut memo, options: &options, stop: &stop, progress: &mut |b| self.progress(id, b, None) })
+                .map_err(|e| {
+                    too_big = crate::net::TooBig::of(&e).and_then(|t| t.size);
+                    e.to_string()
+                })?;
             let mut lib = self.open_library(&self.library)?;
             let rule = options.strip.as_ref().filter(|r| !r.is_empty());
             let mut read = 0;
@@ -543,9 +568,12 @@ impl Jobs {
         let kept = &mut st.sources.entry(source.into()).or_default().memo;
         match &got {
             Ok(_) => {
-                *kept = Memo { last_fetch: Some(now), last_try: Some(now), last_error: None, ..memo };
+                *kept = Memo { last_fetch: Some(now), last_try: Some(now), last_error: None, too_big: None, allowed: None, ..memo };
             }
-            Err(e) => kept.last_error = Some(e.clone()),
+            Err(e) => {
+                kept.last_error = Some(e.clone());
+                kept.too_big = too_big;
+            }
         }
         self.save(&st);
         got
@@ -947,5 +975,41 @@ pub(crate) mod tests {
         let jobs = jobs_in(&d.0, Recorded::default(), Arc::new(AtomicBool::new(false)));
         assert_ne!(jobs.source_dir("custom:club.a"), jobs.source_dir("custom:club_a"));
         assert_eq!(jobs.source_dir("twic"), d.0.join("sources").join("twic"));
+    }
+
+    /// A download over its Source's cap is not fetched: the size the server gave waits for the
+    /// user's yes, shown as a notice; the yes fetches it that once, and the cap applies again.
+    #[test]
+    fn a_download_over_its_cap_waits_for_a_yes() {
+        let d = crate::tests::Dir::new("too-big");
+        let url = "https://example.org/club/games.pgn";
+        let net = Recorded { files: [(url.to_string(), PGN.as_bytes().to_vec())].into(), sizes: true, ..Default::default() };
+        let jobs = jobs_in(&d.0, net, Arc::default());
+        let mut o = sources::find("custom:club", url).unwrap().about().defaults();
+        o.url = url.into();
+        o.max_download = Some(100);
+        jobs.set_source("custom:club", o).unwrap();
+        assert!(jobs.allow_download("custom:club").is_err(), "nothing waits for a yes yet");
+        let id = jobs.add(Work::Fetch { source: "custom:club".into() });
+        while jobs.run_next() {}
+        let j = jobs.list().into_iter().find(|j| j.id == id).unwrap();
+        assert_eq!(j.status, Status::Failed);
+        let size = PGN.len() as u64;
+        assert_eq!(jobs.lock().sources["custom:club"].memo.too_big, Some(size));
+        assert!(!jobs.source_dir("custom:club").join("games.pgn").exists());
+        assert!(!d.0.join("lib/main.bragd").exists(), "nothing imported");
+        let notice = jobs.disk_report(&Config::default()).crossed.into_iter().find(|c| c.key == "notice.download_too_big").unwrap();
+        assert_eq!(notice.id, "download:too_big:custom:club");
+        // Yes: fetched, and the yes is used up.
+        let id = jobs.allow_download("custom:club").unwrap();
+        while jobs.run_next() {}
+        assert_eq!(jobs.list().into_iter().find(|j| j.id == id).unwrap().status, Status::Done);
+        assert_eq!(count(&d.0.join("lib/main.bragd")), 2);
+        let memo = jobs.lock().sources["custom:club"].memo.clone();
+        assert_eq!((memo.too_big, memo.allowed), (None, None));
+        assert!(!jobs.disk_report(&Config::default()).crossed.iter().any(|c| c.key == "notice.download_too_big"));
+        // Without an answer of its own a Source takes the default cap.
+        assert_eq!(sources::cap(&sources::Twic.about().defaults(), &Memo::default()), sources::MAX_DOWNLOAD);
+        assert_eq!(sources::MAX_DOWNLOAD, 2_000_000_000);
     }
 }

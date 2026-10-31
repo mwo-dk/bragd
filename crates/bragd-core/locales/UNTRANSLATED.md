@@ -7,7 +7,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 
 ## In every language of its own
 
-297 keys:
+301 keys:
 
 - `board_theme.match`
 - `board_theme.racing`
@@ -127,6 +127,7 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `notice.disk_free_low`
 - `notice.disk_item_over`
 - `notice.disk_total_over`
+- `notice.download_too_big`
 - `notice.family_off`
 - `notice.family_turn_on`
 - `notice.open_settings`
@@ -198,6 +199,9 @@ es-AR) hold only the words they write differently, and take the rest from their 
 - `sidebar.play`
 - `sidebar.rules`
 - `sidebar.tablebases`
+- `source.allow`
+- `source.max_download`
+- `source.too_big`
 - `theme.aqua`
 - `theme.atarist`
 - `theme.bbc`

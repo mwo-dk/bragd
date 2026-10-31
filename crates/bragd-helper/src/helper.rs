@@ -48,6 +48,8 @@ pub enum Request {
     Import { path: PathBuf, library: Option<PathBuf>, source: Option<String> },
     DedupeNow { library: Option<PathBuf> },
     FetchNow { source: String },
+    /// The user's yes to a Source's download over its cap: fetched now, that once.
+    AllowDownload { source: String },
     Sources,
     /// A Source's options: on or off, its schedule, metered, disk cap, a custom URL, its Strip
     /// rule, what becomes of its downloads, and what Disk watch may do for it by itself.
@@ -348,6 +350,10 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, cli
             Request::Import { path, library: l, source } => started(Work::Import { path, library: library(l), source: source.unwrap_or_else(|| "file".into()) }),
             Request::DedupeNow { library: l } => started(Work::Dedupe { library: library(l) }),
             Request::FetchNow { source } => started(Work::Fetch { source }),
+            Request::AllowDownload { source } => match jobs.allow_download(&source) {
+                Ok(id) => Reply::Started { id },
+                Err(error) => Reply::Error { error },
+            },
             Request::Sources => Reply::Sources { sources: jobs.sources() },
             Request::SetSource { source, options } => match jobs.set_source(&source, options) {
                 Ok(()) => Reply::Done,

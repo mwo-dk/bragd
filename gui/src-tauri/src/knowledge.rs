@@ -265,6 +265,12 @@ pub struct SourceView {
     pub options: Options,
     /// Its disk cap as its field shows it; empty for none.
     pub disk_cap: String,
+    /// The most one download may take, as its field shows it; empty for the default.
+    pub max_download: String,
+    /// The default for that field.
+    pub max_download_default: String,
+    /// A download over that, waiting for the user's yes; empty when none waits.
+    pub too_big: String,
     /// When it was fetched last, and the last error.
     pub last: String,
     pub error: String,
@@ -320,9 +326,12 @@ pub fn sources_list(k: State<'_, Knowledge>) -> Res<SourcesPage> {
             notice: a.notice.as_deref().map(|n| t!(n, "source" => a.name)).unwrap_or_default(),
             custom: a.id.starts_with(sources::CUSTOM),
             last: ago(m.last_fetch, now),
-            error: m.last_error.unwrap_or_default(),
+            error: m.last_error.clone().unwrap_or_default(),
             paused: m.paused,
             disk_cap: o.disk_cap.map(limit_text).unwrap_or_default(),
+            max_download: o.max_download.map(limit_text).unwrap_or_default(),
+            max_download_default: disk::bytes(sources::MAX_DOWNLOAD),
+            too_big: m.too_big.map(|size| t!("source.too_big", "size" => disk::bytes(size), "cap" => disk::bytes(sources::cap(&o, &m)))).unwrap_or_default(),
             id: a.id,
             name: a.name,
             family: a.family,
@@ -341,13 +350,16 @@ pub fn sources_list(k: State<'_, Knowledge>) -> Res<SourcesPage> {
     })
 }
 
-/// A Source's options as the page edits them, with its disk cap as typed when it was in sight;
-/// a Strip rule that keeps everything is none.
+/// A Source's options as the page edits them, with its disk cap and its largest download as
+/// typed when they were in sight; a Strip rule that keeps everything is none.
 #[tauri::command(async)]
-pub fn source_set(id: String, mut options: Options, disk_cap: Option<String>, k: State<'_, Knowledge>) -> Res<()> {
+pub fn source_set(id: String, mut options: Options, disk_cap: Option<String>, max_download: Option<String>, k: State<'_, Knowledge>) -> Res<()> {
     options.strip = options.strip.filter(|r| !r.is_empty());
     if let Some(cap) = disk_cap {
         options.disk_cap = Some(parse_size(&cap)?).filter(|&c| c > 0);
+    }
+    if let Some(cap) = max_download {
+        options.max_download = Some(parse_size(&cap)?).filter(|&c| c > 0);
     }
     k.link.ask(&Request::SetSource { source: id, options }).map(drop)
 }
@@ -359,13 +371,19 @@ pub fn source_add(name: String, url: String, k: State<'_, Knowledge>) -> Res<()>
     if name.is_empty() {
         return Err(t!("source.no_name"));
     }
-    let options = Options { enabled: true, schedule: Schedule::Weekly, only_unmetered: false, disk_cap: None, url: url.trim().into(), strip: None, after_import: Default::default(), auto: Auto::default() };
+    let options = Options { enabled: true, schedule: Schedule::Weekly, only_unmetered: false, disk_cap: None, max_download: None, url: url.trim().into(), strip: None, after_import: Default::default(), auto: Auto::default() };
     k.link.ask(&Request::SetSource { source: format!("{}{name}", sources::CUSTOM), options }).map(drop)
 }
 
 #[tauri::command(async)]
 pub fn source_fetch(id: String, k: State<'_, Knowledge>) -> Res<u64> {
     k.link.start(&Request::FetchNow { source: id })
+}
+
+/// The user's yes to a download over its Source's cap: fetched now, that once.
+#[tauri::command(async)]
+pub fn source_allow(id: String, k: State<'_, Knowledge>) -> Res<u64> {
+    k.link.start(&Request::AllowDownload { source: id })
 }
 
 /// The Source's Strip rule as a job: a preview (`dry_run`) that changes nothing, or applied.

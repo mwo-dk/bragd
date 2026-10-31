@@ -10,8 +10,9 @@ use std::path::{Path, PathBuf};
 pub enum Got {
     /// 404 or 410: not there (yet). How TWIC says an issue is not out.
     Missing,
-    /// The body; `resumed` when it starts at the byte asked for, not at the beginning.
-    Body { resumed: bool, body: Box<dyn Read + Send> },
+    /// The body; `resumed` when it starts at the byte asked for, not at the beginning; `size`:
+    /// its length, when the server says (`Content-Length`).
+    Body { resumed: bool, size: Option<u64>, body: Box<dyn Read + Send> },
 }
 
 /// Something that fetches URLs.
@@ -50,7 +51,8 @@ impl Fetcher for Web {
             200 => false,
             s => return Err(status_error(url, s)),
         };
-        Ok(Got::Body { resumed, body: Box::new(r.into_body().into_reader()) })
+        let size = r.body().content_length();
+        Ok(Got::Body { resumed, size, body: Box::new(r.into_body().into_reader()) })
     }
 
     fn exists(&self, url: &str) -> io::Result<bool> {
@@ -63,19 +65,53 @@ impl Fetcher for Web {
     }
 }
 
-/// Downloads `url` to `to`, going on from a `.part` left by one that stopped. `stop` is asked
-/// between pieces and leaves the `.part` for next time; `progress` hears the bytes so far.
-/// `Ok(false)`: the server has no such file.
-pub fn download(net: &dyn Fetcher, url: &str, to: &Path, cap: Option<u64>, stop: &dyn Fn() -> bool, progress: &mut dyn FnMut(u64)) -> io::Result<bool> {
+/// A download over its cap. `size`: what the server said the file is, before anything was
+/// written, so the user can be asked; none when it said nothing and the cap was passed as the
+/// file came.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TooBig {
+    pub url: String,
+    pub size: Option<u64>,
+    pub cap: u64,
+}
+
+impl std::fmt::Display for TooBig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.size {
+            Some(size) => write!(f, "{} is {size} bytes, more than its cap of {} bytes", self.url, self.cap),
+            None => write!(f, "{} is larger than its cap of {} bytes", self.url, self.cap),
+        }
+    }
+}
+
+impl std::error::Error for TooBig {}
+
+impl TooBig {
+    /// The `TooBig` inside an error a download gave, if that is what it is.
+    pub fn of(e: &io::Error) -> Option<&TooBig> {
+        e.get_ref().and_then(|e| e.downcast_ref::<TooBig>())
+    }
+}
+
+/// Downloads `url` to `to`, going on from a `.part` left by one that stopped. Nothing past
+/// `cap` bytes is downloaded: a file the server says is larger is refused before its first
+/// byte, and one of no stated size is cut off as it passes the cap (`TooBig`). `stop` is
+/// asked between pieces and leaves the `.part` for next time; `progress` hears the bytes so
+/// far. `Ok(false)`: the server has no such file.
+pub fn download(net: &dyn Fetcher, url: &str, to: &Path, cap: u64, stop: &dyn Fn() -> bool, progress: &mut dyn FnMut(u64)) -> io::Result<bool> {
     if let Some(dir) = to.parent() {
         fs::create_dir_all(dir)?;
     }
     let part = part_of(to);
     let had = fs::metadata(&part).map_or(0, |m| m.len());
-    let (resumed, mut body) = match net.get(url, had)? {
+    let (resumed, size, mut body) = match net.get(url, had)? {
         Got::Missing => return Ok(false),
-        Got::Body { resumed, body } => (resumed, body),
+        Got::Body { resumed, size, body } => (resumed, size, body),
     };
+    let size = size.map(|n| if resumed { had + n } else { n });
+    if let Some(size) = size.filter(|&n| n > cap) {
+        return Err(io::Error::other(TooBig { url: url.into(), size: Some(size), cap }));
+    }
     // A server that ignores the range sends it all again: start the file over.
     let mut out = if resumed { OpenOptions::new().append(true).open(&part)? } else { File::create(&part)? };
     let mut done = if resumed { had } else { 0 };
@@ -90,10 +126,10 @@ pub fn download(net: &dyn Fetcher, url: &str, to: &Path, cap: Option<u64>, stop:
         }
         out.write_all(&buf[..n])?;
         done += n as u64;
-        if cap.is_some_and(|c| done > c) {
+        if done > cap {
             drop(out);
             let _ = fs::remove_file(&part);
-            return Err(io::Error::other(format!("{url} is larger than the disk cap of {} bytes", cap.unwrap_or(0))));
+            return Err(io::Error::other(TooBig { url: url.into(), size: None, cap }));
         }
         progress(done);
     }
@@ -153,6 +189,8 @@ pub(crate) mod tests {
         pub asked: Mutex<Vec<String>>,
         /// Honour ranges, as most servers do.
         pub ranges: bool,
+        /// Say how long each body is (`Content-Length`).
+        pub sizes: bool,
     }
 
     impl Fetcher for Recorded {
@@ -161,7 +199,8 @@ pub(crate) mod tests {
             let Some(b) = self.files.get(url) else { return Ok(Got::Missing) };
             let resumed = self.ranges && from > 0;
             let b = if resumed { b[from as usize..].to_vec() } else { b.clone() };
-            Ok(Got::Body { resumed, body: Box::new(io::Cursor::new(b)) })
+            let size = self.sizes.then_some(b.len() as u64);
+            Ok(Got::Body { resumed, size, body: Box::new(io::Cursor::new(b)) })
         }
         fn exists(&self, url: &str) -> io::Result<bool> {
             self.asked.lock().unwrap().push(format!("HEAD {url}"));
@@ -175,19 +214,42 @@ pub(crate) mod tests {
         let to = d.0.join("a.pgn");
         let net = Recorded { files: [("u".to_string(), b"0123456789".to_vec())].into(), ranges: true, ..Default::default() };
         fs::write(part_of(&to), b"0123").unwrap();
-        assert!(download(&net, "u", &to, None, &|| false, &mut |_| {}).unwrap());
+        assert!(download(&net, "u", &to, 100, &|| false, &mut |_| {}).unwrap());
         assert_eq!(fs::read(&to).unwrap(), b"0123456789");
         assert_eq!(net.asked.lock().unwrap().as_slice(), ["GET u 4"]);
         // A server that ignores the range: the file starts over, whole.
         let net = Recorded { ranges: false, ..net };
         fs::write(part_of(&to), b"xx").unwrap();
-        assert!(download(&net, "u", &to, None, &|| false, &mut |_| {}).unwrap());
+        assert!(download(&net, "u", &to, 100, &|| false, &mut |_| {}).unwrap());
         assert_eq!(fs::read(&to).unwrap(), b"0123456789");
-        // Past the cap: refused, nothing left.
-        let to2 = d.0.join("b.pgn");
-        assert!(download(&net, "u", &to2, Some(5), &|| false, &mut |_| {}).is_err());
-        assert!(!to2.exists() && !part_of(&to2).exists());
-        assert!(!download(&net, "nothing", &to2, None, &|| false, &mut |_| {}).unwrap());
+        assert!(!download(&net, "nothing", &d.0.join("b.pgn"), 100, &|| false, &mut |_| {}).unwrap());
+    }
+
+    #[test]
+    fn a_download_over_its_cap_is_refused_first_when_its_size_is_known() {
+        let d = crate::tests::Dir::new("cap");
+        let to = d.0.join("b.pgn");
+        let files: BTreeMap<String, Vec<u8>> = [("u".to_string(), b"0123456789".to_vec())].into();
+        // The server says how big: refused before a byte is written, with the size to ask about.
+        let net = Recorded { files: files.clone(), sizes: true, ..Default::default() };
+        let mut heard = vec![];
+        let e = download(&net, "u", &to, 5, &|| false, &mut |n| heard.push(n)).unwrap_err();
+        assert_eq!(TooBig::of(&e), Some(&TooBig { url: "u".into(), size: Some(10), cap: 5 }));
+        assert!(heard.is_empty() && !to.exists() && !part_of(&to).exists());
+        // At the cap exactly it comes.
+        assert!(download(&net, "u", &to, 10, &|| false, &mut |_| {}).unwrap());
+        // No size given: cut off as it passes the cap, nothing left behind.
+        let to = d.0.join("c.pgn");
+        let net = Recorded { files, sizes: false, ..Default::default() };
+        let e = download(&net, "u", &to, 5, &|| false, &mut |_| {}).unwrap_err();
+        assert_eq!(TooBig::of(&e).and_then(|t| t.size), None);
+        assert!(TooBig::of(&e).is_some() && !to.exists() && !part_of(&to).exists());
+        // A resumed download counts what it had.
+        let to = d.0.join("d.pgn");
+        let net = Recorded { ranges: true, sizes: true, ..net };
+        fs::write(part_of(&to), b"0123").unwrap();
+        let e = download(&net, "u", &to, 9, &|| false, &mut |_| {}).unwrap_err();
+        assert_eq!(TooBig::of(&e).and_then(|t| t.size), Some(10));
     }
 
     #[test]

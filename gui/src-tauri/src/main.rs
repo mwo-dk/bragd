@@ -308,6 +308,7 @@ fn main() {
             knowledge::source_set,
             knowledge::source_add,
             knowledge::source_fetch,
+            knowledge::source_allow,
             knowledge::source_strip,
             knowledge::disk_report,
             knowledge::disk_limits_set,

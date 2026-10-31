@@ -1,6 +1,7 @@
 <script>
   // Sources: where Games come from. Each is off until turned on, shows what one fetch downloads,
-  // and has its schedule, the metered rule, a disk cap, what becomes of its downloads, and its
+  // and has its schedule, the metered rule, a disk cap, the largest download it takes without
+  // asking (a bigger one waits for Download it anyway), what becomes of its downloads, and its
   // Strip rule with Preview (a dry run) and Apply. The Sources this version cannot fetch yet are
   // shown with their notice. A custom URL can be added.
   import * as k from "./knowledge.js";
@@ -17,6 +18,7 @@
   /** @type {any} */
   let draft = $state(null);
   let cap = $state("");
+  let maxDownload = $state("");
   /** @type {Record<string, number>} */
   let jobs = $state({});
   let error = $state("");
@@ -46,13 +48,14 @@
     draft = JSON.parse(JSON.stringify(s.options));
     draft.strip ??= emptyRule();
     cap = s.diskCap;
+    maxDownload = s.maxDownload;
   }
 
-  async function save(/** @type {string} */ id, /** @type {any} */ options, /** @type {string | null} */ capText = null) {
+  async function save(/** @type {string} */ id, /** @type {any} */ options, /** @type {string | null} */ capText = null, /** @type {string | null} */ maxText = null) {
     error = message = "";
     try {
       const o = { ...options, strip: options.strip ? { ...options.strip, min_rating: options.strip.min_rating || null, min_plies: options.strip.min_plies || null } : null };
-      await k.sourceSet(id, o, capText);
+      await k.sourceSet(id, o, capText, maxText);
       message = t("source.saved");
       await load();
     } catch (e) {
@@ -101,6 +104,9 @@
       {#if s.notice}<p class="notice">{s.notice}</p>{/if}
       {#if s.error}<p class="error">{s.error}</p>{/if}
       {#if s.paused}<p class="notice">{t("source.paused")}</p>{/if}
+      {#if s.tooBig}
+        <p class="notice">{s.tooBig} <button onclick={() => start(s.id, k.sourceAllow(s.id))}>{t("source.allow")}</button></p>
+      {/if}
       <small class="url">{s.url}</small>
 
       {#if open === s.id && draft}
@@ -113,6 +119,7 @@
           </label>
           <label class="check"><input type="checkbox" bind:checked={draft.only_unmetered} /> {t("source.only_unmetered")}</label>
           <label>{t("source.disk_cap")} <input type="text" bind:value={cap} placeholder={t("disk.no_limit")} size="10" /></label>
+          <label>{t("source.max_download")} <input type="text" bind:value={maxDownload} placeholder={s.maxDownloadDefault} size="10" /></label>
           <label
             >{t("source.after_import_label")}
             <select bind:value={draft.after_import}>
@@ -125,9 +132,9 @@
         </div>
         <StripEditor rule={draft.strip} {page} />
         <div class="bar">
-          <button class="primary" onclick={() => save(s.id, draft, cap)}>{t("source.save")}</button>
-          <button onclick={() => save(s.id, draft, cap).then(() => start(s.id, k.sourceStrip(s.id, true)))} title={t("strip.preview_hint")}>{t("strip.preview")}</button>
-          <button onclick={() => save(s.id, draft, cap).then(() => start(s.id, k.sourceStrip(s.id, false)))} title={t("strip.apply_hint")}>{t("strip.apply")}</button>
+          <button class="primary" onclick={() => save(s.id, draft, cap, maxDownload)}>{t("source.save")}</button>
+          <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, true)))} title={t("strip.preview_hint")}>{t("strip.preview")}</button>
+          <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, false)))} title={t("strip.apply_hint")}>{t("strip.apply")}</button>
           <button onclick={() => (draft.strip = emptyRule())}>{t("strip.clear")}</button>
         </div>
       {/if}

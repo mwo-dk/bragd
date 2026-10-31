@@ -682,5 +682,9 @@
  "tablebases.set.Seven": "7 pieces",
  "tablebases.size": "Size: {size}",
  "tablebases.stop": "Stop",
- "tablebases.use_folder": "Use this folder"
+ "tablebases.use_folder": "Use this folder",
+ "source.max_download": "Largest download",
+ "source.too_big": "The next download is {size}, more than this Source's limit of {cap}.",
+ "source.allow": "Download it anyway",
+ "notice.download_too_big": "{source}: the next download is {size}, more than its limit of {cap}. It waits until you say yes under Databases → Sources."
 }
