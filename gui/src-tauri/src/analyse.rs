@@ -86,6 +86,16 @@ impl Raw {
     }
 }
 
+/// Lines already turned into moves to show, by the engine's moves (at most `SHOWN`): each
+/// is replayed from the Game's start, so a poll does that only for a line that changed.
+type Shown = Vec<(Vec<String>, Vec<(String, String)>)>;
+
+/// Each of `pvs` as moves to show: from `cache` when the poll before showed it, else by
+/// `render`. `cache` then holds these lines only.
+fn shown_lines(cache: &mut Shown, pvs: &[Vec<String>], render: impl Fn(&[String]) -> Vec<(String, String)>) -> Vec<Vec<(String, String)>> {
+    todo!("{} {} {}", cache.len(), pvs.len(), render(&[]).len())
+}
+
 struct Live {
     asked: Asked,
     raw: Arc<Mutex<Raw>>,
@@ -392,6 +402,24 @@ pub fn setup(variant: &str, text: &str) -> Result<State, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_line_is_replayed_only_when_it_changed() {
+        let n = std::cell::Cell::new(0);
+        let render = |pv: &[String]| {
+            n.set(n.get() + 1);
+            pv.iter().map(|m| (m.clone(), m.to_uppercase())).collect()
+        };
+        let pv = |s: &str| s.split(' ').map(String::from).collect::<Vec<_>>();
+        let mut cache = Shown::new();
+        let first = shown_lines(&mut cache, &[pv("e7e5 g1f3"), pv("c7c5")], render);
+        assert_eq!((n.get(), first[1].clone()), (2, vec![("c7c5".to_string(), "C7C5".to_string())]));
+        assert_eq!(shown_lines(&mut cache, &[pv("e7e5 g1f3"), pv("c7c5")], render), first);
+        assert_eq!(n.get(), 2, "nothing changed, nothing replayed");
+        let next = shown_lines(&mut cache, &[pv("e7e5 g1f3"), pv("c7c6")], render);
+        assert_eq!((n.get(), next[0].clone()), (3, first[0].clone()), "only the changed line");
+        assert_eq!(cache.len(), 2, "the cache holds this poll's lines only");
+    }
 
     #[test]
     fn a_line_number_past_those_asked_for_is_ignored() {
