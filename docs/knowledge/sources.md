@@ -2,7 +2,7 @@
 
 # Sources
 
-A Source is where Games come from, such as The Week in Chess. When a Source is on, the [Helper](helper.md) fetches it on its schedule and imports its Games through its Routes: into `main.bragd` unless you add others. Every Source is off until you turn it on, and its size per fetch is shown before it downloads anything. You can also add any address of a game file as a custom URL Source.
+A Source is where Games come from, such as The Week in Chess. When a Source is on, the [Helper](helper.md) fetches it on its schedule and imports its Games through its Routes: into `main.bragd` unless you add others. Every Source is off until you turn it on, and its size per fetch is shown before it downloads anything. You can also add any address of a game file as a custom URL Source, and remove it again.
 
 ![The Sources tab for chess: The Week in Chess with its size, last fetch, Options and Fetch now, the big Sources greyed out with their notice, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
 *Databases → Sources.*
@@ -13,6 +13,7 @@ A Source is where Games come from, such as The Week in Chess. When a Source is o
 2. Tick a Source to turn it on. **Fetch now** fetches it at once.
 3. **Options** opens its schedule, the metered rule, its disk cap, its largest download, what becomes of its downloads and its Routes. Press **Save**.
 4. Under *Add a custom URL*, type a name and the address, and press **Add**.
+5. A custom URL Source has **Remove** beside *Fetch now*. Press it, then **Remove** again to confirm.
 
 The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard](../getting-started/first-start.md)).
 
@@ -122,7 +123,7 @@ It became the Source's one Route, to `main.bragd`, with that rule. Nothing else 
 
 #### Can I remove a custom URL Source?
 
-Not from this version. Turn it off by unticking it, and it is never fetched.
+Yes. Press **Remove** beside *Fetch now*, then **Remove** again. Its options and its downloads are deleted. The Games it brought stay in your Libraries. A Source with a fetch or a Strip job queued or running cannot be removed until the job ends. The built-in Sources cannot be removed: untick one to turn it off.
 
 ---
 [← Previous: Export to Parquet](parquet-export.md) · [Next: Strip rules →](strip-rules.md)

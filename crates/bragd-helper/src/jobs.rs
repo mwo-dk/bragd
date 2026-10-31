@@ -294,6 +294,30 @@ impl Jobs {
         Ok(())
     }
 
+    /// Removes a custom URL Source: its options, what its fetches remembered, and its
+    /// downloads. The Games it brought stay in the Libraries. A built-in Source cannot be
+    /// removed (it is turned off), nor a Source with a job queued or running.
+    pub fn remove_source(&self, id: &str) -> Result<(), String> {
+        if !id.starts_with(sources::CUSTOM) {
+            return Err(format!("{id}: only a custom URL Source can be removed"));
+        }
+        let mut st = self.lock();
+        let busy = st.jobs.iter().any(|j| matches!(j.status, Status::Queued | Status::Running) && matches!(&j.work, Work::Fetch { source } | Work::Strip { source, .. } if source == id));
+        if busy {
+            return Err(format!("{id}: a job of this Source is under way"));
+        }
+        if st.sources.remove(id).is_none() {
+            return Err(format!("no Source {id}"));
+        }
+        self.save(&st);
+        drop(st);
+        let dir = self.source_dir(id);
+        match std::fs::remove_dir_all(&dir) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("{}: {e}", dir.display())),
+            _ => Ok(()),
+        }
+    }
+
     /// The user's yes to a download over a Source's cap: its next fetch may download what the
     /// server said, once, and is queued now. The job's id.
     pub fn allow_download(&self, id: &str) -> Result<u64, String> {
@@ -785,6 +809,15 @@ pub(crate) mod tests {
         jobs.add(Work::Fetch { source: "custom:club".into() });
         jobs.run_next();
         assert_eq!(count(&lib), 2);
+        // Removed: no longer listed, its downloads gone, its Games kept. A built-in one stays.
+        let queued = jobs.add(Work::Fetch { source: "custom:club".into() });
+        assert!(jobs.remove_source("custom:club").is_err(), "a fetch is queued");
+        jobs.cancel(queued);
+        jobs.remove_source("custom:club").unwrap();
+        assert!(!jobs.sources().iter().any(|(a, _, _)| a.id == "custom:club"));
+        assert!(!src.exists());
+        assert_eq!(count(&lib), 2);
+        assert!(jobs.remove_source("twic").is_err() && jobs.remove_source("custom:club").is_err());
     }
 
     #[test]

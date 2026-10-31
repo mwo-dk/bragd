@@ -386,6 +386,12 @@ pub fn source_add(name: String, url: String, k: State<'_, Knowledge>) -> Res<()>
     k.link.ask(&Request::SetSource { source: format!("{}{name}", sources::CUSTOM), options }).map(drop)
 }
 
+/// A custom URL Source removed, with its downloads; its Games stay in the Libraries.
+#[tauri::command(async)]
+pub fn source_remove(id: String, k: State<'_, Knowledge>) -> Res<()> {
+    k.link.ask(&Request::RemoveSource { source: id }).map(drop)
+}
+
 #[tauri::command(async)]
 pub fn source_fetch(id: String, k: State<'_, Knowledge>) -> Res<u64> {
     k.link.start(&Request::FetchNow { source: id })

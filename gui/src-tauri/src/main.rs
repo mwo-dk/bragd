@@ -371,6 +371,7 @@ fn main() {
             knowledge::sources_list,
             knowledge::source_set,
             knowledge::source_add,
+            knowledge::source_remove,
             knowledge::source_fetch,
             knowledge::source_allow,
             knowledge::source_strip,
