@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::tools::{self, Runtime};
 
@@ -110,6 +110,21 @@ pub fn pulling() -> BTreeMap<String, String> {
     PULLING.lock().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
+/// A pull waiting to try again after a passing fault: the fault, and when it tries again (Unix seconds).
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Waiting {
+    pub error: PullError,
+    pub at: u64,
+}
+
+/// The pulls waiting to try again, by image.
+static WAITING: Mutex<BTreeMap<String, Waiting>> = Mutex::new(BTreeMap::new());
+
+/// The pulls waiting to try again, by image, for the app to show.
+pub fn waiting() -> BTreeMap<String, Waiting> {
+    WAITING.lock().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
 /// Why a pull failed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum Fault {
@@ -172,9 +187,10 @@ pub fn next_try(rounds: u32) -> Duration {
     }
 }
 
-/// Pull `image`, streaming its progress into `pulling()`; on a passing network or registry
-/// fault it waits (`BACKOFF`, through `sleep`, which says false when stopped while waiting) and
-/// tries again. `stop` ends it: the pull is killed, and the runtime keeps what it fetched.
+/// Pull `image`, streaming its progress into `pulling()`. On a passing network or registry fault
+/// it waits (`BACKOFF`, then `next_try`, through `sleep`, which says false when stopped while
+/// waiting) and tries again, until it works, a fault lasts, or it is stopped; while it waits,
+/// `waiting()` names it. `stop` ends it: the pull is killed, and the runtime keeps what it fetched.
 pub fn pull(rt: &Path, image: &str, stop: &AtomicBool, sleep: &dyn Fn(Duration) -> bool) -> Result<(), PullError> {
     let mut tries = 0;
     loop {
@@ -183,19 +199,18 @@ pub fn pull(rt: &Path, image: &str, stop: &AtomicBool, sleep: &dyn Fn(Duration) 
             Ok(()) => return Ok(()),
             Err(mut e) => {
                 e.tries = tries;
-                let passing = matches!(e.fault, Fault::Network | Fault::Registry);
-                match BACKOFF.get(tries as usize - 1) {
-                    Some(wait) if passing => {
-                        PULLING.lock().unwrap_or_else(|e| e.into_inner()).insert(image.to_string(), format!("{e} Trying again in {} s.", wait.as_secs()));
-                        if !sleep(*wait) || stop.load(Ordering::Relaxed) {
-                            PULLING.lock().unwrap_or_else(|e| e.into_inner()).remove(image);
-                            return Err(PullError { fault: Fault::Stopped, ..e });
-                        }
-                    }
-                    _ => {
-                        PULLING.lock().unwrap_or_else(|e| e.into_inner()).remove(image);
-                        return Err(e);
-                    }
+                if !matches!(e.fault, Fault::Network | Fault::Registry) {
+                    PULLING.lock().unwrap_or_else(|e| e.into_inner()).remove(image);
+                    return Err(e);
+                }
+                let wait = BACKOFF.get(tries as usize - 1).copied().unwrap_or_else(|| next_try(tries - BACKOFF.len() as u32));
+                let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+                PULLING.lock().unwrap_or_else(|e| e.into_inner()).remove(image);
+                WAITING.lock().unwrap_or_else(|e| e.into_inner()).insert(image.to_string(), Waiting { error: e.clone(), at: now + wait.as_secs() });
+                let go_on = sleep(wait) && !stop.load(Ordering::Relaxed);
+                WAITING.lock().unwrap_or_else(|e| e.into_inner()).remove(image);
+                if !go_on {
+                    return Err(PullError { fault: Fault::Stopped, ..e });
                 }
             }
         }
