@@ -50,10 +50,12 @@ pub fn notice_dismiss(id: String) {
 }
 
 /// Asks for a newer version when due and the check is on (never with BRAGD_OFFLINE), then
-/// every notice again. Up to a few seconds: run off the main thread.
+/// every notice again. Starts the day's engine image housekeeping beside it. Up to a few seconds: run off the main thread.
 #[tauri::command]
 pub async fn update_check(ctx: tauri::State<'_, Ctx>) -> Result<Vec<Notice>, String> {
     let cfg = ctx.cfg();
+    let housekept = cfg.clone();
+    std::thread::spawn(move || crate::engines::housekeeping(&housekept));
     tauri::async_runtime::spawn_blocking(move || {
         update::check(&cfg);
         list(&cfg, false)

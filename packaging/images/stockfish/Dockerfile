@@ -29,6 +29,7 @@ COPY --from=build /src/src/stockfish /stockfish
 COPY --from=build /src/Copying.txt /COPYING
 LABEL org.opencontainers.image.title="bragd-stockfish" \
       org.opencontainers.image.description="Stockfish 17.1, static, for Bragd's chess engine when none is installed" \
+      org.opencontainers.image.version="17.1" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="GPL-3.0-only"
 USER 65534:65534

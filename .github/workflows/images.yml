@@ -1,10 +1,10 @@
 name: Engine images
 
 # Bragd's own engine images: each folder packaging/images/<engine> holds a Dockerfile, built for
-# amd64 and arm64 and pushed to ghcr.io/mwo-dk/bragd-<engine>:latest. Built again every week, so
-# a new base image's fixes arrive; the same source gives the same image (timestamps at 1970, no
-# attestations), so an unchanged week pushes an unchanged digest. Pull requests build without
-# pushing. packaging/images/README.md says what a folder holds.
+# amd64 and arm64 and pushed to ghcr.io/mwo-dk/bragd-<engine>, tagged latest and its version.
+# Built again every week, so a new base image's fixes arrive; the same source gives the same
+# image (timestamps at 1970, no attestations), so an unchanged week pushes an unchanged digest.
+# Pull requests build without pushing. packaging/images/README.md says what a folder holds.
 on:
   push:
     branches: [master]
@@ -82,16 +82,22 @@ jobs:
           if docker run --rm --entrypoint sh "bragd-$ENGINE:test" -c true 2>/dev/null; then
             echo "::error::the image has a shell"; exit 1
           fi
+      # Tagged `latest` and its engine's version, from the Dockerfile's version label: the tag
+      # Bragd's pin names (crates/bragd-engines/src/known.rs; a test there checks they agree).
       - name: Build, and push from master
         run: |
           export SOURCE_DATE_EPOCH=0
+          version=$(sed -n 's/.*org\.opencontainers\.image\.version="\([^"]*\)".*/\1/p' "packaging/images/$ENGINE/Dockerfile")
+          if [ -z "$version" ]; then
+            echo "::error::packaging/images/$ENGINE/Dockerfile has no org.opencontainers.image.version label"; exit 1
+          fi
           docker buildx build "packaging/images/$ENGINE" \
             --platform linux/amd64,linux/arm64 --pull --no-cache \
             --provenance=false --sbom=false \
-            --output "type=image,name=$IMAGE:latest,push=$PUSH,rewrite-timestamp=true" \
+            --output "type=image,\"name=$IMAGE:latest,$IMAGE:$version\",push=$PUSH,rewrite-timestamp=true" \
             --metadata-file meta.json
           if [ "$PUSH" = true ]; then
-            echo "::notice title=Pushed::$IMAGE:latest@$(jq -r '."containerimage.digest"' meta.json)"
+            echo "::notice title=Pushed::$IMAGE:$version@$(jq -r '."containerimage.digest"' meta.json)"
           fi
 
   # After a master build, old untagged versions on ghcr.io are deleted. Kept: every tagged

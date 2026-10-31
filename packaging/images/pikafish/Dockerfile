@@ -42,6 +42,7 @@ COPY --from=build /src/src/pikafish /
 COPY --from=build /src/Copying.txt /COPYING
 LABEL org.opencontainers.image.title="bragd-pikafish" \
       org.opencontainers.image.description="Pikafish 2026-09-06, static, for Bragd's xiangqi engine when none is installed" \
+      org.opencontainers.image.version="2026-09-06" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="GPL-3.0-only"
 USER 65534:65534

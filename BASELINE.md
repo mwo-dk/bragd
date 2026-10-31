@@ -17,8 +17,7 @@ What is settled, and what is known to be broken. Read this before starting work.
 
 - Text set in the bundled Noto Sans Runic draws nothing in WebKitGTK: the font loads, but the runes have no width. The sidebar shows the rune wordmark from `assets/brand/wordmark-runes.svg` (outlines) instead. The cause is not found yet.
 - Parquet export has no button or command in the app.
-- Engine image updates and the 90-day prune never run, and no image is published (every pin is `None`).
+- The engine images are published, but Bragd does not pin them yet (every pin is `None`), so none is pulled.
 - The Duplicates count stops at 500. A Library's Games list is not limited to the page's Family.
 - A custom URL Source can't be removed.
 - Bragd's Variant ids are not aligned with `bragd-games` (`standard`, `international`). Slices take the Library's id.
-- No real engine has been run: the Hub (Scan), gnubg and KataGo parsers, the janggi pass and the gnubg Position ID player order rest on documents only.

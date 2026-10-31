@@ -35,6 +35,7 @@ COPY --from=build /gtp.cfg /gtp.cfg
 COPY --from=build /src/LICENSE /LICENSE
 LABEL org.opencontainers.image.title="bragd-katago" \
       org.opencontainers.image.description="KataGo 1.18.2 for the CPU, static, with a b15 network, for Bragd's go engine when none is installed" \
+      org.opencontainers.image.version="1.18.2-eigen" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="MIT"
 USER 65534:65534

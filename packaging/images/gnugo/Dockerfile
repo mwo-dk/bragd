@@ -28,6 +28,7 @@ COPY --from=build /src/interface/gnugo /gnugo
 COPY --from=build /src/COPYING /COPYING
 LABEL org.opencontainers.image.title="bragd-gnugo" \
       org.opencontainers.image.description="GNU Go 3.8, static, for Bragd's go engine when none is installed" \
+      org.opencontainers.image.version="3.8" \
       org.opencontainers.image.source="https://github.com/mwo-dk/bragd" \
       org.opencontainers.image.licenses="GPL-3.0-or-later"
 USER 65534:65534
