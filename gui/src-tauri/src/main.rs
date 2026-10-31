@@ -362,3 +362,35 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running Bragd");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// *Start with my session* registers the Helper with the session, or takes it away, before
+    /// the setting is saved: a registration that failed saves nothing. No other setting does.
+    #[test]
+    fn start_with_session_is_registered_before_it_is_saved() {
+        let mut asked = vec![];
+        let failed = save_with("start_with_session", &Value::Bool(true), |on| {
+            asked.push(on);
+            Err(std::io::Error::other("no session service"))
+        });
+        assert!(failed.is_err_and(|e| e.contains("no session service")));
+        assert!(!Config::load().unwrap_or_default().helper.start_with_session, "a failed registration saves nothing");
+        let cfg = save_with("start_with_session", &Value::Bool(true), |on| {
+            asked.push(on);
+            Ok(())
+        })
+        .unwrap();
+        assert!(cfg.helper.start_with_session);
+        let cfg = save_with("start_with_session", &Value::Bool(false), |on| {
+            asked.push(on);
+            Ok(())
+        })
+        .unwrap();
+        assert!(!cfg.helper.start_with_session);
+        save_with("check_updates", &Value::Bool(true), |_| panic!("only the session setting registers")).unwrap();
+        assert_eq!(asked, [true, true, false]);
+    }
+}
