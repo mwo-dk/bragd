@@ -1,0 +1,1 @@
+| **A club can run a Drop-in tournament ("spil når du vil").** Whoever turns up on an evening is paired among themselves; an absence counts as half a point for the pairing only, and the standings go by percentage, total points or best N results. | [Drop-in tournament](reference/drop-in.md) |
