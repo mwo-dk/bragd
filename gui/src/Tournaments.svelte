@@ -243,6 +243,7 @@
             {#each SYSTEMS as id}<option value={id}>{t(`tournaments.system.${id}`)}</option>{/each}
           </select>
         </label>
+        <p class="dim wide" id="t-system-hint">{t(`tournaments.system.${fresh.system}.hint`)}</p>
         {#if DECLARED.includes(fresh.system)}<label>{t("tournaments.rounds")} <input type="number" min="1" max="99" required bind:value={fresh.rounds} /></label>{/if}
         {#if fresh.system === "drop_in"}
           <label
@@ -265,7 +266,6 @@
         {/if}
         {#if family === "backgammon"}<label>{t("tournaments.match_to")} <input type="number" min="1" max="99" required bind:value={fresh.matchTo} /></label>{/if}
       </div>
-      <p class="dim" id="t-system-hint">{t(`tournaments.system.${fresh.system}.hint`)}</p>
       {#if fresh.system === "dutch"}<label class="check"><input type="checkbox" bind:checked={fresh.baku} /> {t("tournaments.baku")}</label>{/if}
       {#if family === "go"}
         <label class="check"><input type="checkbox" bind:checked={fresh.handicap} /> {t("tournaments.handicap")}</label>
@@ -630,6 +630,11 @@
   .edit {
     border-top: 1px solid var(--border);
     margin-top: 0.5rem;
+  }
+  /* The chosen system's explanation, on a line of its own right below the picker. */
+  .grid .wide {
+    grid-column: 1 / -1;
+    margin: -0.2rem 0 0;
   }
   .warnings li {
     color: var(--red);
