@@ -109,7 +109,7 @@
   }
   /** A player found in a rating list fills the form. */
   function use(/** @type {any} */ p) {
-    const fide = p.list.startsWith("FIDE");
+    const fide = p.fide;
     form = {
       ...form,
       name: p.name,
@@ -150,6 +150,7 @@
       <div class="panel warn" role="status">
         <p>{t("clubs.held_by", { user: club.held_by.user, host: club.held_by.host, since: when(club.held_by.since) })}</p>
         <button disabled={role !== "director"} onclick={takeOver}>{t("clubs.take_over")}</button>
+        {#if role !== "director"}<p class="dim">{t("clubs.take_over_hint")}</p>{/if}
       </div>
     {/if}
 

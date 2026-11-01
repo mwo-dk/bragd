@@ -108,11 +108,11 @@ _Avoid_: backend, cloud, lobby
 ### Clubs and competition
 
 **Club**:
-A named group of members who play together. Each member has a role (director, arbiter or member) and may carry IDs from FIDE, a national federation or Lichess, plus a rating kept by the club. A Club owns its Tournaments and its own ratings.
+A named group of members who play together. Each member has a role (director, arbiter or member) and may carry IDs from FIDE, a national federation or Lichess, plus a rating kept by the club. A Club owns its Tournaments, its Leagues and its own ratings.
 _Avoid_: group, society, team (a Team is what a Club fields in a League)
 
 **Pairing system**:
-The rule that decides who plays whom in each Round. The options are Swiss (FIDE Dutch), Monrad, Nordic Swiss, round-robin (Berger tables), knockout and Scheveningen.
+The rule that decides who plays whom in each Round. The options are Swiss (FIDE Dutch), Monrad, Nordic Swiss, Drop-in, round-robin (Berger tables), knockout and Scheveningen.
 _Avoid_: draw (a draw is a result), schedule
 
 **Tournament**:
@@ -136,7 +136,7 @@ A rule from FIDE's list (C.07), such as Buchholz or Sonneborn-Berger, that order
 _Avoid_: tie-break score, korrektion
 
 **Rating list**:
-A published list of players with their federation IDs and ratings, such as the FIDE list or the Danish Chess Union's (DSU) list. Bragd downloads it like a Source and uses it to find and update members.
+A published list of players with their federation IDs and ratings, such as the FIDE list or the Danish Chess Union's (DSU) list. Bragd names it by its federation's full name with the short one in brackets. Bragd downloads it like a Source and uses it to find and update members.
 _Avoid_: player database, ranking
 
 ### Engines

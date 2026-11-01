@@ -596,6 +596,13 @@ pub fn set_language(code: &str) {
     }
 }
 
+/// The tags that say where the user is: the language Bragd speaks unless it is the fallback
+/// British English, then the system's locales (`en_NZ.UTF-8`). Rating lists are suggested by them.
+pub fn locale_tags() -> Vec<String> {
+    let lang = language();
+    (lang != REFERENCE).then(|| lang.to_string()).into_iter().chain(sys_locale::get_locales()).collect()
+}
+
 pub fn language() -> &'static str {
     CURRENT.read().map(|c| *c).unwrap_or(REFERENCE)
 }

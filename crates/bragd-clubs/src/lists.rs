@@ -65,8 +65,10 @@ pub enum Format {
     NzJson,
 }
 
-/// A rating list Bragd can fetch: its id (the Source's), its name, where it is, the file it is
-/// kept as, about how big one download is, and how it is written.
+/// A rating list Bragd can fetch: its id (the Source's), its short name, where it is, the file it
+/// is kept as, about how big one download is, how it is written, and whom it rates: players of
+/// `region` (ISO 3166, lower case), or of every country when empty, and whose language
+/// `language`, when given, also points to it.
 #[derive(Debug, PartialEq)]
 pub struct List {
     pub id: &'static str,
@@ -75,17 +77,39 @@ pub struct List {
     pub file: &'static str,
     pub size: u64,
     pub format: Format,
+    pub region: &'static str,
+    pub language: &'static str,
+}
+
+impl List {
+    /// Its full name with the short one in brackets: "Danish Chess Union (DSU)".
+    pub fn title(&self) -> String {
+        bragd_core::t!(&format!("rating_list.{}", self.id))
+    }
+
+    /// Whether to offer it first to a user whose language and system locales are `tags`
+    /// (BCP 47 or POSIX: `da`, `en-NZ`, `sv_FI.UTF-8`): FIDE's always, a federation's when a tag
+    /// names its country or its language. The others wait under More lists.
+    pub fn suggested(&self, tags: &[String]) -> bool {
+        self.region.is_empty()
+            || tags.iter().any(|tag| {
+                let lower = tag.replace('_', "-").to_ascii_lowercase();
+                let mut parts = lower.split(['-', '.', '@']);
+                let (lang, region) = (parts.next().unwrap_or(""), parts.next().unwrap_or(""));
+                region == self.region || (!self.language.is_empty() && lang == self.language)
+            })
+    }
 }
 
 /// Every rating list Bragd can fetch, in the order the Sources page lists them. Where each comes
 /// from, its terms and why others are missing: `docs/reference/rating-lists.md`.
 pub const LISTS: &[List] = &[
-    List { id: "fide-ratings", name: "FIDE", url: "https://ratings.fide.com/download/players_list.zip", file: "players_list.zip", size: 45_000_000, format: Format::FideTxt },
-    List { id: "dsu-ratings", name: "DSU", url: "https://turnering.skak.dk/ClubAndMembers/AllMemberReport?memType=ActiveMembersAjax&format=csv", file: "dsu-members.csv", size: 550_000, format: Format::DsuCsv },
-    List { id: "ecf-ratings", name: "ECF", url: "https://rating.englishchess.org.uk/api/rating-list/csv", file: "ecf-ratings.csv", size: 4_500_000, format: Format::EcfCsv },
-    List { id: "cfc-ratings", name: "CFC", url: "https://files.chess.ca/data/cfc-ratings.csv", file: "cfc-ratings.csv", size: 5_400_000, format: Format::CfcCsv },
-    List { id: "sshl-ratings", name: "SShL", url: "https://www.shakki.net/selo/selolista.csv", file: "sshl-ratings.csv", size: 750_000, format: Format::FinCsv },
-    List { id: "nzcf-ratings", name: "NZCF", url: "https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json", file: "nzcf-ratings.json", size: 900_000, format: Format::NzJson },
+    List { id: "fide-ratings", name: "FIDE", url: "https://ratings.fide.com/download/players_list.zip", file: "players_list.zip", size: 45_000_000, format: Format::FideTxt, region: "", language: "" },
+    List { id: "dsu-ratings", name: "DSU", url: "https://turnering.skak.dk/ClubAndMembers/AllMemberReport?memType=ActiveMembersAjax&format=csv", file: "dsu-members.csv", size: 550_000, format: Format::DsuCsv, region: "dk", language: "da" },
+    List { id: "ecf-ratings", name: "ECF", url: "https://rating.englishchess.org.uk/api/rating-list/csv", file: "ecf-ratings.csv", size: 4_500_000, format: Format::EcfCsv, region: "gb", language: "" },
+    List { id: "cfc-ratings", name: "CFC", url: "https://files.chess.ca/data/cfc-ratings.csv", file: "cfc-ratings.csv", size: 5_400_000, format: Format::CfcCsv, region: "ca", language: "" },
+    List { id: "sshl-ratings", name: "SShL", url: "https://www.shakki.net/selo/selolista.csv", file: "sshl-ratings.csv", size: 750_000, format: Format::FinCsv, region: "fi", language: "fi" },
+    List { id: "nzcf-ratings", name: "NZCF", url: "https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json", file: "nzcf-ratings.json", size: 900_000, format: Format::NzJson, region: "nz", language: "" },
 ];
 
 /// What a parser hands each player to.
@@ -513,6 +537,23 @@ mod tests {
     const FIDE: &str = "ID Number      Name                                                         Fed Sex Tit  WTit OTit           FOA SRtng SGm SK RRtng RGm Rk BRtng BGm BK B-day Flag\r\n\
 1503014        Carlsen, Magnus                                              NOR M   GM                           2830  0   10 2780  0   20 2880  0   20 1990      \r\n\
 10688862       Abdel Maabod, Hoda                                           EGY F                                0     0   0  0     0   0  0     0   0  2009  w   \r\n";
+
+    #[test]
+    fn fide_and_the_users_own_federation_are_suggested_first() {
+        let first = |tags: &[&str]| -> Vec<&str> {
+            let tags: Vec<String> = tags.iter().map(|t| t.to_string()).collect();
+            LISTS.iter().filter(|l| l.suggested(&tags)).map(|l| l.name).collect()
+        };
+        assert_eq!(first(&[]), ["FIDE"]);
+        assert_eq!(first(&["da"]), ["FIDE", "DSU"], "Danish points to Denmark");
+        assert_eq!(first(&["en-GB", "en_GB.UTF-8"]), ["FIDE", "ECF"]);
+        assert_eq!(first(&["fr-CA"]), ["FIDE", "CFC"]);
+        assert_eq!(first(&["sv_FI.UTF-8"]), ["FIDE", "SShL"], "a Finland-Swede by the region");
+        assert_eq!(first(&["fi"]), ["FIDE", "SShL"]);
+        assert_eq!(first(&["en-NZ"]), ["FIDE", "NZCF"]);
+        assert_eq!(first(&["de-DE", "en-US"]), ["FIDE"], "no federation of Germany's or the USA's yet");
+        assert!(LISTS.iter().all(|l| l.title().contains(l.name)), "every full name carries its short one");
+    }
 
     #[test]
     fn the_fide_list_is_read_by_its_header_columns() {

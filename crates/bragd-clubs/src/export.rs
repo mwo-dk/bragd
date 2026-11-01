@@ -284,6 +284,9 @@ fn rounds_html(t: &Tournament, rounds: std::ops::Range<usize>) -> String {
         for (p, what) in round.bye.iter().map(|&p| (p, "1")).chain(round.half.iter().map(|&p| (p, "½"))) {
             h.push_str(&format!("<tr><td></td><td>{}</td><td></td><td>{} {what}</td><td></td><td></td></tr>", esc(&t.players[p].name), esc(&t!("tournaments.bye"))));
         }
+        for p in t.through(r) {
+            h.push_str(&format!("<tr><td></td><td>{}</td><td></td><td>{}</td><td></td><td></td></tr>", esc(&t.players[p].name), esc(&t!("tournaments.through"))));
+        }
         h.push_str("</tbody></table>\n");
     }
     h
@@ -397,6 +400,18 @@ mod tests {
         assert!(!h.contains("<Championship>") && !h.contains("\"A\""));
         let p = pairings_html(&played(), 1);
         assert!(p.contains("class=\"big\"") && p.contains("+--"));
+    }
+
+    #[test]
+    fn the_second_screen_lists_a_knockout_player_through_by_bye() {
+        let mut t = Tournament::new("Cup", System::Knockout, 0, "").unwrap();
+        for (n, r) in [("Anna", 2100), ("Bo", 1900), ("Carl", 1800)] {
+            let p = t.register(Player { name: n.into(), rating: r, ..Player::default() }).unwrap();
+            t.set_status("Mette", p, Status::Here).unwrap();
+        }
+        t.pair_next().unwrap();
+        let p = pairings_html(&t, 0);
+        assert!(p.contains("<td>Anna</td><td></td><td>"), "Anna, seed 1, has the bye: {p}");
     }
 
     #[test]

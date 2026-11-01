@@ -125,7 +125,7 @@
   }
   /** A player found in a rating list fills the guest form. */
   function use(/** @type {any} */ p) {
-    const fide = p.list.startsWith("FIDE");
+    const fide = p.fide;
     guest = { name: p.name, rating: p.rating ?? "", fide_id: fide ? p.id : p.fide_id || "", federation: fide ? p.federation : "", title: p.title || "" };
     found = null;
   }
@@ -216,6 +216,7 @@
         {/each}
         {#if round.bye !== null}<tr><td></td><td colspan="3">{t("tournaments.has_bye", { name: name(round.bye) })}</td></tr>{/if}
         {#each round.half as p}<tr><td></td><td colspan="3">{t("tournaments.has_half_bye", { name: name(p) })}</td></tr>{/each}
+        {#each tv.through[r] ?? [] as p}<tr><td></td><td colspan="3">{t("tournaments.through_bye", { name: name(p) })}</td></tr>{/each}
       </tbody>
     </table>
   </div>
@@ -453,6 +454,25 @@
           </tbody>
         </table>
       </div>
+      {#if tv.teams.length}
+        <h4>{t("tournaments.team_score")}</h4>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr><th></th>{#each [1, 2] as n}<th>{t("tournaments.team_n", { n })}</th>{/each}</tr>
+            </thead>
+            <tbody>
+              {#each tv.teams as s, r (r)}
+                <tr class:total={r === tv.teams.length - 1}>
+                  <td>{r === tv.teams.length - 1 ? t("tournaments.total") : t("tournaments.round_n", { n: r + 1 })}</td>
+                  {#each [0, 1] as k}<td class="num">{s.boards[k]} ({num(s.matches[k])})</td>{/each}
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+        <p class="dim">{t("tournaments.team_score_hint")}</p>
+      {/if}
       <h4>{t("tournaments.tiebreaks")}</h4>
       <p class="dim">{t("tournaments.tiebreaks_hint")}</p>
       {#if order}
@@ -597,6 +617,21 @@
     padding: 0.25rem 0.5rem;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
+  }
+  /* On a phone-wide window the four columns of a Round must fit without scrolling sideways:
+     Black is the column that would go out of sight. */
+  @media (max-width: 30rem) {
+    th,
+    td {
+      padding: 0.25rem 0.2rem;
+    }
+    td select {
+      max-width: 5.5rem;
+      padding-inline: 0.3rem;
+    }
+  }
+  tr.total td {
+    font-weight: 600;
   }
   .num {
     font-variant-numeric: tabular-nums;

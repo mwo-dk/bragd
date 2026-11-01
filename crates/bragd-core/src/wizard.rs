@@ -148,6 +148,8 @@ pub struct Source {
     /// "weekly", "monthly"…
     pub schedule: String,
     pub fetchable: bool,
+    /// A rating list of another country's federation: offered under More lists.
+    pub more: bool,
 }
 
 /// A download the Knowledge step offers.
@@ -162,6 +164,8 @@ pub struct Offer {
     pub note: Option<String>,
     /// At least `BIG`: the note warns about the disk.
     pub big: bool,
+    /// Shown folded, under More lists.
+    pub more: bool,
 }
 
 /// The downloads the Knowledge step offers: Syzygy 3–5 and every Source that can be fetched,
@@ -177,6 +181,7 @@ pub fn offers(sources: &[Source], cfg: &Config, bytes: fn(u64) -> String) -> Vec
             recommended: true,
             note: None,
             big: false,
+            more: false,
         });
     }
     for s in sources.iter().filter(|s| s.fetchable && cfg.family_shown(&s.family)) {
@@ -188,6 +193,7 @@ pub fn offers(sources: &[Source], cfg: &Config, bytes: fn(u64) -> String) -> Vec
             recommended: RECOMMENDED.contains(&s.id.as_str()),
             note: big.then(|| t!("wizard.big", "size" => bytes(s.size))),
             big,
+            more: s.more,
         });
     }
     out.sort_by_key(|o| !o.recommended);
@@ -314,12 +320,14 @@ mod tests {
             size,
             schedule: "weekly".into(),
             fetchable,
+            more: id == "far-list",
         };
         vec![
             s("lichess-db", "chess", 30_000_000_000, false),
             s("twic", "chess", 1_500_000, true),
             s("kgs", "go", 100, false),
             s("custom:x", "go", 7, true),
+            s("far-list", "chess", 9, true),
         ]
     }
 
@@ -365,7 +373,8 @@ mod tests {
         let cfg = Config::default();
         let o = offers(&sources(), &cfg, b);
         let ids: Vec<&str> = o.iter().map(|o| o.id.as_str()).collect();
-        assert_eq!(ids, ["syzygy", "twic", "custom:x"], "what cannot be fetched is not offered");
+        assert_eq!(ids, ["syzygy", "twic", "custom:x", "far-list"], "what cannot be fetched is not offered");
+        assert_eq!(o.iter().map(|o| o.more).collect::<Vec<_>>(), [false, false, false, true], "another country's list waits under More lists");
         assert_eq!(ticked(&o), ["syzygy", "twic"]);
         assert!(o.iter().all(|o| !o.big), "no warning on what cannot be chosen");
         assert!(o[1].note.is_none() && o[1].size.contains("1500000"));
