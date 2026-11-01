@@ -1,4 +1,4 @@
-//! A fixed 512-bit two's-complement integer.
+//! Fixed-width two's-complement integers of 64-bit limbs; [`Wide`] has 512 bits.
 //!
 //! Pairing criteria are compared lexicographically, so each criterion gets its
 //! own field of bits in one matching weight. With many score levels those
@@ -7,29 +7,30 @@
 use std::cmp::Ordering;
 use std::ops::{Add, Neg, Sub};
 
-const LIMBS: usize = 8;
-
 /// The number of bits a [`Wide`] can hold without overflow, sign bit excluded.
-pub const BITS: u32 = 64 * LIMBS as u32 - 1;
+pub const BITS: u32 = 64 * 8 - 1;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct Wide([u64; LIMBS]);
+/// The weight of every bracket's criteria.
+pub type Wide = Limbs<8>;
 
-impl Wide {
-    pub const ZERO: Wide = Wide([0; LIMBS]);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Limbs<const L: usize>([u64; L]);
 
-    pub fn from_u64(v: u64) -> Wide {
-        let mut w = Wide::ZERO;
+impl<const L: usize> Limbs<L> {
+    pub const ZERO: Self = Limbs([0; L]);
+
+    pub fn from_u64(v: u64) -> Self {
+        let mut w = Self::ZERO;
         w.0[0] = v;
         w
     }
 
     /// `v << shift`, for building a criterion field. `shift + 64` must fit in [`BITS`].
-    pub fn shifted(v: u64, shift: u32) -> Wide {
-        let mut w = Wide::ZERO;
+    pub fn shifted(v: u64, shift: u32) -> Self {
+        let mut w = Self::ZERO;
         let (limb, bit) = ((shift / 64) as usize, shift % 64);
         w.0[limb] = v << bit;
-        if bit != 0 && limb + 1 < LIMBS {
+        if bit != 0 && limb + 1 < L {
             w.0[limb + 1] = v >> (64 - bit);
         }
         w
@@ -39,7 +40,7 @@ impl Wide {
     pub fn field(self, shift: u32, width: u32) -> u64 {
         let (limb, bit) = ((shift / 64) as usize, shift % 64);
         let mut v = self.0[limb] >> bit;
-        if bit != 0 && limb + 1 < LIMBS {
+        if bit != 0 && limb + 1 < L {
             v |= self.0[limb + 1] << (64 - bit);
         }
         if width >= 64 {
@@ -49,32 +50,49 @@ impl Wide {
         }
     }
 
+    /// The same non-negative value in `M` limbs, when it is below `2^bits`.
+    pub fn resize<const M: usize>(self, bits: u32) -> Option<Limbs<M>> {
+        let mut r = Limbs([0; M]);
+        for (i, &l) in self.0.iter().enumerate() {
+            let top = (i as u32 + 1) * 64;
+            let room = bits.saturating_sub(i as u32 * 64);
+            let fits = if top <= bits {
+                true
+            } else {
+                room < 64 && l >> room == 0
+            };
+            if !fits || (l != 0 && i >= M) {
+                return None;
+            }
+            if i < M {
+                r.0[i] = l;
+            }
+        }
+        Some(r)
+    }
+
     pub fn is_negative(self) -> bool {
-        self.0[LIMBS - 1] >> 63 == 1
+        self.0[L - 1] >> 63 == 1
     }
 
     /// Halves an even value (arithmetic shift right by one).
-    pub fn half(self) -> Wide {
-        let mut r = Wide::ZERO;
-        let sign = self.0[LIMBS - 1] & (1 << 63);
-        for i in 0..LIMBS {
-            let hi = if i + 1 < LIMBS {
-                self.0[i + 1] << 63
-            } else {
-                sign
-            };
+    pub fn half(self) -> Self {
+        let mut r = Self::ZERO;
+        let sign = self.0[L - 1] & (1 << 63);
+        for i in 0..L {
+            let hi = if i + 1 < L { self.0[i + 1] << 63 } else { sign };
             r.0[i] = (self.0[i] >> 1) | hi;
         }
         r
     }
 }
 
-impl Add for Wide {
-    type Output = Wide;
-    fn add(self, o: Wide) -> Wide {
-        let mut r = Wide::ZERO;
+impl<const L: usize> Add for Limbs<L> {
+    type Output = Self;
+    fn add(self, o: Self) -> Self {
+        let mut r = Self::ZERO;
         let mut carry = false;
-        for i in 0..LIMBS {
+        for i in 0..L {
             let (s, c1) = self.0[i].overflowing_add(o.0[i]);
             let (s, c2) = s.overflowing_add(carry as u64);
             r.0[i] = s;
@@ -84,32 +102,32 @@ impl Add for Wide {
     }
 }
 
-impl Neg for Wide {
-    type Output = Wide;
-    fn neg(self) -> Wide {
-        let mut r = Wide::ZERO;
-        for i in 0..LIMBS {
+impl<const L: usize> Neg for Limbs<L> {
+    type Output = Self;
+    fn neg(self) -> Self {
+        let mut r = Self::ZERO;
+        for i in 0..L {
             r.0[i] = !self.0[i];
         }
-        r + Wide::from_u64(1)
+        r + Self::from_u64(1)
     }
 }
 
-impl Sub for Wide {
-    type Output = Wide;
-    fn sub(self, o: Wide) -> Wide {
+impl<const L: usize> Sub for Limbs<L> {
+    type Output = Self;
+    fn sub(self, o: Self) -> Self {
         self + (-o)
     }
 }
 
-impl Ord for Wide {
-    fn cmp(&self, o: &Wide) -> Ordering {
+impl<const L: usize> Ord for Limbs<L> {
+    fn cmp(&self, o: &Self) -> Ordering {
         match (self.is_negative(), o.is_negative()) {
             (true, false) => return Ordering::Less,
             (false, true) => return Ordering::Greater,
             _ => {}
         }
-        for i in (0..LIMBS).rev() {
+        for i in (0..L).rev() {
             match self.0[i].cmp(&o.0[i]) {
                 Ordering::Equal => continue,
                 ord => return ord,
@@ -119,20 +137,20 @@ impl Ord for Wide {
     }
 }
 
-impl PartialOrd for Wide {
-    fn partial_cmp(&self, o: &Wide) -> Option<Ordering> {
+impl<const L: usize> PartialOrd for Limbs<L> {
+    fn partial_cmp(&self, o: &Self) -> Option<Ordering> {
         Some(self.cmp(o))
     }
 }
 
-impl std::fmt::Debug for Wide {
+impl<const L: usize> std::fmt::Debug for Limbs<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_negative() {
             write!(f, "-")?;
             return std::fmt::Debug::fmt(&-*self, f);
         }
         write!(f, "0x")?;
-        let top = (0..LIMBS).rev().find(|&i| self.0[i] != 0).unwrap_or(0);
+        let top = (0..L).rev().find(|&i| self.0[i] != 0).unwrap_or(0);
         write!(f, "{:x}", self.0[top])?;
         for i in (0..top).rev() {
             write!(f, "{:016x}", self.0[i])?;
@@ -175,6 +193,20 @@ mod tests {
         assert_eq!(a - Wide::from_u64(1), Wide::from_u64(u64::MAX));
         assert!(Wide::shifted(1, 400) > Wide::shifted(u64::MAX, 300));
         assert_eq!(Wide::shifted(6, 300).half(), Wide::shifted(3, 300));
+    }
+
+    #[test]
+    fn resizes_when_the_value_fits() {
+        let v = Wide::shifted(0xabc, 100) + Wide::from_u64(7);
+        let small: Limbs<2> = v.resize(118).unwrap();
+        assert_eq!(small.resize::<8>(128), Some(v));
+        assert_eq!(v.resize::<2>(100), None);
+        assert_eq!(Wide::shifted(1, 200).resize::<2>(118), None);
+        assert_eq!(w(-3).resize::<2>(118), None);
+        assert_eq!(
+            Wide::shifted(1, 200).resize::<4>(250),
+            Some(Limbs::<4>::shifted(1, 200))
+        );
     }
 
     #[test]
