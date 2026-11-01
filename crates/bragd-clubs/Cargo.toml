@@ -1,0 +1,19 @@
+[package]
+name = "bragd-clubs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Bragd's Clubs: members, roles and IDs in one Club file, club ratings with their audit log, and the rating lists"
+
+[dependencies]
+# Where the rating lists are kept (`dirs`), the time (`fs::now`).
+bragd-core = { path = "../bragd-core" }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# FIDE sends its list as a zip. Deflate only, in pure Rust.
+zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
+
+[dev-dependencies]
+bragd-core = { path = "../bragd-core", features = ["test-home"] }
