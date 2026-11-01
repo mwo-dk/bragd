@@ -31,7 +31,7 @@ The page has four parts:
    | *Container image ready.* | Nothing: it runs from Bragd's image |
    | *Container image built on this machine, ready.* | Nothing: it runs from an image you built ([Images built on your own machine](container-images.md#images-built-on-your-own-machine)) |
    | *Its container image can be downloaded: about …* | **Get it (…)** pulls the image; a bar and the runtime's last line show its progress |
-   | *Its container image is not published yet.* | Igel and YaneuraOu, which have no image: install the program with your package manager, or **Download page** |
+   | *Bragd has no container image of it.* | An Engine Bragd builds no image of, such as Igel or YaneuraOu: install the program with your package manager, or **Download page** |
    | *Its container image needs podman or docker* | Install podman or docker, or the Engine itself. **Settings → Engines** opens the container settings |
    | *Container images are turned off in Settings.* | **Settings → Engines** turns them back on |
 

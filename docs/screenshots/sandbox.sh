@@ -9,7 +9,7 @@
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
 demo="${DEMO_HOME:-${XDG_RUNTIME_DIR:-/tmp}/bragd-demo-home}"
-[ -d "$demo" ] || "$repo/docs/screenshots/demo-home.sh" "$demo"
+[ -e "$demo/.local/share/bragd/libraries/main.bragd" ] || "$repo/docs/screenshots/demo-home.sh" "$demo"
 
 # No containers in here (CLAUDE.md, Testing on a machine someone uses): a podman run in the
 # sandbox would start its pause process in the sandbox's namespaces and point the user's

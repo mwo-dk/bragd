@@ -25,11 +25,13 @@
   let several = $state(false);
   const shownIds = $derived(snap.families.filter((/** @type {any} */ f) => f.shown).map((/** @type {any} */ f) => f.id));
   // One click: that Family alone, then the next step (whose Engines and downloads follow it).
-  const pickOnly = (/** @type {string} */ id) => only(id).then(open).then(() => step++);
+  const pickOnly = (/** @type {string} */ id) => only(id).then(() => open(true)).then(() => step++);
 
-  const open = () =>
+  // `fresh`: the Families changed, so the downloads ticked are those offered for them now; a
+  // download of a Family turned off stays chosen otherwise, unseen.
+  const open = (fresh = false) =>
     api.wizardOpen().then((d) => {
-      if (!data) chosen = d.ticked;
+      if (!data || fresh) chosen = d.ticked;
       data = d;
     });
   if (!tour) open();
@@ -66,10 +68,9 @@
     guide.area = area;
     go({ kind: "settings" });
   }
-  const theme = (/** @type {string} */ name, /** @type {string} */ value) => save(name, value).then(open);
+  const theme = (/** @type {string} */ name, /** @type {string} */ value) => save(name, value).then(() => open());
   const tick = (/** @type {string} */ id, /** @type {boolean} */ on) => (chosen = on ? [...chosen, id] : chosen.filter((c) => c !== id));
 
-  const SERVERS = ["https://lichess.org/", "https://lishogi.org/", "https://www.pychess.org/", "https://online-go.com/"];
 </script>
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && close()} />
@@ -94,7 +95,7 @@
         <div class="welcome">
           <div class="col">
             <span>{t("wizard.languages")}</span>
-            <Picker value={opt("language").value} choices={opt("language").choices} label={t("wizard.languages")} onchange={(v) => save("language", v).then(open)} />
+            <Picker value={opt("language").value} choices={opt("language").choices} label={t("wizard.languages")} onchange={(v) => save("language", v).then(() => open())} />
           </div>
           <div class="col">
             <span>{t("setting.theme")}</span>
@@ -134,19 +135,20 @@
         <p class="lead">{t("wizard.families")}</p>
         {#if several}
           <p>{t("wizard.several_lead")}</p>
-          <FamilyToggles {snap} save={(n, v) => save(n, v).then(open)} />
+          <FamilyToggles {snap} save={(n, v) => save(n, v).then(() => open(true))} />
         {:else}
           <div class="only">
             {#each snap.families as f (f.id)}
               <button aria-pressed={shownIds.length === 1 && shownIds[0] === f.id} onclick={() => pickOnly(f.id)}>{t("wizard.only", { family: f.name })}</button>
             {/each}
-            <button aria-pressed={shownIds.length > 1} onclick={() => (several = true)}>{t("wizard.several")}</button>
+            <button aria-pressed={!guide.first && shownIds.length > 1} onclick={() => (several = true)}>{t("wizard.several")}</button>
           </div>
         {/if}
       {:else if current?.id === "engines"}
         <p class="lead">{t("wizard.engines")}</p>
         {#each data.engines as f}
           <h3>{f.name}</h3>
+          {#if !f.engines.length}<p class="dim">{t("wizard.bot")}</p>{/if}
           <ul>
             {#each f.engines as e}
               <li>
@@ -181,8 +183,9 @@
         {/if}
       {:else if current?.id === "online"}
         <p class="lead">{t("wizard.online")}</p>
+        {#if data.servers.length}<p>{t("wizard.online_sites")}</p>{/if}
         <ul>
-          {#each SERVERS as url}<li><button class="link" onclick={() => api.openUrl(url)}>{url.replace(/^https:\/\/(www\.)?|\/$/g, "")}</button></li>{/each}
+          {#each data.servers as url}<li><button class="link" onclick={() => api.openUrl(url)}>{url.replace(/^https:\/\/(www\.)?|\/$/g, "")}</button></li>{/each}
         </ul>
       {:else if current?.id === "helper"}
         <p class="lead">{t("wizard.helper")}</p>

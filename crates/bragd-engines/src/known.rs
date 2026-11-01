@@ -175,7 +175,7 @@ pub fn images() -> Vec<String> {
 pub enum Missing {
     /// Not installed, and its image is pulled once asked (`image`).
     NotPulled { image: String },
-    /// Not installed, and Bragd has no image of it (yet).
+    /// Not installed, and Bragd has no image of it.
     NoImage,
     /// Not installed, and neither podman nor docker is.
     NoRuntime,
@@ -188,7 +188,7 @@ impl std::fmt::Display for Missing {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Missing::NotPulled { image } => write!(f, "Not installed. Its image {} can be downloaded.", crate::images::short(image)),
-            Missing::NoImage => write!(f, "Not installed, and Bragd has no image of it yet."),
+            Missing::NoImage => write!(f, "Not installed, and Bragd has no image of it."),
             Missing::NoRuntime => write!(f, "Not installed, and neither podman nor docker is there to run its image."),
             Missing::NoNetwork => write!(f, "Not installed, and its image needs its evaluation network, which is not downloaded yet."),
         }

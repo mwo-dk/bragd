@@ -2,6 +2,8 @@
 // cards are open, the notices to show, and the Settings area a link asks for.
 export const guide = $state({
   wizard: false,
+  /** The wizard opened by itself, on a first start: no choice of Families is made yet. */
+  first: false,
   /** Tour cards still to show (bragd_core::tour::View). @type {any[]} */
   cards: [],
   /** @type {any[]} */

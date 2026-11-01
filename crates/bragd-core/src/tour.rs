@@ -16,19 +16,21 @@ const fn card(version: &'static str, id: &'static str) -> Card {
     Card { version, id }
 }
 
-/// Every card, oldest version first. A card may carry the next minor version, the release
-/// being prepared: the version is raised only by the release (`packaging/release-pr.py`).
+/// Every card, oldest version first. A card carries the version of the release being prepared:
+/// the next minor version, or 1.0.0 before then, since nothing is released before 1.0.0 (so a
+/// first install of 1.0.0 never reads of a version that was not published). The version is
+/// raised only by the release (`packaging/release-pr.py`).
 pub const CARDS: &[Card] = &[
-    card("0.2.0", "families"),
-    card("0.2.0", "themes"),
-    card("0.2.0", "databases"),
-    card("0.2.0", "parquet"),
-    card("0.2.0", "engines"),
-    card("0.2.0", "helper"),
-    card("0.2.0", "disk"),
-    card("0.2.0", "tips"),
-    card("0.2.0", "clubs"),
-    card("0.2.0", "matches"),
+    card("1.0.0", "families"),
+    card("1.0.0", "themes"),
+    card("1.0.0", "databases"),
+    card("1.0.0", "parquet"),
+    card("1.0.0", "engines"),
+    card("1.0.0", "helper"),
+    card("1.0.0", "disk"),
+    card("1.0.0", "tips"),
+    card("1.0.0", "clubs"),
+    card("1.0.0", "matches"),
 ];
 
 /// Whether the card shows to the user of `cfg`: its feature concerns one of their Families.
@@ -172,9 +174,9 @@ mod tests {
                 );
             }
         }
-        // No card from beyond the next release: at most the next minor version.
+        // No card from beyond the next release: the next minor version, or 1.0.0 before 1.0.0.
         let (major, minor, _) = crate::update::parse(crate::update::VERSION).unwrap();
-        let next = format!("{major}.{}.0", minor + 1);
+        let next = if major == 0 { "1.0.0".to_string() } else { format!("{major}.{}.0", minor + 1) };
         assert!(
             CARDS
                 .iter()

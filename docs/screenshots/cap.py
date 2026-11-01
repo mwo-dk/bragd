@@ -197,7 +197,8 @@ class Desktop:
         self.profile = tempfile.mkdtemp(prefix="cap-chromium-", dir=RUNTIME)
         chromium = subprocess.Popen([os.environ.get("CHROMIUM", "chromium"), "--headless=new", *OFFLINE, "--no-sandbox", "--hide-scrollbars", f"--user-data-dir={self.profile}",
                                      f"--window-size={w + 100},{h + 300}", f"--remote-debugging-port={self.debug}", f"http://127.0.0.1:{self.port}/"],
-                                    stdout=self.logs[1], stderr=subprocess.STDOUT)
+                                    # Its org.chromium.Chromium.* temp folders go in the profile, removed on exit.
+                                    stdout=self.logs[1], stderr=subprocess.STDOUT, env={**os.environ, "TMPDIR": self.profile})
         self.procs.append(chromium)
 
         def devtools():
