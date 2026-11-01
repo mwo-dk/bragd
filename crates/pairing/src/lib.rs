@@ -15,6 +15,11 @@ mod colour;
 mod matching;
 mod wide;
 
+/// Matching steps (vertex and edge visits) done on this thread so far. Tests
+/// use it to bound how much work a pairing takes without timing it.
+#[doc(hidden)]
+pub use matching::work;
+
 /// A colour of the pieces.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Colour {

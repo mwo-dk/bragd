@@ -5,7 +5,7 @@
 //! Weights are doubled inside, so with integer weights every dual variable stays
 //! an integer and no rounding enters.
 
-use crate::wide::Wide;
+use crate::wide::{Limbs, Wide};
 use std::ops::{Add, Sub};
 
 /// What a weight must support.
@@ -25,25 +25,111 @@ impl Weight for i64 {
     }
 }
 
-impl Weight for Wide {
-    const ZERO: Wide = Wide::ZERO;
-    fn half(self) -> Wide {
-        Wide::half(self)
+impl<const L: usize> Weight for Limbs<L> {
+    const ZERO: Self = Limbs::ZERO;
+    fn half(self) -> Self {
+        Limbs::half(self)
     }
 }
 
 const NONE: usize = usize::MAX;
 
+thread_local! {
+    static WORK: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
+/// Adds solver steps (vertex and edge visits) to this thread's count.
+fn count(steps: usize) {
+    WORK.with(|w| w.set(w.get() + steps as u64));
+}
+
+/// Solver steps on this thread so far: a measure of pairing work that does
+/// not depend on the machine.
+pub fn work() -> u64 {
+    WORK.with(|w| w.get())
+}
+
 /// Returns `mate[v]`: the vertex matched to `v`, or `None`.
 pub fn max_weight_matching<W: Weight>(n: usize, edges: &[(usize, usize, W)]) -> Vec<Option<usize>> {
+    run(n, edges).0
+}
+
+/// Bits a weight may use in `L` limbs: the solver doubles weights, and its
+/// duals and slacks stay within a few times the largest weight.
+const fn room(limbs: usize) -> u32 {
+    64 * limbs as u32 - 8
+}
+
+/// [`max_weight_matching`] for [`Wide`] weights, in fewer limbs when they all fit.
+pub fn wide_matching(n: usize, edges: &[(usize, usize, Wide)]) -> Vec<Option<usize>> {
+    if let Some(e) = resized::<2>(edges) {
+        max_weight_matching(n, &e)
+    } else if let Some(e) = resized::<4>(edges) {
+        max_weight_matching(n, &e)
+    } else {
+        max_weight_matching(n, edges)
+    }
+}
+
+/// [`max_weight_matching_duals`] for [`Wide`] weights, in fewer limbs when they all fit.
+pub fn wide_matching_duals(
+    n: usize,
+    edges: &[(usize, usize, Wide)],
+) -> (Vec<Option<usize>>, Vec<Wide>) {
+    fn widen<const L: usize>(
+        (m, rc): (Vec<Option<usize>>, Vec<Limbs<L>>),
+    ) -> (Vec<Option<usize>>, Vec<Wide>) {
+        let rc = rc
+            .into_iter()
+            .map(|r| r.resize(64 * L as u32).expect("non-negative"))
+            .collect();
+        (m, rc)
+    }
+    if let Some(e) = resized::<2>(edges) {
+        widen(max_weight_matching_duals(n, &e))
+    } else if let Some(e) = resized::<4>(edges) {
+        widen(max_weight_matching_duals(n, &e))
+    } else {
+        max_weight_matching_duals(n, edges)
+    }
+}
+
+/// Also returns each edge's reduced cost under the final dual solution, in
+/// units of a quarter weight. When the matching is perfect, every other perfect
+/// matching `M` weighs at most the optimum less a quarter of the summed reduced
+/// costs of its edges: an edge with a large reduced cost is in no near-best matching.
+pub fn max_weight_matching_duals<W: Weight>(
+    n: usize,
+    edges: &[(usize, usize, W)],
+) -> (Vec<Option<usize>>, Vec<W>) {
+    let (mate, m) = run(n, edges);
+    let rc = m.map_or(Vec::new(), |m| m.reduced_costs());
+    (mate, rc)
+}
+
+fn run<W: Weight>(
+    n: usize,
+    edges: &[(usize, usize, W)],
+) -> (Vec<Option<usize>>, Option<Solver<W>>) {
     if edges.is_empty() || n == 0 {
-        return vec![None; n];
+        return (vec![None; n], None);
     }
     let mut m = Solver::new(n, edges);
     m.solve();
-    m.mate
+    let mate = m
+        .mate
         .iter()
         .map(|&p| if p == NONE { None } else { Some(m.endpoint[p]) })
+        .collect();
+    (mate, Some(m))
+}
+
+fn resized<const L: usize>(
+    edges: &[(usize, usize, Wide)],
+) -> Option<Vec<(usize, usize, Limbs<L>)>> {
+    edges
+        .iter()
+        .map(|&(u, v, w)| Some((u, v, w.resize(room(L))?)))
         .collect()
 }
 
@@ -118,6 +204,31 @@ impl<W: Weight> Solver<W> {
     fn slack(&self, k: usize) -> W {
         let (i, j, w) = self.edges[k];
         self.dualvar[i] + self.dualvar[j] - w.double()
+    }
+
+    /// Every edge's slack, including the duals of every blossom holding both ends.
+    fn reduced_costs(&self) -> Vec<W> {
+        // Each vertex's blossoms, innermost first.
+        let chains: Vec<Vec<usize>> = (0..self.n)
+            .map(|mut v| {
+                let mut c = Vec::new();
+                while self.blossomparent[v] != NONE {
+                    v = self.blossomparent[v];
+                    c.push(v);
+                }
+                c
+            })
+            .collect();
+        (0..self.edges.len())
+            .map(|k| {
+                let (i, j, _) = self.edges[k];
+                let mut s = self.slack(k);
+                for b in chains[i].iter().filter(|b| chains[j].contains(b)) {
+                    s = s + self.dualvar[*b].double();
+                }
+                s
+            })
+            .collect()
     }
 
     fn leaves(&self, b: usize, out: &mut Vec<usize>) {
@@ -405,7 +516,17 @@ impl<W: Weight> Solver<W> {
 
     fn solve(&mut self) {
         let n = self.n;
+        // Every vertex starts with the same dual, so edges of the largest weight
+        // are tight: matching them greedily keeps every invariant and saves a stage each.
+        for k in 0..self.edges.len() {
+            let (i, j, _) = self.edges[k];
+            if self.mate[i] == NONE && self.mate[j] == NONE && i != j && self.slack(k) == W::ZERO {
+                self.mate[i] = 2 * k + 1;
+                self.mate[j] = 2 * k;
+            }
+        }
         for _ in 0..n {
+            count(4 * n + self.edges.len());
             self.label.iter_mut().for_each(|l| *l = 0);
             self.bestedge.iter_mut().for_each(|e| *e = NONE);
             for b in n..2 * n {
@@ -421,6 +542,7 @@ impl<W: Weight> Solver<W> {
             let mut augmented = false;
             loop {
                 while let Some(v) = self.queue.pop() {
+                    count(self.neighbend[v].len());
                     for idx in 0..self.neighbend[v].len() {
                         let p = self.neighbend[v][idx];
                         let k = p / 2;
@@ -470,6 +592,7 @@ impl<W: Weight> Solver<W> {
                     break;
                 }
                 // Maximum cardinality: no delta of type 1 until nothing else is left.
+                count(6 * n);
                 let mut deltatype = 0u8;
                 let mut delta = W::ZERO;
                 let mut deltaedge = NONE;
@@ -676,6 +799,71 @@ mod tests {
             let mate = max_weight_matching(n, &wide);
             assert_eq!(score(&mate, &edges), brute(n, &edges));
         }
+    }
+
+    /// Every perfect matching's weight, by brute force.
+    fn perfect(n: usize, edges: &[(usize, usize, i64)]) -> Vec<(i64, Vec<usize>)> {
+        fn go(
+            used: &mut [bool],
+            edges: &[(usize, usize, i64)],
+            acc: (i64, Vec<usize>),
+            out: &mut Vec<(i64, Vec<usize>)>,
+        ) {
+            let Some(v) = used.iter().position(|u| !u) else {
+                out.push(acc);
+                return;
+            };
+            used[v] = true;
+            for (k, &(i, j, w)) in edges.iter().enumerate() {
+                let u = if i == v {
+                    j
+                } else if j == v {
+                    i
+                } else {
+                    continue;
+                };
+                if !used[u] {
+                    used[u] = true;
+                    let mut ks = acc.1.clone();
+                    ks.push(k);
+                    go(used, edges, (acc.0 + w, ks), out);
+                    used[u] = false;
+                }
+            }
+            used[v] = false;
+        }
+        let mut out = Vec::new();
+        go(&mut vec![false; n], edges, (0, Vec::new()), &mut out);
+        out
+    }
+
+    #[test]
+    fn reduced_costs_bound_every_perfect_matching() {
+        let mut rng = Lcg(5);
+        let mut checked = 0;
+        for _ in 0..3000 {
+            let n = 2 * (1 + rng.next(5) as usize);
+            let mut edges = Vec::new();
+            for i in 0..n {
+                for j in i + 1..n {
+                    if rng.next(10) < 7 {
+                        edges.push((i, j, rng.next(40) as i64 - 10));
+                    }
+                }
+            }
+            let (mate, rc) = max_weight_matching_duals(n, &edges);
+            if mate.iter().any(|m| m.is_none()) {
+                continue;
+            }
+            assert!(rc.iter().all(|&r| r >= 0), "{edges:?} {rc:?}");
+            let best = score(&mate, &edges).1;
+            for (w, ks) in perfect(n, &edges) {
+                let loss: i64 = ks.iter().map(|&k| rc[k]).sum();
+                assert!(4 * (best - w) >= loss, "{edges:?} {rc:?} {ks:?}");
+                checked += 1;
+            }
+        }
+        assert!(checked > 1000);
     }
 
     #[test]

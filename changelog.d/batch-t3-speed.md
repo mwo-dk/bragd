@@ -1,0 +1,1 @@
+| **A Swiss round of a large open pairs in well under a second.** The 353-player Granada Open used to take several seconds a round; it now does about a twentieth of the work, with the same pairings. | [Swiss pairing](reference/swiss-pairing.md#how-fast-is-it) |

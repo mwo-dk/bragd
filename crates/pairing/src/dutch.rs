@@ -23,7 +23,7 @@
 //!    best values.
 
 use crate::colour::{self, Preference, Side, Strength};
-use crate::matching::max_weight_matching;
+use crate::matching::{wide_matching, wide_matching_duals};
 use crate::wide::{BITS, Wide};
 use crate::{Board, Colour, Error, Player, Round, Settings};
 use std::collections::HashMap;
@@ -553,6 +553,8 @@ struct BracketSolver<'r, 'a> {
     verts: Vec<usize>,
     kinds: Vec<Kind>,
     edges: Vec<(usize, usize, Wide)>,
+    /// Each edge's reduced cost under the best matching's duals, once known.
+    rc: Vec<Wide>,
     offset: Wide,
     layout: Layout,
     fields: Fields,
@@ -684,6 +686,7 @@ impl<'r, 'a> BracketSolver<'r, 'a> {
             verts,
             kinds,
             edges: Vec::new(),
+            rc: Vec::new(),
             offset: Wide::shifted(1, total),
             layout,
             fields,
@@ -850,8 +853,21 @@ impl<'r, 'a> BracketSolver<'r, 'a> {
 
     /// The best value under a constraint, with a matching that reaches it.
     fn best(&self, c: &Constraint) -> Option<(Wide, Vec<Option<usize>>)> {
+        self.best_on(c, None)
+    }
+
+    /// [`best`](Self::best) over the vertices in `keep` only; the others come
+    /// in pairs whose edges weigh exactly the offset.
+    fn best_on(&self, c: &Constraint, keep: Option<&[bool]>) -> Option<(Wide, Vec<Option<usize>>)> {
         let nb = self.b.len();
         let nv = self.verts.len();
+        let kept = |u: usize| keep.is_none_or(|k| k[u]);
+        let mut at = vec![usize::MAX; nv];
+        let mut back = Vec::with_capacity(nv);
+        for u in (0..nv).filter(|&u| kept(u)) {
+            at[u] = back.len();
+            back.push(u);
+        }
         let mut fixed = vec![false; nv];
         let mut total = Wide::ZERO;
         for &(x, y) in &c.forced {
@@ -867,23 +883,82 @@ impl<'r, 'a> BracketSolver<'r, 'a> {
         let edges: Vec<(usize, usize, Wide)> = self
             .edges
             .iter()
-            .filter(|&&(u, v, _)| !fixed[u] && !fixed[v] && c.allows(nb, u, v))
-            .copied()
+            .filter(|&&(u, v, _)| {
+                kept(u) && kept(v) && !fixed[u] && !fixed[v] && c.allows(nb, u, v)
+            })
+            .map(|&(u, v, w)| (at[u], at[v], w))
             .collect();
-        let mut mate = max_weight_matching(nv, &edges);
+        let sub = wide_matching(back.len(), &edges);
+        let mut mate = vec![None; nv];
+        for (i, m) in sub.iter().enumerate() {
+            mate[back[i]] = m.map(|j| back[j]);
+        }
+        if sub
+            .iter()
+            .zip(&back)
+            .any(|(m, &u)| m.is_none() && !fixed[u])
+        {
+            return None;
+        }
         for &(x, y) in &c.forced {
             mate[x] = Some(y);
             mate[y] = Some(x);
         }
-        if mate.iter().any(|m| m.is_none()) {
-            return None;
-        }
         for &(u, v, w) in &edges {
-            if mate[u] == Some(v) {
+            if sub[u] == Some(v) {
                 total = total + w;
             }
         }
         Some((total, mate))
+    }
+
+    /// [`best`](Self::best), trying first a smaller graph: the witness's pairs
+    /// of two next-scoregroup or two lower players, all of equal weight, are
+    /// left out but for a few of each kind. What the smaller graph reaches, the
+    /// whole graph reaches with those pairs added back.
+    fn best_near(
+        &self,
+        c: &Constraint,
+        witness: &[Option<usize>],
+        target: Wide,
+    ) -> Option<(Wide, Vec<Option<usize>>)> {
+        const RESERVE: usize = 4;
+        let nb = self.b.len();
+        let nv = self.verts.len();
+        let mut keep = vec![true; nv];
+        let mut reserve = [0usize; 2];
+        let mut dropped = Vec::new();
+        for u in nb..nv {
+            let Some(v) = witness[u] else { continue };
+            if v <= u || self.kinds[u] != self.kinds[v] {
+                continue;
+            }
+            let k = match self.kinds[u] {
+                Kind::Next => 0,
+                Kind::Below => 1,
+                _ => continue,
+            };
+            if reserve[k] < RESERVE {
+                reserve[k] += 1;
+            } else {
+                keep[u] = false;
+                keep[v] = false;
+                dropped.push((u, v));
+            }
+        }
+        if !dropped.is_empty()
+            && let Some((mut value, mut mate)) = self.best_on(c, Some(&keep))
+        {
+            for &(u, v) in &dropped {
+                mate[u] = Some(v);
+                mate[v] = Some(u);
+                value = value + self.offset;
+            }
+            if self.agrees(value, target) {
+                return Some((value, mate));
+            }
+        }
+        self.best(c)
     }
 
     fn satisfies(&self, mate: &[Option<usize>], c: &Constraint) -> bool {
@@ -908,24 +983,58 @@ impl<'r, 'a> BracketSolver<'r, 'a> {
             must_float: vec![false; nb],
             side: None,
         };
-        let (target, witness) = self.best(&open).ok_or(Error::NoLegalPairing)?;
+        let (target, witness, rc) = self.open_best().ok_or(Error::NoLegalPairing)?;
         // C9 applies only to a bracket whose single downfloater takes the bye.
         let floats = (0..nb)
             .filter(|&x| witness[x].is_some_and(|y| y >= nb))
             .count();
         if floats != 1 {
             let other = self.without_c9();
-            let (target, witness) = other.best(&open).ok_or(Error::NoLegalPairing)?;
-            return other.walk(target, witness, open);
+            let (target, witness, rc) = other.open_best().ok_or(Error::NoLegalPairing)?;
+            return other.near_best(&rc).walk(target, witness, open);
         }
-        self.walk(target, witness, open)
+        self.near_best(&rc).walk(target, witness, open)
+    }
+
+    /// The best matching with no constraint, and each edge's reduced cost.
+    fn open_best(&self) -> Option<(Wide, Vec<Option<usize>>, Vec<Wide>)> {
+        let (mate, rc) = wide_matching_duals(self.verts.len(), &self.edges);
+        if mate.iter().any(|m| m.is_none()) {
+            return None;
+        }
+        let total = self
+            .edges
+            .iter()
+            .filter(|&&(u, v, _)| mate[u] == Some(v))
+            .fold(Wide::ZERO, |t, e| t + e.2);
+        Some((total, mate, rc))
+    }
+
+    /// The same bracket without the edges no candidate at the best values can use.
+    ///
+    /// A matching that agrees with the best on every criterion differs from it
+    /// in the tie-break field only, the lowest, so it weighs less by under
+    /// `2^width`. An edge whose reduced cost (in quarter weights) exceeds that
+    /// is in no such matching.
+    fn near_best(&self, rc: &[Wide]) -> BracketSolver<'r, 'a> {
+        let limit = Wide::shifted(4, self.layout.widths[self.fields.tie]);
+        let mut s = self.without_edges();
+        (s.edges, s.rc) = self
+            .edges
+            .iter()
+            .zip(rc)
+            .filter(|&(_, &r)| r < limit)
+            .unzip();
+        s
     }
 
     /// The same bracket with C9 switched off.
     fn without_c9(&self) -> BracketSolver<'r, 'a> {
         let shift = self.layout.shifts[self.fields.c9];
         let width = self.layout.widths[self.fields.c9];
-        let edges = self
+        let mut s = self.without_edges();
+        s.fields.c9 = usize::MAX;
+        s.edges = self
             .edges
             .iter()
             .map(|&(u, v, w)| {
@@ -933,31 +1042,32 @@ impl<'r, 'a> BracketSolver<'r, 'a> {
                 (u, v, w + Wide::shifted(c9, shift))
             })
             .collect();
+        s
+    }
+
+    /// A copy with no edges.
+    fn without_edges(&self) -> BracketSolver<'r, 'a> {
         BracketSolver {
             r: self.r,
             b: self.b.clone(),
             m0: self.m0,
             verts: self.verts.clone(),
             kinds: self.kinds.clone(),
-            edges,
+            edges: Vec::new(),
+            rc: Vec::new(),
             offset: self.offset,
             layout: Layout {
                 widths: self.layout.widths.clone(),
                 shifts: self.layout.shifts.clone(),
             },
             fields: Fields {
-                c5: self.fields.c5,
-                c6: self.fields.c6,
                 c7: self.fields.c7.clone(),
-                c8a: self.fields.c8a,
                 c8b: self.fields.c8b.clone(),
-                c9: usize::MAX,
-                c10_17: self.fields.c10_17,
                 c18: self.fields.c18.clone(),
                 c19: self.fields.c19.clone(),
                 c20: self.fields.c20.clone(),
                 c21: self.fields.c21.clone(),
-                tie: self.fields.tie,
+                ..self.fields
             },
         }
     }
@@ -967,13 +1077,60 @@ impl<'r, 'a> BracketSolver<'r, 'a> {
         if self.satisfies(witness, c) {
             return true;
         }
-        match self.best(c) {
+        if self.out_of_reach(c) {
+            return false;
+        }
+        match self.best_near(c, witness, target) {
             Some((v, m)) if self.agrees(v, target) => {
                 *witness = m;
                 true
             }
             _ => false,
         }
+    }
+
+    /// True when the duals prove that no matching under `c` agrees with the
+    /// best: each vertex needs an edge, and its cheapest allowed one already
+    /// costs more than the tie-break field can make up.
+    fn out_of_reach(&self, c: &Constraint) -> bool {
+        if self.rc.is_empty() {
+            return false;
+        }
+        let nb = self.b.len();
+        let nv = self.verts.len();
+        let mut fixed = vec![false; nv];
+        let mut loss = Wide::ZERO;
+        for &(x, y) in &c.forced {
+            fixed[x] = true;
+            fixed[y] = true;
+            let Some(k) = self
+                .edges
+                .iter()
+                .position(|e| (e.0 == x && e.1 == y) || (e.0 == y && e.1 == x))
+            else {
+                return true;
+            };
+            loss = loss + self.rc[k] + self.rc[k];
+        }
+        let mut cheapest: Vec<Option<Wide>> = vec![None; nv];
+        for (&(u, v, _), &r) in self.edges.iter().zip(&self.rc) {
+            if fixed[u] || fixed[v] || !c.allows(nb, u, v) {
+                continue;
+            }
+            for x in [u, v] {
+                if cheapest[x].is_none_or(|m| r < m) {
+                    cheapest[x] = Some(r);
+                }
+            }
+        }
+        for x in (0..nv).filter(|&x| !fixed[x]) {
+            match cheapest[x] {
+                Some(r) => loss = loss + r,
+                None => return true,
+            }
+        }
+        // `loss` counts every edge twice, in quarter weights.
+        loss >= Wide::shifted(8, self.layout.widths[self.fields.tie])
     }
 
     /// Equal on every criterion field; the tie-break heuristic does not count.
