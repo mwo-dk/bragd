@@ -522,7 +522,7 @@
  "slice.use_position": "現在の盤の局面を使う",
  "slice.variant": "バリアント",
  "source.add": "追加",
- "source.add_hint": "ウェブ上の PGN、SGF、KIF、CSA、PDN のファイル、またはそれらを圧縮した zip。取得のたびに全体を再ダウンロードします。",
+ "source.add_hint_formats": "ウェブ上の {formats} の対局：ファイル一つ、またはそれらを圧縮した zip。取得のたびに全体を再ダウンロードします。",
  "source.add_name": "名前",
  "source.add_title": "独自の URL を追加",
  "source.after_import.delete": "ダウンロードを削除",

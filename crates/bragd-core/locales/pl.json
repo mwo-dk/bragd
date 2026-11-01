@@ -528,7 +528,7 @@
  "slice.use_position": "Użyj bieżącej pozycji na planszy",
  "slice.variant": "Wariant",
  "source.add": "Dodaj",
- "source.add_hint": "Plik PGN, SGF, KIF, CSA lub PDN z sieci albo ich zip. Jest pobierany w całości przy każdym pobraniu.",
+ "source.add_hint_formats": "Partie w formacie {formats} z sieci: jeden plik albo zip takich plików. Jest pobierany w całości przy każdym pobraniu.",
  "source.add_name": "Nazwa",
  "source.add_title": "Dodaj własny adres URL",
  "source.after_import.delete": "Usuń pobrany plik",

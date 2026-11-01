@@ -524,7 +524,7 @@
  "slice.use_position": "Brug den aktuelle brætstilling",
  "slice.variant": "Variant",
  "source.add": "Tilføj",
- "source.add_hint": "En PGN-, SGF-, KIF-, CSA- eller PDN-fil på nettet, eller en zip af dem. Den hentes igen i sin helhed ved hver hentning.",
+ "source.add_hint_formats": "{formats}-partier på nettet: én fil, eller en zip af sådanne. Den hentes igen i sin helhed ved hver hentning.",
  "source.add_name": "Navn",
  "source.add_title": "Tilføj en egen URL",
  "source.after_import.delete": "Slet downloaden",

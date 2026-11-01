@@ -524,7 +524,7 @@
  "slice.use_position": "Gebruik de huidige stelling op het bord",
  "slice.variant": "Variant",
  "source.add": "Voeg toe",
- "source.add_hint": "Een PGN-, SGF-, KIF-, CSA- of PDN-bestand op het web, of een zip ervan. Het wordt bij elke ophaling opnieuw volledig gedownload.",
+ "source.add_hint_formats": "Partijen in {formats} op het web: één bestand, of een zip ervan. Het wordt bij elke ophaling opnieuw volledig gedownload.",
  "source.add_name": "Naam",
  "source.add_title": "Voeg een eigen URL toe",
  "source.after_import.delete": "Verwijder de download",

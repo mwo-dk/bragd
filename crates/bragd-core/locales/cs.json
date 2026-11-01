@@ -526,7 +526,7 @@
  "slice.use_position": "Použít aktuální pozici na šachovnici",
  "slice.variant": "Varianta",
  "source.add": "Přidat",
- "source.add_hint": "PGN, SGF, KIF, CSA nebo PDN soubor na webu, nebo zip s nimi. Při každém stažení se stáhne celý znovu.",
+ "source.add_hint_formats": "Partie ve formátu {formats} na webu: jeden soubor, nebo zip takových souborů. Při každém stažení se stáhne celý znovu.",
  "source.add_name": "Název",
  "source.add_title": "Přidat vlastní adresu URL",
  "source.after_import.delete": "Smazat stažený soubor",

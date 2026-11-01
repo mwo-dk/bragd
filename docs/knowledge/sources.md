@@ -41,7 +41,7 @@ The Sources marked *Not yet* are listed so you know they are coming. They are gr
 
 **Rating lists.** FIDE, DSU and ECF are rating lists, not Games. Each fetch downloads the whole list, and its players replace the list's players from before in `rating-lists.sqlite`, where the [Clubs](../clubs/clubs.md) page finds them by name or ID. They have no Routes and no *After import*. Where each comes from and on what terms: [Rating lists](../reference/rating-lists.md).
 
-**Custom URL.** The address must start with `http://` or `https://` and name a PGN, SGF, KIF, CSA or PDN file, or a zip of them. The whole file is downloaded again on each fetch, since it may have grown.
+**Custom URL.** The address must start with `http://` or `https://` and name a PGN, SGF, KIF, CSA or PDN file, or a zip of them. Each Family's page names only its own: SGF on Go's, KIF or CSA on Shogi's. The whole file is downloaded again on each fetch, since it may have grown.
 
 ## Options
 

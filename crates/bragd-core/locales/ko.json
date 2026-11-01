@@ -522,7 +522,7 @@
  "slice.use_position": "현재 보드 국면 사용",
  "slice.variant": "변형",
  "source.add": "추가",
- "source.add_hint": "웹에 있는 PGN, SGF, KIF, CSA 또는 PDN 파일, 또는 이들을 압축한 zip. 가져올 때마다 전체를 다시 받습니다.",
+ "source.add_hint_formats": "웹에 있는 {formats} 기보: 파일 하나, 또는 이런 파일들을 압축한 zip. 가져올 때마다 전체를 다시 받습니다.",
  "source.add_name": "이름",
  "source.add_title": "사용자 지정 URL 추가",
  "source.after_import.delete": "다운로드 삭제",

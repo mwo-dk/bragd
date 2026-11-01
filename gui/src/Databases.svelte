@@ -34,7 +34,7 @@
   {:else if tab === "libraries"}
     <Libraries family={family.id} variants={family.variants} {slice} {position} {onstep} {onslices} />
   {:else}
-    <Sources family={family.id} />
+    <Sources {family} />
   {/if}
 </section>
 

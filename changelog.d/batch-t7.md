@@ -1,0 +1,1 @@
+| **Add a custom URL names only your Family's formats.** On Go's Sources tab it asks for SGF games, on Shogi's for KIF or CSA, not for every format Bragd knows. | [Sources](knowledge/sources.md#the-sources) |

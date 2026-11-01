@@ -31,6 +31,11 @@ pub fn formats(family: &str) -> &'static [&'static str] {
     }
 }
 
+/// The formats of `family` a custom URL Source can fetch: those a Library imports from one file.
+pub fn url_formats(family: &str) -> Vec<&'static str> {
+    formats(family).iter().copied().filter(|f| stream::importable(&format!("games.{}", f.to_ascii_lowercase()))).collect()
+}
+
 /// A time limit for a test, only against a hang: ten times longer in a debug build.
 #[cfg(test)]
 pub(crate) fn test_limit(normal: std::time::Duration) -> std::time::Duration {
@@ -45,5 +50,15 @@ mod tests {
         assert_eq!(super::formats("go"), ["SGF"]);
         assert!(super::formats("chess").contains(&"ChessBase"));
         assert!(super::formats("tafl").is_empty());
+    }
+
+    /// A custom URL takes the formats a Library imports from one file, not SCID or ChessBase.
+    #[test]
+    fn url_formats_are_the_importable_ones() {
+        assert_eq!(super::url_formats("chess"), ["PGN"]);
+        assert_eq!(super::url_formats("shogi"), ["KIF", "CSA"]);
+        assert_eq!(super::url_formats("go"), ["SGF"]);
+        assert_eq!(super::url_formats("draughts"), ["PDN"]);
+        assert!(super::url_formats("tafl").is_empty());
     }
 }

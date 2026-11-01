@@ -524,7 +524,7 @@
  "slice.use_position": "Käytä nykyistä laudan asemaa",
  "slice.variant": "Muunnelma",
  "source.add": "Lisää",
- "source.add_hint": "PGN-, SGF-, KIF-, CSA- tai PDN-tiedosto verkossa tai niiden zip. Se ladataan kokonaisuudessaan uudelleen jokaisella noudolla.",
+ "source.add_hint_formats": "{formats}-pelit verkossa: yksi tiedosto, tai zip sellaisia tiedostoja. Se ladataan kokonaisuudessaan uudelleen jokaisella noudolla.",
  "source.add_name": "Nimi",
  "source.add_title": "Lisää oma URL",
  "source.after_import.delete": "Poista lataus",

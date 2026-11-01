@@ -524,7 +524,7 @@
  "slice.use_position": "Erabili uneko taula-posizioa",
  "slice.variant": "Aldaera",
  "source.add": "Gehitu",
- "source.add_hint": "Webeko PGN, SGF, KIF, CSA edo PDN fitxategi bat, edo haien zip bat. Eskuratze bakoitzean osorik deskargatzen da berriro.",
+ "source.add_hint_formats": "Webeko {formats} partidak: fitxategi bat, edo haien zip bat. Eskuratze bakoitzean osorik deskargatzen da berriro.",
  "source.add_name": "Izena",
  "source.add_title": "Gehitu URL pertsonalizatu bat",
  "source.after_import.delete": "Ezabatu deskarga",

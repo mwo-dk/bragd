@@ -524,7 +524,7 @@
  "slice.use_position": "დაფაზე მიმდინარე პოზიციის გამოყენება",
  "slice.variant": "ვარიანტი",
  "source.add": "დამატება",
- "source.add_hint": "PGN, SGF, KIF, CSA ან PDN ფაილი ინტერნეტში ან მათი zip. ყოველი ჩამოტვირთვისას ის მთლიანად თავიდან იტვირთება.",
+ "source.add_hint_formats": "{formats} პარტიები ინტერნეტში: ერთი ფაილი, ან ასეთი ფაილების zip. ყოველი ჩამოტვირთვისას ის მთლიანად თავიდან იტვირთება.",
  "source.add_name": "სახელი",
  "source.add_title": "საკუთარი URL-ის დამატება",
  "source.after_import.delete": "ჩამოტვირთულის წაშლა",

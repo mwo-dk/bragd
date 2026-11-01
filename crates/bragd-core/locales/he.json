@@ -526,7 +526,7 @@
  "slice.use_position": "שימוש בעמדת הלוח הנוכחית",
  "slice.variant": "וריאנט",
  "source.add": "הוספה",
- "source.add_hint": "קובץ PGN, SGF, KIF, CSA או PDN ברשת, או zip שלהם. הוא מורד מחדש במלואו בכל משיכה.",
+ "source.add_hint_formats": "משחקי {formats} ברשת: קובץ אחד, או zip של קבצים כאלה. הוא מורד מחדש במלואו בכל משיכה.",
  "source.add_name": "שם",
  "source.add_title": "הוספת כתובת מותאמת",
  "source.after_import.delete": "מחיקת ההורדה",
