@@ -123,6 +123,14 @@ _Avoid_: event, competition (alone), league (a League is between Teams)
 One set of games of a Tournament, all paired at once. A player not paired in a Round has a bye or is away.
 _Avoid_: game day, match (a match is between two Teams or two Engines)
 
+**League**:
+A team competition a Club runs: Teams meet each other in a round-robin, each match on the same number of boards. A match gives match points (2 for a win, 1 for a draw) from its board points, and the standings rank by match points, then board points. It is kept in the Club file.
+_Avoid_: division (a name a League may have), team tournament
+
+**Team**:
+The players a Club fields in a League, in board order. Each match, a Team lines up as many of them as there are boards.
+_Avoid_: squad, side (a Side is who moves)
+
 **Tiebreak**:
 A rule from FIDE's list (C.07), such as Buchholz or Sonneborn-Berger, that orders players level on points. A Tournament has its own ordered list of them.
 _Avoid_: tie-break score, korrektion

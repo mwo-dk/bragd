@@ -6,6 +6,7 @@
 
 pub mod club;
 pub mod export;
+pub mod league;
 pub mod lists;
 pub mod rating;
 pub mod tiebreak;
