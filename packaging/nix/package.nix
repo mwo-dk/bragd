@@ -48,6 +48,9 @@ craneLib.buildPackage (
     # npm's packages from gui/package-lock.json, without a hash to keep up to date.
     npmRoot = "gui";
     npmDeps = importNpmLock { npmRoot = ../../gui; };
+    # The only install scripts are optional dev tools the build never runs: libxmljs2 (the SBOM
+    # tool's XML validator), which needs Python to compile, and fsevents (macOS).
+    npmRebuildFlags = [ "--ignore-scripts" ];
 
     nativeBuildInputs = common.nativeBuildInputs ++ [
       nodejs
