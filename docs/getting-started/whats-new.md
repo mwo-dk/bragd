@@ -23,6 +23,7 @@ The cards of the coming version, 1.0.0:
 | `disk` | Disk watch |
 | `tips` | Tips |
 | `clubs` | Clubs |
+| `matches` | Engine matches |
 
 A card shows only to someone who plays a Game family it concerns. Most concern everyone; one about tablebases, say, would name chess and skip a user with chess turned off, both after the upgrade and in the list.
 
