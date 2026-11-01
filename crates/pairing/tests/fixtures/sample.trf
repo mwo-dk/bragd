@@ -1,0 +1,8 @@
+012 Test Open
+042 2026/03/01
+XXR 5
+XXC white1
+001    1 m    Player One                        2400 DEN        1001 2000/01/01  2.0    1     3 w 1     2 b =  0000 - H
+001    2 m    Player Two                        2300 DEN        1002 2000/01/01  1.5    2     4 b +     1 w =     3 b 0
+001    3 m    Player Three                      2200 DEN        1003 2000/01/01  1.0    3     1 b 0  0000 - U     2 w 1
+001    4 m    Player Four                       2100 DEN        1004 2000/01/01  0.0    4     2 w -            0000 - Z

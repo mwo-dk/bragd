@@ -2788,6 +2788,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "pairing"
+version = "0.1.0"
+
+[[package]]
 name = "pango"
 version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
