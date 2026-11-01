@@ -21,6 +21,8 @@
   const analyse = $derived(mode === "analyse");
   /** The review's mark of each entry. @type {string[]} */
   let marks = $state([]);
+  /** What each mark means, worded. @type {string[]} */
+  let titles = $state([]);
   /** Who plays the other Side: yourself, or an Engine. */
   let opponent = $state("self");
   /** The Engine's Side: 1 the second, 0 the first. */
@@ -132,6 +134,7 @@
       initial = text;
       entries = list;
       marks = [];
+      titles = [];
       array = null;
     });
   }
@@ -142,6 +145,7 @@
     entries = [];
     dead = [];
     marks = [];
+    titles = [];
     array = null;
     load(api.newGame(variant).then((g) => ((initial = g.initial), (array = g.array), g.state)));
   }
@@ -374,13 +378,13 @@
           <Known game={{ variant: key, initial, entries }} onplay={playEntry} />
         {/if}
         {#if analyse}
-          <Analysis {family} onmore={choices.more || analyse ? moreEngines : null} game={{ variant: key, initial, entries }} over={!!st.outcome} onentries={setEntries} onsetup={setUp} bind:marks />
+          <Analysis {family} onmore={choices.more || analyse ? moreEngines : null} game={{ variant: key, initial, entries }} over={!!st.outcome} onentries={setEntries} onsetup={setUp} bind:marks bind:titles />
         {/if}
 
         <h2>{t("play.moves")}</h2>
         <p class="moves">
           {#each st.history as h, i}
-            <span class="entry">{#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}{h}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")}>{marks[i]}</span>{/if}</span>
+            <span class="entry">{#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}{h}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")} title={titles[i] || null}>{marks[i]}</span>{/if}</span>
           {/each}
         </p>
       </aside>

@@ -44,6 +44,8 @@ export const libraryReview = (/** @type {string} */ path) => invoke("library_rev
 /** @returns {Promise<number>} */
 export const libraryDedupe = (/** @type {string} */ path) => invoke("library_dedupe", { path });
 export const libraryExport = (/** @type {string} */ path) => invoke("library_export", { path });
+export const positionsExport = () => invoke("positions_export");
+export const positionsImport = () => invoke("positions_import");
 /** @returns {Promise<number>} */
 export const libraryPrune = (/** @type {boolean} */ dryRun) => invoke("library_prune", { dryRun });
 /** @returns {Promise<{list: {id: string, name: string}[], choices: {id: string, name: string}[]}>} */

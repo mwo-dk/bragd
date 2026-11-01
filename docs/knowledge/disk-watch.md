@@ -17,7 +17,8 @@ On the page:
 1. Type a limit beside an item, beside *All together*, and beside *Warn when free space falls below*. Type sizes as `500 MB` or `5 GB`; leave a field empty for no limit.
 2. Press **Save limits**. The next check uses them; no restart is needed.
 3. Under *Prune the Library*, **Preview** counts what the Strip rules of the Sources' Routes to the main Library would take from it. **Prune now** takes it.
-4. Under *What Disk watch may do by itself*, tick what may happen for each Source when a limit it counts against is crossed.
+4. Under *Position store*, **Export Position store** and **Import Position store** write and merge the store's Parquet file ([Position store](position-store.md)).
+5. Under *What Disk watch may do by itself*, tick what may happen for each Source when a limit it counts against is crossed.
 
 ## What it counts
 
@@ -97,4 +98,4 @@ A Library made before Disk watch existed is compacted whole after a prune, which
 Yes, once images are published. Each pulled image is an item, kept by the container runtime, so Disk watch counts it but never deletes it.
 
 ---
-[← Previous: Strip rules](strip-rules.md) · [Next: The Helper →](helper.md)
+[← Previous: Strip rules](strip-rules.md) · [Next: Position store →](position-store.md)

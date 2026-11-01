@@ -443,6 +443,8 @@ fn main() {
             knowledge::library_players,
             knowledge::library_dedupe,
             knowledge::library_export,
+            knowledge::positions_export,
+            knowledge::positions_import,
             knowledge::library_prune,
             knowledge::priority_get,
             knowledge::priority_save,

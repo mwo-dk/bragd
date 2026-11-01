@@ -179,6 +179,29 @@ impl Score {
     }
 }
 
+/// As the Position store keeps it.
+impl From<Score> for bragd_positions::Score {
+    fn from(s: Score) -> bragd_positions::Score {
+        match s {
+            Score::Cp(c) => bragd_positions::Score::Cp(c),
+            Score::Mate(m) => bragd_positions::Score::Mate(m),
+            Score::Go { winrate, lead } => bragd_positions::Score::WinRate { win: winrate as f64, lead: lead as f64 },
+            Score::Equity(e) => bragd_positions::Score::Equity(e as f64),
+        }
+    }
+}
+
+impl From<bragd_positions::Score> for Score {
+    fn from(s: bragd_positions::Score) -> Score {
+        match s {
+            bragd_positions::Score::Cp(c) => Score::Cp(c),
+            bragd_positions::Score::Mate(m) => Score::Mate(m),
+            bragd_positions::Score::WinRate { win, lead } => Score::Go { winrate: win as f32, lead: lead as f32 },
+            bragd_positions::Score::Equity(e) => Score::Equity(e as f32),
+        }
+    }
+}
+
 /// One of the engine's reports while it thinks.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct Info {

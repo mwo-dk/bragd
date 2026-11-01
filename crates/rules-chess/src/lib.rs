@@ -28,6 +28,7 @@ pub mod chaturanga;
 pub mod chess_move;
 pub mod fen;
 pub mod game;
+pub mod motifs;
 pub mod movegen;
 pub mod outcome;
 pub mod perft;

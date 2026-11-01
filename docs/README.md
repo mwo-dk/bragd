@@ -50,6 +50,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Sources](knowledge/sources.md) | TWIC, custom URLs, the listed big Sources, schedules |
 | [Strip rules](knowledge/strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
 | [Disk watch](knowledge/disk-watch.md) | What Bragd keeps on disk, limits, warnings and what happens when one is crossed |
+| [Position store](knowledge/position-store.md) | Evaluations and Annotations kept by position, Export and Import |
 | [The Helper](knowledge/helper.md) | The background process, its jobs, *Start with my session*, battery |
 
 ## [Engines](engines/README.md)
