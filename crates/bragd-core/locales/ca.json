@@ -687,7 +687,6 @@
  "tablebases.folder_default": "Carpeta pròpia de Bragd: {path}",
  "tablebases.folder_only": "Només una carpeta.",
  "tablebases.folder_set": "La teva pròpia carpeta. Bragd només la llegeix i hi descarrega.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Taules a la carpeta: {n}",
  "tablebases.intro": "Taules de finals Syzygy: joc perfecte per a posicions d'escacs amb poques peces. Cada motor rep la carpeta. Les descàrregues vénen de tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd és fora de línia: no es descarrega ni es demana res en línia.",

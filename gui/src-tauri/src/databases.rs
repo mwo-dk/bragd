@@ -7,6 +7,8 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use crate::lock;
+
 use bragd_core::config::Config;
 use bragd_core::t;
 use bragd_helper::disk;
@@ -35,10 +37,6 @@ pub struct Databases {
     pub file: Mutex<Option<OpenFile>>,
     /// The last list asked of a Library: its file, the query, and the Games' ids.
     last: Mutex<Option<(PathBuf, slice::Query, Vec<i64>)>>,
-}
-
-fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 /// The open file as the page shows it.

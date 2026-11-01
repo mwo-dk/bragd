@@ -4,7 +4,9 @@
 //! settings) is dialled again once. Also here: the Helper's status and its jobs as the sidebar
 //! footer and the Jobs page draw them, every text made here.
 
-use std::sync::{Mutex, MutexGuard};
+use std::sync::Mutex;
+
+use crate::lock;
 use std::time::{Duration, Instant};
 
 use bragd_core::t;
@@ -21,10 +23,6 @@ pub struct Link {
     conn: Mutex<Option<Conn>>,
     /// The last failure to reach it, and when.
     failed: Mutex<Option<(Instant, String)>>,
-}
-
-fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 impl Link {

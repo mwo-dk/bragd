@@ -681,7 +681,6 @@
  "tablebases.folder_default": "Bragd 自帶的資料夾：{path}",
  "tablebases.folder_only": "僅一個資料夾。",
  "tablebases.folder_set": "你自己的資料夾。Bragd 只讀取它，並下載到其中。",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "資料夾中的殘局表：{n}",
  "tablebases.intro": "Syzygy 殘局表：棋子較少的西洋棋局面的完美走法。每個引擎都會獲得該資料夾。下載來自 tablebase.lichess.ovh。",
  "tablebases.offline": "Bragd 處於離線狀態：不下載任何內容，也不在線上查詢。",

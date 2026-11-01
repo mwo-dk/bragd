@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Eigener Ordner von Bragd: {path}",
  "tablebases.folder_only": "Nur ein Ordner.",
  "tablebases.folder_set": "Ihr eigener Ordner. Bragd liest nur daraus und lädt nur hinein.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Tabellen im Ordner: {n}",
  "tablebases.intro": "Syzygy-Endspieltabellen: perfektes Spiel für Schachstellungen mit wenigen Figuren. Jede Engine bekommt den Ordner. Downloads kommen von tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd ist offline: Nichts wird geladen oder online angefragt.",

@@ -34,11 +34,6 @@ pub enum Kind {
     RunKey,
 }
 
-/// Inside a Flatpak.
-fn flatpak() -> bool {
-    bragd_engines::tools::flatpak().is_some()
-}
-
 impl Kind {
     /// This system's.
     pub fn here() -> Kind {
@@ -46,7 +41,7 @@ impl Kind {
             Kind::RunKey
         } else if cfg!(target_os = "macos") {
             Kind::Launchd
-        } else if flatpak() {
+        } else if bragd_core::update::flatpak().is_some() {
             Kind::Flatpak
         } else if cfg!(target_os = "linux") {
             Kind::Systemd

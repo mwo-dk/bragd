@@ -14,8 +14,10 @@ cargo install --locked cargo-cyclonedx@0.5.7 cargo-about@0.8.4
 tools/bom/generate.sh [OUT_DIR]        # default target/bom
 ```
 
-`cyclonedx-npm` runs through `npx` at the version pinned in `generate.sh`, so the frontend's
-lockfile does not carry it. All output is CycloneDX 1.6 JSON (cargo-cyclonedx writes 1.5, and
+`cyclonedx-npm` is a devDependency of `gui/`, pinned exactly, so `gui/package-lock.json` locks it
+and everything it pulls in, and `npm audit` covers it. `generate.sh` runs that copy and never
+fetches one. Its `glob` is overridden to 14 in `gui/package.json`: the version its unused XML
+validator brings has a known advisory. All output is CycloneDX 1.6 JSON (cargo-cyclonedx writes 1.5, and
 `bom.py` lifts it). Timestamps are the commit's and serial numbers derive from the version, so a
 commit always gives the same bytes.
 
@@ -23,7 +25,8 @@ commit always gives the same bytes.
 
 - **CI:** the *bills of materials* job of the Dependencies workflow (`deps.yml`), on every pull
   request that changes a dependency, on `master` and weekly, so a failure shows before a release.
-  Until `gui/` exists it is skipped with a notice.
+  CI installs the two cargo tools as prebuilt,
+  checksummed binaries (`taiki-e/install-action`) instead of compiling them each run.
 - **Release:** the `boms` job of `release.yml` uploads the three files to the draft release. The
   installers take `THIRD-PARTY-NOTICES.md` from there and bundle it through a `--config`
   override, so other builds need no such file. The release is published only once `boms` has

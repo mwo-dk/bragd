@@ -687,7 +687,6 @@
  "tablebases.folder_default": "Bragd pašu mape: {path}",
  "tablebases.folder_only": "Tikai mape.",
  "tablebases.folder_set": "Jūsu pašu mape. Bragd to tikai lasa un lejupielādē tajā.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Bāzes mapē: {n}",
  "tablebases.intro": "Syzygy galu bāzes: ideāla spēle šaha pozīcijām ar maz figūrām. Katrs dzinējs saņem mapi. Lejupielādes nāk no tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd ir bezsaistē: nekas netiek lejupielādēts vai jautāts tiešsaistē.",

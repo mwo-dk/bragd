@@ -15,6 +15,16 @@ pub fn now() -> u64 {
 /// renamed over it, so a crash never leaves a half-written or empty file. `own`: readable by
 /// the user alone (on Unix).
 pub fn replace(path: &Path, bytes: &[u8], own: bool) -> io::Result<()> {
+    replace_with(path, own, |f| io::Write::write_all(f, bytes))
+}
+
+/// [`replace`], with the contents written by `write` (a copy of a large file, streamed). When
+/// `write` fails, the file at `path` is left as it was.
+pub fn replace_with(
+    path: &Path,
+    own: bool,
+    write: impl FnOnce(&mut fs::File) -> io::Result<()>,
+) -> io::Result<()> {
     let dir = path.parent().unwrap_or(Path::new("."));
     // Its own name, so two windows saving at once never write into one file beside it.
     static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -34,7 +44,7 @@ pub fn replace(path: &Path, bytes: &[u8], own: bool) -> io::Result<()> {
         }
         #[cfg(not(unix))]
         let _ = own;
-        io::Write::write_all(&mut f, bytes)?;
+        write(&mut f)?;
         f.sync_all()?;
         drop(f);
         fs::rename(&tmp, path)
@@ -62,5 +72,20 @@ mod tests {
             1,
             "no temporary file left"
         );
+    }
+
+    #[test]
+    fn fs_replace_with_a_failed_write_keeps_the_old_file() {
+        let dir = crate::dirs::cache_dir().unwrap().join("fs-replace-failed");
+        let _ = fs::remove_dir_all(&dir);
+        let p = dir.join("a.db");
+        replace_with(&p, false, |f| io::Write::write_all(f, b"old")).unwrap();
+        let e = replace_with(&p, false, |f| {
+            io::Write::write_all(f, b"half")?;
+            Err(io::Error::other("stopped"))
+        });
+        assert!(e.is_err());
+        assert_eq!(fs::read(&p).unwrap(), b"old");
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 1, "no temporary file left");
     }
 }

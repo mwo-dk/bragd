@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Bragd-ի սեփական թղթապանակը՝ {path}",
  "tablebases.folder_only": "Միայն թղթապանակ։",
  "tablebases.folder_set": "Ձեր սեփական թղթապանակը։ Bragd-ը միայն կարդում է այն և դրա մեջ է ներբեռնում։",
- "tablebases.gb": "{n} ԳԲ",
  "tablebases.have": "Աղյուսակներ թղթապանակում՝ {n}",
  "tablebases.intro": "Syzygy վերջախաղի աղյուսակներ․ կատարյալ խաղ շախմատային դիրքերի համար, երբ քիչ քարեր են մնում։ Յուրաքանչյուր շարժիչ ստանում է թղթապանակը։ Ներբեռնումը գալիս է tablebase.lichess.ovh-ից։",
  "tablebases.offline": "Bragd-ն անցանց է․ ոչինչ չի ներբեռնվում և ոչինչ չի հարցվում օնլայն։",

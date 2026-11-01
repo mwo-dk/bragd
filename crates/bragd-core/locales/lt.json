@@ -687,7 +687,6 @@
  "tablebases.folder_default": "Bragd savas aplankas: {path}",
  "tablebases.folder_only": "Tik aplankas.",
  "tablebases.folder_set": "Jūsų aplankas. Bragd jį tik skaito ir į jį atsisiunčia.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Bazės aplanke: {n}",
  "tablebases.intro": "Syzygy galūnių bazės: tobulas žaidimas šachmatų pozicijoms su nedaug figūrų. Kiekvienas variklis gauna aplanką. Atsisiuntimai iš tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd neprisijungęs: nieko neatsisiunčiama ir neklausiama internete.",

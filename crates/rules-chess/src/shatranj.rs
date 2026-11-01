@@ -19,8 +19,7 @@
 //! endings, which the gate would not cover in any case, are tested directly
 //! below.
 
-use crate::attacks;
-use crate::chess_move::{Move, MoveKind, MoveList};
+use crate::chess_move::MoveList;
 use crate::movegen;
 use crate::piece::Role;
 use crate::position::Position;
@@ -35,71 +34,10 @@ pub const STARTING_POSITION: &str = "rnefkenr/pppppppp/8/8/8/8/PPPPPPPP/RNEFKENR
 
 /// Every legal move for the side to move.
 ///
-/// Same shape as chess: generate pseudo-legal moves, then drop the ones that
-/// leave the mover's own king attacked. The legality filter is shared because
-/// "you may not move into check" is shared, and [`Position::attackers_to`]
-/// already knows about both new pieces.
+/// Shared with chaturanga through [`movegen::ancient_legal_moves`], which
+/// carries the piece-set and legality notes.
 pub fn legal_moves(position: &Position) -> MoveList {
-    let mut moves = pseudo_legal_moves(position);
-    let us = position.side_to_move();
-    moves.retain(|mv| !position.make_move(mv).is_check_against(us));
-    moves
-}
-
-/// Everything that obeys piece movement, ignoring whether it leaves the king
-/// attacked.
-///
-/// There is no castling generator to call. That absence is the rule.
-fn pseudo_legal_moves(position: &Position) -> MoveList {
-    let mut moves = MoveList::new();
-    // Chess's pawn without its double step, promoting to a ferz and offering no
-    // choice about it. Shared with chaturanga, whose padati is the same piece
-    // under a different name and promotes to the same `Role` — the two were
-    // byte-identical copies, and neither game has a published corpus that would
-    // have noticed them coming apart (see `movegen::stepping_pawn_moves`).
-    movegen::stepping_pawn_moves(position, &mut moves, Role::Ferz);
-    generate_piece_moves(position, &mut moves);
-    moves
-}
-
-/// The five roles shatranj has besides the pawn.
-///
-/// No queen and no bishop appear, and no position this module can reach
-/// contains one — the opening array has neither and the only promotion is to a
-/// ferz. The rook and the knight are chess's exactly.
-fn generate_piece_moves(position: &Position, moves: &mut MoveList) {
-    let us = position.side_to_move();
-    let occupied = position.occupied();
-    let ours = position.by_color(us);
-    let enemies = position.by_color(us.opponent());
-
-    for role in [
-        Role::Knight,
-        Role::Rook,
-        Role::King,
-        Role::Ferz,
-        Role::Alfil,
-    ] {
-        for from in position.pieces(us, role) {
-            let targets = match role {
-                Role::Knight => attacks::knight(from),
-                Role::Rook => attacks::rook(from, occupied),
-                Role::King => attacks::king(from),
-                Role::Ferz => attacks::ferz(from),
-                Role::Alfil => attacks::alfil(from),
-                _ => unreachable!("shatranj has no other piece to generate here"),
-            } & !ours;
-
-            for to in targets {
-                let kind = if enemies.contains(to) {
-                    MoveKind::Capture
-                } else {
-                    MoveKind::Quiet
-                };
-                moves.push(Move::new(from, to, kind));
-            }
-        }
-    }
+    movegen::ancient_legal_moves(position, Role::Alfil)
 }
 
 /// Whether the side to move can leave its opponent with nothing but a king,
@@ -119,6 +57,7 @@ pub fn can_bare_opponent(position: &Position, moves: &MoveList) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::attacks;
     use crate::piece::Color;
     use crate::square::Square;
     use crate::variant::{Shatranj, Variant};

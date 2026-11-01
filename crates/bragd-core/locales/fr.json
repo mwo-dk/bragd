@@ -687,7 +687,6 @@
  "tablebases.folder_default": "Dossier propre à Bragd : {path}",
  "tablebases.folder_only": "Un dossier seulement.",
  "tablebases.folder_set": "Votre propre dossier. Bragd le lit seulement et y télécharge.",
- "tablebases.gb": "{n} Go",
  "tablebases.have": "Tables dans le dossier : {n}",
  "tablebases.intro": "Tables Syzygy : jeu parfait pour les positions d’échecs à peu de pièces. Chaque moteur reçoit le dossier. Les téléchargements viennent de tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd est hors ligne : rien n’est téléchargé ni demandé en ligne.",

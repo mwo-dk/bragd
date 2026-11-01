@@ -53,8 +53,7 @@
 //! gaja is the one genuinely new table and it is checked directly below, both
 //! for its shape and for the asymmetry that makes it a role of its own.
 
-use crate::attacks;
-use crate::chess_move::{Move, MoveKind, MoveList};
+use crate::chess_move::MoveList;
 use crate::movegen;
 use crate::piece::Role;
 use crate::position::Position;
@@ -68,62 +67,17 @@ use crate::position::Position;
 pub const STARTING_POSITION: &str = "rngfkgnr/pppppppp/8/8/8/8/PPPPPPPP/RNGFKGNR w - - 0 1";
 
 /// Every legal move for the side to move.
-pub fn legal_moves(position: &Position) -> MoveList {
-    let mut moves = pseudo_legal_moves(position);
-    let us = position.side_to_move();
-    moves.retain(|mv| !position.make_move(mv).is_check_against(us));
-    moves
-}
-
-fn pseudo_legal_moves(position: &Position) -> MoveList {
-    let mut moves = MoveList::new();
-    // The padati: chess's pawn without its double step, promoting to a mantri
-    // and offering no choice about it. **`Role::Ferz` is the mantri** — one
-    // square diagonally is one square diagonally, and the reconstruction says
-    // so in as many words — which is what makes this the same call shatranj makes rather
-    // than a second copy of it (see `movegen::stepping_pawn_moves`).
-    movegen::stepping_pawn_moves(position, &mut moves, Role::Ferz);
-    generate_piece_moves(position, &mut moves);
-    moves
-}
-
-/// The five roles chaturanga has besides the padati.
 ///
-/// The gaja is the only one that has to be told whose it is. Everything else
-/// here is a colourless table or a slider, which is why this is the first
-/// generator in the crate that reads `us` for anything but the piece set.
-fn generate_piece_moves(position: &Position, moves: &mut MoveList) {
-    let us = position.side_to_move();
-    let occupied = position.occupied();
-    let ours = position.by_color(us);
-    let enemies = position.by_color(us.opponent());
-
-    for role in [Role::Knight, Role::Rook, Role::King, Role::Ferz, Role::Gaja] {
-        for from in position.pieces(us, role) {
-            let targets = match role {
-                Role::Knight => attacks::knight(from),
-                Role::Rook => attacks::rook(from, occupied),
-                Role::King => attacks::king(from),
-                Role::Ferz => attacks::ferz(from),
-                Role::Gaja => attacks::gaja(us, from),
-                _ => unreachable!("chaturanga has no other piece to generate here"),
-            } & !ours;
-
-            for to in targets {
-                let kind = if enemies.contains(to) {
-                    MoveKind::Capture
-                } else {
-                    MoveKind::Quiet
-                };
-                moves.push(Move::new(from, to, kind));
-            }
-        }
-    }
+/// Shared with shatranj through [`movegen::ancient_legal_moves`], which carries
+/// the padati, piece-set and legality notes.
+pub fn legal_moves(position: &Position) -> MoveList {
+    movegen::ancient_legal_moves(position, Role::Gaja)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::attacks;
     use crate::piece::Color;
     use crate::square::Square;
     use crate::variant::{Chaturanga, Variant};

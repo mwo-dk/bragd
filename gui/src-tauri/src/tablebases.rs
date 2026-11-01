@@ -9,11 +9,13 @@ use std::sync::{Arc, Mutex};
 use bragd_core::config::Config;
 use bragd_engines::fetch::Http;
 use bragd_engines::syzygy::{self, Plan, Set};
+use bragd_helper::disk;
 use bragd_library::chess::polyglot;
 use serde::Serialize;
 
-use crate::analyse::offline;
-use crate::engines::{no_folder, tr};
+use bragd_core::offline;
+use crate::engines::no_folder;
+use bragd_core::i18n::tr;
 
 /// A download under way or done.
 #[derive(Clone, Default, Serialize)]
@@ -39,8 +41,8 @@ pub struct SetView {
     set: Set,
     /// How many of its tables (WDL and DTZ files) are in the folder.
     have: usize,
-    /// Its exact size, once planned.
-    size: Option<u64>,
+    /// Its exact size as shown (`1.5 GB`), once planned.
+    size: Option<String>,
     /// Downloaded here, or a folder only (7 pieces).
     download: bool,
 }
@@ -53,6 +55,8 @@ pub struct Page {
     offline: bool,
     sets: Vec<SetView>,
     job: Job,
+    /// The job's bytes so far and in all, as shown: `1.2 GB / 1.5 GB`.
+    progress: String,
 }
 
 fn pieces_of(set: Set) -> std::ops::RangeInclusive<usize> {
@@ -76,14 +80,16 @@ fn count(folder: &Path, set: Set) -> usize {
 
 pub fn page(cfg: &Config, held: &Held) -> Page {
     let folder = cfg.tablebase_folder().unwrap_or_default();
-    let plans = held.plans.lock().unwrap_or_else(|e| e.into_inner());
+    let plans = crate::lock(&held.plans);
+    let job = crate::lock(&held.job).clone();
     Page {
         custom: !cfg.tablebases.path.trim().is_empty(),
         folder: folder.display().to_string(),
         online: cfg.tablebases.online,
         offline: offline(),
-        sets: [Set::UpTo5, Set::Six, Set::Seven].into_iter().map(|set| SetView { set, have: count(&folder, set), size: plans.iter().find(|p| p.set == set).map(|p| p.total), download: set != Set::Seven }).collect(),
-        job: held.job.lock().unwrap_or_else(|e| e.into_inner()).clone(),
+        sets: [Set::UpTo5, Set::Six, Set::Seven].into_iter().map(|set| SetView { set, have: count(&folder, set), size: plans.iter().find(|p| p.set == set).map(|p| disk::bytes(p.total)), download: set != Set::Seven }).collect(),
+        progress: format!("{} / {}", disk::bytes(job.done), disk::bytes(job.total)),
+        job,
     }
 }
 
@@ -94,7 +100,7 @@ pub fn plan(held: &Held, set: Set) -> Result<u64, String> {
     }
     let p = syzygy::plan_from(&Http, set)?;
     let total = p.total;
-    let mut plans = held.plans.lock().unwrap_or_else(|e| e.into_inner());
+    let mut plans = crate::lock(&held.plans);
     plans.retain(|q| q.set != set);
     plans.push(p);
     Ok(total)
@@ -105,22 +111,22 @@ pub fn download(cfg: &Config, held: &Held, set: Set) -> Result<(), String> {
     if offline() {
         return Err(tr("tablebases.offline", &[]));
     }
-    let plan = held.plans.lock().unwrap_or_else(|e| e.into_inner()).iter().find(|p| p.set == set).cloned().ok_or_else(|| tr("tablebases.plan_first", &[]))?;
-    let busy = { let j = held.job.lock().unwrap_or_else(|e| e.into_inner()); j.set.is_some() && !j.finished };
+    let plan = crate::lock(&held.plans).iter().find(|p| p.set == set).cloned().ok_or_else(|| tr("tablebases.plan_first", &[]))?;
+    let busy = { let j = crate::lock(&held.job); j.set.is_some() && !j.finished };
     if busy {
         return Err(tr("tablebases.busy", &[]));
     }
     let stop = Arc::new(AtomicBool::new(false));
-    *held.stop.lock().unwrap_or_else(|e| e.into_inner()) = Some(stop.clone());
-    *held.job.lock().unwrap_or_else(|e| e.into_inner()) = Job { set: Some(set), total: plan.total, ..Default::default() };
+    *crate::lock(&held.stop) = Some(stop.clone());
+    *crate::lock(&held.job) = Job { set: Some(set), total: plan.total, ..Default::default() };
     let (job, folder) = (held.job.clone(), cfg.tablebase_folder().ok_or_else(no_folder)?);
     std::thread::spawn(move || {
         let r = syzygy::download(&plan, &folder, &Http, &mut |done, total| {
-            let mut j = job.lock().unwrap_or_else(|e| e.into_inner());
+            let mut j = crate::lock(&job);
             (j.done, j.total) = (done, total);
             !stop.load(Ordering::Relaxed)
         });
-        let mut j = job.lock().unwrap_or_else(|e| e.into_inner());
+        let mut j = crate::lock(&job);
         j.finished = true;
         j.error = r.err();
     });
@@ -128,7 +134,7 @@ pub fn download(cfg: &Config, held: &Held, set: Set) -> Result<(), String> {
 }
 
 pub fn stop(held: &Held) {
-    if let Some(s) = held.stop.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+    if let Some(s) = crate::lock(&held.stop).as_ref() {
         s.store(true, Ordering::Relaxed);
     }
 }

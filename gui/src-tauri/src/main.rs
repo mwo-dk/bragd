@@ -60,6 +60,8 @@ struct FamilyView {
     id: &'static str,
     name: String,
     shown: bool,
+    /// Raced along a track by throws of the dice: backgammon, Ur and senet.
+    race: bool,
     variants: Vec<VariantView>,
 }
 
@@ -77,6 +79,8 @@ struct VariantView {
 struct OptView {
     name: &'static str,
     area: Area,
+    /// Listed in its area; otherwise a page of its own draws it (Families, Disk use).
+    listed: bool,
     label: String,
     hint: String,
     value: Value,
@@ -92,15 +96,16 @@ struct Choice {
     group: String,
 }
 
-fn tr(key: &str) -> String {
-    i18n::tr(key, &[])
+/// A mutex's guard, even after a thread panicked holding it: the data is still whole.
+pub fn lock<T>(m: &std::sync::Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 fn choice(value: &str, label: String, group: &str) -> Choice {
     Choice {
         value: value.to_string(),
         label,
-        group: if group.is_empty() { String::new() } else { tr(group) },
+        group: if group.is_empty() { String::new() } else { i18n::tr(group, &[]) },
     }
 }
 
@@ -109,36 +114,36 @@ fn choices(name: &str, cfg: &Config) -> Vec<Choice> {
         "theme" => themes::names(cfg)
             .into_iter()
             .map(|(n, g)| {
-                let label = tr(&format!("theme.{n}"));
+                let label = i18n::tr(&format!("theme.{n}"), &[]);
                 let label = if label.starts_with("theme.") { n.clone() } else { label };
                 choice(&n, label, g)
             })
             .collect(),
-        "look" => std::iter::once(choice("", tr("look.theme"), ""))
-            .chain(themes::LOOKS.iter().map(|l| choice(l, tr(&format!("look.{l}")), "")))
+        "look" => std::iter::once(choice("", i18n::tr("look.theme", &[]), ""))
+            .chain(themes::LOOKS.iter().map(|l| choice(l, i18n::tr(&format!("look.{l}"), &[]), "")))
             .collect(),
         "board_theme" => themes::BOARD_THEMES
             .iter()
-            .map(|b| choice(b, tr(&format!("board_theme.{b}")), ""))
+            .map(|b| choice(b, i18n::tr(&format!("board_theme.{b}"), &[]), ""))
             .collect(),
-        "language" => std::iter::once(choice("auto", tr("settings.language_auto"), ""))
+        "language" => std::iter::once(choice("auto", i18n::tr("settings.language_auto", &[]), ""))
             .chain(i18n::LANGUAGES.iter().map(|l| choice(l.code, l.name.to_string(), l.group)))
             .collect(),
         "file_picker" => vec![
             choice(
                 "auto",
-                tr(if files::coxswain().is_some() {
+                i18n::tr(if files::coxswain().is_some() {
                     "settings.file_picker_auto_found"
                 } else {
                     "settings.file_picker_auto"
-                }),
+                }, &[]),
                 "",
             ),
             choice("coxswain", "Coxswain".into(), ""),
-            choice("system", tr("settings.file_picker_system"), ""),
+            choice("system", i18n::tr("settings.file_picker_system", &[]), ""),
         ],
         "engines_runtime" => vec![
-            choice("auto", tr("settings.runtime_auto"), ""),
+            choice("auto", i18n::tr("settings.runtime_auto", &[]), ""),
             choice("podman", "podman".into(), ""),
             choice("docker", "docker".into(), ""),
         ],
@@ -161,13 +166,14 @@ fn snapshot(cfg: &Config) -> Snapshot {
             .iter()
             .map(|f| FamilyView {
                 id: f.key(),
-                name: tr(&format!("family.{}", f.key())),
+                name: i18n::tr(&format!("family.{}", f.key()), &[]),
                 shown: cfg.family_shown(f.key()),
+                race: f.race(),
                 variants: f
                     .variants()
                     .map(|v| VariantView {
                         key: v.key,
-                        name: tr(&format!("variant.{}", v.key)),
+                        name: i18n::tr(&format!("variant.{}", v.key), &[]),
                         on: cfg.variant_on(v.key),
                     })
                     .collect(),
@@ -178,6 +184,7 @@ fn snapshot(cfg: &Config) -> Snapshot {
             .map(|o| OptView {
                 name: o.name,
                 area: o.area,
+                listed: o.listed(),
                 label: o.label(),
                 hint: o.hint(),
                 value: values.get(o.name).cloned().unwrap_or(Value::Null),

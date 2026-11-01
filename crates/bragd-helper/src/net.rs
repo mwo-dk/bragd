@@ -38,7 +38,7 @@ pub struct Web {
 
 impl Default for Web {
     fn default() -> Self {
-        Web { agent: bragd_engines::fetch::agent(false), offline: std::env::var_os("BRAGD_OFFLINE").is_some() }
+        Web { agent: bragd_engines::fetch::agent(false), offline: bragd_core::offline() }
     }
 }
 

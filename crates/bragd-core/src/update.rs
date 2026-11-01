@@ -19,6 +19,14 @@ pub const FLATPAK_ID: &str = "io.github.mwo_dk.Bragd";
 pub const WINGET_ID: &str = "mwo-dk.Bragd";
 pub const CASK: &str = "bragd";
 
+/// The app id when Bragd runs in a Flatpak, read once. The host's programs are then seen under
+/// `/run/host`, and run there with `flatpak-spawn --host`.
+pub fn flatpak() -> Option<&'static str> {
+    static ID: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+    ID.get_or_init(|| std::env::var("FLATPAK_ID").ok().filter(|_| Path::new("/.flatpak-info").is_file()))
+        .as_deref()
+}
+
 /// The host part of `url`, as Settings → Privacy and updates names it.
 pub fn host_of(url: &str) -> &str {
     let rest = url.split_once("://").map_or(url, |(_, r)| r);
@@ -236,9 +244,9 @@ fn answered(mut u: Upgrade, st: &AppState) -> Upgrade {
 /// 5 s a request, so run it on a thread. Offline just means "no news". Off: asks nothing.
 pub fn check(cfg: &Config) -> Option<(String, Upgrade)> {
     let mut st = AppState::load();
-    // BRAGD_OFFLINE: tests and screenshots ask nobody, whatever the setting says.
+    // Tests and screenshots ask nobody, whatever the setting says.
     if due(cfg, &st)
-        && std::env::var_os("BRAGD_OFFLINE").is_none()
+        && !crate::offline()
         && let Some(latest) = fetch_latest()
     {
         // Read again: a window may have saved the state during the fetch.
@@ -316,8 +324,7 @@ pub fn upgrade_hint() -> Upgrade {
             .iter()
             .any(|p| Path::new(p).join("Caskroom").join(CASK).is_dir());
         let seen = Seen {
-            flatpak: std::env::var_os("FLATPAK_ID").is_some()
-                && Path::new("/.flatpak-info").is_file(),
+            flatpak: flatpak().is_some(),
             mac_cask: cfg!(target_os = "macos") && cask,
             winget: cfg!(windows) && winget_installed(WINGET_ID),
             flake: option_env!("BRAGD_FROM_FLAKE").is_some(),

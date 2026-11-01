@@ -348,6 +348,7 @@ name = "bragd-engines"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "bragd-core",
  "bragd-games",
  "serde",
  "serde_json",

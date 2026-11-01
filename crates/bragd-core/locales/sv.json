@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Bragds egen mapp: {path}",
  "tablebases.folder_only": "Bara en mapp.",
  "tablebases.folder_set": "Din egen mapp. Bragd läser bara från den och laddar ned till den.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Tabeller i mappen: {n}",
  "tablebases.intro": "Syzygy-slutspelstabeller: perfekt spel för schackställningar med få pjäser. Varje motor får mappen. Nedladdningarna kommer från tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd är offline: ingenting laddas ned eller efterfrågas online.",

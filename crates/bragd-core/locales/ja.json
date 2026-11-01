@@ -681,7 +681,6 @@
  "tablebases.folder_default": "Bragd のフォルダー: {path}",
  "tablebases.folder_only": "フォルダーのみ。",
  "tablebases.folder_set": "お好みのフォルダーです。Bragd はそこから読み込むだけで、そこへダウンロードします。",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "フォルダー内のテーブル: {n}",
  "tablebases.intro": "Syzygy テーブルベース: 駒の少ないチェス局面の完全な指し手。すべてのエンジンにフォルダーが渡されます。ダウンロード元は tablebase.lichess.ovh です。",
  "tablebases.offline": "Bragd はオフラインです。ダウンロードもオンラインへの問い合わせも行いません。",

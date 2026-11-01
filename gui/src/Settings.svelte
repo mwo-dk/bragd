@@ -16,7 +16,7 @@
     if (guide.area) [area, guide.area] = [guide.area, null];
   });
 
-  const opts = $derived(snap.settings.filter((/** @type {any} */ o) => o.area === area && o.area !== "families" && !o.name.startsWith("disk_")));
+  const opts = $derived(snap.settings.filter((/** @type {any} */ o) => o.listed && o.area === area));
   const byName = $derived(new Map(snap.settings.map((/** @type {any} */ o) => [o.name, o])));
   const shown = $derived(snap.families.filter((/** @type {any} */ f) => f.shown));
   const variantsOn = $derived(shown.reduce((/** @type {number} */ n, /** @type {any} */ f) => n + f.variants.filter((/** @type {any} */ v) => v.on).length, 0));

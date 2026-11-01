@@ -687,7 +687,6 @@
  "tablebases.folder_default": "תיקיית Bragd: {path}",
  "tablebases.folder_only": "תיקייה בלבד.",
  "tablebases.folder_set": "התיקייה שלכם. Bragd רק קורא ממנה ומוריד אליה.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "טבלאות בתיקייה: {n}",
  "tablebases.intro": "טבלאות Syzygy: משחק מושלם לעמדות שחמט עם מעט כלים. לכל מנוע ניתנת התיקייה. ההורדות מגיעות מ־tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd לא מחובר: שום דבר לא יורד ושום דבר לא נשאל ברשת.",

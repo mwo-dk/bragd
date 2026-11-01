@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Bragd-en karpeta propioa: {path}",
  "tablebases.folder_only": "Karpeta bat bakarrik.",
  "tablebases.folder_set": "Zure karpeta propioa. Bragd-ek irakurri baino ez du egiten, eta hara deskargatzen du.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Karpetako taulak: {n}",
  "tablebases.intro": "Syzygy amaierako taulak: joko perfektua pieza gutxiko xake-posizioetarako. Motor guztiei ematen zaie karpeta. Deskargak tablebase.lichess.ovh helbidetik datoz.",
  "tablebases.offline": "Bragd lineaz kanpo dago: ez da ezer deskargatzen edo lineara galdetzen.",

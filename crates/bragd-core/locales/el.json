@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Ο δικός φάκελος του Bragd: {path}",
  "tablebases.folder_only": "Μόνο ένας φάκελος.",
  "tablebases.folder_set": "Ο δικός σας φάκελος. Το Bragd μόνο τον διαβάζει και κατεβάζει σε αυτόν.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Πίνακες στον φάκελο: {n}",
  "tablebases.intro": "Βάσεις τελικών Syzygy: τέλειο παίξιμο για σκακιστικές θέσεις με λίγα κομμάτια. Κάθε μηχανή παίρνει τον φάκελο. Οι λήψεις έρχονται από το tablebase.lichess.ovh.",
  "tablebases.offline": "Το Bragd είναι εκτός σύνδεσης: τίποτα δεν κατεβαίνει και δεν ρωτιέται online.",

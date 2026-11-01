@@ -690,7 +690,6 @@
  "tablebases.folder_default": "Własny folder Bragda: {path}",
  "tablebases.folder_only": "Tylko folder.",
  "tablebases.folder_set": "Twój własny folder. Bragd tylko z niego czyta i do niego pobiera.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Baz w folderze: {n}",
  "tablebases.intro": "Bazy końcówek Syzygy: doskonała gra w szachowych pozycjach z małą liczbą figur. Każdy silnik dostaje folder. Pobrania pochodzą z tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd jest offline: nic nie jest pobierane ani pytane w sieci.",

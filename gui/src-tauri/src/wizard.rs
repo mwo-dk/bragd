@@ -167,7 +167,7 @@ fn done(cfg: &Config, chosen: &[String]) -> Vec<String> {
     let srcs = helper_sources();
     let plan = wizard::plan(&srcs, chosen, cfg);
     let mut failed = vec![];
-    let offline = std::env::var_os("BRAGD_OFFLINE").is_some();
+    let offline = bragd_core::offline();
     if !plan.sources.is_empty()
         && let Err(e) = turn_on(&plan.sources, offline)
     {

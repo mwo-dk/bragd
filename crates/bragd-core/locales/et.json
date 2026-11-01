@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Bragdi enda kaust: {path}",
  "tablebases.folder_only": "Ainult kaust.",
  "tablebases.folder_set": "Sinu enda kaust. Bragd loeb sealt ainult ja laadib sinna ainult.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Tabeleid kaustas: {n}",
  "tablebases.intro": "Syzygy lõpumängutabelid: täiuslik mäng vähese nupuga maleseisudes. Iga Engine saab kausta. Allalaadimised tulevad aadressilt tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd on võrgust väljas: midagi ei laadita alla ega küsita veebist.",

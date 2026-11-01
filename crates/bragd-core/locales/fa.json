@@ -684,7 +684,6 @@
  "tablebases.folder_default": "پوشه‌ی Bragd: {path}",
  "tablebases.folder_only": "فقط یک پوشه.",
  "tablebases.folder_set": "پوشه‌ی خودتان. Bragd فقط از آن می‌خواند و در آن دانلود می‌کند.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "جدول‌ها در پوشه: {n}",
  "tablebases.intro": "جدول‌های Syzygy: بازی کامل برای موقعیت‌های شطرنج با مهره‌های کم. به هر موتور پوشه داده می‌شود. دانلودها از tablebase.lichess.ovh می‌آیند.",
  "tablebases.offline": "Bragd آفلاین است: چیزی دانلود یا از اینترنت پرسیده نمی‌شود.",

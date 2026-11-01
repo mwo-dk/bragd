@@ -27,7 +27,6 @@
     return () => clearInterval(id);
   });
 
-  const gb = (/** @type {number} */ b) => t("tablebases.gb", { n: num(Math.round((b / 1e9) * 10) / 10) });
   const setName = (/** @type {string} */ s) => t(`tablebases.set.${s}`);
 
   async function run(/** @type {() => Promise<any>} */ f) {
@@ -64,7 +63,7 @@
           <p class="dim">{t("tablebases.have", { n: num(s.have) })}</p>
           {#if s.download}
             {#if s.size !== null}
-              <p>{t("tablebases.size", { size: gb(s.size) })}</p>
+              <p>{t("tablebases.size", { size: s.size })}</p>
               <button class="primary" disabled={page.offline || (page.job.set && !page.job.finished)} onclick={() => run(() => api.tablebaseDownload(s.set))}>{t("tablebases.download")}</button>
             {:else}
               <button disabled={page.offline} onclick={() => run(() => api.tablebasePlan(s.set))}>{t("tablebases.plan")}</button>
@@ -78,7 +77,7 @@
 
     {#if page.job.set}
       <div class="panel job" role="status">
-        <p>{setName(page.job.set)}: {gb(page.job.done)} / {gb(page.job.total)}</p>
+        <p>{setName(page.job.set)}: {page.progress}</p>
         <progress max={page.job.total || 1} value={page.job.done}></progress>
         {#if page.job.error}<p class="error">{page.job.error}</p>{:else if page.job.finished}<p>{t("tablebases.done")}</p>{/if}
         {#if !page.job.finished}<button onclick={() => run(api.tablebaseStop)}>{t("tablebases.stop")}</button>{/if}
