@@ -371,6 +371,7 @@ impl Config {
         take(&table, "updates", &mut c.updates, &mut refused);
         take(&table, "disk", &mut c.disk, &mut refused);
         take(&table, "tips", &mut c.tips, &mut refused);
+        take(&table, "analysis", &mut c.analysis, &mut refused);
         take(&table, "model", &mut c.model, &mut refused);
         take(&table, "peers", &mut c.peers, &mut refused);
         take(&table, "themes", &mut c.themes, &mut refused);
@@ -603,6 +604,10 @@ on = true
         let c = Config::lenient("[look\n");
         assert_eq!(c.refused.len(), 1);
         assert_eq!(c.refused[0].area, "");
+        // Every area is read: background analysis's limits too.
+        let c = Config::lenient("[look]\ntheme = 7\n[analysis]\nthreads = 3\nfrom_hour = 22\nuntil_hour = 7\non_battery = true\n");
+        assert_eq!((c.analysis.threads, c.analysis.from_hour, c.analysis.until_hour, c.analysis.on_battery), (3, 22, 7, true));
+        assert!(!c.analysis.hour_allowed(12), "the limit is obeyed");
     }
 
     #[test]
