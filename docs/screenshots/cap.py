@@ -151,13 +151,13 @@ class Desktop:
         self.procs, self.n, self.ws, self.wk, self.target, self.profile, self.logs = [], 0, None, None, None, None, []
 
     def __enter__(self):
-        # Now and then the first window never reaches the display: start again.
-        for attempt in range(3):
+        # About one start in four never draws its window (#133): start again, up to five times.
+        for attempt in range(5):
             try:
                 self._start()
                 return self.ready()
             except TimeoutError as e:
-                if attempt == 2:
+                if attempt == 4:
                     self.__exit__(e)
                     raise
                 self.__exit__()
