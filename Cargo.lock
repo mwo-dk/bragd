@@ -365,6 +365,7 @@ dependencies = [
  "blake3",
  "bragd-core",
  "bragd-games",
+ "bragd-positions",
  "serde",
  "serde_json",
  "sevenz-rust2",

@@ -70,16 +70,8 @@ pub fn ko_after(width: u8, height: u8, before: &[u8], after: &[u8]) -> Option<(u
     let mut taken = None;
     for i in 0..n {
         match (before[i], after[i]) {
-            (0, s) if s != 0 => {
-                if placed.replace(i).is_some() {
-                    return None;
-                }
-            }
-            (s, 0) if s != 0 => {
-                if taken.replace(i).is_some() {
-                    return None;
-                }
-            }
+            (0, s) if s != 0 && placed.replace(i).is_some() => return None,
+            (s, 0) if s != 0 && taken.replace(i).is_some() => return None,
             _ => {}
         }
     }

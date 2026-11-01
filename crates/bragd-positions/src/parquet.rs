@@ -2,9 +2,42 @@
 //! and reading it in DuckDB. Each row carries its Edition whole, so a file reads on its own.
 //! An import merges by the store's one rule (`Store::put_all`).
 
-use std::path::Path;
+use std::fs::File;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-use crate::{Merged, Result, Store};
+use parquet::basic::Compression;
+use parquet::data_type::{ByteArray, ByteArrayType, DoubleType, Int32Type, Int64Type};
+use parquet::file::properties::WriterProperties;
+use parquet::file::reader::{FileReader, SerializedFileReader};
+use parquet::file::writer::SerializedFileWriter;
+use parquet::record::{Field, Row, RowAccessor};
+use parquet::schema::parser::parse_message_type;
+use rusqlite::types::Value;
+
+use crate::{Edition, Error, Evaluation, Merged, Result, Score, Store};
+
+/// The columns, as SQL selects them from `evaluations` and `editions` and as Parquet holds them,
+/// in the same order.
+const COLUMNS: [(&str, &str); 14] = [
+    ("v.family", "required binary family (STRING)"),
+    ("v.variant", "required binary variant (STRING)"),
+    ("v.key", "required int64 key"),
+    ("d.id", "required binary edition (STRING)"),
+    ("d.engine", "required binary engine (STRING)"),
+    ("d.version", "required binary version (STRING)"),
+    ("d.network", "optional binary network (STRING)"),
+    ("d.image", "optional binary image (STRING)"),
+    ("v.kind", "required binary kind (STRING)"),
+    ("v.score", "required double score"),
+    ("v.lead", "required double lead"),
+    ("v.depth", "required int32 depth"),
+    ("v.line", "required binary line (STRING)"),
+    ("v.time", "required int64 time"),
+];
+
+/// Rows in one row group.
+const ROWS: usize = 64 * 1024;
 
 /// Writes every Evaluation in `store` to the Parquet file `out` (Snappy-compressed): the rows
 /// written. Written beside it first (`<out>.part`) and then put in place, so a failed export
@@ -15,15 +48,110 @@ use crate::{Merged, Result, Store};
 /// (optional string), `kind` (string: cp, mate, winrate, equity), `score` (double), `lead`
 /// (double), `depth` (int32), `line` (string), `time` (int64).
 pub fn to_parquet(store: &Store, out: &Path) -> Result<u64> {
-    let _ = (store, out);
-    todo!()
+    let mut part = out.as_os_str().to_owned();
+    part.push(".part");
+    let part = PathBuf::from(part);
+    let written = write_parquet(store, &part).and_then(|n| {
+        std::fs::rename(&part, out)?;
+        Ok(n)
+    });
+    if written.is_err() {
+        let _ = std::fs::remove_file(&part);
+    }
+    written
+}
+
+fn write_parquet(store: &Store, out: &Path) -> Result<u64> {
+    let fields: Vec<&str> = COLUMNS.iter().map(|c| c.1).collect();
+    let schema = Arc::new(parse_message_type(&format!("message evaluations {{ {}; }}", fields.join("; ")))?);
+    let props = Arc::new(WriterProperties::builder().set_compression(Compression::SNAPPY).build());
+    let mut writer = SerializedFileWriter::new(File::create(out)?, schema, props)?;
+    let select: Vec<&str> = COLUMNS.iter().map(|c| c.0).collect();
+    let mut st = store.conn().prepare(&format!(
+        "SELECT {} FROM evaluations v JOIN editions d ON d.n = v.edition ORDER BY v.family, v.variant, v.key, d.id",
+        select.join(", ")
+    ))?;
+    let mut rows = st.query([])?;
+    let mut batch: Vec<Vec<Value>> = Vec::with_capacity(ROWS);
+    let mut total = 0u64;
+    loop {
+        let row = rows.next()?;
+        if let Some(r) = row {
+            batch.push((0..COLUMNS.len()).map(|i| r.get(i)).collect::<rusqlite::Result<_>>()?);
+        }
+        if batch.len() == ROWS || (row.is_none() && !batch.is_empty()) {
+            write_group(&mut writer, &batch)?;
+            total += batch.len() as u64;
+            batch.clear();
+        }
+        if row.is_none() {
+            break;
+        }
+    }
+    writer.close()?;
+    Ok(total)
+}
+
+/// One row group: each column's values, a NULL as no value (its definition level 0).
+fn write_group(writer: &mut SerializedFileWriter<File>, batch: &[Vec<Value>]) -> Result<()> {
+    let mut group = writer.next_row_group()?;
+    let mut i = 0;
+    while let Some(mut col) = group.next_column()? {
+        let decl = COLUMNS[i].1;
+        let defs: Vec<i16> = batch.iter().map(|r| i16::from(!matches!(r[i], Value::Null))).collect();
+        let defs = decl.starts_with("optional").then_some(defs.as_slice());
+        match decl.split_whitespace().nth(1) {
+            Some("binary") => {
+                let v: Vec<ByteArray> = batch.iter().filter_map(|r| if let Value::Text(s) = &r[i] { Some(ByteArray::from(s.as_str())) } else { None }).collect();
+                col.typed::<ByteArrayType>().write_batch(&v, defs, None)?;
+            }
+            Some("int64") => {
+                let v: Vec<i64> = batch.iter().filter_map(|r| if let Value::Integer(n) = r[i] { Some(n) } else { None }).collect();
+                col.typed::<Int64Type>().write_batch(&v, defs, None)?;
+            }
+            Some("int32") => {
+                let v: Vec<i32> = batch.iter().filter_map(|r| if let Value::Integer(n) = r[i] { Some(n as i32) } else { None }).collect();
+                col.typed::<Int32Type>().write_batch(&v, defs, None)?;
+            }
+            _ => {
+                let v: Vec<f64> = batch.iter().filter_map(|r| if let Value::Real(x) = r[i] { Some(x) } else { None }).collect();
+                col.typed::<DoubleType>().write_batch(&v, defs, None)?;
+            }
+        }
+        col.close()?;
+        i += 1;
+    }
+    group.close()?;
+    Ok(())
 }
 
 /// Merges every row of the Parquet file `path` (as `to_parquet` writes it) into `store`, in
 /// one transaction: nothing is merged when a row cannot be read.
 pub fn from_parquet(store: &mut Store, path: &Path) -> Result<Merged> {
-    let _ = (store, path);
-    todo!()
+    let reader = SerializedFileReader::new(File::open(path)?)?;
+    let rows = reader.get_row_iter(None)?.map(|row| evaluation(&row?)).collect::<Result<Vec<_>>>()?;
+    store.put_all(&rows)
+}
+
+/// One row read back as an Evaluation. The `edition` column is not read: `Edition::id` is
+/// made from the fields it is written from.
+fn evaluation(row: &Row) -> Result<Evaluation> {
+    // An optional column is None when its value is NULL; any other read error is an error.
+    let optional = |i: usize| match row.get_column_iter().nth(i) {
+        Some((_, Field::Null)) => Ok(None),
+        _ => row.get_string(i).map(|s| Some(s.clone())).map_err(Error::from),
+    };
+    let depth = u32::try_from(row.get_int(11)?).map_err(|_| Error::Bad("negative depth".into()))?;
+    Ok(Evaluation {
+        family: row.get_string(0)?.clone(),
+        variant: row.get_string(1)?.clone(),
+        key: row.get_long(2)? as u64,
+        edition: Edition { engine: row.get_string(4)?.clone(), version: row.get_string(5)?.clone(), network: optional(6)?, image: optional(7)? },
+        score: Score::from_columns(row.get_string(8)?, row.get_double(9)?, row.get_double(10)?)?,
+        depth,
+        line: row.get_string(12)?.clone(),
+        time: row.get_long(13)?,
+    })
 }
 
 #[cfg(test)]

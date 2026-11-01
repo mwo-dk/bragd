@@ -154,7 +154,7 @@ A precomputed table of perfect play for positions with few pieces.
 _Avoid_: endgame database, EGTB
 
 **Edition**:
-One exact build of an Engine: its version, plus its network where it has one. Two Editions of the same Engine can judge a position differently.
+One exact build of an Engine: its version, its network where it has one, and its image digest when it runs in a container. Two Editions of the same Engine can judge a position differently.
 _Avoid_: release, version (alone)
 
 ### Analysis

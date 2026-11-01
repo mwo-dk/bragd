@@ -94,7 +94,7 @@ impl Score {
         }
     }
 
-    fn from_columns(kind: &str, score: f64, lead: f64) -> Result<Score> {
+    pub(crate) fn from_columns(kind: &str, score: f64, lead: f64) -> Result<Score> {
         if !score.is_finite() || !lead.is_finite() {
             return Err(Error::Bad(format!("{kind} {score} {lead}")));
         }
