@@ -182,7 +182,10 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
             let (family, _, keys) = positions(&a.variant, a.initial.as_deref(), &a.entries)?;
             let mut store = Store::path().and_then(|p| Store::open(&p).ok());
             let at = keys[keys.len() - 1];
-            if let Some(s) = &store {
+            // A backgammon Evaluation is the cube-less equity before the roll: a roll's best
+            // play is neither shown from the store nor kept in it.
+            let kept = notation != Notation::Gnubg || pos.dice.is_none();
+            if let Some(s) = store.as_ref().filter(|_| kept) {
                 let mut raw = crate::lock(&r);
                 if let Ok(Some(ev)) = s.shown(&family, &a.variant, at, &key) {
                     let score = Score::from(ev.score);
@@ -202,11 +205,13 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
             // The engine's own line 1, however far it got, goes into the store, with line 2.
             let mut raw = crate::lock(&r);
             let first_view = |s: &Score| if second { s.flipped() } else { *s };
-            if let (Some(s), Some(Info { depth: Some(depth), score: Some(score), pv, .. })) = (&mut store, raw.lines.first().filter(|_| raw.floor == 0))
-                && !pv.is_empty()
+            if let (Some(s), Some(Info { depth, score: Some(score), pv, .. })) = (&mut store, raw.lines.first().filter(|_| raw.floor == 0))
+                && kept
+                && (!pv.is_empty() || notation == Notation::Gnubg)
+                && let Some(depth) = depth.or((notation == Notation::Gnubg).then_some(0))
             {
                 let next = raw.lines.get(1).and_then(|i| Some(Second { score: first_view(i.score.as_ref()?).into(), line: i.pv.join(" ") }));
-                let ev = Evaluation { family, variant: a.variant.clone(), key: at, edition, score: first_view(score).into(), depth: *depth, line: pv.join(" "), time: now_secs(), second: next };
+                let ev = Evaluation { family, variant: a.variant.clone(), key: at, edition, score: first_view(score).into(), depth, line: pv.join(" "), time: now_secs(), second: next };
                 if let Err(e) = s.put(&ev) {
                     raw.error = Some(e.to_string());
                 }

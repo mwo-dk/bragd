@@ -10,8 +10,8 @@ use bragd_core::t;
 use bragd_engines::local;
 use bragd_helper::helper::Request;
 use bragd_helper::jobs::Work;
-use bragd_library::chess::{pgn, polyglot};
-use bragd_library::library::Library;
+use bragd_library::library::{Library, position_keys};
+use bragd_library::slice::Frequent;
 use bragd_positions::queue::{Job, Per, Spot};
 use bragd_positions::{Edition, Store};
 use serde::{Deserialize, Serialize};
@@ -26,30 +26,54 @@ type Res<T> = Result<T, String>;
 /// The most positions one Slice job may hold.
 const MOST: u32 = 100_000;
 
-/// The job for the chess positions of `r`, a Game just opened, by the Engine its Variant is
-/// analysed with, to `[analysis] depth`; None when Settings turn it off, the Game is not chess,
-/// or that Engine is not there to run.
-// shortcut: chess only, as only chess Games open with their positions (`stored_replay`); the
-// other Families join when theirs do.
-pub fn opened_job(cfg: &Config, r: &Replay) -> Option<Job> {
-    if !cfg.analysis.open_games || r.family != "chess" || r.variant.is_empty() {
-        return None;
-    }
-    let mut spots: Vec<Spot> = vec![];
-    for fen in r.steps.iter().filter_map(|s| s.fen.as_deref()) {
-        let key = polyglot::key(&pgn::board(fen)?);
-        if !spots.iter().any(|s| s.key == key) {
-            spots.push(Spot { key, setup: fen.to_string(), moves: vec![], count: 1 });
-        }
-    }
-    let engine = local::default_for(cfg, &r.variant).filter(|e| local::availability(cfg, e).ready())?;
-    (!spots.is_empty()).then(|| Job::new("chess", &r.variant, &engine, None, Per::Depth(cfg.analysis.depth.clamp(1, 99) as u32), spots, true, &r.title))
+/// A Game just opened, as background analysis takes it: its Family, its Variant
+/// (`bragd_games`' key), its title and each of its positions once.
+pub struct Opened {
+    pub family: String,
+    pub variant: String,
+    pub title: String,
+    pub spots: Vec<Spot>,
 }
 
-/// Queues the positions of the Game `r` just opened, when Settings ask for it. Nothing is said
+impl Opened {
+    /// A Game of a Foreign database, by the positions its board draws: those its Variant sets
+    /// up from their text (chess, xiangqi, shogi). A Game whose board cannot be drawn has none.
+    pub fn of_file(r: &Replay) -> Opened {
+        let fens: Vec<String> = r.steps.iter().map_while(|s| s.fen.clone()).collect();
+        let keys = position_keys(&r.family, &fens);
+        let spots = fens.into_iter().zip(keys).filter(|(fen, _)| !r.variant.is_empty() && bragd_games::replay::<&str>(&r.variant, Some(fen), &[]).is_ok()).map(|(setup, key)| Spot { key, setup, moves: vec![], count: 1 }).collect();
+        Opened::new(&r.family, &r.variant, &r.title, spots)
+    }
+
+    /// The Game `id` of `lib`, played again from its stored moves (`Library::asked`).
+    pub fn of_stored(lib: &Library, id: i64, title: &str) -> Res<Opened> {
+        let s = lib.stored(id).map_err(|e| e.to_string())?;
+        let spots = lib.asked(id, usize::MAX).map_err(|e| e.to_string())?.into_iter().map(|a| Spot { key: a.key, setup: a.setup, moves: a.moves, count: 1 }).collect();
+        Ok(Opened::new(&s.family, &s.variant, title, spots))
+    }
+
+    fn new(family: &str, variant: &str, title: &str, mut spots: Vec<Spot>) -> Opened {
+        let mut seen = std::collections::HashSet::new();
+        spots.retain(|s| seen.insert(s.key));
+        Opened { family: family.into(), variant: variant.into(), title: title.into(), spots }
+    }
+}
+
+/// The job for the positions of `o`, a Game just opened, by the Engine its Variant is analysed
+/// with, to `[analysis] depth`; None when Settings turn it off, it has no positions an Engine
+/// can be asked about, or that Engine is not there to run.
+pub fn opened_job(cfg: &Config, o: &Opened) -> Option<Job> {
+    if !cfg.analysis.open_games || o.variant.is_empty() || o.spots.is_empty() {
+        return None;
+    }
+    let engine = local::default_for(cfg, &o.variant).filter(|e| local::availability(cfg, e).ready())?;
+    Some(Job::new(&o.family, &o.variant, &engine, None, Per::Depth(cfg.analysis.depth.clamp(1, 99) as u32), o.spots.clone(), true, &o.title))
+}
+
+/// Queues the positions of the Game `o` just opened, when Settings ask for it. Nothing is said
 /// when it cannot be: the Game opens all the same.
-pub fn queue_opened(k: &Knowledge, cfg: &Config, r: &Replay) {
-    if let Some(job) = opened_job(cfg, r) {
+pub fn queue_opened(k: &Knowledge, cfg: &Config, o: &Opened) {
+    if let Some(job) = opened_job(cfg, o) {
         bragd_core::tips::used("background");
         let _ = k.link.start(&Request::Start { work: Work::Analyse { job } });
     }
@@ -64,10 +88,68 @@ pub struct Chosen {
     pub min_version: String,
 }
 
-/// *Analyse in background*: the `top` positions the Games of the Slice `name` reach most often,
-/// each to `depth` or for `seconds`, one job per Engine and Variant. The jobs' ids.
+/// An Engine *Analyse in background* offers.
+#[derive(Serialize)]
+pub struct Offered {
+    key: String,
+    name: String,
+}
+
+/// What *Analyse in background* offers for the Variants `variants`: every Engine ready to run
+/// that plays one of them, the default ones, and whether more could be set up.
+#[derive(Serialize)]
+pub struct Offer {
+    engines: Vec<Offered>,
+    defaults: Vec<String>,
+    more: bool,
+}
+
+pub fn offer(cfg: &Config, variants: &[String]) -> Offer {
+    let mut o = Offer { engines: vec![], defaults: vec![], more: false };
+    for v in variants {
+        for key in local::engines_for(cfg, v) {
+            if !local::availability(cfg, &key).ready() {
+                o.more = true;
+            } else if !o.engines.iter().any(|e| e.key == key) {
+                let name = bragd_engines::known::known(&key).map_or_else(|| key.clone(), |k| k.name.to_string());
+                o.engines.push(Offered { key, name });
+            }
+        }
+        if let Some(d) = local::default_for(cfg, v).filter(|d| local::availability(cfg, d).ready() && !o.defaults.contains(d)) {
+            o.defaults.push(d);
+        }
+    }
+    o
+}
+
 #[tauri::command(async)]
-pub fn slice_analyse(library: String, name: String, engines: Vec<Chosen>, depth: Option<u32>, seconds: Option<f64>, top: u32, k: State<'_, Knowledge>) -> Res<Vec<u64>> {
+pub fn background_engines(variants: Vec<String>, ctx: State<'_, Ctx>) -> Offer {
+    offer(&ctx.cfg(), &variants)
+}
+
+/// The jobs for `found`, a Slice's most frequent positions: one per Variant and chosen Engine
+/// that plays it, each to `per`.
+pub fn slice_jobs(cfg: &Config, name: &str, found: &[Frequent], engines: &[Chosen], per: Per) -> Vec<Job> {
+    let mut variants: Vec<(&str, &str)> = found.iter().map(|f| (f.family.as_str(), f.variant.as_str())).collect();
+    variants.sort_unstable();
+    variants.dedup();
+    let mut out = vec![];
+    for (family, v) in variants {
+        let spots: Vec<Spot> = found.iter().filter(|f| f.variant == v).map(|f| Spot { key: f.key, setup: f.setup.clone(), moves: f.moves.clone(), count: f.count }).collect();
+        let plays = local::engines_for(cfg, v);
+        for c in engines.iter().filter(|c| plays.contains(&c.engine)) {
+            out.push(Job::new(family, v, &c.engine, Some(c.min_version.clone()), per, spots.clone(), false, name));
+        }
+    }
+    out
+}
+
+/// *Analyse in background*: the `top` positions the Games of the Slice `name` of `family`
+/// (empty: any) reach most often, each to `depth` or for `seconds`, one job per Variant and
+/// Engine that plays it. The jobs' ids.
+#[tauri::command(async)]
+#[allow(clippy::too_many_arguments, reason = "one argument per thing the page sends")]
+pub fn slice_analyse(library: String, name: String, family: String, engines: Vec<Chosen>, depth: Option<u32>, seconds: Option<f64>, top: u32, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Vec<u64>> {
     bragd_core::tips::used("background");
     if engines.is_empty() {
         return Err(t!("background.no_engine"));
@@ -79,22 +161,12 @@ pub fn slice_analyse(library: String, name: String, engines: Vec<Chosen>, depth:
     };
     let lib = Library::open(Path::new(&library)).map_err(|e| e.to_string())?;
     let ids = lib.slice_games(&name).map_err(|e| e.to_string())?;
-    let found = lib.frequent(&ids, top.clamp(1, MOST) as usize).map_err(|e| e.to_string())?;
-    let mut variants: Vec<&str> = found.iter().map(|f| f.variant.as_str()).collect();
-    variants.sort_unstable();
-    variants.dedup();
-    if variants.is_empty() {
+    let found = lib.frequent(&ids, &family, top.clamp(1, MOST) as usize).map_err(|e| e.to_string())?;
+    let jobs = slice_jobs(&ctx.cfg(), &name, &found, &engines, per);
+    if jobs.is_empty() {
         return Err(t!("background.no_positions"));
     }
-    let mut out = vec![];
-    for v in variants {
-        let spots: Vec<Spot> = found.iter().filter(|f| f.variant == v).map(|f| Spot { key: f.key, setup: f.fen.clone(), moves: vec![], count: f.count }).collect();
-        for c in &engines {
-            let job = Job::new("chess", v, &c.engine, Some(c.min_version.clone()), per, spots.clone(), false, &name);
-            out.push(k.link.start(&Request::Start { work: Work::Analyse { job } })?);
-        }
-    }
-    Ok(out)
+    jobs.into_iter().map(|job| k.link.start(&Request::Start { work: Work::Analyse { job } })).collect()
 }
 
 /// One Edition's share of the Position store, as Disk watch lists it.
@@ -190,18 +262,23 @@ pub fn store_prune(what: String, ctx: State<'_, Ctx>) -> Res<String> {
 mod tests {
     use super::*;
     use crate::databases::Step;
+    use bragd_library::chess::{pgn, polyglot};
 
     fn replay(steps: &[&str]) -> Replay {
         Replay { title: "A – B".into(), family: "chess".into(), variant: "chess".into(), steps: steps.iter().map(|f| Step { fen: Some(f.to_string()), ..Default::default() }).collect(), ..Default::default() }
     }
 
-    /// An added Engine for chess by a path that is there, so it is ready to run.
+    /// Added Engines by a path that is there, so they are ready to run: `mine` for chess and
+    /// `checkers` for draughts.
     fn with_engine() -> Config {
         let exe = std::env::current_exe().unwrap();
         let mut cfg = Config::default();
-        cfg.engines.added.insert("mine".into(), "chess".into());
-        cfg.engines.paths.insert("mine".into(), exe.display().to_string());
+        for (key, family) in [("mine", "chess"), ("checkers", "draughts")] {
+            cfg.engines.added.insert(key.into(), family.into());
+            cfg.engines.paths.insert(key.into(), exe.display().to_string());
+        }
         cfg.engines.default.insert("chess".into(), "mine".into());
+        cfg.engines.default.insert("draughts".into(), "checkers".into());
         cfg
     }
 
@@ -209,16 +286,48 @@ mod tests {
     fn a_game_opened_queues_its_positions_once_each() {
         let cfg = with_engine();
         let after_e4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
-        let job = opened_job(&cfg, &replay(&[pgn::START, after_e4, pgn::START])).unwrap();
+        let job = opened_job(&cfg, &Opened::of_file(&replay(&[pgn::START, after_e4, pgn::START]))).unwrap();
         assert!(job.low && job.engine == "mine" && job.about == "A – B");
         assert_eq!(job.per, Per::Depth(18));
         assert_eq!(job.spots.len(), 2, "a position twice is one");
         assert_eq!(job.spots[1].key, polyglot::key(&pgn::board(after_e4).unwrap()));
-        // Off in Settings, another Family, or no Engine to run: nothing.
+        // Off in Settings, a board that cannot be drawn, or no Engine to run: nothing.
         let mut off = cfg.clone();
         off.analysis.open_games = false;
-        assert!(opened_job(&off, &replay(&[pgn::START])).is_none());
-        assert!(opened_job(&cfg, &Replay { family: "go".into(), ..replay(&[pgn::START]) }).is_none());
+        assert!(opened_job(&off, &Opened::of_file(&replay(&[pgn::START]))).is_none());
+        assert!(opened_job(&cfg, &Opened::of_file(&Replay { variant: String::new(), ..replay(&[pgn::START]) })).is_none());
+    }
+
+    /// A draughts Game opened from a Library is queued as moves from the start, which is how
+    /// a draughts Engine is asked; each position once.
+    #[test]
+    fn a_library_game_of_another_family_is_queued() {
+        let d = std::env::temp_dir().join(format!("bragd-bg-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let file = d.join("a.pdn");
+        std::fs::write(&file, "[GameType \"20\"]\n\n1. 32-28 19-23 2. 28x19 14x23 *\n").unwrap();
+        let mut lib = Library::open(&d.join("l.bragd")).unwrap();
+        lib.import(&file, "mine", &|| false, &mut |_| {}).unwrap();
+        let o = Opened::of_stored(&lib, 1, "A – B").unwrap();
+        let _ = std::fs::remove_dir_all(&d);
+        let job = opened_job(&with_engine(), &o).unwrap();
+        assert_eq!((job.family.as_str(), job.variant.as_str(), job.engine.as_str()), ("draughts", "draughts", "checkers"));
+        assert_eq!(job.spots.len(), 5);
+        assert_eq!(job.spots[4].moves, ["32-28", "19-23", "28x19:23", "14x23:19"]);
+    }
+
+    /// A Slice's jobs: one per Variant and chosen Engine that plays it.
+    #[test]
+    fn a_slice_job_goes_only_to_engines_that_play_it() {
+        let cfg = with_engine();
+        let f = |family: &str, variant: &str, key: u64| Frequent { key, family: family.into(), variant: variant.into(), setup: String::new(), moves: vec![], count: 1 };
+        let found = [f("chess", "chess", 1), f("draughts", "draughts", 2), f("chess", "chess", 3), f("go", "go-9", 4)];
+        let chosen = |k: &str| Chosen { engine: k.into(), min_version: String::new() };
+        let jobs = slice_jobs(&cfg, "S", &found, &[chosen("mine"), chosen("checkers")], Per::Depth(9));
+        assert_eq!(jobs.iter().map(|j| (j.variant.as_str(), j.engine.as_str(), j.spots.len())).collect::<Vec<_>>(), [("chess", "mine", 2), ("draughts", "checkers", 1)]);
+        let o = offer(&cfg, &["draughts".into()]);
+        assert!(o.engines.iter().any(|e| e.key == "checkers") && !o.engines.iter().any(|e| e.key == "mine"));
+        assert_eq!(o.defaults, ["checkers"]);
     }
 
     #[test]

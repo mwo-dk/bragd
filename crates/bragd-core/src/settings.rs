@@ -93,9 +93,8 @@ impl Opt {
 
     /// The Game family it concerns, if only one: it leaves its area while that Family is off.
     pub fn family(&self) -> Option<&'static str> {
-        // Background analysis queues chess positions only, for now.
         // Online play is on Lichess, for chess, for now.
-        (self.name.starts_with("tablebases_") || self.name.starts_with("analysis_") || self.name.starts_with("online_")).then_some("chess")
+        (self.name.starts_with("tablebases_") || self.name.starts_with("online_")).then_some("chess")
     }
 
     /// Listed in its area for the user of `cfg`: [`Opt::listed`], and its Family shows.

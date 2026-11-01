@@ -13,6 +13,7 @@ pub mod export;
 pub mod go;
 pub mod library;
 pub mod player;
+pub mod replay;
 pub mod shogi;
 pub mod slice;
 pub mod stream;

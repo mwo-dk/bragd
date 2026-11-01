@@ -1410,7 +1410,7 @@
  "jobs.analysis_waits": "Analyse op de achtergrond wacht: het valt buiten zijn uren, of de computer draait op de batterij.",
  "background.no_engine": "Kies eerst een Engine.",
  "background.no_limit": "Geef een diepte of een tijd per stelling.",
- "background.no_positions": "Deze selectie heeft geen schaakstellingen om te analyseren.",
+ "background.no_positions": "Deze selectie heeft geen stellingen die de aangevinkte Engines kunnen analyseren.",
  "background.positions": {
   "one": "{n} stelling",
   "other": "{n} stellingen"
@@ -1421,7 +1421,7 @@
  },
  "background.title": "Analyseer {name} op de achtergrond",
  "background.intro": "De helper geeft de stellingen die deze partijen het vaakst bereiken aan de Engines die je kiest, en bewaart elk resultaat in de stellingopslag. Stellingen die al diep genoeg zijn, worden overgeslagen.",
- "background.no_engines": "Geen schaak-Engine is klaar om te draaien. Stel er een in onder Engines.",
+ "background.no_engines": "Geen Engine voor deze spelfamilie is klaar om te draaien. Stel er een in onder Engines.",
  "background.engines": "Engines",
  "background.min": "Oudste versie van {engine} die mag antwoorden",
  "background.min_hint": "Elke versie",
@@ -1445,7 +1445,7 @@
  "store.prune_removed": "Verwijderde Engines verwijderen ({positions})",
  "disk.item.positions": "Stellingopslag",
  "setting.analysis_open_games": "Analyseer partijen die ik open op de achtergrond",
- "setting.analysis_open_games.hint": "Elke schaakpartij die je opent uit een bibliotheek of een vreemde database, komt in de wachtrij voor de stellingopslag, na de selecties die je in de wachtrij zet.",
+ "setting.analysis_open_games.hint": "Elke partij die je opent uit een bibliotheek of een vreemde database, komt in de wachtrij voor de stellingopslag, na de selecties die je in de wachtrij zet.",
  "setting.analysis_depth": "Diepte voor partijen die ik open",
  "setting.analysis_threads": "Engines tegelijk bij analyse op de achtergrond",
  "setting.analysis_threads.hint": "Elke Engine gebruikt één thread.",

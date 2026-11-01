@@ -172,20 +172,24 @@ impl Library {
 /// A position the Games of a Slice reach, for background analysis.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Frequent {
-    /// Its Polyglot key, as the `positions` table has it.
+    /// Its key, as the `positions` table has it (`position_keys`).
     pub key: u64,
+    pub family: String,
     pub variant: String,
-    pub fen: String,
+    /// What an Engine is asked about it (`replay::Asked`): the position, or the Game's start
+    /// with `moves` after it.
+    pub setup: String,
+    pub moves: Vec<String>,
     /// How often the Games reach it.
     pub count: u32,
 }
 
 impl Library {
-    /// The chess positions the Games `ids` reach most often, at most `top`, the most frequent
-    /// first, counted in the `positions` table; the start position is not among them.
-    // shortcut: chess only, as only chess Games are kept in moves Bragd can replay here; the
-    // other Families join when their stored moves can be replayed (`stored_replay`).
-    pub fn frequent(&self, ids: &[i64], top: usize) -> Result<Vec<Frequent>> {
+    /// The positions the Games `ids` of `family` (empty: any) reach most often, at most `top`, the most frequent first,
+    /// counted in the `positions` table; the start position is not among them, nor a position of
+    /// a Variant Bragd does not play. Each is played again from one Game that reaches it
+    /// (`replay`), the first time it is there: a backgammon position before its roll.
+    pub fn frequent(&self, ids: &[i64], family: &str, top: usize) -> Result<Vec<Frequent>> {
         let c = self.conn();
         c.execute_batch("CREATE TEMP TABLE IF NOT EXISTS picked (id INTEGER PRIMARY KEY); DELETE FROM temp.picked;")?;
         {
@@ -194,25 +198,37 @@ impl Library {
                 put.execute([id])?;
             }
         }
-        let mut st = c.prepare(
-            "SELECT p.hash, g.variant, count(*) AS n, min(p.game_id) FROM positions p JOIN temp.picked k ON k.id = p.game_id JOIN games g ON g.id = p.game_id \
-             WHERE g.family = 'chess' GROUP BY p.hash, g.variant ORDER BY n DESC, p.hash LIMIT ?1",
-        )?;
-        let rows: Vec<(i64, String, u32, i64)> = st.query_map([top as i64], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?.collect::<rusqlite::Result<_>>()?;
-        let mut ply = c.prepare_cached("SELECT ply FROM positions WHERE hash = ?1 AND game_id = ?2 LIMIT 1")?;
-        let mut out = Vec::with_capacity(rows.len());
-        for (hash, variant, count, game) in rows {
-            let n: usize = ply.query_row(params![hash, game], |r| r.get::<_, i64>(0))? as usize;
-            let g = self.stored(game)?;
-            let mut b = g.start.as_deref().and_then(crate::chess::pgn::board).unwrap_or_else(rules_chess::Position::starting);
-            for san in g.moves.iter().take(n) {
-                let Some(mv) = crate::chess::pgn::san_move(&b, san) else { break };
-                b = b.make_move(mv);
-            }
-            out.push(Frequent { key: hash as u64, variant, fen: crate::chess::pgn::fen(&b), count });
-        }
+        // The catalogue's keys are plain words, safe to write into the statement.
+        let known: Vec<String> = bragd_games::VARIANTS.iter().map(|v| format!("'{}'", v.key)).collect();
+        let mut st = c.prepare(&format!(
+            "SELECT p.hash, g.family, g.variant, count(*) AS n, min(p.game_id) FROM positions p JOIN temp.picked k ON k.id = p.game_id JOIN games g ON g.id = p.game_id \
+             WHERE g.variant IN ({}) AND (?2 = '' OR g.family = ?2) GROUP BY p.hash, g.family, g.variant ORDER BY n DESC, p.hash LIMIT ?1",
+            known.join(", ")
+        ))?;
+        let rows: Vec<(i64, String, String, u32, i64)> = st.query_map(params![top as i64, family], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))?.collect::<rusqlite::Result<_>>()?;
         c.execute_batch("DELETE FROM temp.picked;")?;
-        Ok(out)
+        let mut ply = c.prepare_cached("SELECT min(ply) FROM positions WHERE hash = ?1 AND game_id = ?2")?;
+        let mut plies = Vec::with_capacity(rows.len());
+        let mut deepest: std::collections::HashMap<i64, usize> = std::collections::HashMap::new();
+        for (hash, _, _, _, game) in &rows {
+            let n = ply.query_row(params![hash, game], |r| r.get::<_, i64>(0))? as usize;
+            let d = deepest.entry(*game).or_default();
+            *d = (*d).max(n);
+            plies.push(n);
+        }
+        let mut games: std::collections::HashMap<i64, Vec<crate::replay::Asked>> = std::collections::HashMap::new();
+        for (game, n) in deepest {
+            games.insert(game, self.asked(game, n)?);
+        }
+        Ok(rows
+            .into_iter()
+            .zip(plies)
+            .filter_map(|((hash, family, variant, count, game), n)| {
+                // The first time the Game is there: a roll leaves the board as it was.
+                let a = games.get(&game)?.iter().take(n + 1).find(|a| a.key == hash as u64)?;
+                Some(Frequent { key: a.key, family, variant, setup: a.setup.clone(), moves: a.moves.clone(), count })
+            })
+            .collect())
     }
 }
 
@@ -249,19 +265,69 @@ mod tests {
         let d = Dir::new("frequent");
         let lib = library(&d);
         let all = lib.find(&Query::default()).unwrap();
-        let f = lib.frequent(&all, 3).unwrap();
+        let f = lib.frequent(&all, "chess", 3).unwrap();
         assert_eq!(f.len(), 3);
         // 1. e4 is in two Games; nothing else is in more than one.
         assert_eq!(f.iter().map(|p| p.count).collect::<Vec<_>>(), [2, 1, 1]);
         for p in &f {
-            assert_eq!(polyglot::key(&pgn::board(&p.fen).unwrap()), p.key, "{}", p.fen);
-            assert_eq!(p.variant, "chess");
+            assert_eq!(polyglot::key(&pgn::board(&p.setup).unwrap()), p.key, "{}", p.setup);
+            assert_eq!((p.family.as_str(), p.variant.as_str(), p.moves.len()), ("chess", "chess", 0));
         }
-        assert!(f[0].fen.starts_with("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b"), "{}", f[0].fen);
+        assert!(f[0].setup.starts_with("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b"), "{}", f[0].setup);
         // Only the Games asked about.
-        let one = lib.frequent(&all[3..], 10).unwrap();
+        let one = lib.frequent(&all[3..], "", 10).unwrap();
         assert_eq!((one.len(), one[0].count), (2, 1));
-        assert!(lib.frequent(&[], 10).unwrap().is_empty());
+        assert!(lib.frequent(&[], "", 10).unwrap().is_empty());
+    }
+
+    /// Every Family with an Engine has its frequent positions: go's as moves from the empty
+    /// board, a backgammon position before its roll, the others as the position itself.
+    #[test]
+    fn every_familys_frequent_positions() {
+        let d = Dir::new("frequent-all");
+        let mut lib = Library::open(&d.0.join("lib.bragd")).unwrap();
+        let file = |name: &str, text: &str| {
+            let p = d.0.join(name);
+            std::fs::write(&p, text).unwrap();
+            p
+        };
+        for p in [
+            file("a.sgf", "(;FF[4]GM[1]SZ[9];B[ee];W[cc];B[gg])"),
+            file("b.sgf", "(;FF[4]GM[1]SZ[9];B[ee];W[cc];B[cg])"),
+            file("c.pdn", "[GameType \"20\"]\n\n1. 32-28 19-23 *\n\n[GameType \"20\"]\n\n1. 32-28 18-23 *\n"),
+        ] {
+            lib.import(&p, "mine", &|| false, &mut |_| {}).unwrap();
+        }
+        let mut entries: Vec<String> = vec![];
+        for _ in 0..4 {
+            let st = bragd_games::replay("backgammon", None, &entries).unwrap();
+            entries.push(st.throws.first().cloned().unwrap_or_else(|| st.moves[0].wire.clone()));
+        }
+        let positions: Vec<String> = (0..=4).map(|k| bragd_games::replay("backgammon", None, &entries[..k]).unwrap().position).collect();
+        let history = bragd_games::replay("backgammon", None, &entries).unwrap().history;
+        lib.add(&NewGame::played("backgammon", "backgammon", None, history, &positions, vec![], "*"), "match", "1").unwrap();
+        let all: Vec<i64> = (1..=lib.count().unwrap() as i64).collect();
+        let f = lib.frequent(&all, "", 100).unwrap();
+        let go_only = lib.frequent(&all, "go", 100).unwrap();
+        assert!(!go_only.is_empty() && go_only.iter().all(|p| p.family == "go"));
+        let of = |v: &str| f.iter().filter(|p| p.variant == v).collect::<Vec<_>>();
+        // Go: 1. e5 and 1. e5 c7 in both Games.
+        let go = of("go-9");
+        assert_eq!(go.iter().map(|p| p.count).collect::<Vec<_>>(), [2, 2, 1, 1]);
+        assert!(go.iter().all(|p| p.setup.is_empty() && !p.moves.is_empty()));
+        let draughts = of("draughts");
+        assert_eq!(draughts.iter().map(|p| p.count).collect::<Vec<_>>(), [2, 1, 1]);
+        for p in go.iter().chain(&draughts).chain(&of("backgammon")) {
+            let st = bragd_games::replay(&p.variant, Some(p.setup.as_str()).filter(|s| !s.is_empty()), &p.moves).unwrap();
+            assert_eq!(crate::library::position_keys(&p.family, std::slice::from_ref(&st.position))[0], p.key, "{p:?}");
+        }
+        // Backgammon: each board before its roll, which leaves the board as it was (the start's
+        // key is the first roll's).
+        let bg = of("backgammon");
+        assert_eq!(bg.iter().map(|p| p.count).collect::<Vec<_>>(), [2, 1, 1]);
+        for p in bg {
+            assert_eq!(bragd_games::replay(&p.variant, Some(p.setup.as_str()).filter(|s| !s.is_empty()), &p.moves).unwrap().awaiting, bragd_games::Awaiting::Throw, "{p:?}");
+        }
     }
 
     /// A Slice's filters use the Library's indexes.

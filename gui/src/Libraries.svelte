@@ -12,8 +12,8 @@
   import Picker from "./Picker.svelte";
   import Player from "./Player.svelte";
 
-  /** @type {{ family: string, variants: any[], slice: any, position: any, onstep: (family: string, step: any) => void, onslices: () => void }} */
-  let { family, variants, slice = null, position, onstep, onslices } = $props();
+  /** @type {{ family: string, engine: boolean, variants: any[], slice: any, position: any, onstep: (family: string, step: any) => void, onslices: () => void }} */
+  let { family, engine, variants, slice = null, position, onstep, onslices } = $props();
   /** @type {any[]} */
   let libs = $state([]);
   /** @type {any} */
@@ -220,7 +220,7 @@
       {/if}
     {:else if view === "slice"}
       {#key `${lib.path}/${editing?.name ?? ""}`}
-        <SliceEditor library={lib.path} slice={editing} {family} {variants} {position} {onstep} onsaved={() => (load(), onslices())} onplayer={showPlayer} />
+        <SliceEditor library={lib.path} slice={editing} {family} {engine} {variants} {position} {onstep} onsaved={() => (load(), onslices())} onplayer={showPlayer} />
       {/key}
     {:else if view === "player"}
       {#if game}

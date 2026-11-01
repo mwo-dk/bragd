@@ -69,6 +69,8 @@ struct FamilyView {
     shown: bool,
     /// Raced along a track by throws of the dice: backgammon, Ur and senet.
     race: bool,
+    /// An outside Engine plays it: it can be analysed, also in the background.
+    engine: bool,
     /// The file formats Bragd reads for it: "PGN", "SGF"…
     formats: &'static [&'static str],
     /// Those a custom URL Source can fetch: "PGN" for chess, not SCID.
@@ -183,6 +185,7 @@ fn snapshot(cfg: &Config) -> Snapshot {
                 name: i18n::tr(&format!("family.{}", f.key()), &[]),
                 shown: cfg.family_shown(f.key()),
                 race: f.race(),
+                engine: f.has_engine(),
                 formats: bragd_library::formats(f.key()),
                 url_formats: bragd_library::url_formats(f.key()),
                 variants: f
@@ -473,6 +476,7 @@ fn main() {
             knowledge::library_player,
             knowledge::db_player,
             background::slice_analyse,
+            background::background_engines,
             background::store_report,
             background::store_prune,
             knowledge::library_players,

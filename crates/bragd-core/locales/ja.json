@@ -1402,7 +1402,7 @@
  "jobs.analysis_waits": "バックグラウンド解析は待機中です。時間帯の外にあるか、マシンがバッテリーで動いています。",
  "background.no_engine": "先にエンジンを選んでください。",
  "background.no_limit": "局面ごとに深さか時間を指定してください。",
- "background.no_positions": "このスライスには解析できるチェスの局面がありません。",
+ "background.no_positions": "このスライスには、オンにしたエンジンが解析できる局面がありません。",
  "background.positions": {
   "other": "{n} 局面"
  },
@@ -1411,7 +1411,7 @@
  },
  "background.title": "{name} をバックグラウンドで解析",
  "background.intro": "ヘルパーは、これらの対局で最もよく現れる局面を選んだエンジンに渡し、各結果を局面ストアに保存します。すでに十分な深さがある局面は飛ばします。",
- "background.no_engines": "実行できるチェスのエンジンがありません。エンジンで設定してください。",
+ "background.no_engines": "このゲームファミリーで実行できるエンジンがありません。エンジンで設定してください。",
  "background.engines": "エンジン",
  "background.min": "回答してよい {engine} の最も古い版",
  "background.min_hint": "どの版でも可",
@@ -1435,7 +1435,7 @@
  "store.prune_removed": "削除済みのエンジンを削除 ({positions})",
  "disk.item.positions": "局面ストア",
  "setting.analysis_open_games": "開いた対局をバックグラウンドで解析する",
- "setting.analysis_open_games.hint": "ライブラリーや外部データベースから開いた各チェスの対局は、キューに入れたスライスの後に、局面ストア用に順番待ちします。",
+ "setting.analysis_open_games.hint": "ライブラリーや外部データベースから開いた各ゲームは、キューに入れたスライスの後に、局面ストア用に順番待ちします。",
  "setting.analysis_depth": "開いた対局の深さ",
  "setting.analysis_threads": "バックグラウンド解析で同時に動くエンジン数",
  "setting.analysis_threads.hint": "エンジンごとに1スレッドを使います。",

@@ -519,7 +519,7 @@ pub fn chess_variant(tag: &str) -> String {
 }
 
 /// A parsed game as it goes into a Library, by whose games its file holds.
-fn from_parsed(format: Format, g: &pgn::Game) -> NewGame {
+pub(crate) fn from_parsed(format: Format, g: &pgn::Game) -> NewGame {
     match format {
         Format::Pdn => {
             let v = crate::draughts::variant(g);

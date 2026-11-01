@@ -80,12 +80,14 @@ pub fn position(key: &str, initial: Option<&str>, entries: &[String], notation: 
     let mut p = Position { variant: key.to_string(), ..Default::default() };
     match notation {
         Notation::Gnubg => {
+            // Asked about a roll (`hint`), or before the roll about the position (`eval`).
             let dice = &state.board.dice;
-            if state.awaiting != bragd_games::Awaiting::Move || dice.len() < 2 {
-                return Err("Throw the dice first: GNU Backgammon is asked about a roll.".into());
+            let rolled = state.awaiting == bragd_games::Awaiting::Move && dice.len() >= 2;
+            if !rolled && state.awaiting != bragd_games::Awaiting::Throw {
+                return Err("GNU Backgammon is asked about a position before the roll, or about a roll.".into());
             }
             p.start = Start::Setup(gnubg_position_id(&state).ok_or("This backgammon position cannot be written for GNU Backgammon.")?);
-            p.dice = Some([dice[0], dice[1]]);
+            p.dice = rolled.then(|| [dice[0], dice[1]]);
         }
         Notation::Gtp => {
             if initial.is_some_and(|i| !i.trim().is_empty()) {
@@ -444,7 +446,11 @@ mod tests {
         let (p, _) = position("backgammon", None, &["3-1".into()], Notation::Gnubg).unwrap();
         assert_eq!(p.start, Start::Setup("4HPwATDgc/ABMA".into()), "the start, as GNU Backgammon writes it");
         assert_eq!(p.dice, Some([3, 1]));
-        assert!(position("backgammon", None, &[], Notation::Gnubg).is_err(), "no roll yet");
+        // Before the roll: the same board, no dice.
+        let (p, _) = position("backgammon", None, &[], Notation::Gnubg).unwrap();
+        assert_eq!((p.start, p.dice), (Start::Setup("4HPwATDgc/ABMA".into()), None));
+        let over: Vec<String> = vec!["3-1".into(), m.wire.clone(), "resign".into()];
+        assert!(position("backgammon", None, &over, Notation::Gnubg).is_err(), "the Game is over");
         // The ID changes with the board.
         let after = bragd_games::replay("backgammon", None, &["3-1", m.wire.as_str(), "6-5"]).unwrap();
         assert_ne!(gnubg_position_id(&after).unwrap(), "4HPwATDgc/ABMA");

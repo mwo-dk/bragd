@@ -51,7 +51,7 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`. The top-le
 | `disk.total` | `0` | The most, in bytes, that everything Bragd keeps may take together. `0` is no limit ([Disk watch](../knowledge/disk-watch.md)) |
 | `disk.free_below` | `0` | Warn when free space on a disk Bragd uses falls below this many bytes. `0` is no warning |
 | `disk.items` | empty | A table: item id → the most bytes it may take. Ids: `library:main.bragd`, `downloads:twic`, `helper`, `tablebases`, `image:<name>`, `positions`, `cache` |
-| `analysis.open_games` | `true` | Queue each chess Game you open for background analysis ([Background analysis](../engines/background-analysis.md)) |
+| `analysis.open_games` | `true` | Queue each Game you open for background analysis ([Background analysis](../engines/background-analysis.md)) |
 | `analysis.depth` | `18` | Half-moves deep for an opened Game's positions |
 | `analysis.threads` | `1` | Engines at once in background analysis, each on one thread |
 | `analysis.from_hour` | `0` | Background analysis runs from this hour, local time |

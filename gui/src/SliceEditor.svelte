@@ -8,8 +8,8 @@
   import Replay from "./Replay.svelte";
   import SliceAnalyse from "./SliceAnalyse.svelte";
 
-  /** @type {{ library: string, slice: any, family: string, variants: {key: string, name: string}[], position: {family: string, fen: string} | null, onstep: (family: string, step: any) => void, onsaved: () => void, onplayer: (name: string) => void }} */
-  let { library, slice, family, variants, position, onstep, onsaved, onplayer } = $props();
+  /** @type {{ library: string, slice: any, family: string, engine: boolean, variants: {key: string, name: string}[], position: {family: string, fen: string} | null, onstep: (family: string, step: any) => void, onsaved: () => void, onplayer: (name: string) => void }} */
+  let { library, slice, family, engine, variants, position, onstep, onsaved, onplayer } = $props();
 
   const blank = () => ({ players: [], eco_from: "", eco_to: "", date_from: "", date_to: "", rating_min: null, result: "", family, variant: "", position: null });
   // svelte-ignore state_referenced_locally
@@ -86,11 +86,11 @@
   <div class="bar">
     <button class="primary" onclick={save} disabled={!name.trim()}>{t("slice.save")}</button>
     <button onclick={keep} disabled={!name.trim()} title={t("slice.keep_hint")}>{t("slice.keep")}</button>
-    {#if family === "chess"}
+    {#if engine}
       <button onclick={() => (analysing = !analysing)} disabled={!slice?.name} title={slice?.name ? t("background.action_hint") : t("background.save_first")} aria-expanded={analysing}>{t("background.action")}</button>
     {/if}
   </div>
-  {#if analysing && slice?.name}<SliceAnalyse {library} name={slice.name} onclose={() => (analysing = false)} />{/if}
+  {#if analysing && slice?.name}<SliceAnalyse {library} name={slice.name} {family} {variants} onclose={() => (analysing = false)} />{/if}
   {#if !position}<p class="hint">{t("slice.position_hint")}</p>{/if}
   {#if message}<p role="status">{message}</p>{/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}

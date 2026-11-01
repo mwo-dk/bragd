@@ -48,7 +48,7 @@ pub const FEATURES: &[Feature] = &[
     only("annotations", "engines/review.md", "item:analyse", &["chess", "xiangqi", "shogi", "go", "draughts"]),
     only("matches", "engines/matches.md", "item:matches", &["chess", "xiangqi", "shogi", "go", "draughts", "backgammon"]),
     only("tablebases", "engines/tablebases.md", "item:tablebases", &["chess"]),
-    only("background", "engines/background-analysis.md", "item:databases", &["chess"]),
+    only("background", "engines/background-analysis.md", "item:databases", &["chess", "xiangqi", "shogi", "go", "draughts", "backgammon"]),
     f("clubs", "clubs/clubs.md", "page:clubs"),
     f("tournaments", "clubs/tournaments.md", "page:clubs"),
     f("leagues", "clubs/leagues.md", "page:clubs"),

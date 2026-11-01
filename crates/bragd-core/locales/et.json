@@ -1410,7 +1410,7 @@
  "jobs.analysis_waits": "Analüüs taustal ootab: see on oma tundidest väljas või masin töötab akult.",
  "background.no_engine": "Vali kõigepealt Engine.",
  "background.no_limit": "Määra positsiooni kohta sügavus või aeg.",
- "background.no_positions": "Sellel lõigul pole analüüsimiseks ühtegi male positsiooni.",
+ "background.no_positions": "Sellel lõigul pole positsioone, mida märgitud Engine'id saaksid analüüsida.",
  "background.positions": {
   "one": "{n} positsioon",
   "other": "{n} positsiooni"
@@ -1421,7 +1421,7 @@
  },
  "background.title": "Analüüsi {name} taustal",
  "background.intro": "Abiline saadab positsioonid, mille need partiid kõige sagedamini jõuavad, valitud Engine'idele ning hoiab iga tulemuse Positsioonide hoidlas. Positsioonid, mis on juba piisavalt sügavad, jäetakse vahele.",
- "background.no_engines": "Ühtegi male Engine'it pole käivitamiseks valmis. Seadista üks jaotises Engines.",
+ "background.no_engines": "Selle mängude perekonna jaoks pole ühtegi Engine'it käivitamiseks valmis. Seadista üks jaotises Engines.",
  "background.engines": "Engines",
  "background.min": "Vanim {engine} versioon, mis tohib vastata",
  "background.min_hint": "Iga versioon",
@@ -1445,7 +1445,7 @@
  "store.prune_removed": "Kustuta eemaldatud Engine'id ({positions})",
  "disk.item.positions": "Positsioonide hoidla",
  "setting.analysis_open_games": "Analüüsi avatud partiisid taustal",
- "setting.analysis_open_games.hint": "Iga male partii, mille avad kogust või võõrast andmebaasist, lisatakse Positsioonide hoidla järjekorda pärast järjekorda pandud lõike.",
+ "setting.analysis_open_games.hint": "Iga partii, mille avad kogust või võõrast andmebaasist, lisatakse Positsioonide hoidla järjekorda pärast järjekorda pandud lõike.",
  "setting.analysis_depth": "Avatud partiide sügavus",
  "setting.analysis_threads": "Engine'eid korraga taustanalüüsis",
  "setting.analysis_threads.hint": "Iga Engine kasutab ühte lõime.",

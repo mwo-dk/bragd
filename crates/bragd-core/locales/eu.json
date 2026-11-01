@@ -1410,7 +1410,7 @@
  "jobs.analysis_waits": "Atzeko planoko analisiak itxaron egiten du: bere orduetatik kanpo dago, edo makina bateriarekin dabil.",
  "background.no_engine": "Aukeratu lehenik motor bat.",
  "background.no_limit": "Eman sakonera edo denbora posizio bakoitzeko.",
- "background.no_positions": "Hautaketa honek ez du analizatzeko ajedrez-posiziorik.",
+ "background.no_positions": "Hautaketa honek ez du markatutako motorrek analizatu ditzaketen posiziorik.",
  "background.positions": {
   "one": "{n} posizio",
   "other": "{n} posizio"
@@ -1421,7 +1421,7 @@
  },
  "background.title": "Analizatu {name} atzeko planoan",
  "background.intro": "Laguntzaileak partida hauek gehien iristen diren posizioak aukeratu dituzun motorrei bidaltzen dizkie, eta emaitza bakoitza Posizioen biltegian gordetzen du. Dagoeneko nahikoa sakon analizatuta dauden posizioak saltatu egiten dira.",
- "background.no_engines": "Ez dago ajedrez-motor prest exekutatzeko. Konfiguratu bat Motorrak atalean.",
+ "background.no_engines": "Joko-familia honetarako motorrik ez dago prest exekutatzeko. Konfiguratu bat Motorrak atalean.",
  "background.engines": "Motorrak",
  "background.min": "{engine}-en bertsio zaharrena, erantzun dezakeena",
  "background.min_hint": "Edozein bertsio",
@@ -1445,7 +1445,7 @@
  "store.prune_removed": "Ezabatu kendutako motorrak ({positions})",
  "disk.item.positions": "Posizioen biltegia",
  "setting.analysis_open_games": "Analizatu atzeko planoan irekitzen ditudan partidak",
- "setting.analysis_open_games.hint": "Liburutegi batetik edo kanpoko datu-base batetik irekitzen duzun ajedrez-partida bakoitza Posizioen biltegirako ilaran sartzen da, ilaran jartzen dituzun hautaketen ondoren.",
+ "setting.analysis_open_games.hint": "Liburutegi batetik edo kanpoko datu-base batetik irekitzen duzun partida bakoitza Posizioen biltegirako ilaran sartzen da, ilaran jartzen dituzun hautaketen ondoren.",
  "setting.analysis_depth": "Irekitzen ditudan partiden sakonera",
  "setting.analysis_threads": "Aldi berean motor analisi atzeko planoan",
  "setting.analysis_threads.hint": "Motor bakoitzak hari bat erabiltzen du.",
