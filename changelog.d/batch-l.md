@@ -1,0 +1,1 @@
+| **A packed file opened as a Foreign database reads as far as an import would.** It used to stop at 64 GB unpacked, so a Lichess month stopped early. Now opening and importing keep one rule, *Largest unpacking ratio*, 50 times the packed size unless you raise it. | [Docs](knowledge/foreign-databases.md#why-does-a-packed-file-stop-saying-it-unpacks-too-far) |

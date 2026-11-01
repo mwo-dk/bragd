@@ -139,6 +139,12 @@ impl<R: Read> Read for Count<'_, R> {
     }
 }
 
+/// `r`, the text of a file whose own bytes read so far are `packed`, ended with an error past
+/// `ratio` times them or when `stop` says so: the rule `games` keeps, for a file opened in place.
+pub(crate) fn capped<'s>(r: impl Read + 's, ratio: u64, packed: &'s AtomicU64, stop: &'s dyn Fn() -> bool) -> impl Read + 's {
+    Count { r, n: 0, before: 0, cap: Cap { ratio, floor: FLOOR, packed }, stop }
+}
+
 /// The games of `r`, the bytes of a file named `name`, each handed to `each` (whose games they
 /// are, and the game's text) until it says false. `stop` is asked as the bytes come, and a stop
 /// ends the read with an error, as do more than `max_ratio` times the bytes of `r` unpacked

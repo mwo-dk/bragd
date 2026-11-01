@@ -135,7 +135,7 @@ pub struct KnowledgeConfig {
     /// Sources, the first winning a header conflict between Duplicates.
     pub source_priority: Vec<String>,
     /// How many times its own size a packed game file (`.pgn.zst`, `.pgn.bz2`, …) may unpack
-    /// to: past that, the import stops, taking it for a bomb. A Lichess month unpacks to about
+    /// to: past that, an import or a Foreign database opened in place stops, taking it for a bomb. A Lichess month unpacks to about
     /// 7 times its size.
     pub max_unpack_ratio: u64,
 }
