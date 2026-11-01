@@ -115,6 +115,18 @@ _Avoid_: group, society, team (a Team is what a Club fields in a League)
 The rule that decides who plays whom in each Round. The options are Swiss (FIDE Dutch), Monrad, Nordic Swiss, round-robin (Berger tables), knockout and Scheveningen.
 _Avoid_: draw (a draw is a result), schedule
 
+**Tournament**:
+A competition a Club runs: its players, its Pairing system, its Rounds with their results, its tiebreaks and the log of every change made by hand. It is kept in the Club file.
+_Avoid_: event, competition (alone), league (a League is between Teams)
+
+**Round**:
+One set of games of a Tournament, all paired at once. A player not paired in a Round has a bye or is away.
+_Avoid_: game day, match (a match is between two Teams or two Engines)
+
+**Tiebreak**:
+A rule from FIDE's list (C.07), such as Buchholz or Sonneborn-Berger, that orders players level on points. A Tournament has its own ordered list of them.
+_Avoid_: tie-break score, korrektion
+
 **Rating list**:
 A published list of players with their federation IDs and ratings, such as the FIDE list or the Danish Chess Union's (DSU) list. Bragd downloads it like a Source and uses it to find and update members.
 _Avoid_: player database, ranking

@@ -17,6 +17,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use crate::rating::{self, Game, Rating, System};
+use crate::tournament::{self, Tournament};
 
 /// A Club file's extension.
 pub const EXT: &str = "bragd-club";
@@ -79,14 +80,15 @@ pub struct Member {
 }
 
 /// An entry of the audit log: who, when, the old value, the new value and why.
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Entry {
     /// Unix time.
     pub at: u64,
     pub who: String,
-    /// The member it concerns, by name as it was then; empty for the Club itself.
+    /// The member it concerns, by name as it was then; empty for the Club itself. In a
+    /// Tournament's log: the player or the board.
     pub member: String,
-    /// `rating`, `system` or `lock`.
+    /// `rating`, `system` or `lock`; in a Tournament's log `pairing`, `result` or `status`.
     pub what: String,
     pub old: String,
     pub new: String,
@@ -250,6 +252,20 @@ pub struct View {
     pub members: Vec<Member>,
     /// Newest first.
     pub log: Vec<Entry>,
+    pub tournaments: Vec<Listed>,
+}
+
+/// A Tournament as the Club's list shows it.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Listed {
+    pub id: i64,
+    pub name: String,
+    pub date: String,
+    pub system: tournament::System,
+    pub rounds: u32,
+    /// Rounds paired so far.
+    pub paired: u32,
+    pub players: u32,
 }
 
 const SCHEMA: &str = "
@@ -276,6 +292,7 @@ CREATE TABLE IF NOT EXISTS log (
     new TEXT NOT NULL,
     why TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS tournaments (id INTEGER PRIMARY KEY, data TEXT NOT NULL);
 ";
 
 fn valid(d: &Details) -> Result<()> {
@@ -343,6 +360,10 @@ impl Club {
         }
         let me = Holder::me();
         let held_by = take_lock(path, &me)?;
+        if held_by.is_none() {
+            // A Club from before Tournaments gets their table.
+            db.execute_batch(SCHEMA)?;
+        }
         Ok(Club { path: path.into(), db, me, held_by })
     }
 
@@ -395,18 +416,112 @@ impl Club {
     }
 
     pub fn view(&self) -> Result<View> {
-        Ok(View { path: self.path.clone(), name: self.name()?, system: self.system()?, held_by: self.held_by.clone(), members: self.members()?, log: self.log()? })
+        Ok(View { path: self.path.clone(), name: self.name()?, system: self.system()?, held_by: self.held_by.clone(), members: self.members()?, log: self.log()?, tournaments: self.tournaments()? })
+    }
+
+    /// The Club's Tournaments, newest first.
+    pub fn tournaments(&self) -> Result<Vec<Listed>> {
+        // A Club from before Tournaments, open read-only, has no table for them.
+        let has: bool = self.db.query_row("SELECT count(*) > 0 FROM sqlite_master WHERE name = 'tournaments'", [], |r| r.get(0))?;
+        if !has {
+            return Ok(vec![]);
+        }
+        let mut q = self.db.prepare("SELECT id, data FROM tournaments ORDER BY id DESC")?;
+        let rows = q.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+        let mut out = vec![];
+        for row in rows {
+            let (id, data) = row?;
+            let t = parse(&data)?;
+            out.push(Listed { id, name: t.name, date: t.date, system: t.system, rounds: t.rounds, paired: t.played.len() as u32, players: t.players.len() as u32 });
+        }
+        Ok(out)
+    }
+
+    pub fn tournament(&self, id: i64) -> Result<Tournament> {
+        let data: String = self.db.query_row("SELECT data FROM tournaments WHERE id = ?1", [id], |r| r.get(0)).optional()?.ok_or(Error::Invalid("tournaments.error.missing"))?;
+        parse(&data)
+    }
+
+    /// Adds a Tournament, by a director or an arbiter; its id.
+    pub fn add_tournament(&self, by: i64, t: &Tournament) -> Result<i64> {
+        let who = self.official(by)?;
+        let mut t = t.clone();
+        if t.arbiter.is_empty() {
+            t.arbiter = who;
+        }
+        self.db.execute("INSERT INTO tournaments (data) VALUES (?1)", [json(&t)?])?;
+        Ok(self.db.last_insert_rowid())
+    }
+
+    /// Runs `f` on Tournament `id` as the director or arbiter `by`, whose name it is given for
+    /// the log, and keeps what it changed. Nothing is kept when `f` fails.
+    pub fn change_tournament<R>(&self, by: i64, id: i64, f: impl FnOnce(&mut Tournament, &str) -> Result<R>) -> Result<R> {
+        let who = self.official(by)?;
+        let mut t = self.tournament(id)?;
+        let r = f(&mut t, &who)?;
+        self.db.execute("UPDATE tournaments SET data = ?2 WHERE id = ?1", params![id, json(&t)?])?;
+        Ok(r)
+    }
+
+    /// Rates the members from the games they played each other in Tournament `id`, as one
+    /// rating period, once; the audit log names the Tournament.
+    pub fn rate_tournament(&self, by: i64, id: i64) -> Result<()> {
+        let who = self.director(by)?;
+        let mut t = self.tournament(id)?;
+        if t.rated {
+            return Err(Error::Invalid("tournaments.error.rated"));
+        }
+        if t.played.iter().any(|r| !r.complete()) {
+            return Err(Error::Invalid("tournaments.error.results_missing"));
+        }
+        let tx = self.db.unchecked_transaction()?;
+        self.rate_period(&who, &t.member_games(), &t.name)?;
+        t.rated = true;
+        self.db.execute("UPDATE tournaments SET data = ?2 WHERE id = ?1", params![id, json(&t)?])?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// A director replaces the last Round's pairing of Tournament `id` by hand, with a reason;
+    /// the warnings it was kept with.
+    pub fn set_pairing(&self, by: i64, id: i64, pairs: &[(usize, usize)], bye: Option<usize>, why: &str) -> Result<Vec<tournament::Warning>> {
+        self.director(by)?;
+        self.change_tournament(by, id, |t, who| t.set_pairing(who, pairs, bye, why))
+    }
+
+    /// Deletes a Tournament; only a director may.
+    pub fn remove_tournament(&self, by: i64, id: i64) -> Result<()> {
+        self.director(by)?;
+        self.db.execute("DELETE FROM tournaments WHERE id = ?1", [id])?;
+        Ok(())
+    }
+
+    /// Like `director`, but an arbiter may also run a Tournament.
+    fn official(&self, by: i64) -> Result<String> {
+        match self.director(by) {
+            Err(Error::NotDirector) => match self.member(by) {
+                Ok(m) if m.role == Role::Arbiter => self.director_free().map(|_| m.name),
+                _ => Err(Error::NotDirector),
+            },
+            r => r,
+        }
+    }
+
+    /// Checks that the Club is not someone else's to change.
+    fn director_free(&self) -> Result<()> {
+        if let Some(h) = &self.held_by {
+            return Err(Error::ReadOnly(h.clone()));
+        }
+        if let Some(h) = read_lock(&self.path).filter(|h| !h.same(&self.me)) {
+            return Err(Error::ReadOnly(h));
+        }
+        Ok(())
     }
 
     /// Checks that the Club may be changed, by the member `by` acting as a director; their name.
     fn director(&self, by: i64) -> Result<String> {
-        if let Some(h) = &self.held_by {
-            return Err(Error::ReadOnly(h.clone()));
-        }
         // The lock may have been taken over since this window opened the Club.
-        if let Some(h) = read_lock(&self.path).filter(|h| !h.same(&self.me)) {
-            return Err(Error::ReadOnly(h));
-        }
+        self.director_free()?;
         let m = self.member(by).map_err(|_| Error::NotDirector)?;
         if m.role != Role::Director {
             return Err(Error::NotDirector);
@@ -504,6 +619,14 @@ impl Club {
     /// from the ratings before the period. Logged as `who` did it, for `why` (a Tournament).
     pub fn rate(&self, by: i64, games: &[(i64, i64, f64)], why: &str) -> Result<()> {
         let who = self.director(by)?;
+        let tx = self.db.unchecked_transaction()?;
+        self.rate_period(&who, games, why)?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// `rate` inside a transaction the caller holds.
+    fn rate_period(&self, who: &str, games: &[(i64, i64, f64)], why: &str) -> Result<()> {
         let system = self.system()?;
         let before: std::collections::HashMap<i64, Member> = self.members()?.into_iter().map(|m| (m.id, m)).collect();
         let mut played: std::collections::BTreeMap<i64, Vec<Game>> = std::collections::BTreeMap::new();
@@ -515,14 +638,12 @@ impl Club {
             played.entry(w).or_default().push(Game { opponent: mb.rating, score: s });
             played.entry(b).or_default().push(Game { opponent: mw.rating, score: 1.0 - s });
         }
-        let tx = self.db.unchecked_transaction()?;
         for (id, gs) in &played {
             let m = &before[id];
             let r = rating::rate(system, m.rating, gs);
             self.db.execute("UPDATE members SET rating = ?2, deviation = ?3, volatility = ?4 WHERE id = ?1", params![id, r.rating, r.deviation, r.volatility])?;
-            self.write_log(&who, &m.name, "rating", &round(m.rating.rating), &round(r.rating), why)?;
+            self.write_log(who, &m.name, "rating", &round(m.rating.rating), &round(r.rating), why)?;
         }
-        tx.commit()?;
         Ok(())
     }
 
@@ -551,6 +672,16 @@ impl Drop for Club {
             let _ = std::fs::remove_file(lock_path(&self.path));
         }
     }
+}
+
+fn parse(data: &str) -> Result<Tournament> {
+    let t: Tournament = serde_json::from_str(data).map_err(|e| Error::Db(e.to_string()))?;
+    // A Club file is shared by copying it: one edited by hand must not crash the page.
+    if t.sound() { Ok(t) } else { Err(Error::Invalid("tournaments.error.damaged")) }
+}
+
+fn json(t: &Tournament) -> Result<String> {
+    serde_json::to_string(t).map_err(|e| Error::Db(e.to_string()))
 }
 
 fn system_id(s: System) -> &'static str {
@@ -693,6 +824,62 @@ mod tests {
         assert!(matches!(c.set_rating(me, me, 1700.0, "x"), Err(Error::ReadOnly(_))));
         drop(c);
         assert!(lock_path(&path).exists(), "another's lock is left alone");
+    }
+
+    #[test]
+    fn tournaments_are_kept_in_the_club_file_and_run_by_directors_and_arbiters() {
+        use crate::tournament::{self, Status};
+        let d = Tmp::new("tournaments");
+        let c = Club::create(&d.club(), "K", System::Glicko2, "Mette").unwrap();
+        let me = c.members().unwrap()[0].id;
+        let arb = c.add(me, &Details { name: "Arne".into(), role: Some(Role::Arbiter), ..Details::default() }, None).unwrap();
+        let bo = c.add(me, &Details { name: "Bo".into(), ..Details::default() }, None).unwrap();
+        let t = Tournament::new("Autumn Swiss", tournament::System::Dutch, 5, "2026-11-05").unwrap();
+        assert_eq!(c.add_tournament(bo, &t), Err(Error::NotDirector));
+        let id = c.add_tournament(arb, &t).unwrap();
+        // An arbiter runs the night; nothing is kept when a step fails.
+        c.change_tournament(arb, id, |t, _| {
+            for n in ["Ann", "Bob"] {
+                let p = t.register(tournament::Player { name: n.into(), ..tournament::Player::default() })?;
+                t.set_status("", p, Status::Here)?;
+            }
+            t.pair_next()
+        })
+        .unwrap();
+        assert!(c.change_tournament(arb, id, |t, _| t.pair_next()).is_err());
+        assert_eq!(c.change_tournament(arb, id, |t, who| t.set_result(who, 0, 0, Some(tournament::Outcome::Draw), "").map(|_| who.to_string())).unwrap(), "Arne");
+        assert_eq!(c.remove_tournament(arb, id), Err(Error::NotDirector));
+        assert_eq!(c.set_pairing(arb, id, &[(1, 0)], None, "x"), Err(Error::NotDirector));
+        drop(c);
+        let c = Club::open(&d.club()).unwrap();
+        let listed = c.view().unwrap().tournaments;
+        assert_eq!((listed.len(), listed[0].name.as_str(), listed[0].paired, listed[0].players), (1, "Autumn Swiss", 1, 2));
+        assert_eq!(c.tournament(id).unwrap().played[0].games[0].result, Some(tournament::Outcome::Draw));
+        // Rated once, from the one game between members.
+        let ann = c.add(me, &Details { name: "Ann".into(), ..Details::default() }, Some(1500.0)).unwrap();
+        let bob = c.add(me, &Details { name: "Bob".into(), ..Details::default() }, Some(1500.0)).unwrap();
+        c.change_tournament(me, id, |t, _| {
+            t.players[0].member = Some(ann);
+            t.players[1].member = Some(bob);
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(c.rate_tournament(arb, id), Err(Error::NotDirector));
+        c.rate_tournament(me, id).unwrap();
+        assert_eq!(c.log().unwrap()[0].why, "Autumn Swiss");
+        assert_eq!(c.rate_tournament(me, id), Err(Error::Invalid("tournaments.error.rated")));
+        c.remove_tournament(me, id).unwrap();
+        assert!(c.tournaments().unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_club_from_before_tournaments_opens_read_only_without_them() {
+        let d = Tmp::new("old");
+        let c = Club::create(&d.club(), "K", System::Glicko2, "Mette").unwrap();
+        drop(c);
+        Connection::open(d.club()).unwrap().execute_batch("DROP TABLE tournaments").unwrap();
+        someone_else(&d.club());
+        assert_eq!(Club::open(&d.club()).unwrap().tournaments().unwrap(), []);
     }
 
     #[test]
