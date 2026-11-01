@@ -268,4 +268,26 @@ mod tests {
         assert_eq!(ready, Step::Ready(String::new()));
         assert_eq!(s.go(&about, Limit::Time(1500), 1), "go time 2\n");
     }
+
+    /// What ElephantEye 3.31 itself printed (`tools/dev/images.sh elephanteye`): its name and
+    /// version on two lines, `usemillisec` already on, lines of `info` without a line of play,
+    /// and a `bestmove` with a `ponder`.
+    #[test]
+    fn a_ucci_session_as_elephanteye_wrote_it() {
+        let mut d = Protocol::Ucci.dialect();
+        let (about, ready) = greet(
+            &mut *d,
+            "id name ElephantEye\nid version 3.31\nid copyright 2004-2016 www.xqbase.com\noption usemillisec type check default true\noption bookfiles type string default /BOOK.DAT\noption hashsize type spin min 16 max 1024 default 16\noption idle type combo var none var small var medium var large default none\noption newgame type button\nucciok",
+        );
+        assert_eq!((about.name.as_str(), ready), ("ElephantEye", Step::Ready("setoption usemillisec true\n".into())));
+        assert_eq!(about.option("hashsize").unwrap().min, Some(16));
+        let got = events(&mut *d, "info time 635 nodes 1573904\ninfo depth 9 score -3 pv h9g7 g3g4 i9h9\nbestmove b9c7 ponder h0i2\nbye");
+        assert_eq!(
+            got,
+            [
+                Event::Info(Info { depth: Some(9), line: 1, score: Some(Score::Cp(-3)), nodes: None, pv: vec!["h9g7".into(), "g3g4".into(), "i9h9".into()] }),
+                Event::Best(Best { mv: Some("b9c7".into()), ponder: Some("h0i2".into()) }),
+            ]
+        );
+    }
 }

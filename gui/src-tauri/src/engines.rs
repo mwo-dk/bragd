@@ -551,7 +551,7 @@ mod tests {
     #[test]
     fn engines_for_a_variant_and_where_they_stand() {
         let mut cfg = Config::default();
-        assert_eq!(engines_for(&cfg, "xiangqi"), ["fairy-stockfish", "pikafish"]);
+        assert_eq!(engines_for(&cfg, "xiangqi"), ["fairy-stockfish", "pikafish", "elephanteye"]);
         assert!(engines_for(&cfg, "checkers").is_empty());
         cfg.engines.added.insert("my-engine".into(), "chess".into());
         cfg.engines.paths.insert("my-engine".into(), "/nonexistent/my-engine".into());

@@ -330,7 +330,7 @@ mod tests {
             ("racingkings", &["fairy-stockfish"], Some("racingkings")),
             ("seirawan", &["fairy-stockfish"], Some("seirawan")),
             ("capablanca", &["fairy-stockfish"], Some("capablanca")),
-            ("xiangqi", &["fairy-stockfish", "pikafish"], Some("xiangqi")),
+            ("xiangqi", &["fairy-stockfish", "pikafish", "elephanteye"], Some("xiangqi")),
             ("janggi", &["fairy-stockfish"], Some("janggi")),
             ("shogi", &["fairy-stockfish", "yaneuraou"], Some("shogi")),
             ("go-9", &["katago", "gnugo"], None),

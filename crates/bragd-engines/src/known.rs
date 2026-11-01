@@ -48,6 +48,8 @@ pub const PIN_FRUIT: Option<&str> = Some("sha256:02a2f8406f6d9a0da1301dbeb98cb84
 pub const PIN_SCAN: Option<&str> = Some("sha256:c2d6ca3c144e6f53cd7fd86b1656078e0490e886f3043076e286be953b42afbd");
 pub const PIN_GNUBG: Option<&str> = Some("sha256:44655c588d9183af80d286f41905c565d31d809c2a806ee49a4e6e783f4f748e");
 
+pub const PIN_ELEPHANTEYE: Option<&str> = None;
+
 /// An engine Bragd knows.
 #[derive(Debug, PartialEq)]
 pub struct Known {
@@ -106,6 +108,8 @@ pub const KNOWN: &[Known] = &[
         syzygy: true,
     },
     Known { key: "pikafish", name: "Pikafish", programs: &["pikafish"], args: &[], variants: &["xiangqi"], tag: Some("2026-09-06"), pin: PIN_PIKAFISH, image_size: 989_513, site: "https://github.com/official-pikafish/Pikafish/releases", syzygy: false },
+    // ElephantEye 3.3 speaks UCCI, not UCI: the one image Bragd builds that does.
+    Known { key: "elephanteye", name: "ElephantEye", programs: &["eleeye", "elephanteye", "ELEEYE"], args: &[], variants: &["xiangqi"], tag: Some("3.3"), pin: PIN_ELEPHANTEYE, image_size: 0, site: "https://github.com/xqbase/eleeye", syzygy: false },
     Known { key: "yaneuraou", name: "YaneuraOu", programs: &["YaneuraOu", "yaneuraou", "YaneuraOu-by-gcc"], args: &[], variants: &["shogi"], tag: None, pin: None, image_size: 0, site: "https://github.com/yaneurao/YaneuraOu/releases", syzygy: false },
     Known { key: "katago", name: "KataGo", programs: &["katago"], args: &["gtp"], variants: GO, tag: Some("1.18.2-eigen"), pin: PIN_KATAGO, image_size: 51_866_241, site: "https://github.com/lightvector/KataGo/releases", syzygy: false },
     Known { key: "gnugo", name: "GNU Go", programs: &["gnugo"], args: &["--mode", "gtp"], variants: GO, tag: Some("3.8"), pin: PIN_GNUGO, image_size: 1_491_608, site: "https://www.gnu.org/software/gnugo/", syzygy: false },
@@ -120,6 +124,7 @@ impl Known {
         match self.key {
             "fairy-stockfish" if variant == "shogi" => Protocol::Usi,
             "yaneuraou" => Protocol::Usi,
+            "elephanteye" => Protocol::Ucci,
             "katago" | "gnugo" => Protocol::Gtp,
             "scan" => Protocol::Hub,
             "gnubg" => Protocol::Gnubg,
@@ -251,6 +256,7 @@ mod tests {
         let fairy = known("fairy-stockfish").unwrap();
         assert_eq!((fairy.protocol("xiangqi"), fairy.protocol("shogi")), (Protocol::Uci, Protocol::Usi));
         assert_eq!(known("pikafish").unwrap().protocol("xiangqi"), Protocol::Uci, "Pikafish speaks UCI");
+        assert_eq!(known("elephanteye").unwrap().protocol("xiangqi"), Protocol::Ucci, "ElephantEye speaks UCCI");
         assert_eq!(known("katago").unwrap().protocol("go-19"), Protocol::Gtp);
         assert_eq!(known("scan").unwrap().protocol("draughts"), Protocol::Hub);
         assert_eq!(known("gnubg").unwrap().protocol("backgammon"), Protocol::Gnubg);
@@ -258,7 +264,7 @@ mod tests {
             assert!(k.variants.iter().all(|v| family(v).is_some()), "{}: a Variant no Family has", k.key);
         }
         let xiangqi: Vec<&str> = for_variant("xiangqi").map(|k| k.key).collect();
-        assert_eq!(xiangqi, ["fairy-stockfish", "pikafish"]);
+        assert_eq!(xiangqi, ["fairy-stockfish", "pikafish", "elephanteye"]);
         assert_eq!(for_variant("checkers").count(), 0);
         assert_eq!(known("stockfish").unwrap().image_name().as_deref(), Some("ghcr.io/mwo-dk/bragd-stockfish:17.1"));
     }

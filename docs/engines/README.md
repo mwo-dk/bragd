@@ -19,7 +19,7 @@ An Engine plays a Side in Play, analyses a position in Analyse and reviews a who
 |---|---|---|---|
 | Chess | chess, Chess960 | Stockfish, Fairy-Stockfish | UCI |
 | Chess | shatranj, chaturanga, King of the Hill, Racing Kings, Seirawan, Capablanca | Fairy-Stockfish | UCI |
-| Xiangqi | xiangqi | Fairy-Stockfish, Pikafish | UCI (UCCI for other xiangqi engines) |
+| Xiangqi | xiangqi | Fairy-Stockfish, Pikafish, ElephantEye | UCI (UCCI for ElephantEye and other old xiangqi engines) |
 | Xiangqi | janggi | Fairy-Stockfish | UCI |
 | Shogi | shogi | Fairy-Stockfish, YaneuraOu | USI |
 | Go | 9×9, 13×13, 19×19 | KataGo, GNU Go | GTP |
