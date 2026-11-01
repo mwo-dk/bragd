@@ -1,0 +1,58 @@
+[Game "Chinese Chess"]
+[Event "ICCS"]
+[Result "*"]
+
+1. h2e2 h9g7 2. h0g2 i9h9 3. i0h0 b9c7 4. H2-H6 a6a5 5. h6g6 h7h6 *
+
+[Game "Chinese Chess"]
+[Event "WXF"]
+[Result "1-0"]
+
+1. C2.5 H8+7 2. H2+3 R9.8 3. R1.2 C8+4 4. P7+1 C2.1 5. H8+7 R1.2 6. C8+4 P3+1 7. C8.3 C8.7 8. R2+9 H7-8 9. C3+3 A4+5 10. C5+4 1-0
+
+[Game "Chinese Chess"]
+[Event "Chinese"]
+[Result "*"]
+
+1. 炮二平五 马８进７ 2. 马二进三 车９平８ 3. 车一平二 炮８进４ 4. 兵七进一 炮２平５ 5. 马八进七 *
+
+[Game "Chinese Chess"]
+[Event "Front and rear"]
+[FEN "4k4/9/9/9/9/9/4R4/9/4R4/4K4 w - - 0 1"]
+[Result "*"]
+
+1. +R.1 k5.6 2. R5+1 *
+
+[Game "Chinese Chess"]
+[Event "Rear chariot in Chinese"]
+[FEN "4k4/9/9/9/9/9/4R4/9/4R4/4K4 w - - 0 1"]
+[Result "*"]
+
+1. 后车平九 *
+
+[Game "Chinese Chess"]
+[Event "Black to move, letters h and e, a short row"]
+[FEN "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR B - - 0 12"]
+[Result "*"]
+
+1... h7e7 13. h2e2 *
+
+[Game "Chinese Chess"]
+[Event "No generals, a short row"]
+[FEN "4/9/9/9/9/9/9/9/9/R8 w"]
+[Result "*"]
+
+1. a0a9 *
+
+[Game "Chinese Chess"]
+[Event "Moves that cannot be played"]
+[Result "*"]
+
+1. R1+3 a5a6 *
+
+[Variant "xiangqi"]
+[Event "Not a FEN"]
+[FEN "nonsense"]
+[Result "*"]
+
+1. C2+7 c9e7 *

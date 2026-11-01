@@ -22,6 +22,7 @@
 pub mod board;
 pub mod game;
 pub mod position;
+pub mod record;
 pub mod ruleset;
 
 pub use board::{Bitboard, Direction, Geometry, Square};

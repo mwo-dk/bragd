@@ -9,9 +9,10 @@
 //! looked at as characters, never by byte offsets into the text.
 
 use crate::chess::pgn::{self, Game, Rules, Word};
+use rules_xiangqi::{Piece, Point, Position, Role, Side};
 
 /// The start position, in FEN: Red (upper case) at the bottom.
-pub const START: &str = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+pub use rules_xiangqi::START;
 const W: usize = 9;
 const H: usize = 10;
 /// The most of a file read to tell a xiangqi PGN file from a chess one.
@@ -28,98 +29,71 @@ pub fn is_xiangqi(head: &[u8]) -> bool {
     })
 }
 
-/// A position: 90 cells row by row from the top (Black's side), each a FEN letter or none;
-/// Red to move or not; the move number.
+/// A position and the move number. The rules crate holds the pieces; this adds the number a game
+/// file counts by, and reads cells as the notation words below index them: 90 of them row by row
+/// from the top (Black's side), each a FEN letter or none.
 #[derive(Clone, Debug)]
 pub(crate) struct Board {
-    cells: [Option<char>; W * H],
-    red: bool,
+    pos: Position,
     number: u32,
 }
 
 /// A FEN letter as this module keeps it: `k a b n r c p`, Red's upper case (`h` and `e` are
 /// read as `n` and `b`).
 fn letter(c: char) -> Option<char> {
-    let l = match c.to_ascii_lowercase() {
-        'k' | 'g' => 'k',
-        'a' => 'a',
-        'b' | 'e' => 'b',
-        'n' | 'h' => 'n',
-        'r' => 'r',
-        'c' => 'c',
-        'p' => 'p',
-        _ => return None,
-    };
+    let l = Role::from_letter_lenient(c)?.letter();
     Some(if c.is_ascii_uppercase() { l.to_ascii_uppercase() } else { l })
+}
+
+/// The point of a cell, whose index runs from Black's side.
+fn point(cell: usize) -> Option<Point> {
+    Point::from_file_rank((cell % W) as i16, (H - 1 - cell / W) as i16)
 }
 
 impl Board {
     fn from_fen(fen: &str) -> Option<Board> {
-        let mut f = fen.split_whitespace();
-        let placement = f.next()?;
-        let mut cells = [None; W * H];
-        let rows: Vec<&str> = placement.split('/').collect();
-        if rows.len() != H {
-            return None;
-        }
-        for (y, row) in rows.iter().enumerate() {
-            let mut x = 0usize;
-            for c in row.chars() {
-                if let Some(d) = c.to_digit(10) {
-                    x += d as usize;
-                } else {
-                    let p = letter(c)?;
-                    if x >= W {
-                        return None;
-                    }
-                    cells[x + y * W] = Some(p);
-                    x += 1;
-                }
-                if x > W {
-                    return None;
-                }
-            }
-        }
-        let red = !matches!(f.next(), Some("b" | "B"));
-        let number = f.nth(2).and_then(|n| n.parse::<u32>().ok()).filter(|&n| n > 0 && n < 100_000).unwrap_or(1);
-        Some(Board { cells, red, number })
+        let pos = Position::from_fen_lenient(fen)?;
+        let number = fen.split_whitespace().nth(4).and_then(|n| n.parse::<u32>().ok()).filter(|&n| n > 0 && n < 100_000).unwrap_or(1);
+        Some(Board { pos, number })
+    }
+
+    /// A board from its 90 cells and the side to move.
+    fn from_cells(cells: &[Option<char>; W * H], red: bool) -> Board {
+        let pieces = cells.iter().enumerate().filter_map(|(i, c)| {
+            let c = (*c)?;
+            let side = if c.is_ascii_uppercase() { Side::Red } else { Side::Black };
+            Some((point(i)?, Piece { side, role: Role::from_letter(c)? }))
+        });
+        let pos = Position::from_pieces(pieces, if red { Side::Red } else { Side::Black });
+        Board { pos, number: 1 }
+    }
+
+    fn red(&self) -> bool {
+        self.pos.to_move() == Side::Red
+    }
+
+    /// What stands in a cell: its FEN letter, Red's upper case.
+    fn cell(&self, i: usize) -> Option<char> {
+        let piece = self.pos.piece_at(point(i)?)?;
+        Some(if piece.side == Side::Red { piece.role.letter().to_ascii_uppercase() } else { piece.role.letter() })
+    }
+
+    fn cells(&self) -> [Option<char>; W * H] {
+        std::array::from_fn(|i| self.cell(i))
     }
 
     /// The position in FEN, as the apps draw it.
     pub(crate) fn fen(&self) -> String {
-        let mut out = String::new();
-        for y in 0..H {
-            if y > 0 {
-                out.push('/');
-            }
-            let mut empty = 0;
-            for x in 0..W {
-                match self.cells[x + y * W] {
-                    None => empty += 1,
-                    Some(p) => {
-                        if empty > 0 {
-                            out.push_str(&empty.to_string());
-                            empty = 0;
-                        }
-                        out.push(p);
-                    }
-                }
-            }
-            if empty > 0 {
-                out.push_str(&empty.to_string());
-            }
-        }
-        out.push_str(if self.red { " w" } else { " b" });
-        out
+        self.pos.to_short_fen()
     }
 
     fn mine(&self, p: char) -> bool {
-        p.is_ascii_uppercase() == self.red
+        p.is_ascii_uppercase() == self.red()
     }
 
     /// The cell of the moving side's file `n` (1 to 9, from its own right).
     fn file(&self, n: u32) -> Option<usize> {
-        (1..=9).contains(&n).then(|| if self.red { 9 - n as usize } else { n as usize - 1 })
+        (1..=9).contains(&n).then(|| if self.red() { 9 - n as usize } else { n as usize - 1 })
     }
 
     /// A move in ICCS: `h2e2`, `H2-E2`.
@@ -151,9 +125,9 @@ impl Board {
         };
         let kind = piece.to_ascii_lowercase();
         let (way, to) = (c[2], c[3].to_digit(10)?);
-        let forward: i32 = if self.red { -1 } else { 1 };
+        let forward: i32 = if self.red() { -1 } else { 1 };
         let ours = |x: usize| -> Vec<usize> {
-            (0..H).map(|y| x + y * W).filter(|&i| self.cells[i].is_some_and(|p| p.to_ascii_lowercase() == kind && self.mine(p))).collect()
+            (0..H).map(|y| x + y * W).filter(|&i| self.cell(i).is_some_and(|p| p.to_ascii_lowercase() == kind && self.mine(p))).collect()
         };
         let from = match at {
             '+' | '-' => {
@@ -172,7 +146,7 @@ impl Board {
                     1 => on[0],
                     0 => return None,
                     // Two on the file, not told apart: the one whose move fits.
-                    _ => *on.iter().find(|&&f| self.target(f, kind, way, to, forward).is_some_and(|t| self.cells[t].is_none_or(|p| !self.mine(p))))?,
+                    _ => *on.iter().find(|&&f| self.target(f, kind, way, to, forward).is_some_and(|t| self.cell(t).is_none_or(|p| !self.mine(p))))?,
                 }
             }
         };
@@ -206,18 +180,9 @@ impl Board {
     fn play(&self, mv: &str) -> Option<(Board, usize, usize)> {
         let wxf = chinese(mv);
         let (from, to) = self.iccs(mv).or_else(|| self.wxf(wxf.as_deref().unwrap_or(mv)))?;
-        let p = self.cells[from]?;
-        if !self.mine(p) || from == to || self.cells[to].is_some_and(|q| self.mine(q)) {
-            return None;
-        }
-        let mut b = self.clone();
-        b.cells[to] = Some(p);
-        b.cells[from] = None;
-        if !self.red {
-            b.number += 1;
-        }
-        b.red = !self.red;
-        Some((b, from, to))
+        let pos = self.pos.play_as_written(point(from)?, point(to)?)?;
+        let number = if self.red() { self.number } else { self.number + 1 };
+        Some((Board { pos, number }, from, to))
     }
 }
 
@@ -318,7 +283,7 @@ impl Rules for Xiangqi {
     }
 
     fn turn(&self, b: &Board) -> (bool, u32) {
-        (b.red, b.number)
+        (b.red(), b.number)
     }
 
     fn play(&self, b: &Board, mv: &str) -> Option<(Board, String, Option<u8>, Option<u8>)> {
@@ -342,7 +307,7 @@ pub(crate) fn is_move(w: &str) -> bool {
 /// A position's cells from its FEN, rows from the top: each a FEN letter or none. A FEN that
 /// is no xiangqi position gives an empty board.
 pub fn cells(fen: &str) -> Vec<Option<char>> {
-    Board::from_fen(fen).map_or_else(|| vec![None; W * H], |b| b.cells.to_vec())
+    Board::from_fen(fen).map_or_else(|| vec![None; W * H], |b| b.cells().to_vec())
 }
 
 /// A piece's character: Red's 帥仕相傌俥炮兵, Black's 將士象馬車砲卒.
@@ -422,13 +387,13 @@ pub fn dhtml_to_pgn(text: &str) -> String {
             }
         }
     } else {
-        cells.copy_from_slice(&Board::from_fen(START).expect("the start position").cells);
+        cells.copy_from_slice(&Board::from_fen(START).expect("the start position").cells());
     }
     let moves = |s: &str| digits(s).as_chunks::<4>().0.iter().map(|c| (c[0], c[1], c[2], c[3])).collect::<Vec<_>>();
     let main = moves(tag("movelist"));
     // Black first (a problem with Black to move): the first move's piece says so.
     let red = main.first().is_none_or(|&(x, y, _, _)| (x as usize) >= W || (y as usize) >= H || cells[x as usize + y as usize * W].is_none_or(|p| p.is_ascii_uppercase()));
-    let start = Board { cells, red, number: 1 };
+    let start = Board::from_cells(&cells, red);
     // Variations by the line and move they branch from; their moves and where they start.
     type Moves = Vec<(u8, u8, u8, u8)>;
     let mut lines: HashMap<u32, (u32, Moves)> = HashMap::new();

@@ -125,13 +125,16 @@ pub struct Position {
     ply: u32,
 }
 
+/// The opening array, in SFEN.
+pub const START: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
+
 impl Position {
     /// The opening array, which is the same for both sides and symmetric.
     pub fn starting() -> Position {
         // Written as a picture, rank 9 down to rank 1 — the way a board is
         // printed and the way SFEN writes it. Lowercase is White, who sits at
         // the top and moves down.
-        Position::from_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+        Position::from_sfen(START)
             .expect("the opening array is a valid SFEN")
     }
 

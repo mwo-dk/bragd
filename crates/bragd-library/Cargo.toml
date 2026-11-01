@@ -18,7 +18,17 @@ memchr = "2"
 ruzstd = "0.9.0"
 # Chess boards, moves and legality, for reading games (SAN, FEN, Polyglot keys).
 rules-chess = { path = "../rules-chess" }
+# Draughts boards for reading games: PDN FEN, captures with a search budget, and moves played
+# as the file writes them.
+rules-draughts = { path = "../rules-draughts" }
+# A Go game record's board, any size SGF allows, with stones played as written and captured.
+rules-go = { path = "../rules-go" }
+# Shogi positions for reading games: SFEN, hands, and moves played as the file writes them.
+rules-shogi = { path = "../rules-shogi" }
+# Xiangqi positions for reading games: FEN, and moves played as the file writes them.
+rules-xiangqi = { path = "../rules-xiangqi" }
 rusqlite = { version = "0.41.1", features = ["bundled"] }
+# `.pgn.zst`, unpacked in pure Rust.
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Zips of PGN (TWIC), read member by member as they stream. Deflate only, in pure Rust.

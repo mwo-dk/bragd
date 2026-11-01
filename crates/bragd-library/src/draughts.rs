@@ -8,449 +8,78 @@
 //! Any text at all is read without a panic and without recursion. A capture is looked for
 //! along at most `MAX_SEARCH` steps, and all the captures of one game together along at most
 //! `MAX_GAME_SEARCH`: past that, a capture is not played (its line stops), however the game
-//! was made up. The captures of a position are worked out once (`Draughts::cache`).
-
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-use std::rc::Rc;
-
-/// Capture paths: each the squares landed on (from first) and the pieces taken.
-type Paths = Vec<(Vec<usize>, Vec<usize>)>;
+//! was made up. The board and its search live in `rules_draughts::record`; this file keeps
+//! PDN: the tags, the movetext and the square numbers.
 
 use crate::chess::pgn::{self, Game, Rules, Word};
+pub use rules_draughts::record::{
+    BK, BM, Board, Captures, ENGLISH, INTERNATIONAL, MAX_GAME_SEARCH, MAX_SEARCH, MAX_SIZE, Variant, WK, WM,
+};
 
-/// The most capture paths looked at for one move: a king among many pieces can have a great
-/// many, a real move a handful.
-pub const MAX_SEARCH: usize = 20_000;
-/// The most capture steps of one game with its variations: a real game needs a few thousand.
-pub const MAX_GAME_SEARCH: usize = 2_000_000;
-/// The positions whose captures are kept, per game.
-const MAX_CACHED: usize = 4096;
-/// The largest board read (Canadian draughts is 12×12).
-pub const MAX_SIZE: u8 = 12;
-
-/// Which draughts: the board and the rules.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Variant {
-    /// The PDN `GameType` number: 20 international, 21 English, …
-    pub kind: u8,
-    pub width: u8,
-    pub height: u8,
-    /// Black moves first (English draughts); else White.
-    pub black_first: bool,
-    /// Men capture backwards too.
-    pub men_back: bool,
-    /// Kings move and capture any distance along a diagonal.
-    pub flying: bool,
+/// The variant of a `GameType` tag: `20`, or in full `20,W,10,10,N2,0` (type, who starts,
+/// width, height, notation, inverted).
+fn by_type(tag: &str) -> Option<Variant> {
+    let f: Vec<&str> = tag.split(',').map(str::trim).collect();
+    let kind: u8 = f.first()?.parse().ok()?;
+    let mut v = match kind {
+        20 => INTERNATIONAL,
+        21 => ENGLISH,
+        // Pool, Russian, Brazilian: flying kings, men capturing backwards, on 8×8.
+        23 | 25 | 26 => Variant { kind, width: 8, height: 8, black_first: kind == 23, ..INTERNATIONAL },
+        27 => Variant { kind, width: 12, height: 12, ..INTERNATIONAL },
+        // Italian, Spanish, Portuguese, Czech and the rest: 8×8, men forward only.
+        _ => Variant { kind, black_first: false, ..ENGLISH },
+    };
+    if let Some(c) = f.get(1) {
+        match c.to_ascii_uppercase().as_str() {
+            "W" => v.black_first = false,
+            "B" => v.black_first = true,
+            _ => {}
+        }
+    }
+    let size = |i: usize| f.get(i).and_then(|s| s.parse::<u8>().ok()).filter(|n| (4..=MAX_SIZE).contains(n) && n % 2 == 0);
+    if let (Some(w), Some(h)) = (size(2), size(3)) {
+        (v.width, v.height) = (w, h);
+    }
+    Some(v)
 }
 
-const INTERNATIONAL: Variant = Variant { kind: 20, width: 10, height: 10, black_first: false, men_back: true, flying: true };
-const ENGLISH: Variant = Variant { kind: 21, width: 8, height: 8, black_first: true, men_back: false, flying: false };
-
-impl Variant {
-    /// The variant of a `GameType` tag: `20`, or in full `20,W,10,10,N2,0` (type, who starts,
-    /// width, height, notation, inverted).
-    fn by_type(tag: &str) -> Option<Variant> {
-        let f: Vec<&str> = tag.split(',').map(str::trim).collect();
-        let kind: u8 = f.first()?.parse().ok()?;
-        let mut v = match kind {
-            20 => INTERNATIONAL,
-            21 => ENGLISH,
-            // Pool, Russian, Brazilian: flying kings, men capturing backwards, on 8×8.
-            23 | 25 | 26 => Variant { kind, width: 8, height: 8, black_first: kind == 23, ..INTERNATIONAL },
-            27 => Variant { kind, width: 12, height: 12, ..INTERNATIONAL },
-            // Italian, Spanish, Portuguese, Czech and the rest: 8×8, men forward only.
-            _ => Variant { kind, black_first: false, ..ENGLISH },
-        };
-        if let Some(c) = f.get(1) {
-            match c.to_ascii_uppercase().as_str() {
-                "W" => v.black_first = false,
-                "B" => v.black_first = true,
-                _ => {}
-            }
-        }
-        let size = |i: usize| f.get(i).and_then(|s| s.parse::<u8>().ok()).filter(|n| (4..=MAX_SIZE).contains(n) && n % 2 == 0);
-        if let (Some(w), Some(h)) = (size(2), size(3)) {
-            (v.width, v.height) = (w, h);
-        }
-        Some(v)
+/// The variant of a game: its `GameType` tag; without one, English draughts when the first
+/// move starts at a square up to 20 (Black's men in English draughts) or a FEN tag has no
+/// square past 32, else international draughts, PDN's default.
+pub fn variant_of(tags: &[(String, String)], first_move: Option<&str>) -> Variant {
+    let tag = |k: &str| tags.iter().find(|(n, _)| n.eq_ignore_ascii_case(k)).map(|(_, v)| v.as_str());
+    if let Some(v) = tag("GameType").and_then(by_type) {
+        return v;
     }
-
-    /// The variant of a game: its `GameType` tag; without one, English draughts when the first
-    /// move starts at a square up to 20 (Black's men in English draughts) or a FEN tag has no
-    /// square past 32, else international draughts, PDN's default.
-    pub fn of(tags: &[(String, String)], first_move: Option<&str>) -> Variant {
-        let tag = |k: &str| tags.iter().find(|(n, _)| n.eq_ignore_ascii_case(k)).map(|(_, v)| v.as_str());
-        if let Some(v) = tag("GameType").and_then(Variant::by_type) {
-            return v;
-        }
-        if let Some(fen) = tag("FEN") {
-            let big = fen.split(|c: char| !c.is_ascii_digit()).filter_map(|n| n.parse::<u32>().ok()).any(|n| n > 32);
-            return if big { INTERNATIONAL } else { ENGLISH };
-        }
-        let from = first_move.and_then(|m| m.split(['-', 'x', 'X', ':']).next()).and_then(|s| s.parse::<u32>().ok());
-        if from.is_some_and(|n| n <= 20) { ENGLISH } else { INTERNATIONAL }
+    if let Some(fen) = tag("FEN") {
+        let big = fen.split(|c: char| !c.is_ascii_digit()).filter_map(|n| n.parse::<u32>().ok()).any(|n| n > 32);
+        return if big { INTERNATIONAL } else { ENGLISH };
     }
-
-    /// The variant's name, as the board's heading says it.
-    pub fn name(&self) -> String {
-        let size = format!("{}×{}", self.width, self.height);
-        match self.kind {
-            20 if self.width == 10 => format!("International draughts, {size}"),
-            21 if self.width == 8 => format!("English draughts (checkers), {size}"),
-            n => format!("Draughts, GameType {n}, {size}"),
-        }
-    }
-
-    /// The dark squares, numbered 1 … from the top left, row by row.
-    fn squares(&self) -> u32 {
-        self.width as u32 * self.height as u32 / 2
-    }
-
-    /// Square `n`'s cell (`x + y × width`, rows from the top); the top row's dark squares are
-    /// its 2nd, 4th, …, the next row's its 1st, 3rd, …
-    fn cell(&self, n: u32) -> Option<usize> {
-        if n == 0 || n > self.squares() {
-            return None;
-        }
-        let half = self.width as u32 / 2;
-        let (y, k) = ((n - 1) / half, (n - 1) % half);
-        let x = 2 * k + if y % 2 == 0 { 1 } else { 0 };
-        Some((x + y * self.width as u32) as usize)
-    }
-
-    /// A square as written: its number (`32`), or its column and row (`c3`, row 1 at the
-    /// bottom), on a dark square.
-    fn parse_square(&self, s: &str) -> Option<usize> {
-        let s = s.trim();
-        // Bytes are looked at one by one below: anything but ASCII is no square.
-        if s.is_empty() || s.len() > 3 || !s.is_ascii() {
-            return None;
-        }
-        if s.bytes().all(|b| b.is_ascii_digit()) {
-            return self.cell(s.parse().ok()?);
-        }
-        let b = s.as_bytes();
-        let x = b[0].to_ascii_lowercase().checked_sub(b'a')? as u32;
-        let row: u32 = s[1..].parse().ok()?;
-        let (w, h) = (self.width as u32, self.height as u32);
-        if x >= w || row == 0 || row > h {
-            return None;
-        }
-        let y = h - row;
-        ((x + y) % 2 == 1).then_some((x + y * w) as usize)
-    }
+    let from = first_move.and_then(|m| m.split(['-', 'x', 'X', ':']).next()).and_then(|s| s.parse::<u32>().ok());
+    if from.is_some_and(|n| n <= 20) { ENGLISH } else { INTERNATIONAL }
 }
 
-/// A piece on a cell: 0 none, then White's man and king, Black's man and king.
-const WM: u8 = 1;
-const WK: u8 = 2;
-const BM: u8 = 3;
-const BK: u8 = 4;
-
-fn white(p: u8) -> bool {
-    p == WM || p == WK
-}
-
-fn king(p: u8) -> bool {
-    p == WK || p == BK
-}
-
-/// A position: the pieces, whose move, and the move number.
-#[derive(Clone, Debug)]
-pub(crate) struct Board {
-    v: Variant,
-    cells: Vec<u8>,
-    white: bool,
-    number: u32,
-}
-
-impl Board {
-    /// The start: Black's men on the top rows, White's on the bottom ones, two rows between.
-    fn start(v: Variant) -> Board {
-        let mut b = Board { v, cells: vec![0; v.width as usize * v.height as usize], white: !v.black_first, number: 1 };
-        let rows = v.height as u32 / 2 - 1;
-        let half = v.width as u32 / 2;
-        for n in 1..=v.squares() {
-            let y = (n - 1) / half;
-            if let Some(c) = v.cell(n) {
-                if y < rows {
-                    b.cells[c] = BM;
-                } else if y >= v.height as u32 - rows {
-                    b.cells[c] = WM;
-                }
-            }
-        }
-        b
-    }
-
-    /// A PDN FEN: `W:W31,32,K46:B1-5,K10`: who moves, then each side's squares, a king's with
-    /// `K`, runs as `1-5`. None when it names no square.
-    fn from_fen(v: Variant, fen: &str) -> Option<Board> {
-        let mut b = Board { v, cells: vec![0; v.width as usize * v.height as usize], white: !v.black_first, number: 1 };
-        let mut any = false;
-        let fen = fen.trim().trim_end_matches('.');
-        for (i, part) in fen.split(':').enumerate() {
-            let part = part.trim();
-            let side = part.chars().next().map(|c| c.to_ascii_uppercase());
-            if i == 0 && part.len() == 1 {
-                b.white = side != Some('B');
-                continue;
-            }
-            let (man, kg) = match side {
-                Some('W') => (WM, WK),
-                Some('B') => (BM, BK),
-                _ => continue,
-            };
-            for item in part[1..].split(',').take(b.cells.len()) {
-                let item = item.trim();
-                let (k, sq) = match item.strip_prefix(['K', 'k']) {
-                    Some(s) => (true, s),
-                    None => (false, item),
-                };
-                let (a, z) = sq.split_once('-').unwrap_or((sq, sq));
-                let (Ok(a), Ok(z)) = (a.trim().parse::<u32>(), z.trim().parse::<u32>()) else {
-                    if let Some(c) = v.parse_square(sq) {
-                        b.cells[c] = if k { kg } else { man };
-                        any = true;
-                    }
-                    continue;
-                };
-                for n in a..=z.min(a.saturating_add(v.squares())) {
-                    if let Some(c) = v.cell(n) {
-                        b.cells[c] = if k { kg } else { man };
-                        any = true;
-                    }
-                }
-            }
-        }
-        any.then_some(b)
-    }
-
-    /// The position as the apps draw it: rows from the top, `/` between them, a run of empty
-    /// cells as its count, `M` and `K` White's man and king, `m` and `k` Black's; then `w` or
-    /// `b` for whose move.
-    pub(crate) fn fen(&self) -> String {
-        let w = self.v.width as usize;
-        let mut out = String::new();
-        for (y, row) in self.cells.chunks(w).enumerate() {
-            if y > 0 {
-                out.push('/');
-            }
-            let mut empty = 0;
-            for &p in row {
-                if p == 0 {
-                    empty += 1;
-                    continue;
-                }
-                if empty > 0 {
-                    out.push_str(&empty.to_string());
-                    empty = 0;
-                }
-                out.push(match p {
-                    WM => 'M',
-                    WK => 'K',
-                    BM => 'm',
-                    _ => 'k',
-                });
-            }
-            if empty > 0 {
-                out.push_str(&empty.to_string());
-            }
-        }
-        out.push_str(if self.white { " w" } else { " b" });
-        out
-    }
-
-    fn xy(&self, c: usize) -> (i32, i32) {
-        let w = self.v.width as usize;
-        ((c % w) as i32, (c / w) as i32)
-    }
-
-    fn at(&self, x: i32, y: i32) -> Option<usize> {
-        let (w, h) = (self.v.width as i32, self.v.height as i32);
-        (x >= 0 && y >= 0 && x < w && y < h).then(|| (x + y * w) as usize)
-    }
-
-    /// The row a side's men become kings on.
-    fn crowned(&self, c: usize, white_side: bool) -> bool {
-        let y = self.xy(c).1;
-        if white_side { y == 0 } else { y == self.v.height as i32 - 1 }
-    }
-
-    /// Every capture the piece on `from` can make, each as the squares it lands on (from
-    /// first) and the pieces it takes. Each step (a path taken off or put on the stack) draws
-    /// on `budget`: at most `MAX_SEARCH` of them here, and None when the budget runs out.
-    fn captures(&self, from: usize, budget: &Cell<usize>) -> Option<Vec<(Vec<usize>, Vec<usize>)>> {
-        let piece = self.cells[from];
-        let me = white(piece);
-        let mut out = vec![];
-        // (where it is, still a man, landed on, taken)
-        let mut stack = vec![(from, !king(piece), vec![from], vec![])];
-        let mut looked = 0;
-        let mut step = || {
-            looked += 1;
-            let left = budget.get();
-            budget.set(left.saturating_sub(1));
-            (left > 0).then_some(looked <= MAX_SEARCH)
-        };
-        while let Some((at, man, path, taken)) = stack.pop() {
-            match step() {
-                None => return None,
-                Some(false) => break,
-                Some(true) => {}
-            }
-            let free = |c: usize| self.cells[c] == 0 || c == from;
-            let foe = |c: usize| self.cells[c] != 0 && c != from && white(self.cells[c]) != me && !taken.contains(&c);
-            let (x, y) = self.xy(at);
-            let forward = if me { -1 } else { 1 };
-            let mut next = vec![];
-            for (dx, dy) in [(-1, -1), (1, -1), (-1, 1), (1, 1)] {
-                if man && !self.v.men_back && dy != forward {
-                    continue;
-                }
-                let long = !man && self.v.flying;
-                // Along the diagonal to the first piece (one step only for a man or short king).
-                let mut k = 1;
-                let mut hit = None;
-                while let Some(c) = self.at(x + dx * k, y + dy * k) {
-                    if !free(c) {
-                        hit = Some((c, k));
-                        break;
-                    }
-                    if !long {
-                        break;
-                    }
-                    k += 1;
-                }
-                let Some((c, k)) = hit.filter(|&(c, _)| foe(c)) else { continue };
-                // The squares beyond it: one, or every free one for a flying king.
-                let mut j = k + 1;
-                while let Some(land) = self.at(x + dx * j, y + dy * j) {
-                    if !free(land) {
-                        break;
-                    }
-                    next.push((land, c));
-                    if !long {
-                        break;
-                    }
-                    j += 1;
-                }
-            }
-            if next.is_empty() {
-                if !taken.is_empty() {
-                    out.push((path, taken));
-                }
-                continue;
-            }
-            for (land, c) in next {
-                let mut path = path.clone();
-                path.push(land);
-                let mut taken = taken.clone();
-                taken.push(c);
-                let crowned = man && self.crowned(land, me);
-                // English draughts: a man that reaches the far row is crowned and stops there.
-                // Russian draughts: it is crowned and captures on as a king.
-                if crowned && self.v.kind == 21 {
-                    out.push((path, taken));
-                    continue;
-                }
-                // Every path put on the stack counts too: the stack never outgrows the steps.
-                match step() {
-                    None => return None,
-                    Some(false) => continue,
-                    Some(true) => {}
-                }
-                stack.push((land, man && !(crowned && self.v.kind == 25), path, taken));
-            }
-        }
-        Some(out)
-    }
-
-    /// `mv` (`32-28`, `28x19x10`, `28x10`, `c3-d4`) played: None when it cannot be.
-    fn play(&self, mv: &str, rules: &Draughts) -> Option<(Board, usize, usize)> {
-        let capture = mv.contains(['x', 'X', ':']);
-        let squares: Vec<usize> = mv.split(['-', 'x', 'X', ':']).map(|s| self.v.parse_square(s)).collect::<Option<_>>()?;
-        let (&from, &to) = (squares.first()?, squares.last()?);
-        let piece = self.cells[from];
-        if squares.len() < 2 || piece == 0 || white(piece) != self.white {
-            return None;
-        }
-        let mut b = self.clone();
-        let (fx, fy) = self.xy(from);
-        let (tx, ty) = self.xy(to);
-        let step = (fx - tx).abs() == 1 && (fy - ty).abs() == 1;
-        // A capture by the squares it lands on, the one taking the most when several fit.
-        let found = if capture || !step {
-            rules
-                .captures(self, from)?
-                .iter()
-                .filter(|(path, _)| {
-                    path.last() == Some(&to) && {
-                        let mut it = path.iter();
-                        squares[1..squares.len() - 1].iter().all(|s| it.any(|p| p == s))
-                    }
-                })
-                .max_by_key(|(_, taken)| taken.len())
-                .cloned()
-        } else {
-            None
-        };
-        let mut crowned = false;
-        match found {
-            Some((path, taken)) => {
-                for c in taken {
-                    b.cells[c] = 0;
-                }
-                crowned = self.v.kind == 25 && path.iter().any(|&c| self.crowned(c, self.white));
-            }
-            // International and English draughts are played by their rules; another variant's
-            // capture the rules here do not know takes the pieces of the other side between
-            // each square written and the next, when they lie on a diagonal.
-            None if capture && !matches!(self.v.kind, 20 | 21) => {
-                let mut any = false;
-                for w in squares.windows(2) {
-                    let ((ax, ay), (zx, zy)) = (self.xy(w[0]), self.xy(w[1]));
-                    let (dx, dy) = (zx - ax, zy - ay);
-                    if dx.abs() != dy.abs() || dx == 0 {
-                        return None;
-                    }
-                    for k in 1..dx.abs() {
-                        let c = self.at(ax + dx.signum() * k, ay + dy.signum() * k)?;
-                        if b.cells[c] != 0 && white(b.cells[c]) != self.white {
-                            b.cells[c] = 0;
-                            any = true;
-                        }
-                    }
-                }
-                if !any {
-                    return None;
-                }
-            }
-            None if capture => return None,
-            None => {}
-        }
-        if b.cells[to] != 0 && to != from {
-            return None;
-        }
-        b.cells[from] = 0;
-        b.cells[to] = if !king(piece) && (crowned || self.crowned(to, self.white)) {
-            if self.white { WK } else { BK }
-        } else {
-            piece
-        };
-        // The second player's move ends the move number.
-        if self.white == self.v.black_first {
-            b.number += 1;
-        }
-        b.white = !self.white;
-        Some((b, from, to))
+/// The variant's name, as the board's heading says it.
+pub fn variant_name(v: &Variant) -> String {
+    let size = format!("{}×{}", v.width, v.height);
+    match v.kind {
+        20 if v.width == 10 => format!("International draughts, {size}"),
+        21 if v.width == 8 => format!("English draughts (checkers), {size}"),
+        n => format!("Draughts, GameType {n}, {size}"),
     }
 }
 
 /// Is it a result? PDN's (`2-0`, `0-2`, `1-1` in international draughts) or PGN's.
 fn is_result(w: &str) -> bool {
     pgn::is_result(w) || matches!(w, "2-0" | "0-2" | "1-1" | "0-0")
+}
+
+/// A move of the movetext (`32-28`, `28x19x10`, `28x10`, `c3-d4`) played: None when it cannot be.
+fn play_written(b: &Board, mv: &str, search: &Captures) -> Option<(Board, usize, usize)> {
+    let capture = mv.contains(['x', 'X', ':']);
+    let squares: Vec<usize> = mv.split(['-', 'x', 'X', ':']).map(|s| b.v.parse_square(s)).collect::<Option<_>>()?;
+    b.play(&squares, capture, search)
 }
 
 /// A word of PDN movetext: a move (`32-28`, `19x30`, `28x19x10`, `c3-d4`), a result, or
@@ -496,35 +125,14 @@ fn first_move(moves: &str) -> Option<&str> {
     None
 }
 
-/// Draughts, as `pgn::parse_with` plays it out: one per game, with its search budget and the
-/// captures of the positions met so far.
+/// Draughts, as `pgn::parse_with` plays it out: one per game, with its search.
 pub(crate) struct Draughts {
-    budget: Cell<usize>,
-    cache: RefCell<HashMap<(Vec<u8>, usize), Rc<Paths>>>,
+    search: Captures,
 }
 
 impl Draughts {
     fn new() -> Draughts {
-        Draughts { budget: Cell::new(MAX_GAME_SEARCH), cache: RefCell::default() }
-    }
-
-    /// `Board::captures`, once per position and square, shared, not copied. A cached answer
-    /// still draws on the budget, a step per path in it, so the paths looked at over a whole
-    /// game stay within `MAX_GAME_SEARCH` however often a position comes back.
-    fn captures(&self, b: &Board, from: usize) -> Option<Rc<Paths>> {
-        let key = (b.cells.clone(), from);
-        if let Some(c) = self.cache.borrow().get(&key) {
-            let cost = c.len().max(1);
-            let left = self.budget.get();
-            self.budget.set(left.saturating_sub(cost));
-            return (left >= cost).then(|| c.clone());
-        }
-        let found = Rc::new(b.captures(from, &self.budget)?);
-        let mut cache = self.cache.borrow_mut();
-        if cache.len() < MAX_CACHED {
-            cache.insert(key, found.clone());
-        }
-        Some(found)
+        Draughts { search: Captures::new() }
     }
 }
 
@@ -532,7 +140,7 @@ impl Rules for Draughts {
     type Board = Board;
 
     fn start(&self, tags: &[(String, String)], moves: &str) -> (Board, String) {
-        let v = Variant::of(tags, first_move(moves));
+        let v = variant_of(tags, first_move(moves));
         let fen = tags.iter().find(|(k, _)| k.eq_ignore_ascii_case("FEN")).map(|(_, f)| f.as_str());
         let b = fen.and_then(|f| Board::from_fen(v, f)).unwrap_or_else(|| Board::start(v));
         let fen = b.fen();
@@ -548,7 +156,7 @@ impl Rules for Draughts {
     }
 
     fn play(&self, b: &Board, mv: &str) -> Option<(Board, String, Option<u8>, Option<u8>)> {
-        let (nb, from, to) = b.play(mv, self)?;
+        let (nb, from, to) = play_written(b, mv, &self.search)?;
         let fen = nb.fen();
         Some((nb, fen, Some(from as u8), Some(to as u8)))
     }
@@ -562,7 +170,7 @@ pub fn parse(text: &str) -> Game {
 
 /// The variant of a game read by `parse`.
 pub fn variant(g: &Game) -> Variant {
-    Variant::of(&g.tags, g.roots.first().map(|&r| g.nodes[r as usize].san.as_str()))
+    variant_of(&g.tags, g.roots.first().map(|&r| g.nodes[r as usize].san.as_str()))
 }
 
 /// The word `w` of movetext as the table counts it: a move or not.
@@ -603,6 +211,7 @@ pub fn square_number(width: usize, x: usize, y: usize) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::Cell;
 
     fn play(fen_tag: Option<&str>, game_type: &str, moves: &str) -> Game {
         let mut text = format!("[GameType \"{game_type}\"]\n");
@@ -644,16 +253,16 @@ mod tests {
     #[test]
     fn variants_by_tag_and_moves() {
         let t = |k: &str, v: &str| vec![(k.to_string(), v.to_string())];
-        assert_eq!(Variant::of(&t("GameType", "21"), None), ENGLISH);
-        assert_eq!(Variant::of(&t("GameType", "20,W,10,10,N2,0"), None), INTERNATIONAL);
-        let v = Variant::of(&t("GameType", "25,W,8,8,A0,0"), None);
+        assert_eq!(variant_of(&t("GameType", "21"), None), ENGLISH);
+        assert_eq!(variant_of(&t("GameType", "20,W,10,10,N2,0"), None), INTERNATIONAL);
+        let v = variant_of(&t("GameType", "25,W,8,8,A0,0"), None);
         assert_eq!((v.width, v.flying, v.men_back), (8, true, true));
         // A size past the largest, or odd, is not taken.
-        assert_eq!(Variant::of(&t("GameType", "20,W,99,99"), None).width, 10);
-        assert_eq!(Variant::of(&[], Some("11-15")), ENGLISH);
-        assert_eq!(Variant::of(&[], Some("32-28")), INTERNATIONAL);
-        assert_eq!(Variant::of(&[], None), INTERNATIONAL);
-        assert_eq!(Variant::of(&t("FEN", "W:W21,22:B1,2"), None), ENGLISH);
+        assert_eq!(variant_of(&t("GameType", "20,W,99,99"), None).width, 10);
+        assert_eq!(variant_of(&[], Some("11-15")), ENGLISH);
+        assert_eq!(variant_of(&[], Some("32-28")), INTERNATIONAL);
+        assert_eq!(variant_of(&[], None), INTERNATIONAL);
+        assert_eq!(variant_of(&t("FEN", "W:W21,22:B1,2"), None), ENGLISH);
     }
 
     #[test]
@@ -768,7 +377,7 @@ mod tests {
         assert!(b.captures(v.cell(46).unwrap(), &Cell::new(0)).is_none());
         assert!(start.elapsed() < crate::test_limit(std::time::Duration::from_secs(2)));
         // And a 12×12 board full of pieces: still bounded.
-        let v = Variant::of(&[("GameType".into(), "27".into())], None);
+        let v = variant_of(&[("GameType".into(), "27".into())], None);
         let mut b = Board::start(v);
         b.cells.iter_mut().filter(|c| **c == WM).take(1).for_each(|c| *c = WK);
         for c in 0..b.cells.len() {
@@ -815,10 +424,10 @@ mod tests {
         let b = Board::from_fen(INTERNATIONAL, &format!("W:WK46:B{}", blacks.join(","))).unwrap();
         let c = INTERNATIONAL.cell(46).unwrap();
         let mut n = 0;
-        while b.captures(c, &r.budget).is_some() {
+        while b.captures(c, &r.search.budget).is_some() {
             n += 1;
         }
-        assert!(n > 0 && r.budget.get() == 0);
+        assert!(n > 0 && r.search.budget.get() == 0);
     }
 
     /// One position with many capture paths, asked again and again in thousands of variations:
@@ -836,7 +445,7 @@ mod tests {
         let r = Draughts::new();
         let g = pgn::parse_with(&text, &r);
         assert!(g.nodes.len() > 1000);
-        assert!(r.budget.get() < MAX_GAME_SEARCH, "hits are charged");
+        assert!(r.search.budget.get() < MAX_GAME_SEARCH, "hits are charged");
         assert!(start.elapsed() < crate::test_limit(std::time::Duration::from_secs(5)), "{:?}", start.elapsed());
     }
 }

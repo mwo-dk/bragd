@@ -1,0 +1,137 @@
+== diagram.kif
+game 0 start ln5nl/9/4k4/9/9/9/9/9/LN2K2NL b 2G3P error None
+  0 ▲５二金打 Some("ln5nl/4G4/4k4/9/9/9/9/9/LN2K2NL w G3P") None Some(13) None w1
+== game.kif
+game 0 start lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - error None
+  0 ▲７六歩 Some("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -") Some(56) Some(47) None w1
+  1 △３四歩 Some("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b -") Some(24) Some(33) Some(0) w2
+  2 ▲２二角成 Some("lnsgkgsnl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL w B") Some(64) Some(16) Some(1) w3
+  3 △同　銀 Some("lnsgkg1nl/1r5s1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b Bb") Some(6) Some(16) Some(2) w4
+  4 ▲４五角打 Some("lnsgkg1nl/1r5s1/pppppp1pp/6p2/5B3/2P6/PP1PPPPPP/7R1/LNSGKGSNL w b") None Some(41) Some(3) w5
+  5 ▲２六歩 Some("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P4P1/PP1PPPP1P/1B5R1/LNSGKGSNL w -") Some(61) Some(52) Some(1) w3
+  6 △８四歩 Some("lnsgkgsnl/1r5b1/p1pppp1pp/1p4p2/9/2P4P1/PP1PPPP1P/1B5R1/LNSGKGSNL b -") Some(19) Some(28) Some(5) w4
+== games.csa
+game 0 start lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - error Some("6 +4567KA")
+  0 ▲７六歩 Some("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -") Some(56) Some(47) None w1
+  1 △３四歩 Some("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b -") Some(24) Some(33) Some(0) w2
+  2 ▲２二角成 Some("lnsgkgsnl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL w B") Some(64) Some(16) Some(1) w3
+  3 △同　銀 Some("lnsgkg1nl/1r5s1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b Bb") Some(6) Some(16) Some(2) w4
+  4 ▲４五角打 Some("lnsgkg1nl/1r5s1/pppppp1pp/6p2/5B3/2P6/PP1PPPPPP/7R1/LNSGKGSNL w b") None Some(41) Some(3) w5
+game 1 start lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - error None
+  0 △３四歩 Some("lnsgkgsnl/9/pppppp1pp/6p2/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -") Some(24) Some(33) None w1
+  1 ▲７六歩 Some("lnsgkgsnl/9/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -") Some(56) Some(47) Some(0) w2
+game 2 start lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b GP error None
+  0 ▲５五金打 Some("lnsgkgsnl/1r5b1/ppppppppp/9/4G4/9/PPPPPPPPP/1B5R1/LNSGKGSNL w P") None Some(40) None w1
+  1 △５二王 Some("lnsg1gsnl/1r2k2b1/ppppppppp/9/4G4/9/PPPPPPPPP/1B5R1/LNSGKGSNL b P") Some(4) Some(13) Some(0) w2
+  2 ▲５四金 Some("lnsg1gsnl/1r2k2b1/ppppppppp/4G4/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w P") Some(40) Some(31) Some(1) w3
+== games.pdn
+game 0 start 1m1m1m1m1m/m1m1m1m1m1/1m1m1m1m1m/m1m1m1m1m1/10/10/1M1M1M1M1M/M1M1M1M1M1/1M1M1M1M1M/M1M1M1M1M1 w error None
+  0 32-28 Some("1m1m1m1m1m/m1m1m1m1m1/1m1m1m1m1m/m1m1m1m1m1/10/4M5/1M3M1M1M/M1M1M1M1M1/1M1M1M1M1M/M1M1M1M1M1 b") Some(63) Some(54) None w1
+  1 19-23 Some("1m1m1m1m1m/m1m1m1m1m1/1m1m1m1m1m/m1m1m3m1/5m4/4M5/1M3M1M1M/M1M1M1M1M1/1M1M1M1M1M/M1M1M1M1M1 w") Some(36) Some(45) Some(0) b1
+  2 28x19 Some("1m1m1m1m1m/m1m1m1m1m1/1m1m1m1m1m/m1m1m1M1m1/10/10/1M3M1M1M/M1M1M1M1M1/1M1M1M1M1M/M1M1M1M1M1 b") Some(54) Some(36) Some(1) w2
+  3 14x23 Some("1m1m1m1m1m/m1m1m1m1m1/1m1m1m3m/m1m1m3m1/5m4/10/1M3M1M1M/M1M1M1M1M1/1M1M1M1M1M/M1M1M1M1M1 w") Some(27) Some(45) Some(2) b2
+  4 37-32 Some("1m1m1m1m1m/m1m1m1m1m1/1m1m1m3m/m1m1m3m1/5m4/10/1M1M1M1M1M/M3M1M1M1/1M1M1M1M1M/M1M1M1M1M1 b") Some(72) Some(63) Some(3) w3
+  5 33-28 Some("1m1m1m1m1m/m1m1m1m1m1/1m1m1m3m/m1m1m3m1/5m4/4M5/1M5M1M/M1M1M1M1M1/1M1M1M1M1M/M1M1M1M1M1 b") Some(65) Some(54) Some(3) w3
+  6 23x32 Some("1m1m1m1m1m/m1m1m1m1m1/1m1m1m3m/m1m1m3m1/10/10/1M1m3M1M/M1M1M1M1M1/1M1M1M1M1M/M1M1M1M1M1 w") Some(45) Some(63) Some(5) b3
+  7 38x27 Some("1m1m1m1m1m/m1m1m1m1m1/1m1m1m3m/m1m1m3m1/10/2M7/1M5M1M/M1M3M1M1/1M1M1M1M1M/M1M1M1M1M1 b") Some(74) Some(52) Some(6) w4
+  8 10-14 Some("1m1m1m1m1m/m1m1m1m3/1m1m1m1m1m/m1m1m3m1/5m4/10/1M1M1M1M1M/M3M1M1M1/1M1M1M1M1M/M1M1M1M1M1 w") Some(18) Some(27) Some(4) b3
+  9 34-29 Some("1m1m1m1m1m/m1m1m1m3/1m1m1m1m1m/m1m1m3m1/5m4/6M3/1M1M1M3M/M3M1M1M1/1M1M1M1M1M/M1M1M1M1M1 b") Some(67) Some(56) Some(8) w4
+  10 23x34 Some("1m1m1m1m1m/m1m1m1m3/1m1m1m1m1m/m1m1m3m1/10/10/1M1M1M1m1M/M3M1M1M1/1M1M1M1M1M/M1M1M1M1M1 w") Some(45) Some(67) Some(9) b4
+  11 40x29 Some("1m1m1m1m1m/m1m1m1m3/1m1m1m1m1m/m1m1m3m1/10/6M3/1M1M1M3M/M3M1M3/1M1M1M1M1M/M1M1M1M1M1 b") Some(78) Some(56) Some(10) w5
+  12 14-19 Some("1m1m1m1m1m/m1m1m1m3/1m1m1m3m/m1m1m1m1m1/10/6M3/1M1M1M3M/M3M1M3/1M1M1M1M1M/M1M1M1M1M1 w") Some(27) Some(36) Some(11) b5
+game 1 start 10/10/10/10/3m6/10/3m6/2M7/1m8/10 w error None
+  0 37x28x17 Some("10/10/10/2M7/10/10/10/10/1m8/10 b") Some(72) Some(32) None w1
+  1 41-46 Some("10/10/10/2M7/10/10/10/10/10/k9 w") Some(81) Some(90) Some(0) b1
+game 2 start 10/10/10/10/3m6/10/3m6/2M7/1m8/10 w error Some("2…46x5")
+  0 37x17 Some("10/10/10/2M7/10/10/10/10/1m8/10 b") Some(72) Some(32) None w1
+  1 41-46 Some("10/10/10/2M7/10/10/10/10/10/k9 w") Some(81) Some(90) Some(0) b1
+  2 17-11 Some("10/10/1M8/10/10/10/10/10/10/k9 b") Some(32) Some(21) Some(1) w2
+  3 46x5 None None None Some(2) b2
+game 3 start 10/10/10/10/5m4/10/10/10/10/K9 w error None
+  0 46x5 Some("9K/10/10/10/10/10/10/10/10/10 b") Some(90) Some(9) None w1
+game 4 start 8/8/8/8/3M4/4m3/8/8 b error Some("1.23x14")
+  0 23x14 None None None None w1
+game 5 start 8/8/8/2m5/3M4/8/8/8 b error None
+  0 14x23 Some("8/8/8/8/8/4m3/8/8 w") Some(26) Some(44) None w1
+game 6 start 8/8/1k6/8/3M4/8/8/8 b error Some("1.9x23")
+  0 9x23 None None None None w1
+game 7 start 8/2m1m3/3M4/8/8/8/8/8 w error None
+  0 10x1 Some("1K6/4m3/8/8/8/8/8/8 b") Some(19) Some(1) None b1
+game 8 start 1m1m1m1m/m1m1m1m1/1m1m1m1m/8/8/M1M1M1M1/1M1M1M1M/M1M1M1M1 b error Some("3.15x22")
+  0 11-15 Some("1m1m1m1m/m1m1m1m1/1m1m3m/4m3/8/M1M1M1M1/1M1M1M1M/M1M1M1M1 w") Some(21) Some(28) None w1
+  1 23-19 Some("1m1m1m1m/m1m1m1m1/1m1m3m/4m3/5M2/M1M3M1/1M1M1M1M/M1M1M1M1 b") Some(44) Some(37) Some(0) b1
+  2 8-11 Some("1m1m1m1m/m1m1m3/1m1m1m1m/4m3/5M2/M1M3M1/1M1M1M1M/M1M1M1M1 w") Some(14) Some(21) Some(1) w2
+  3 22-17 Some("1m1m1m1m/m1m1m3/1m1m1m1m/4m3/1M3M2/M5M1/1M1M1M1M/M1M1M1M1 b") Some(42) Some(33) Some(2) b2
+  4 15x22 None None None Some(3) w3
+  5 25x18 None None None Some(4) b3
+  6 4-8 None None None Some(5) w4
+game 9 start 8/8/3m1m2/8/8/M1M5/8/8 w error None
+  0 21-17 Some("8/8/3m1m2/8/1M6/2M5/8/8 b") Some(40) Some(33) None w1
+  1 10-14 Some("8/8/5m2/2m5/1M6/2M5/8/8 w") Some(19) Some(26) Some(0) b1
+  2 17x10 Some("8/8/3M1m2/8/8/2M5/8/8 b") Some(33) Some(19) Some(1) w2
+game 10 start 1m1m1m1m1m/m1m1m1m1m1/1m1m1m1m1m/m1m1m1m1m1/10/10/1M1M1M1M1M/M1M1M1M1M1/1M1M1M1M1M/M1M1M1M1M1 w error None
+  0 32-28 Some("1m1m1m1m1m/m1m1m1m1m1/1m1m1m1m1m/m1m1m1m1m1/10/4M5/1M3M1M1M/M1M1M1M1M1/1M1M1M1M1M/M1M1M1M1M1 b") Some(63) Some(54) None w1
+== handicap.kif
+game 0 start lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - error None
+  0 △６二銀 Some("ln1gkgsnl/3s5/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -") Some(2) Some(12) None w1
+  1 ▲７六歩 Some("ln1gkgsnl/3s5/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w -") Some(56) Some(47) Some(0) w2
+  2 △５二王 Some("ln1g1gsnl/3sk4/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b -") Some(4) Some(13) Some(1) w3
+== xiangqi.pgn
+game 0 start rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w error Some("4.H2-H6")
+  0 h2e2 Some("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR b") Some(70) Some(67) None w1
+  1 h9g7 Some("rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR w") Some(7) Some(24) Some(0) b1
+  2 h0g2 Some("rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKAB1R b") Some(88) Some(69) Some(1) w2
+  3 i9h9 Some("rnbakabr1/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKAB1R w") Some(8) Some(7) Some(2) b2
+  4 i0h0 Some("rnbakabr1/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKABR1 b") Some(89) Some(88) Some(3) w3
+  5 b9c7 Some("r1bakabr1/9/1cn3nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKABR1 w") Some(1) Some(20) Some(4) b3
+  6 H2-H6 None None None Some(5) w4
+  7 a6a5 None None None Some(6) b4
+  8 h6g6 None None None Some(7) w5
+  9 h7h6 None None None Some(8) b5
+game 1 start rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w error Some("5…R1.2")
+  0 C2.5 Some("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR b") Some(70) Some(67) None w1
+  1 H8+7 Some("rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR w") Some(7) Some(24) Some(0) b1
+  2 H2+3 Some("rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKAB1R b") Some(88) Some(69) Some(1) w2
+  3 R9.8 Some("rnbakabr1/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKAB1R w") Some(8) Some(7) Some(2) b2
+  4 R1.2 Some("rnbakabr1/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKABR1 b") Some(89) Some(88) Some(3) w3
+  5 C8+4 Some("rnbakabr1/9/1c4n2/p1p1p1p1p/9/9/P1P1P1PcP/1C2C1N2/9/RNBAKABR1 w") Some(25) Some(61) Some(4) b3
+  6 P7+1 Some("rnbakabr1/9/1c4n2/p1p1p1p1p/9/2P6/P3P1PcP/1C2C1N2/9/RNBAKABR1 b") Some(56) Some(47) Some(5) w4
+  7 C2.1 Some("rnbakabr1/9/c5n2/p1p1p1p1p/9/2P6/P3P1PcP/1C2C1N2/9/RNBAKABR1 w") Some(19) Some(18) Some(6) b4
+  8 H8+7 Some("rnbakabr1/9/c5n2/p1p1p1p1p/9/2P6/P3P1PcP/1CN1C1N2/9/R1BAKABR1 b") Some(82) Some(65) Some(7) w5
+  9 R1.2 None None None Some(8) b5
+  10 C8+4 None None None Some(9) w6
+  11 P3+1 None None None Some(10) b6
+  12 C8.3 None None None Some(11) w7
+  13 C8.7 None None None Some(12) b7
+  14 R2+9 None None None Some(13) w8
+  15 H7-8 None None None Some(14) b8
+  16 C3+3 None None None Some(15) w9
+  17 A4+5 None None None Some(16) b9
+  18 C5+4 None None None Some(17) w10
+game 2 start rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w error None
+  0 炮二平五 Some("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR b") Some(70) Some(67) None w1
+  1 马８进７ Some("rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR w") Some(7) Some(24) Some(0) b1
+  2 马二进三 Some("rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKAB1R b") Some(88) Some(69) Some(1) w2
+  3 车９平８ Some("rnbakabr1/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKAB1R w") Some(8) Some(7) Some(2) b2
+  4 车一平二 Some("rnbakabr1/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C1N2/9/RNBAKABR1 b") Some(89) Some(88) Some(3) w3
+  5 炮８进４ Some("rnbakabr1/9/1c4n2/p1p1p1p1p/9/9/P1P1P1PcP/1C2C1N2/9/RNBAKABR1 w") Some(25) Some(61) Some(4) b3
+  6 兵七进一 Some("rnbakabr1/9/1c4n2/p1p1p1p1p/9/2P6/P3P1PcP/1C2C1N2/9/RNBAKABR1 b") Some(56) Some(47) Some(5) w4
+  7 炮２平５ Some("rnbakabr1/9/4c1n2/p1p1p1p1p/9/2P6/P3P1PcP/1C2C1N2/9/RNBAKABR1 w") Some(19) Some(22) Some(6) b4
+  8 马八进七 Some("rnbakabr1/9/4c1n2/p1p1p1p1p/9/2P6/P3P1PcP/1CN1C1N2/9/R1BAKABR1 b") Some(82) Some(65) Some(7) w5
+game 3 start 4k4/9/9/9/9/9/4R4/9/4R4/4K4 w error None
+  0 +R.1 Some("4k4/9/9/9/9/9/8R/9/4R4/4K4 b") Some(58) Some(62) None w1
+  1 k5.6 Some("5k3/9/9/9/9/9/8R/9/4R4/4K4 w") Some(4) Some(5) Some(0) b1
+  2 R5+1 Some("5k3/9/9/9/9/9/8R/4R4/9/4K4 b") Some(76) Some(67) Some(1) w2
+game 4 start 4k4/9/9/9/9/9/4R4/9/4R4/4K4 w error None
+  0 后车平九 Some("4k4/9/9/9/9/9/4R4/9/R8/4K4 b") Some(76) Some(72) None w1
+game 5 start rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR b error None
+  0 h7e7 Some("rnbakabnr/9/1c2c4/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w") Some(25) Some(22) None b1
+  1 h2e2 Some("rnbakabnr/9/1c2c4/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR b") Some(70) Some(67) Some(0) w2
+game 6 start 9/9/9/9/9/9/9/9/9/R8 w error None
+  0 a0a9 Some("R8/9/9/9/9/9/9/9/9/9 b") Some(81) Some(0) None w1
+game 7 start rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w error Some("1.R1+3")
+  0 R1+3 None None None None w1
+  1 a5a6 None None None Some(0) b1
+game 8 start rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w error None
+  0 C2+7 Some("rnbakabCr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C7/9/RNBAKABNR b") Some(70) Some(7) None w1
+  1 c9e7 Some("rn1akabCr/9/1c2b2c1/p1p1p1p1p/9/9/P1P1P1P1P/1C7/9/RNBAKABNR w") Some(2) Some(22) Some(0) b1

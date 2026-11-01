@@ -124,6 +124,17 @@ impl Role {
             .into_iter()
             .find(|role| role.letter() == letter.to_ascii_lowercase())
     }
+
+    /// [`Role::from_letter`], also taking the other names game files use: `g` for the general,
+    /// `e` for the elephant and `h` for the horse.
+    pub fn from_letter_lenient(letter: char) -> Option<Role> {
+        match letter.to_ascii_lowercase() {
+            'g' => Some(Role::General),
+            'e' => Some(Role::Elephant),
+            'h' => Some(Role::Horse),
+            other => Role::from_letter(other),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
@@ -321,6 +332,83 @@ impl Position {
         fen.push(if self.to_move.is_red() { 'w' } else { 'b' });
         fen.push_str(" - - 0 1");
         fen
+    }
+
+    /// The position as a game file's tools write it, for a file that can hold anything: the
+    /// placement and the side (`b` or `B` is Black, anything else Red), nothing else looked at.
+    /// Rows may be short, generals missing or doubled, and `g`, `e`, `h` stand for the general,
+    /// elephant and horse. A row that runs past nine files, an unknown letter or a placement
+    /// without ten rows is `None`. Not for play: use [`Position::from_fen`] for that.
+    pub fn from_fen_lenient(fen: &str) -> Option<Position> {
+        let mut fields = fen.split_whitespace();
+        let rows: Vec<&str> = fields.next()?.split('/').collect();
+        if rows.len() != RANKS as usize {
+            return None;
+        }
+        let mut position = Position {
+            by_side: [Bitboard::EMPTY; 2],
+            by_role: [Bitboard::EMPTY; 7],
+            to_move: if matches!(fields.next(), Some("b" | "B")) { Side::Black } else { Side::Red },
+            rules: Ruleset::Xiangqi,
+        };
+        for (index, row) in rows.iter().enumerate() {
+            let rank = (RANKS - 1 - index as u8) as i16;
+            let mut file = 0u32;
+            for character in row.chars() {
+                if let Some(skip) = character.to_digit(10) {
+                    file += skip;
+                } else {
+                    let role = Role::from_letter_lenient(character)?;
+                    let side = if character.is_ascii_uppercase() { Side::Red } else { Side::Black };
+                    let point = Point::from_file_rank(i16::try_from(file).ok()?, rank)?;
+                    position.by_side[side.index()] = position.by_side[side.index()].with(point);
+                    position.by_role[role.index()] = position.by_role[role.index()].with(point);
+                    file += 1;
+                }
+                if file > FILES as u32 {
+                    return None;
+                }
+            }
+        }
+        Some(position)
+    }
+
+    /// A position from pieces set down one by one, a later piece replacing any earlier one on
+    /// its point. No count, general or side is checked: a game file's start position may be
+    /// anything.
+    pub fn from_pieces(pieces: impl IntoIterator<Item = (Point, Piece)>, to_move: Side) -> Position {
+        let mut position = Position {
+            by_side: [Bitboard::EMPTY; 2],
+            by_role: [Bitboard::EMPTY; 7],
+            to_move,
+            rules: Ruleset::Xiangqi,
+        };
+        for (point, piece) in pieces {
+            for board in position.by_side.iter_mut().chain(position.by_role.iter_mut()) {
+                *board = board.without(point);
+            }
+            position.by_side[piece.side.index()] = position.by_side[piece.side.index()].with(point);
+            position.by_role[piece.role.index()] = position.by_role[piece.role.index()].with(point);
+        }
+        position
+    }
+
+    /// The placement and the side only (`... w`), the short FEN the apps draw.
+    pub fn to_short_fen(&self) -> String {
+        let fen = self.to_fen();
+        let end = fen.find(" - - 0 1").unwrap_or(fen.len());
+        fen[..end].to_string()
+    }
+
+    /// The move as a game file records it, with no rules looked at: the piece on `from` must be
+    /// the side to move's, `to` must differ from `from` and not hold one of the mover's own
+    /// pieces. A capture, check or a general left facing the other all pass.
+    pub fn play_as_written(&self, from: Point, to: Point) -> Option<Position> {
+        let piece = self.piece_at(from)?;
+        if piece.side != self.to_move || from == to || self.piece_at(to).is_some_and(|q| q.side == self.to_move) {
+            return None;
+        }
+        Some(self.make_move(Move::new(from, to)))
     }
 
     pub fn to_move(&self) -> Side {
@@ -873,6 +961,46 @@ impl fmt::Debug for Position {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_lenient_fen_takes_what_a_game_file_may_hold() {
+        // Short rows, no generals, `h` for the horse, and the side only.
+        let p = Position::from_fen_lenient("9/9/9/9/9/9/9/9/9/H3C B").expect("read");
+        assert_eq!(p.to_move(), Side::Black);
+        assert_eq!(p.pieces(Side::Red, Role::Horse).first(), Point::parse("a1"));
+        assert_eq!(p.to_short_fen(), "9/9/9/9/9/9/9/9/9/N3C4 b");
+        assert!(Position::from_fen("9/9/9/9/9/9/9/9/9/H3C b").is_none(), "the strict reader still refuses it");
+        for bad in ["", "9/9", "9/9/9/9/9/9/9/9/9/55", "9/9/9/9/9/9/9/9/9/x8", "9/9/9/9/9/9/9/9/9/C9"] {
+            assert!(Position::from_fen_lenient(bad).is_none(), "read {bad:?}");
+        }
+    }
+
+    #[test]
+    fn a_later_piece_replaces_an_earlier_one_on_its_point() {
+        let at = Point::parse("e5").unwrap();
+        let piece = |side, role| Piece { side, role };
+        let p = Position::from_pieces(
+            [(at, piece(Side::Red, Role::Cannon)), (at, piece(Side::Black, Role::Horse))],
+            Side::Black,
+        );
+        assert_eq!(p.piece_at(at), Some(piece(Side::Black, Role::Horse)));
+        assert_eq!(p.occupied().count(), 1);
+        assert_eq!(p.to_move(), Side::Black);
+    }
+
+    #[test]
+    fn a_move_as_written_checks_only_whose_piece_and_where_it_lands() {
+        let start = Position::start();
+        let at = |s: &str| Point::parse(s).unwrap();
+        let after = start.play_as_written(at("h3"), at("e3")).expect("a cannon move");
+        assert_eq!(after.to_move(), Side::Black);
+        assert_eq!(after.to_short_fen(), "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR b");
+        assert!(start.play_as_written(at("a10"), at("a9")).is_none(), "not Red's piece");
+        assert!(start.play_as_written(at("e5"), at("e6")).is_none(), "no piece");
+        assert!(start.play_as_written(at("a1"), at("a1")).is_none(), "to the same point");
+        assert!(start.play_as_written(at("a1"), at("b1")).is_none(), "onto its own side");
+        assert!(start.play_as_written(at("b3"), at("b10")).is_some(), "a capture over screens is not checked");
+    }
 
     #[test]
     fn the_opening_array_round_trips() {
