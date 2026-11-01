@@ -70,6 +70,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 |---|---|
 | [Clubs](clubs/README.md) | The area's pages |
 | [Clubs](clubs/clubs.md) | Members, roles and IDs in one Club file, club ratings and their audit log, the lock, finding players in rating lists |
+| [Tournaments](clubs/tournaments.md) | Swiss and round-robin Tournaments on the night: check-in, pairing, changing a pairing, results, FIDE tiebreaks, publishing and exports |
 
 ## [Look](look/README.md)
 

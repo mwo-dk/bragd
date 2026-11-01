@@ -4,7 +4,7 @@
 
 A Club keeps its members, each with a role and their FIDE, national and Lichess IDs, and a rating the Club keeps for each of them. The rating is Glicko-2 or Elo, chosen per Club. Every rating a director sets by hand goes into an audit log: who, when, the old value, the new value and why. A Club is one file. Copy the file to share the Club. While a Club is open, a lock tells anyone else who opens the same file that someone is working on it. In F1 → Features this is the entry `clubs`.
 
-![The Clubs page with a Club open: its name and file, Acting as with a director chosen, the members table with roles, IDs and ratings, the rating system and the audit log](../screenshots/clubs-1100.png)
+![The Clubs page with a Club open: its name and file, Acting as with a director chosen, the members table with roles, IDs and ratings, and its Tournaments below](../screenshots/clubs-1100.png)
 *The Clubs page with a Club open.*
 
 ![The Clubs page at 390 px: the list of Clubs, Open a Club file, and the New Club form](../screenshots/clubs-390.png)
@@ -39,12 +39,12 @@ Each member has a name, a role and up to three IDs.
 
 | Field | What it holds |
 |---|---|
-| Role | Director, arbiter or member. Only a director changes the Club, and a Club always keeps at least one |
+| Role | Director, arbiter or member. Only a director changes the Club, and a Club always keeps at least one. A director or an arbiter runs its [Tournaments](tournaments.md) |
 | FIDE ID | Digits only |
 | National ID | The member's number at their federation, with the federation's three-letter code, such as `DEN` |
 | Lichess | The Lichess username: 2 to 30 letters, digits, `_` or `-` |
 
-Choose yourself under **Acting as** first: it lists the Club's directors. Then **Add a member**, **Edit**, **Set rating** and **Remove** work. Bragd checks the role, not the person: anyone who has the file can choose a director's name, so the audit log is a record, not a guard.
+Choose yourself under **Acting as** first: it lists the Club's directors and arbiters, and only a director changes members. Then **Add a member**, **Edit**, **Set rating** and **Remove** work. Bragd checks the role, not the person: anyone who has the file can choose a director's name, so the audit log is a record, not a guard.
 
 ## Club ratings and the audit log
 
@@ -97,7 +97,7 @@ Put the file in a folder both can reach, such as a shared drive, and open it fro
 
 #### Why are the buttons greyed out?
 
-Choose a director under **Acting as**, or take over the lock if someone else has the Club open.
+Choose a director under **Acting as** (an arbiter runs Tournaments but does not change members), or take over the lock if someone else has the Club open.
 
 #### Why can't I remove the last director?
 
@@ -108,4 +108,4 @@ A Club without a director could never be changed again. Make someone else a dire
 The Club uses Glicko-2, which keeps how sure it is of each rating. The number after ± shrinks as the member plays.
 
 ---
-[← Previous: Clubs](README.md) · [Next: Look →](../look/README.md)
+[← Previous: Clubs](README.md) · [Next: Tournaments →](tournaments.md)

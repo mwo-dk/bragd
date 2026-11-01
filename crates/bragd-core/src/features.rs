@@ -43,6 +43,7 @@ pub const FEATURES: &[Feature] = &[
     only("matches", "engines/matches.md", "item:matches", &["chess", "xiangqi", "shogi", "go", "draughts", "backgammon"]),
     only("tablebases", "engines/tablebases.md", "item:tablebases", &["chess"]),
     f("clubs", "clubs/clubs.md", "page:clubs"),
+    f("tournaments", "clubs/tournaments.md", "page:clubs"),
     f("themes", "look/themes.md", "settings:look"),
     f("update", "reference/privacy.md", "settings:privacy"),
 ];

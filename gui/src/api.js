@@ -143,3 +143,42 @@ export const clubSystem = (/** @type {number|null} */ by, /** @type {string} */ 
 export const clubTakeOver = (/** @type {number|null} */ by) => invoke("club_take_over", { by });
 /** Players in the rating lists by name or ID. @returns {Promise<any[]>} */
 export const ratingSearch = (/** @type {string} */ query) => invoke("rating_search", { query });
+
+// Tournaments of the open Club (gui/src-tauri/src/tournaments.rs). Each change gives the
+// Tournament's view back; creating, removing and importing give the Club's.
+/** @typedef {number|null} By */
+/** @returns {Promise<any>} */
+export const tournamentNew = (/** @type {By} */ by, /** @type {string} */ name, /** @type {any} */ system, /** @type {number} */ rounds, /** @type {string} */ date, /** @type {string} */ place) =>
+  invoke("tournament_new", { by, name, system, rounds, date, place });
+/** @returns {Promise<any>} */
+export const tournamentView = (/** @type {number} */ id) => invoke("tournament_view", { id });
+/** @returns {Promise<any>} */
+export const tournamentRemove = (/** @type {By} */ by, /** @type {number} */ id) => invoke("tournament_remove", { by, id });
+/** @returns {Promise<any>} */
+export const tournamentRegister = (/** @type {By} */ by, /** @type {number} */ id, /** @type {any} */ player, /** @type {boolean} */ here) => invoke("tournament_register", { by, id, player, here });
+/** @returns {Promise<any>} */
+export const tournamentStatus = (/** @type {By} */ by, /** @type {number} */ id, /** @type {number} */ player, /** @type {string} */ status) => invoke("tournament_status", { by, id, player, status });
+/** @returns {Promise<any>} */
+export const tournamentCheckInAll = (/** @type {By} */ by, /** @type {number} */ id) => invoke("tournament_check_in_all", { by, id });
+/** @returns {Promise<any>} */
+export const tournamentPair = (/** @type {By} */ by, /** @type {number} */ id) => invoke("tournament_pair", { by, id });
+/** @returns {Promise<any>} */
+export const tournamentPairAgain = (/** @type {By} */ by, /** @type {number} */ id, /** @type {string} */ why) => invoke("tournament_pair_again", { by, id, why });
+/** The warnings a pairing made by hand raises, in words. @returns {Promise<string[]>} */
+export const tournamentCheck = (/** @type {number} */ id, /** @type {any[]} */ pairs, /** @type {number|null} */ bye) => invoke("tournament_check", { id, pairs, bye });
+/** @returns {Promise<any>} */
+export const tournamentSetPairing = (/** @type {By} */ by, /** @type {number} */ id, /** @type {any[]} */ pairs, /** @type {number|null} */ bye, /** @type {string} */ why) =>
+  invoke("tournament_set_pairing", { by, id, pairs, bye, why });
+/** @returns {Promise<any>} */
+export const tournamentResult = (/** @type {By} */ by, /** @type {number} */ id, /** @type {number} */ round, /** @type {number} */ board, /** @type {string|null} */ result, /** @type {string} */ why) =>
+  invoke("tournament_result", { by, id, round, board, result, why });
+/** @returns {Promise<any>} */
+export const tournamentTiebreaks = (/** @type {By} */ by, /** @type {number} */ id, /** @type {string[]} */ codes) => invoke("tournament_tiebreaks", { by, id, codes });
+/** Rates the Club's members from the Tournament's games; the Club's view. @returns {Promise<any>} */
+export const tournamentRate = (/** @type {By} */ by, /** @type {number} */ id) => invoke("tournament_rate", { by, id });
+/** Saves `trf`, `pgn`, `html` or `bundle`; the path, or null. @returns {Promise<string|null>} */
+export const tournamentExport = (/** @type {number} */ id, /** @type {string} */ kind) => invoke("tournament_export", { id, kind });
+/** Adds a bundle's Tournament to the Club; the Club's view, or null. @returns {Promise<any>} */
+export const tournamentImport = (/** @type {By} */ by) => invoke("tournament_import", { by });
+/** Shows a Round's pairings in a window of their own. */
+export const tournamentShow = (/** @type {number} */ id, /** @type {number} */ round) => invoke("tournament_show", { id, round });

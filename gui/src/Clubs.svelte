@@ -4,6 +4,7 @@
   // shows it and passes the choices back.
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
+  import Tournaments from "./Tournaments.svelte";
 
   /** @type {{ snap: any, go: (page: any) => void }} */
   let { snap, go } = $props();
@@ -12,7 +13,7 @@
   /** @type {any} */
   let club = $state(null);
   let error = $state("");
-  /** The director the user acts as. */
+  /** The director or arbiter the user acts as. */
   let by = $state(/** @type {number|null} */ (null));
 
   let fresh = $state({ name: "", director: "", system: "glicko2" });
@@ -28,12 +29,15 @@
   let system = $state({ value: "glicko2", why: "" });
 
   const chess = $derived(snap.families.find((/** @type {any} */ f) => f.id === "chess" && f.shown));
-  const directors = $derived(club ? club.members.filter((/** @type {any} */ m) => m.role === "director") : []);
+  const officials = $derived(club ? club.members.filter((/** @type {any} */ m) => m.role !== "member") : []);
+  /** The role of whoever the user acts as: directors change the Club, arbiters run Tournaments. */
+  const role = $derived(officials.find((/** @type {any} */ m) => m.id === by)?.role ?? null);
+  const director = $derived(role === "director" && !club?.held_by);
 
   function show(/** @type {any} */ v) {
     club = v;
-    if (v && !directors.some((/** @type {any} */ d) => d.id === by)) {
-      const ds = v.members.filter((/** @type {any} */ m) => m.role === "director");
+    if (v && !v.members.some((/** @type {any} */ m) => m.id === by && m.role !== "member")) {
+      const ds = v.members.filter((/** @type {any} */ m) => m.role !== "member");
       by = ds.length === 1 ? ds[0].id : null;
     }
     if (v) system.value = v.system;
@@ -144,7 +148,7 @@
     {#if club.held_by}
       <div class="panel warn" role="status">
         <p>{t("clubs.held_by", { user: club.held_by.user, host: club.held_by.host, since: when(club.held_by.since) })}</p>
-        <button disabled={by === null} onclick={takeOver}>{t("clubs.take_over")}</button>
+        <button disabled={role !== "director"} onclick={takeOver}>{t("clubs.take_over")}</button>
       </div>
     {/if}
 
@@ -152,7 +156,7 @@
       <label for="club-by">{t("clubs.acting_as")}</label>
       <select id="club-by" bind:value={by}>
         <option value={null}>{t("clubs.acting_none")}</option>
-        {#each directors as d (d.id)}<option value={d.id}>{d.name}</option>{/each}
+        {#each officials as d (d.id)}<option value={d.id}>{d.name} ({t(`clubs.role.${d.role}`)})</option>{/each}
       </select>
       <span class="dim">{t("clubs.acting_hint")}</span>
     </div>
@@ -182,16 +186,16 @@
                 <td>{m.lichess}</td>
                 <td class="num">{rating(m)}</td>
                 <td class="acts">
-                  <button disabled={by === null || club.held_by} onclick={() => edit(m)}>{t("clubs.edit")}</button>
-                  <button disabled={by === null || club.held_by} onclick={() => (rate = { id: m.id, name: m.name, value: Math.round(m.rating.rating), why: "" })}>{t("clubs.set_rating")}</button>
-                  <button disabled={by === null || club.held_by} onclick={() => confirm(t("clubs.remove_confirm", { name: m.name })) && change(() => api.clubRemove(by, m.id))}>{t("clubs.remove")}</button>
+                  <button disabled={!director} onclick={() => edit(m)}>{t("clubs.edit")}</button>
+                  <button disabled={!director} onclick={() => (rate = { id: m.id, name: m.name, value: Math.round(m.rating.rating), why: "" })}>{t("clubs.set_rating")}</button>
+                  <button disabled={!director} onclick={() => confirm(t("clubs.remove_confirm", { name: m.name })) && change(() => api.clubRemove(by, m.id))}>{t("clubs.remove")}</button>
                 </td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
-      <button class="primary" disabled={by === null || club.held_by} onclick={() => edit(null)}>{t("clubs.add")}</button>
+      <button class="primary" disabled={!director} onclick={() => edit(null)}>{t("clubs.add")}</button>
     </div>
 
     {#if rate}
@@ -256,9 +260,11 @@
       </form>
     {/if}
 
+    <Tournaments {club} {by} {role} onclub={show} />
+
     <form class="panel row" onsubmit={(e) => (e.preventDefault(), change(() => api.clubSystem(by, system.value, system.why)))}>
       <label for="club-system">{t("clubs.system")}</label>
-      <select id="club-system" bind:value={system.value} disabled={by === null || club.held_by}>
+      <select id="club-system" bind:value={system.value} disabled={!director}>
         <option value="glicko2">{t("clubs.system.glicko2")}</option>
         <option value="elo">{t("clubs.system.elo")}</option>
       </select>
