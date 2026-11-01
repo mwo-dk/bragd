@@ -6,6 +6,7 @@
 //! Texts here are plain English for now; they go through the app's translations once the
 //! commands that show them are wired up.
 
+pub mod edition;
 pub mod fetch;
 pub mod images;
 pub mod known;

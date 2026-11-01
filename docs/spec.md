@@ -239,7 +239,7 @@ The same position turns up in thousands of Games. Bragd judges it once and keeps
 - **Housekeeping:** Disk watch shows the store's size per Engine and Edition. One action each prunes:
   - Editions older than the newest;
   - Engines that were removed;
-  - shallow Evaluations where a deeper one of the same Edition exists.
+  - shallow Evaluations where a deeper one of the same Edition exists. The store keeps only the deepest row per position and Edition, so this one is done as each row arrives.
 - **Families:** every Family with an Engine: chess and its Variants, shogi, xiangqi, janggi, draughts, go and backgammon. Tafl, ur and senet join when their Bots do.
 
 ## Peers and Commentary (0.5.0)

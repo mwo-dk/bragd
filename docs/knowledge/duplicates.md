@@ -20,7 +20,7 @@ Two Games are Duplicates when they have the same moves from the same starting po
 Each Game gets a key made from its Family, its Variant, its starting position and the position after every move. Two Games with the same key are the same Game.
 
 - Chess positions use the Polyglot Zobrist key. Draughts, xiangqi and shogi use a hash of the position's FEN or SFEN.
-- Go has only a key of the move sequence for now.
+- Go positions use a Zobrist key of their own, over the stones, the side to move and the ko point. The same position reached by another move order has the same key.
 - Headers play no part: different spellings of the players, events or dates do not stop a match.
 
 When a Duplicate arrives, the Game already stored is kept and the new Source is recorded on it. Where the headers disagree, the Source higher in the priority wins each header.
@@ -56,6 +56,10 @@ Saving restarts the Helper. A job that was running starts again from its beginni
 #### Why are there at most 500 Duplicates in the list?
 
 The review shows at most 500 Duplicates and 500 Near-duplicate pairs, so the page stays quick on a large Library. The counts in the Libraries table and in the review headings are the whole totals.
+
+#### Why is a go Game I imported before not matched to its new copy?
+
+Go Games got their position key in 0.4.0. Before that, a go Game's key was made from its moves. A go Game stored by an earlier build keeps its old key, so a copy imported now is not found as its Duplicate. Make the Library again from its Sources to have every go Game keyed the new way. Other Families are not affected.
 
 #### What names go in the priority list?
 

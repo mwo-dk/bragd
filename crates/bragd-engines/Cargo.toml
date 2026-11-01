@@ -11,6 +11,8 @@ description = "Engines for every Game family: their protocols, discovery, sealed
 bragd-games = { path = "../bragd-games" }
 # Atomic file writes, the Flatpak check and the offline switch, shared with the rest of Bragd.
 bragd-core = { path = "../bragd-core" }
+# The Edition type an engine's exact build is recorded as, in the Position store.
+bragd-positions = { path = "../bragd-positions" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Engine options the user sets are kept per engine in a TOML file of their own.

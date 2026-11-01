@@ -1,0 +1,18 @@
+[package]
+name = "bragd-positions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Bragd's Position store: Evaluations by position, tagged by Edition, one SQLite file per machine, with Parquet export and import"
+
+[dependencies]
+# Where the store lives (`dirs::app_data`).
+bragd-core = { path = "../bragd-core" }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+# The store exported for backups, moving it by hand and reading it in DuckDB. Pure Rust codecs only.
+parquet = { version = "60", default-features = false, features = ["snap"] }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+bragd-core = { path = "../bragd-core", features = ["test-home"] }

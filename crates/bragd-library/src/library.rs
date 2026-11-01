@@ -13,8 +13,8 @@
 //!
 //! Position keys: chess uses the Polyglot Zobrist key (`chess::polyglot::key`), as the
 //! `positions` table does for position search. Draughts, xiangqi and shogi use a hash of the
-//! position's FEN or SFEN. Go has no position key here: its key after a move is the key of the
-//! move sequence so far, so go's Duplicates and Near-duplicates are still exact.
+//! position's FEN or SFEN. Go uses its Zobrist key over the stones, the side to move and the
+//! ko point (`rules_go::zobrist`).
 
 use std::collections::{BTreeMap, HashSet};
 use std::io;
@@ -236,17 +236,14 @@ impl NewGame {
         let coord = |(x, y): (u8, u8)| format!("{}{}", (b'a' + x) as char, (b'a' + y) as char);
         let mut start = format!("SZ[{}:{}]", g.info.width, g.info.height);
         let mut at = g.nodes.first().map(|_| 0usize);
-        let mut setup: Vec<String> = g.nodes.first().map(|n| n.setup.iter().map(|&(x, y, c)| format!("{}[{}]", ["AE", "AB", "AW"][c.min(2) as usize], coord((x, y)))).collect()).unwrap_or_default();
+        let mut setup: Vec<String> = g.nodes.first().map(|n| n.setup.iter().map(|&(c, x, y)| format!("{}[{}]", ["AE", "AB", "AW"][c.min(2) as usize], coord((x, y)))).collect()).unwrap_or_default();
         setup.sort();
         start.push_str(&setup.concat());
-        let (mut moves, mut keys) = (vec![], vec![]);
-        let mut k = text_key(&start);
+        let mut moves = vec![];
+        let (start_key, keys) = g.keys();
         while let Some(i) = at {
             if let Some(m) = g.nodes[i].mv {
-                let mv = format!("{}[{}]", if m.black { "B" } else { "W" }, m.at.map(coord).unwrap_or_default());
-                k = mix(k.rotate_left(5) ^ text_key(&mv));
-                moves.push(mv);
-                keys.push(k);
+                moves.push(format!("{}[{}]", if m.black { "B" } else { "W" }, m.at.map(coord).unwrap_or_default()));
             }
             at = g.nodes[i].children.first().map(|&c| c as usize);
         }
@@ -274,7 +271,7 @@ impl NewGame {
             moves,
             start: (start != "SZ[19:19]").then_some(start.clone()),
             result: if i.result.is_empty() { "*".into() } else { i.result.clone() },
-            start_key: text_key(&start),
+            start_key,
             keys,
         }
     }
@@ -283,14 +280,47 @@ impl NewGame {
 impl NewGame {
     /// A Game Bragd played itself (an engine match): its moves as a Player writes them and the
     /// position before the first and after each (`positions`, one more than `moves`), in the
-    /// Family's notation. A chess position's key is its Polyglot key, as an imported chess game
-    /// has it; any other's is a hash of its text.
+    /// Family's notation. A chess position's key is its Polyglot key and a go position's its
+    /// Zobrist key, as an imported game has them; any other's is a hash of its text.
     pub fn played(family: &str, variant: &str, start: Option<String>, moves: Vec<String>, positions: &[String], headers: Vec<(String, String)>, result: &str) -> NewGame {
-        let key = |p: &String| if family == "chess" { pgn::board(p).map_or_else(|| text_key(p), |b| polyglot::key(&b)) } else { text_key(p) };
-        let mut keys: Vec<u64> = positions.iter().map(key).collect();
+        let mut before: Option<Vec<u8>> = None;
+        let mut key = |p: &String| match family {
+            "chess" => pgn::board(p).map_or_else(|| text_key(p), |b| polyglot::key(&b)),
+            "go" => match go_picture(p) {
+                Some((size, stones, black_next)) => {
+                    let ko = before.as_ref().and_then(|b| rules_go::zobrist::ko_after(size, size, b, &stones));
+                    let k = rules_go::zobrist::key(size, size, &stones, black_next, ko);
+                    before = Some(stones);
+                    k
+                }
+                None => text_key(p),
+            },
+            _ => text_key(p),
+        };
+        let mut keys: Vec<u64> = positions.iter().map(&mut key).collect();
         let start_key = if keys.is_empty() { 0 } else { keys.remove(0) };
         NewGame { family: family.into(), variant: variant.into(), headers, moves, start, result: result.into(), start_key, keys }
     }
+}
+
+/// A go position as Bragd's games write it (`X..O/…/… b`, rows from the top): its size, its
+/// stones (0 empty, 1 black, 2 white) and whether Black plays next.
+fn go_picture(p: &str) -> Option<(u8, Vec<u8>, bool)> {
+    let mut f = p.split_whitespace();
+    let rows: Vec<&str> = f.next()?.split('/').collect();
+    let size = u8::try_from(rows.len()).ok()?;
+    let mut stones = Vec::with_capacity(rows.len() * rows.len());
+    for row in &rows {
+        if row.len() != rows.len() || !row.bytes().all(|c| b".+XxOo#".contains(&c)) {
+            return None;
+        }
+        stones.extend(row.bytes().map(|c| match c {
+            b'X' | b'x' | b'#' => 1,
+            b'O' | b'o' => 2,
+            _ => 0,
+        }));
+    }
+    Some((size, stones, f.next() != Some("w")))
 }
 
 /// How an import is going, and how it ended.
@@ -1031,6 +1061,26 @@ pub(crate) mod tests {
         s
     }
 
+    /// A go Game played and its SGF have the same position keys, ko point included, and the
+    /// same position reached by another move order is found by its key.
+    #[test]
+    fn go_positions_are_keyed_by_zobrist() {
+        let entries = ["d4", "c4", "e3", "b3", "d2", "c2", "a9", "d3", "c3"];
+        let positions: Vec<String> = (0..=entries.len()).map(|k| bragd_games::replay("go-9", None, &entries[..k]).unwrap().position).collect();
+        let played = NewGame::played("go", "go-9", None, entries.map(String::from).to_vec(), &positions, vec![], "*");
+        let sgf = "(;FF[4]GM[1]SZ[9];B[df];W[cf];B[eg];W[bg];B[dh];W[ch];B[aa];W[dg];B[cg])";
+        let imported = NewGame::from_go(&go::parse(sgf.as_bytes()));
+        assert_eq!((played.start_key, &played.keys), (imported.start_key, &imported.keys));
+        // Black's c3 takes d3 and makes a ko: the key is not the same board without it.
+        let last = go_picture(&positions[9]).unwrap();
+        assert_ne!(imported.keys[8], rules_go::zobrist::key(9, 9, &last.1, last.2, None));
+        // The same four stones in another order: another Game, the same position.
+        let other = NewGame::from_go(&go::parse(b"(;FF[4]GM[1]SZ[9];B[dh];W[ch];B[df];W[cf])"));
+        let first = NewGame::from_go(&go::parse(b"(;FF[4]GM[1]SZ[9];B[df];W[cf];B[dh];W[ch])"));
+        assert_eq!(other.keys[3], first.keys[3]);
+        assert_ne!(other.chain(), first.chain());
+    }
+
     /// A chess Game an engine match played is the same Game as its PGN imported: one Duplicate.
     #[test]
     fn a_played_game_is_the_imported_one() {
@@ -1050,11 +1100,11 @@ pub(crate) mod tests {
         lib.add(&imported, "pgn", "x").unwrap();
         assert_eq!(lib.count().unwrap(), 1);
         // Another Family keys its positions by their text.
-        let go = NewGame::played("go", "go-9", None, vec!["e5".into()], &["a".into(), "b".into()], vec![], "W+7.5");
-        assert_eq!((go.start_key, go.keys.clone()), (text_key("a"), vec![text_key("b")]));
+        let other = NewGame::played("xiangqi", "xiangqi", None, vec!["h2e2".into()], &["a".into(), "b".into()], vec![], "*");
+        assert_eq!((other.start_key, other.keys.clone()), (text_key("a"), vec![text_key("b")]));
         assert_eq!(lib.families().unwrap(), ["chess"]);
-        lib.add(&go, "match", "2").unwrap();
-        assert_eq!(lib.families().unwrap(), ["chess", "go"]);
+        lib.add(&other, "match", "2").unwrap();
+        assert_eq!(lib.families().unwrap(), ["chess", "xiangqi"]);
     }
 
     fn import(lib: &mut Library, path: &Path, source: &str) -> Progress {
