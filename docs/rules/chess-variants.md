@@ -25,7 +25,9 @@ to survive a FEN round trip. **Not built.**
 
 **Racing Kings. Built.** Both kings race to the eighth rank, and no check is
 allowed at all. The estimate held: "no checks" is a filter over generated moves,
-and the starting array is its own.
+and the starting array is its own. When White's king arrives first, Black gets one
+reply to arrive too, which draws. If no legal Black move reaches the eighth rank,
+White has won at once, as Fairy-Stockfish and Lichess score it.
 
 ## Tier two: rewrites move generation
 

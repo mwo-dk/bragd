@@ -2,11 +2,13 @@
 //! (`localhost/bragd-<engine>:dev`), run sealed as Bragd runs them. Each test runs only with
 //! `BRAGD_DEV_IMAGES=1` and its image built with podman; otherwise it says so and passes.
 //!
-//!     tools/dev/images.sh scan gnubg katago pikafish fairy-stockfish elephanteye
+//!     tools/dev/images.sh stockfish fairy-stockfish pikafish elephanteye scan katago gnugo gnubg
 //!     BRAGD_DEV_IMAGES=1 cargo test -p bragd-engines --test real_engines -- --nocapture
 //!
 //! Each asks the engine about a Game played in `bragd-games` and checks that the move it names
-//! is a legal move there, which proves the position went over and the answer came back.
+//! is a legal move there, which proves the position went over and the answer came back. Then
+//! each Family with an Engine plays whole Games through the match runner, Engine against
+//! Engine, to the end its rules give. Tafl, Ur and senet have no Engine, only Bots.
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -14,6 +16,7 @@ use std::process::Stdio;
 use std::time::Duration;
 
 use bragd_engines::known::known;
+use bragd_engines::matches::{self, Adjudication, Opening, Player};
 use bragd_engines::options::OptionStore;
 use bragd_engines::seam;
 use bragd_engines::tools::{self, Runtime};
@@ -74,13 +77,17 @@ fn katago_speaks_gtp() {
 #[test]
 fn pikafish_speaks_uci_with_ranks_from_zero() {
     let Some((_, _)) = dev("pikafish") else { return };
-    // Its network comes with neither the image nor Bragd: downloaded once, here, as the app
-    // does it after the licence is agreed to.
-    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("networks");
-    let net = &bragd_engines::network::PIKAFISH;
-    let file = if net.path(&dir).is_file() { net.path(&dir) } else { net.download(&dir, &bragd_engines::fetch::Http, &mut |_, _| true).unwrap() };
+    let file = pikafish_network();
     let red = wire("xiangqi", &[], "h3e3");
     best("pikafish", "xiangqi", &[red.as_str()], Limit::Depth(8), Some(file));
+}
+
+/// Pikafish's network: it comes with neither the image nor Bragd, so it is downloaded once,
+/// here, as the app does it after the licence is agreed to.
+fn pikafish_network() -> PathBuf {
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("networks");
+    let net = &bragd_engines::network::PIKAFISH;
+    if net.path(&dir).is_file() { net.path(&dir) } else { net.download(&dir, &bragd_engines::fetch::Http, &mut |_, _| true).unwrap() }
 }
 
 #[test]
@@ -140,4 +147,89 @@ fn gnubg_position_id_puts_the_players_in_its_order() {
     let state = bragd_games::replay("backgammon", None, &["3-1", a.as_str(), "6-4", b.as_str()]).unwrap();
     // Before the next throw: White on roll, nothing thrown yet.
     assert_eq!(&seam::gnubg_position_id(&state).unwrap(), theirs);
+}
+
+/// An engine started from its image as a match starts it, with its Edition.
+fn player(key: &str, variant: &str) -> Option<(Player, String)> {
+    let (rt, image) = dev(key)?;
+    let network = (key == "pikafish").then(pikafish_network);
+    let program = Program::Container { rt, image, args: vec![], syzygy: None, network };
+    let mut e = Engine::start(&program, known(key).unwrap().protocol(variant), Duration::from_secs(120), &|| false).unwrap_or_else(|err| panic!("{key} did not start: {err}"));
+    assert!(seam::plays(e.about(), e.protocol(), variant), "{key} ({}) does not play {variant}", e.about().name);
+    e.configure(&OptionStore::default(), None).unwrap();
+    let notation = seam::notation(variant, e.protocol(), &e.about().name);
+    let ed = bragd_engines::edition::of(key, e.about(), &program);
+    Some((Player { session: Box::new(e), notation }, format!("{} ({})", ed.version, ed.engine)))
+}
+
+/// A whole Game of `variant`, `first` against `second`, through the match runner: it must end
+/// by the rules or by adjudication, never by an engine's move Bragd could not take, and every
+/// entry must replay to the result it was given.
+fn whole_game(variant: &str, first: &str, second: &str, limit: Limit, max_moves: u32) {
+    let Some((a, ea)) = player(first, variant) else { return };
+    let Some((b, eb)) = player(second, variant) else { return };
+    let mut players = [a, b];
+    // No resigning and no agreed draws: the rules end it, so their end is checked too.
+    let adj = Adjudication { resign_cp: None, draw_cp: None, max_moves: Some(max_moves), tablebases: false, ..Adjudication::default() };
+    let p = matches::play(variant, &Opening::default(), &mut players, limit, None, &adj, &|_, _| None, &|| false).unwrap();
+    for pl in &mut players {
+        pl.session.quit();
+    }
+    eprintln!("{variant}: {ea} against {eb}: {} by {} after {} entries\n  {}", p.result, p.reason, p.entries.len(), p.history.join(" "));
+    assert!(!["illegal move", "no move", "engine failed"].contains(&p.reason.as_str()), "{variant}: the Game ended by {} after {:?}", p.reason, p.history);
+    let state = bragd_games::replay(variant, None, &p.entries).expect("every entry is legal");
+    if let Some(o) = &state.outcome {
+        assert_eq!((o.result.as_str(), o.reason.as_str()), (p.result.as_str(), p.reason.as_str()));
+    } else {
+        assert!(["resignation", "length"].contains(&p.reason.as_str()), "{variant}: no outcome, yet ended by {}", p.reason);
+    }
+}
+
+#[test]
+fn stockfish_and_fairy_stockfish_play_chess() {
+    whole_game("chess", "stockfish", "fairy-stockfish", Limit::Nodes(20_000), 120);
+}
+
+#[test]
+fn fairy_stockfish_plays_every_chess_variant() {
+    // Shatranj is slow to end: a bared king or a stalemate takes it some 250 moves.
+    for (v, moves) in [("chess960", 120), ("shatranj", 400), ("kingofthehill", 120), ("racingkings", 120), ("seirawan", 120), ("capablanca", 120)] {
+        whole_game(v, "fairy-stockfish", "fairy-stockfish", Limit::Nodes(20_000), moves);
+    }
+}
+
+#[test]
+fn elephanteye_and_fairy_stockfish_play_xiangqi() {
+    whole_game("xiangqi", "elephanteye", "fairy-stockfish", Limit::Depth(6), 120);
+}
+
+#[test]
+fn pikafish_and_elephanteye_play_xiangqi() {
+    whole_game("xiangqi", "pikafish", "elephanteye", Limit::Depth(6), 120);
+}
+
+#[test]
+fn fairy_stockfish_plays_janggi_and_shogi() {
+    whole_game("janggi", "fairy-stockfish", "fairy-stockfish", Limit::Nodes(20_000), 400);
+    whole_game("shogi", "fairy-stockfish", "fairy-stockfish", Limit::Nodes(20_000), 120);
+}
+
+#[test]
+fn scan_plays_international_draughts() {
+    whole_game("draughts", "scan", "scan", Limit::Depth(6), 120);
+}
+
+#[test]
+fn gnugo_plays_go() {
+    whole_game("go-9", "gnugo", "gnugo", Limit::Depth(1), 150);
+}
+
+#[test]
+fn katago_and_gnugo_play_go() {
+    whole_game("go-9", "katago", "gnugo", Limit::Nodes(50), 150);
+}
+
+#[test]
+fn gnubg_plays_backgammon() {
+    whole_game("backgammon", "gnubg", "gnubg", Limit::Depth(0), 300);
 }

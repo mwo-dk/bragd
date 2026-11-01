@@ -716,7 +716,9 @@ impl Variant for RacingKings {
     ///    move then White has already had their turn and did not arrive.
     /// 3. **White home wins for White, but only once Black has answered** —
     ///    that is what `side_to_move == White` means here: Black moved and did
-    ///    not arrive. While it is still Black to move the race is not over.
+    ///    not arrive. While it is still Black to move the race is not over,
+    ///    unless no legal move takes Black's king home: then the answer
+    ///    cannot change it, and White has won now.
     /// 4. No legal move is a **draw**, never a loss. A side with nothing to
     ///    play cannot be in check, because a move that gives check is illegal,
     ///    so there is no checkmate in this variant at all.
@@ -735,7 +737,9 @@ impl Variant for RacingKings {
                 reason: WinReason::RaceWon,
             });
         }
-        if white_home && position.side_to_move() == Color::White {
+        let black_king = position.king_square(Color::Black);
+        let black_can_follow = || legal.as_slice().iter().any(|m| m.from() == black_king && m.to().rank() == 7);
+        if white_home && (position.side_to_move() == Color::White || !black_can_follow()) {
             return Some(Outcome::Win {
                 winner: Color::White,
                 reason: WinReason::RaceWon,

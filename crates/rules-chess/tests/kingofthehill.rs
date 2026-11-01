@@ -166,14 +166,29 @@ fn reaching_the_eighth_rank_wins() {
 /// would be decided by the coin toss that handed out colours.
 #[test]
 fn white_arriving_does_not_end_it_until_black_has_answered() {
-    // White's king is home and it is Black's move: not over.
-    let pending = at("4K3/8/8/8/8/8/8/3k4 b - - 0 1");
+    // White's king is home, it is Black's move, and Black's king can step home: not over.
+    let pending = at("4K3/1k6/8/8/8/8/8/8 b - - 0 1");
     assert_eq!(RacingKings.outcome(&pending), None);
 
     // Black moved and did not arrive. Now White has won.
     let settled = at("4K3/8/8/8/8/8/3k4/8 w - - 0 2");
     assert_eq!(
         RacingKings.outcome(&settled),
+        Some(Outcome::Win {
+            winner: Color::White,
+            reason: WinReason::RaceWon
+        })
+    );
+}
+
+/// Black's reply only matters when its king can reach the eighth rank with it: when it cannot,
+/// White has won at once, as Fairy-Stockfish and Lichess score it.
+#[test]
+fn white_home_wins_at_once_when_black_cannot_follow() {
+    // Black's king on b7 is a move from home, but White's rook on d8 guards a8, b8 and c8.
+    let blocked = at("3RK3/1k6/8/8/8/8/8/8 b - - 0 1");
+    assert_eq!(
+        RacingKings.outcome(&blocked),
         Some(Outcome::Win {
             winner: Color::White,
             reason: WinReason::RaceWon

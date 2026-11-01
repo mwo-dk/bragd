@@ -77,7 +77,8 @@ pub struct Known {
 const CHESS: &[&str] = &["chess", "chess960"];
 /// Engines without `UCI_Chess960`.
 const CHESS_ONLY: &[&str] = &["chess"];
-const FAIRY: &[&str] = &["chess", "chess960", "shatranj", "chaturanga", "kingofthehill", "racingkings", "seirawan", "capablanca", "xiangqi", "janggi", "shogi"];
+/// Not chaturanga: Fairy-Stockfish plays the alfil reconstruction, not Bragd's (Murray's gaja).
+const FAIRY: &[&str] = &["chess", "chess960", "shatranj", "kingofthehill", "racingkings", "seirawan", "capablanca", "xiangqi", "janggi", "shogi"];
 const GO: &[&str] = &["go-9", "go-13", "go-19"];
 
 /// The engines of the spec, and more UCI chess engines, strongest-known first after Stockfish;

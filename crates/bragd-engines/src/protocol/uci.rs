@@ -10,7 +10,6 @@ pub fn fairy_variant(key: &str) -> Option<&'static str> {
     Some(match key {
         "chess" | "chess960" => "chess",
         "shatranj" => "shatranj",
-        "chaturanga" => "chaturanga",
         "kingofthehill" => "kingofthehill",
         "racingkings" => "racingkings",
         "seirawan" => "seirawan",
