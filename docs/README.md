@@ -60,6 +60,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 |---|---|
 | [Peers](peers/README.md) | The area's pages |
 | [Pairing your machines](peers/peers.md) | Turning Peers on, showing and typing a code, finding a machine, unpairing |
+| [Sharing between Peers](peers/sharing.md) | The Position store's sync, the shared queue, and a Peer's language model |
 | [How Peers talk](peers/protocol.md) | The pairing code, SPAKE2, TLS with pinned keys, mDNS and the messages |
 
 ## [Engines](engines/README.md)

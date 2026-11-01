@@ -77,7 +77,7 @@ The other machine has Peers off, is on another network, or a firewall or the rou
 
 #### What do Peers share?
 
-In this version, their names, Bragd versions and whether they are reachable. Sharing the Position store and the background queue builds on this pairing. Libraries, Slices and Settings always stay on each machine.
+Their names, Bragd versions and whether they are reachable, what is new in their Position stores, and their queues of background analysis and translations ([Sharing between Peers](sharing.md)). Libraries, Slices and Settings always stay on each machine.
 
 ---
-[← Previous: Peers](README.md) · [Next: How Peers talk →](protocol.md)
+[← Previous: Peers](README.md) · [Next: Sharing between Peers →](sharing.md)

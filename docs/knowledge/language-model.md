@@ -83,6 +83,10 @@ In the system's keychain only, under the name `bragd-model` and the address. Rem
 
 A translation is kept by the machine that asked for it. Peers share the Position store, which holds what is known about positions; a comment belongs to a Game, not to a position.
 
+#### Can another of my machines translate for this one?
+
+Yes. With no model set up here, **Translate** shows when a [Peer](../peers/sharing.md#model-jobs) has a model ready. The comment goes to that Peer through the shared queue, its model translates it, and the translation comes back and is kept here.
+
 #### Can I correct a translation?
 
 Not yet. The original is always one click away under **Original**.

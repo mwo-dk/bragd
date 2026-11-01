@@ -85,7 +85,9 @@ fn view(k: &Knowledge, request: &Request) -> Res<Page> {
 /// Takes what is new from every Peer now, rather than at the next minute.
 #[tauri::command(async)]
 pub fn peers_sync(k: State<'_, Knowledge>) -> Res<Page> {
-    view(&k, &Request::PeersSync)
+    let p = view(&k, &Request::PeersSync)?;
+    bragd_core::tips::used("sharing");
+    Ok(p)
 }
 
 /// Peers as they stand; with `hello`, each is asked whether it is there.

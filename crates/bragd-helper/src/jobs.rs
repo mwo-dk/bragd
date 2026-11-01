@@ -1102,8 +1102,9 @@ impl Jobs {
     pub fn work_lane(self: Arc<Self>, lane: Lane) {
         while !self.quit.load(Ordering::Relaxed) {
             self.expire(bragd_core::fs::now());
-            // Model jobs run here only with a model ready; till then they wait for a Peer's.
-            let mine = (lane != Lane::Model || self.can_take(lane)) && self.run_first(lane);
+            // Background analysis starts here only inside `[analysis]`, and model jobs only with
+            // a model ready: till then they wait in the queue, where a Peer may take them.
+            let mine = (!matches!(lane, Lane::Analysis | Lane::Model) || self.can_take(lane)) && self.run_first(lane);
             if !mine && !self.run_borrowed(lane) {
                 let st = self.lock();
                 if !self.quit.load(Ordering::Relaxed) && Self::first_queued(&st, lane).is_none() {

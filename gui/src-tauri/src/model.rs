@@ -74,7 +74,13 @@ pub fn comment_translate(text: String, ctx: State<'_, Ctx>, k: State<'_, Knowled
     let path = Translations::path().ok_or("no data folder")?;
     let store = Translations::open(&path).map_err(|e| e.to_string())?;
     let m = ctx.cfg().model;
-    let t = if bragd_model::ready(&m) { bragd_model::translate(&m, &store, &text, i18n::language())? } else { by_peer(&k, &store, &text)? };
+    let t = if bragd_model::ready(&m) {
+        bragd_model::translate(&m, &store, &text, i18n::language())?
+    } else {
+        let t = by_peer(&k, &store, &text)?;
+        bragd_core::tips::used("sharing");
+        t
+    };
     bragd_core::tips::used("model");
     Ok(t)
 }

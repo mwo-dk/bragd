@@ -52,8 +52,21 @@ Each side sends one JSON line and the other answers with one.
 | `{"op":"pair","name":…,"port":…,"spake":…}` | `{"re":"spake","spake":…}` | Pairing, step 2 |
 | `{"op":"confirm","mac":…}` | `{"re":"paired","name":…,"mac":…}` | Pairing, step 4 |
 | `{"op":"unpaired"}` | `{"re":"done"}` | The sender has unpaired: the receiver forgets it too |
+| `{"op":"call","body":…}` | `{"re":"reply","body":…}` | Between paired machines: a request of the Helpers' own, below |
 
 A refusal is `{"re":"refused","why":…}`, with `why` one of `no_code`, `wrong_code` or `not_paired`. Bytes are hex.
+
+### The Helpers' requests
+
+A `call`'s body is one of these, and the reply's body is `{"ok":…}` or `{"error":…}`. They carry the [sync and the shared queue](sharing.md).
+
+| Body | `ok` | What for |
+|---|---|---|
+| `{"op":"changes","store":…,"since":…}` | The rows changed after change number `since` in that store, oldest first, at most 2,000 and about 1 MiB; the store's id, the last number sent, and whether there are more | The Position store's sync. A `store` that is not the answering store's id gets everything from the start |
+| `{"op":"working"}` | The jobs running there, and whether a language model is ready | *Settings → Peers* |
+| `{"op":"take","lane":…}` | A job of `analysis` or `model`, lent to the asker, or `null` | The shared queue |
+| `{"op":"renew","id":…,"done":…,"total":…}` | `true` to go on, `false` when the owner wants it back | Every minute while the job runs |
+| `{"op":"give_back","id":…,"outcome":…}` | `null` | `outcome` is `done`, `translated` (with the text), `cannot` (with why) or `stopped` |
 
 ## Finding each other
 
@@ -65,6 +78,9 @@ A Helper with Peers on announces itself by mDNS as `_bragd._tcp.local.`, with it
 |---|---|
 | A code | 120 seconds, 5 tries, one use |
 | A line | 64 KiB |
+| A reply to a `call` | 4 MiB |
+| A batch of the sync | 2,000 rows and about 1 MiB; 50 batches from one Peer per sync |
+| A job lent | 10 minutes, renewed every minute while it runs |
 | A connection | 5 seconds, handshake included |
 | Dialling | 3 seconds per address |
 | Connections served at once | 16; more are closed at once |
@@ -84,4 +100,4 @@ They could pose as that machine to its Peers. Unpair it on every other machine: 
 A code sent or hashed over the network could be guessed offline from a recording: a million guesses take no time. With SPAKE2 the recording is useless, and each guess needs a live try, five at most.
 
 ---
-[← Previous: Pairing your machines](peers.md) · [Next: Engines →](../engines/README.md)
+[← Previous: Sharing between Peers](sharing.md) · [Next: Engines →](../engines/README.md)

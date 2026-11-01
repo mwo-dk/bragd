@@ -1,7 +1,9 @@
 <script>
   // Settings → Peers: the switch and the interface (saved as options, then the Helper is told),
-  // the code this machine shows, pairing with another machine, and the machines paired. The
-  // Helper does the pairing and the talking (bragd-peers); this page only draws its view.
+  // the code this machine shows, pairing with another machine, the machines paired with how
+  // their Position store sync stands and what they work on, and the shared queue. The Helper
+  // does the pairing, the talking and the sharing (bragd-peers, bragd_helper::share); this page
+  // only draws its view.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
@@ -29,10 +31,11 @@
     void snap;
     api.peersView(true).then(got, fail);
   });
-  // While a code shows, its time and tries count down, and a pairing shows up.
+  // While a code shows, its time and tries count down, and a pairing shows up; while Peers
+  // share, their sync and the queue stay current.
   $effect(() => {
-    if (!v?.code) return;
-    const tick = setInterval(() => api.peersView(false).then(got, fail), 2000);
+    if (!v?.code && !(v?.on && v?.peers.length)) return;
+    const tick = setInterval(() => api.peersView(false).then(got, fail), v?.code ? 2000 : 5000);
     return () => clearInterval(tick);
   });
 
@@ -60,6 +63,7 @@
   };
   const unpair = (/** @type {string} */ id) => ((error = ""), api.peerUnpair(id).then(got, fail));
   const check = () => ((busy = true), api.peersView(true).then(got, fail));
+  const syncNow = () => ((error = ""), api.peersSync().then(got, fail));
   const when = (/** @type {number} */ s) => new Date(s * 1000).toLocaleString();
   const paired = (/** @type {string} */ key) => v?.peers.some((/** @type {any} */ p) => p.key === key);
 </script>
@@ -137,11 +141,36 @@
             {#if p.version}{t("peers.version", { version: p.version })}{/if}
             {#if p.seen}{t("peers.seen", { when: when(p.seen) })}{/if}
           </p>
+          {#if p.sync}
+            <p class="hint" class:err={p.sync.error}>
+              {p.sync.error
+                ? t("peers.sync.failed", { when: when(p.sync.at), why: p.sync.error })
+                : t("peers.sync.at", { when: when(p.sync.at), got: p.sync.got, rows: p.sync.rows })}
+            </p>
+            <p class="hint">
+              {v.working[p.key]?.length ? t("peers.working", { what: v.working[p.key].join("; ") }) : t("peers.idle")}
+              {#if p.sync.model}{t("peers.has_model")}{/if}
+            </p>
+          {:else if v.on}<p class="hint">{t("peers.sync.never")}</p>{/if}
         </div>
         <button onclick={() => unpair(p.key)}>{t("peers.unpair")}</button>
       </div>
     {/each}
-    {#if v.peers.length}<button onclick={check} disabled={busy}>{t("peers.check")}</button>{/if}
+    {#if v.peers.length}
+      <div class="line">
+        <button onclick={check} disabled={busy}>{t("peers.check")}</button>
+        <button onclick={syncNow} disabled={!v.on}>{t("peers.sync_now")}</button>
+      </div>
+      <h3>{t("peers.queue_title")}</h3>
+      <p class="hint">{t("peers.queue_hint")}</p>
+      {#if !v.lines.length}<p class="hint">{t("peers.queue_none")}</p>{/if}
+      {#each v.lines as l (l.id)}
+        <div class="peer">
+          <span>{l.what}</span>
+          <small>{l.state} · {l.count}</small>
+        </div>
+      {/each}
+    {/if}
   {/if}
   {#if error}<p class="err" role="alert">{error}</p>{/if}
 </div>
