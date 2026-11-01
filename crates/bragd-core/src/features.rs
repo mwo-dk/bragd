@@ -40,6 +40,7 @@ pub const FEATURES: &[Feature] = &[
     f("helper", "knowledge/helper.md", "settings:knowledge"),
     f("engines", "engines/engines.md", "item:engines"),
     f("analyse", "engines/analyse.md", "item:analyse"),
+    only("matches", "engines/matches.md", "item:matches", &["chess", "xiangqi", "shogi", "go", "draughts", "backgammon"]),
     only("tablebases", "engines/tablebases.md", "item:tablebases", &["chess"]),
     f("clubs", "clubs/clubs.md", "page:clubs"),
     f("themes", "look/themes.md", "settings:look"),

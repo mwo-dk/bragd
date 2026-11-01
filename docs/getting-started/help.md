@@ -29,6 +29,7 @@ The F1 entries and the pages *Show me* opens:
 | `helper` | The Helper | [The Helper](../knowledge/helper.md) |
 | `engines` | Engines | [The Engines page](../engines/engines.md) |
 | `analyse` | Analyse | [Analyse](../engines/analyse.md) |
+| `matches` | Engine matches | [Engine matches](../engines/matches.md) |
 | `tablebases` | Tablebases | [Tablebases](../engines/tablebases.md) |
 | `themes` | Themes | [Themes](../look/themes.md) |
 | `update` | Update checks | [Privacy](../reference/privacy.md) |

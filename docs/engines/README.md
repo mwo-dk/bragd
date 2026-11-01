@@ -2,7 +2,7 @@
 
 # Engines
 
-An Engine plays a Side in Play, analyses a position in Analyse and reviews a whole Game. Bragd uses an Engine installed on your machine first. Later it can also run one from a sealed container image. These pages cover finding and choosing Engines, analysis, reviews, tablebases and opening books.
+An Engine plays a Side in Play, analyses a position in Analyse and reviews a whole Game. Bragd uses an Engine installed on your machine first. Later it can also run one from a sealed container image. These pages cover finding and choosing Engines, analysis, reviews, tablebases, opening books and matches between Engines.
 
 | Page | What it covers |
 |---|---|
@@ -12,6 +12,7 @@ An Engine plays a Side in Play, analyses a position in Analyse and reviews a who
 | [Game review](review.md) | Marks on every move, the evaluation profile |
 | [Tablebases](tablebases.md) | Syzygy sets, their folder, the Lichess fallback |
 | [Opening books](opening-books.md) | Polyglot books and opening names |
+| [Engine matches](matches.md) | Round robins, gauntlets and SPRT matches between Engines, played in the Helper |
 
 ## Which Engine plays which Family
 

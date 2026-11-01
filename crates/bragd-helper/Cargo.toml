@@ -15,8 +15,11 @@ bragd-core = { path = "../bragd-core" }
 bragd-library = { path = "../bragd-library" }
 # Rating lists, fetched like Sources, go into the rating lists file.
 bragd-clubs = { path = "../bragd-clubs" }
-# Disk watch asks the container runtime what its engine images take.
+# Disk watch asks the container runtime what its engine images take, and engine matches run
+# engines.
 bragd-engines = { path = "../bragd-engines" }
+# Engine matches are played out in its rules.
+bragd-games = { path = "../bragd-games" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # The connection token, from the system's random source.

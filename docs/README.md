@@ -62,6 +62,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Game review](engines/review.md) | Marks on every move, the evaluation profile |
 | [Tablebases](engines/tablebases.md) | Syzygy sets, their folder, the Lichess fallback |
 | [Opening books](engines/opening-books.md) | Polyglot books and opening names |
+| [Engine matches](engines/matches.md) | Round robins, gauntlets and SPRT matches between Engines, played in the Helper |
 
 ## [Clubs](clubs/README.md)
 

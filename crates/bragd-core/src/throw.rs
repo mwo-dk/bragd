@@ -1,5 +1,6 @@
-//! Throwing the dice and sticks of the race Families. The randomness lives here, in the app:
-//! the rules crates and `bragd-games` only ever see the throw as an entry.
+//! Throwing the dice and sticks of the race Families. The randomness lives here, not in the rules:
+//! the rules crates and `bragd-games` only ever see the throw as an entry. The app throws for Play,
+//! the Helper for engine matches.
 
 use bragd_games::Family;
 
@@ -9,6 +10,12 @@ fn os_byte() -> u8 {
     // The OS source does not fail on any system Bragd runs on; a failure is a broken machine.
     getrandom::fill(&mut b).expect("the operating system's random source");
     b[0]
+}
+
+/// A number from the operating system's random source: the seed an engine match chooses its
+/// openings by.
+pub fn seed() -> u64 {
+    u64::from_le_bytes(std::array::from_fn(|_| os_byte()))
 }
 
 /// A number in `0..n`, every one equally likely: bytes from the top, uneven slice are thrown

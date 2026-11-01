@@ -24,7 +24,7 @@ use crate::helper_link::{self, HelperView, Link};
 
 #[derive(Default)]
 pub struct Knowledge {
-    link: Link,
+    pub(crate) link: Link,
     dbs: Databases,
     /// The file Save as… chose that waits for the user's yes; only it may be written over.
     to_confirm: Mutex<Option<PathBuf>>,

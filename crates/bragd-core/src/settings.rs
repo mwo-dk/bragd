@@ -300,13 +300,14 @@ pub enum Item {
     Analyse,
     Databases,
     Engines,
+    Matches,
     Tablebases,
     OpeningBooks,
     Rules,
 }
 
 /// The items of the Family `id`: chess has Tablebases and Opening books too; a Family with no
-/// outside Engine has only Play, Databases and Rules.
+/// outside Engine has only Play, Databases and Rules (no Engines, no Engine matches).
 pub fn items(id: &str) -> Vec<Item> {
     use Item::*;
     match Family::from_key(id) {
@@ -316,11 +317,12 @@ pub fn items(id: &str) -> Vec<Item> {
             Analyse,
             Databases,
             Engines,
+            Matches,
             Tablebases,
             OpeningBooks,
             Rules,
         ],
-        _ => vec![Play, Analyse, Databases, Engines, Rules],
+        _ => vec![Play, Analyse, Databases, Engines, Matches, Rules],
     }
 }
 
@@ -362,7 +364,7 @@ pub fn sidebar(cfg: &Config) -> Sidebar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use Item::{Analyse, Databases, OpeningBooks, Play, Rules, Tablebases};
+    use Item::{Analyse, Databases, Matches, OpeningBooks, Play, Rules, Tablebases};
     const ENGINES: Item = Item::Engines;
 
     #[test]
@@ -482,6 +484,7 @@ mod tests {
                     Analyse,
                     Databases,
                     ENGINES,
+                    Matches,
                     Tablebases,
                     OpeningBooks,
                     Rules
@@ -493,7 +496,7 @@ mod tests {
         for id in ["ur", "senet"] {
             assert_eq!(items(id), [Play, Databases, Rules]);
         }
-        assert_eq!(items("go"), [Play, Analyse, Databases, ENGINES, Rules]);
+        assert_eq!(items("go"), [Play, Analyse, Databases, ENGINES, Matches, Rules]);
 
         // One Family on: its items at the top.
         let off = |ids: &[&str]| {

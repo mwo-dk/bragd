@@ -10,12 +10,15 @@ pub mod fetch;
 pub mod images;
 pub mod known;
 pub mod lichess;
+pub mod local;
+pub mod matches;
 pub mod network;
 pub mod options;
 pub mod protocol;
 pub mod review;
 pub mod seam;
 pub mod session;
+pub mod sprt;
 pub mod syzygy;
 pub mod tools;
 

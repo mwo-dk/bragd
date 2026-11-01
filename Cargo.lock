@@ -346,6 +346,7 @@ version = "0.1.0"
 dependencies = [
  "bragd-games",
  "dirs",
+ "getrandom 0.4.3",
  "rusqlite",
  "serde",
  "serde_json",
@@ -399,7 +400,6 @@ dependencies = [
  "bragd-games",
  "bragd-helper",
  "bragd-library",
- "getrandom 0.4.3",
  "pulldown-cmark",
  "serde",
  "serde_json",
@@ -417,6 +417,7 @@ dependencies = [
  "bragd-clubs",
  "bragd-core",
  "bragd-engines",
+ "bragd-games",
  "bragd-library",
  "getrandom 0.4.3",
  "libc",

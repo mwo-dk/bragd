@@ -17,6 +17,7 @@
   import Jobs from "./Jobs.svelte";
   import * as knowledge from "./knowledge.js";
   import Engines from "./Engines.svelte";
+  import Matches from "./Matches.svelte";
   import Tablebases from "./Tablebases.svelte";
   import Books from "./Books.svelte";
   import Clubs from "./Clubs.svelte";
@@ -130,6 +131,10 @@
       {:else if family && page.item === "engines"}
         {#key family.id}
           <Engines {family} {go} />
+        {/key}
+      {:else if family && page.item === "matches"}
+        {#key family.id}
+          <Matches {family} {go} />
         {/key}
       {:else if family && page.item === "tablebases"}
         <Tablebases {snap} {save} />

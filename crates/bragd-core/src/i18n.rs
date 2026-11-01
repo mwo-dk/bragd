@@ -306,13 +306,34 @@ fn bytes_in(lang: &str, n: u64) -> String {
     if u == 0 {
         return digits_in(lang, format!("{n} B"));
     }
+    digits_in(lang, format!("{v:.1} {}", units[u]).replacen('.', mark(lang), 1))
+}
+
+/// The decimal mark of `lang`.
+fn mark(lang: &str) -> &'static str {
     // shortcut: the decimal mark by language, as CLDR has it for these; take ICU data if
     // grouping or other marks are ever needed.
     let point = lang.starts_with("en")
         || lang.starts_with("zh")
         || matches!(lang, "he" | "ja" | "ko" | "de-CH" | "it-CH" | "es-MX" | "es-PR" | "es-DO" | "es-GT" | "es-HN" | "es-NI" | "es-PA" | "es-SV");
-    let mark = if lang == "fa" { "\u{066B}" } else if point { "." } else { "," };
-    digits_in(lang, format!("{v:.1} {}", units[u]).replacen('.', mark, 1))
+    if lang == "fa" { "\u{066B}" } else if point { "." } else { "," }
+}
+
+/// `v` with `places` decimals, in the current language's decimal mark and digits: `2.94`,
+/// `2,94`. A negative number gets a true minus sign: `−1.5`.
+pub fn decimal(v: f64, places: usize) -> String {
+    decimal_in(language(), v, places)
+}
+
+fn decimal_in(lang: &str, v: f64, places: usize) -> String {
+    let s = format!("{v:.places$}");
+    let s = match s.strip_prefix('-') {
+        // `-0.00` is 0.
+        Some(rest) if rest.chars().any(|c| c.is_ascii_digit() && c != '0') => format!("−{rest}"),
+        Some(rest) => rest.to_string(),
+        None => s,
+    };
+    digits_in(lang, s.replacen('.', mark(lang), 1))
 }
 
 pub const REFERENCE: &str = "en-GB";
@@ -837,6 +858,14 @@ mod tests {
         assert_eq!(bytes_in("ja", 1_500_000_000), "1.5 GB");
         assert_eq!(bytes_in("fa", 1_500_000_000), "۱٫۵ GB");
         assert_eq!(bytes_in("fr", 3_000_000_000_000), "3,0 TB");
+    }
+
+    #[test]
+    fn i18n_decimals_in_each_languages_numbers() {
+        assert_eq!(decimal_in("en-GB", 2.944, 2), "2.94");
+        assert_eq!(decimal_in("da", -2.944, 2), "−2,94");
+        assert_eq!(decimal_in("en-GB", -0.001, 2), "0.00");
+        assert_eq!(decimal_in("fa", 1.5, 1), "۱\u{066B}۵");
     }
 
     #[test]
