@@ -15,7 +15,7 @@ fn replay(file: &str) {
     let t = common::load(&text);
     let mut wrong = Vec::new();
     for round in 1..=t.rounds.unwrap() as usize {
-        let (same, why) = common::compare_with(pairing::monrad::pair, &t, round);
+        let (same, why) = common::compare_with(pairing::monrad::pair, &t, round, false);
         if !same {
             wrong.push(why);
         }

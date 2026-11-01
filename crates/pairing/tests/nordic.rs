@@ -24,7 +24,7 @@ fn pattern(file: &str) -> String {
     let t = common::load(&text);
     (1..=t.rounds.unwrap() as usize)
         .map(|round| {
-            if common::compare_with(pairing::nordic::pair, &t, round).0 {
+            if common::compare_with(pairing::nordic::pair, &t, round, false).0 {
                 '='
             } else {
                 'x'

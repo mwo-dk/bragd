@@ -197,8 +197,13 @@ fn score_before(p: &Player, round: usize) -> u32 {
     p.history[..round].iter().map(|r| r.points()).sum()
 }
 
+/// The pairing score before round `round + 1`: points plus virtual points (C.04.7 1.5).
+fn pairing_score(s: &Settings, p: &Player, round: usize) -> u32 {
+    score_before(p, round) + s.virtual_points(p.tpn, round as u32 + 1)
+}
+
 fn describe(s: &Settings, by_tpn: &HashMap<u32, &Player>, p: &Player, done: usize) -> Info {
-    let score = score_before(p, done);
+    let score = pairing_score(s, p, done);
     let mut played = Vec::new();
     let mut opponents = Vec::new();
     let mut bye_ok = true;
@@ -226,10 +231,10 @@ fn describe(s: &Settings, by_tpn: &HashMap<u32, &Player>, p: &Player, done: usiz
     let float_in = |round: usize| -> Float {
         match p.history[round] {
             Round::Played { opponent, .. } => {
-                let mine = score_before(p, round);
+                let mine = pairing_score(s, p, round);
                 let theirs = by_tpn
                     .get(&opponent)
-                    .map_or(mine, |o| score_before(o, round));
+                    .map_or(mine, |o| pairing_score(s, o, round));
                 match mine.cmp(&theirs) {
                     std::cmp::Ordering::Greater => Float::Down,
                     std::cmp::Ordering::Less => Float::Up,

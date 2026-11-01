@@ -1,0 +1,1 @@
+| **A Swiss can be paired with Baku acceleration.** FIDE's accelerated system (C.04.7) gives the top half of the field virtual points in the first rounds, for the pairing only, so the strongest players meet sooner. | [Swiss pairing](reference/swiss-pairing.md#accelerated-rounds) |

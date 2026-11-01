@@ -8,6 +8,7 @@ const S: Settings = Settings {
     win: 2,
     loss: 0,
     initial_colour: Colour::White,
+    baku: None,
 };
 
 fn fresh(n: u32) -> Vec<Player> {

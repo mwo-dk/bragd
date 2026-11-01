@@ -7,6 +7,7 @@ Bragd pairs a Swiss round under the FIDE (Dutch) system: FIDE Handbook C.04.3, a
 ## Contents
 
 - [What it handles](#what-it-handles)
+- [Accelerated rounds](#accelerated-rounds)
 - [How a round is paired](#how-a-round-is-paired)
 - [Colours](#colours)
 - [Why a pairing is what it is](#why-a-pairing-is-what-it-is)
@@ -26,8 +27,15 @@ Bragd pairs a Swiss round under the FIDE (Dutch) system: FIDE Handbook C.04.3, a
 | Requested byes, absences and withdrawals: those players are simply not paired | C.04.2 3.2-3.3 |
 | Late entries: they join with their unplayed rounds and are paired from their first round | C.04.2 2.4 |
 | Boards in publishing order | C.04.2 3.6 |
+| Baku acceleration: virtual points for group GA in the first half of the rounds | C.04.7 1 |
 
-Accelerated pairings (C.04.7) are not in this version ([#129](https://github.com/mwo-dk/bragd/issues/129)).
+## Accelerated rounds
+
+A tournament can use the Baku acceleration method (C.04.7, applied from 1 February 2026), the only method FIDE has approved. Before round 1 the players to be paired are split into two groups. GA is the first half, rounded up to an even number (161 players give 82), and GB is the rest. A late entry numbered in among GA joins it, since the last player of GA stays the same player.
+
+The accelerated rounds are the first half of the tournament, rounded up. In the first half of those, rounded up, every GA player has the points of a win added for the pairing; in the rest of them, half that. Nine rounds give one virtual point in rounds 1 to 3 and a half in rounds 4 and 5.
+
+Virtual points count only for the pairing: the scoregroups, the order inside them, floats and the order of the boards (C.04.7 1.5). Standings never include them.
 
 ## How a round is paired
 
@@ -56,8 +64,11 @@ The tests replay whole tournaments round by round: each round is paired from the
 |---|---|---|
 | Mario Held, *Mastering the Dutch* 2026, the worked 15-player tournament ([FIDE TEC](https://tec.fide.com/wp-content/uploads/2026/07/Mastering_the_Dutch_2026.pdf)) | 9 | 9 |
 | 13 Swiss events played after 1 February 2026, from chess-results.com, 15 to 353 players | 91 | 75 |
+| Sussex University Masters 2026, 62 players, paired with Baku acceleration, from chess-results.com | 9 | 7 |
 
-Of the 16 rounds that differ, six are round 1, where the final start numbers are not the ones used to pair it. In every one of the 16, judging the published round against the rules gives one of three answers: it is worse on a named criterion (6), it is as good but later in the rules' order (7), or only some colours differ (3). In none is the published round better than Bragd's. From round 5 on, when start numbers can no longer change (C.04.2 2.3), 38 of 39 rounds are the same.
+In the accelerated Sussex Masters, one round differs only in the colours of two players with no game yet, and in one the published round is worse on colour preferences. The same event paired without acceleration differs from round 1.
+
+Of the 16 rounds that differ in the unaccelerated events, six are round 1, where the final start numbers are not the ones used to pair it. In every one of the 16, judging the published round against the rules gives one of three answers: it is worse on a named criterion (6), it is as good but later in the rules' order (7), or only some colours differ (3). In none is the published round better than Bragd's. From round 5 on, when start numbers can no longer change (C.04.2 2.3), 38 of 39 rounds are the same.
 
 The rule texts are checked directly too: the order of exchanges and of moved-down sets uses the Handbook's own examples, and the colour rules the examples in Held's *Annotated FIDE (Dutch) Rules 2026*.
 
