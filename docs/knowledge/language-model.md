@@ -36,12 +36,12 @@ For another server, type its address under *Address and model*, then a model's n
 ![A chess Game in replay at 3. Bb5: its German comment shown in English, labelled Machine-translated by the model, with Original under it](../screenshots/translate-comment-1100.png)
 *A comment translated in replay.*
 
-When you replay a Game from a Foreign database, a comment that is not in your language has **Translate** under it. Press it, and the comment is shown in your language, labelled *Machine-translated by* and the model's name. **Original** under it opens the comment as it was written.
+When you replay a Game from a Foreign database or a Library, a comment that is not in your language has **Translate** under it. Press it, and the comment is shown in your language, labelled *Machine-translated by* and the model's name. **Original** under it opens the comment as it was written.
 
 - Each comment is translated only when you press **Translate**. Nothing is translated when you import or open a file.
 - Bragd guesses each comment's language on this machine. A comment it is sure is in your language has no **Translate** button.
 - A translation is kept per language. The same comment, in this Game or any other, then shows its translation at once, without asking the model again.
-- Comments in a Library are not shown yet: a Library keeps a Game's moves and headers, not its comments.
+- A Library keeps a Game's comments from 0.5.0. A Game imported before that has none: import its file again to bring them in ([Libraries](libraries.md#why-does-a-game-from-my-library-have-no-comments)).
 
 ## A model off this machine
 

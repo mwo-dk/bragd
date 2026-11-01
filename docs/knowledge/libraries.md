@@ -13,7 +13,7 @@ A Library is Bragd's own store of Games: one SQLite file ending in `.bragd`. Imp
 2. The table lists every `.bragd` file in the Library folder, with its Games, size, Duplicates and Near-duplicates. Click a name to open it.
 3. An open Library has its own tabs: **Games**, **Duplicates**, **New Slice**, and one button per saved Slice (a kept copy is marked ⧉). **Export to Parquet** sits under them ([Export to Parquet](parquet-export.md)).
 4. **Games** lists the Library's Games of the Family whose page you are on: chess Games on the chess page, go Games on the go page.
-5. Click a Game to step through it, as in a Foreign database: **←**, **→**, **Home** and **End**.
+5. Click a Game to step through it, as in a Foreign database: **←**, **→**, **Home** and **End**. Its comments and move glyphs (`!`, `?!`) show where the file had them.
 
 Games get into a Library in three ways:
 
@@ -54,6 +54,10 @@ Yes. Every `.bragd` file in the Library folder is listed. Sources and **Import i
 #### Does importing the same file twice double its Games?
 
 No. A Game already in the Library is recognised by its moves and kept once. Its Source is recorded again only if it is a new one. Imports are safe to repeat, which is why a job cut short starts again from the start.
+
+#### Why does a Game from my Library have no comments?
+
+A Library keeps the comments and move glyphs of a Game's main line from 0.5.0. A Library made before that kept only the moves and headers. Import the same file again: each Game already there gets its comments, and nothing is added twice. Comments in variations are not kept, since a Library keeps only the main line.
 
 #### What does a Library do with very large files?
 

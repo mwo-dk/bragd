@@ -35,3 +35,5 @@ windows-native-keyring-store = { version = "1", default-features = false }
 bragd-core = { path = "../bragd-core", features = ["test-home"] }
 # keyring's in-memory store, so tests never touch the real keychain.
 keyring-core = { version = "1", features = ["sample"] }
+# A Library Game's Comment, imported and read back, to translate in a test.
+bragd-library = { path = "../bragd-library" }

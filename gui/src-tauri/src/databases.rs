@@ -342,9 +342,20 @@ pub fn replay(g: &pgn::Game, family: &str) -> Replay {
     }
 }
 
-/// A Game from a Library, laid out for replay. Chess Games are read again as PGN, so each step
-/// has its position; the other Families list their moves.
+/// A Game from a Library, laid out for replay, with its Comments and NAGs. Chess Games are read
+/// again as PGN, so each step has its position; the other Families list their moves.
 pub fn stored_replay(s: &Stored) -> Replay {
+    let mut r = stored_steps(s);
+    for n in &s.notes {
+        if let Some(step) = r.steps.get_mut(n.ply) {
+            step.comment = n.comment.clone();
+            step.label.push_str(&chess::nags(&n.nags).0);
+        }
+    }
+    r
+}
+
+fn stored_steps(s: &Stored) -> Replay {
     let headers: Vec<(String, String)> = s.headers.iter().map(|(k, v)| (k.clone(), v.as_str().map_or_else(|| v.to_string(), String::from))).collect();
     if s.family == "chess" {
         let mut text: String = headers.iter().filter(|(k, _)| !k.eq_ignore_ascii_case("FEN")).map(|(k, v)| format!("[{k} \"{}\"]\n", v.replace('"', "'"))).collect();
@@ -599,6 +610,23 @@ mod tests {
         let d = Stored { family: "draughts".into(), moves: vec!["32-28".into()], ..s };
         let r = stored_replay(&d);
         assert_eq!((r.variant.as_str(), r.steps.len()), ("", 2));
+    }
+
+    /// A Library Game replays with its Comments and NAGs where they stood.
+    #[test]
+    fn a_stored_game_replays_with_its_comments() {
+        let d = std::env::temp_dir().join(format!("bragd-notes-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let file = d.join("opera.pgn");
+        std::fs::write(&file, include_str!("../../../crates/bragd-library/tests/annotated.pgn")).unwrap();
+        let mut lib = Library::open(&d.join("n.bragd")).unwrap();
+        lib.import(&file, "mine", &|| false, &mut |_| {}).unwrap();
+        let r = stored_replay(&lib.stored(1).unwrap());
+        let _ = std::fs::remove_dir_all(&d);
+        assert_eq!(r.steps[0].comment, "Gespielt in der Oper.");
+        assert_eq!((r.steps[4].label.as_str(), r.steps[4].comment.as_str()), ("2… d6?!", "Weiß hätte hier besser den Springer ziehen sollen."));
+        assert_eq!(r.steps[7].comment, "Ein guter Zug.");
+        assert_eq!(r.steps[2].comment, "");
     }
 
     #[test]
