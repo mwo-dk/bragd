@@ -1,0 +1,1 @@
+| **Round-robin, knockout and Scheveningen tournaments can be paired.** Round-robins follow FIDE's Berger tables, single or double; knockout brackets seed top half against lower half reversed, with byes for the top seeds; Scheveningen matches two teams board against board. | [Round-robin, knockout and Scheveningen](reference/round-robin-and-knockout.md) |

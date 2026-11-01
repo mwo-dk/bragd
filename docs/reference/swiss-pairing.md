@@ -78,4 +78,4 @@ A club tournament pairs in a few hundredths of a second. The largest test, the 3
 Three things keep it quick. Edges that no candidate with the best values can use are dropped once the best values are known, using the matching's own dual values. Each later check first tries a small graph, leaving out lower players already paired among themselves, and uses the whole graph only when the small one falls short. And the matching starts by pairing every edge of the largest weight. The test `crates/pairing/tests/work.rs` counts the matching's steps on every Granada round, so a slowdown fails the test on any machine.
 
 ---
-[← Previous: Rating lists](rating-lists.md) · [Next: Rules →](../rules/README.md)
+[← Previous: Rating lists](rating-lists.md) · [Next: Round-robin, knockout and Scheveningen →](round-robin-and-knockout.md)

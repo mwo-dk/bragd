@@ -101,6 +101,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Privacy](reference/privacy.md) | What leaves the machine, when, and how to stop it |
 | [Rating lists](reference/rating-lists.md) | FIDE's and each federation's list: where, format, terms, rhythm, and which Bragd fetches |
 | [Swiss pairing](reference/swiss-pairing.md) | How Bragd pairs a Swiss round under the FIDE Dutch rules, and how that was tested |
+| [Round-robin, knockout and Scheveningen](reference/round-robin-and-knockout.md) | Berger tables, knockout brackets with seeds and byes, and team-against-team matches |
 
 ## [Rules](rules/README.md)
 

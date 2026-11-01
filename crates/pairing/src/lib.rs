@@ -9,6 +9,9 @@
 //! points the caller passes `win: 2` and records a draw as 1.
 
 pub mod dutch;
+pub mod knockout;
+pub mod round_robin;
+pub mod scheveningen;
 pub mod trf;
 
 mod colour;
@@ -92,6 +95,100 @@ pub struct Board {
     pub black: u32,
 }
 
+/// A paired round, the same shape from every pairing system.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Pairing {
+    /// Boards in publishing order.
+    pub boards: Vec<Board>,
+    /// The player given the pairing-allocated bye, if the number of players is odd.
+    pub bye: Option<u32>,
+    /// How each group of players was paired, in the order the system paired
+    /// them: for a Swiss system its brackets from the top scoregroup down.
+    pub brackets: Vec<Bracket>,
+}
+
+/// How one group of players was paired: the facts behind a director's "why".
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Bracket {
+    /// The rule the group was paired by.
+    pub rule: Rule,
+    /// The score of the resident players, in the caller's points (0 where
+    /// the system does not pair by score).
+    pub score: u32,
+    /// Resident players, by pairing number, in bracket order.
+    pub residents: Vec<u32>,
+    /// Moved-down players from the bracket above, in bracket order.
+    pub moved_down: Vec<u32>,
+    /// Pairs made in this bracket, higher ranked player first.
+    pub pairs: Vec<(u32, u32)>,
+    /// Players who float down to the next bracket (or take the bye).
+    pub floaters: Vec<u32>,
+    /// True when the pairs are the first candidate: no transposition, no exchange.
+    pub natural: bool,
+    /// The resident exchange used, as (moved from S1 to S2, moved from S2 to S1), by TPN.
+    pub exchange: Option<(Vec<u32>, Vec<u32>)>,
+    /// Every quality criterion the chosen candidate does not fully meet, with
+    /// its failure count. Empty for a perfect candidate.
+    pub failures: Vec<(Criterion, u32)>,
+}
+
+/// What a group of players was paired by.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Rule {
+    /// A scoregroup of the FIDE Dutch system (C.04.3).
+    Dutch,
+    /// A round of FIDE's Berger table for `size` players (C.05 Annex 1).
+    /// In `cycle` 2 of a double round-robin the colours are reversed.
+    Berger { size: u32, round: u32, cycle: u32 },
+    /// A round of a knockout bracket (FIDE World Cup regulations); the byes
+    /// are the bracket's floaters.
+    Knockout { round: u32 },
+    /// A round of a Scheveningen between two teams; colours are reversed in
+    /// cycle 2 of a double one.
+    Scheveningen { round: u32, cycle: u32 },
+}
+
+/// The criteria of C.04.3 2.3-2.4 a bracket can fail.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Criterion {
+    /// C5: the score of the player who takes the bye.
+    ByeScore,
+    /// C6: downfloaters from this bracket.
+    Downfloaters,
+    /// C7: the scores of the downfloaters, highest first.
+    DownfloaterScores,
+    /// C8: downfloaters this choice forces out of the next bracket.
+    NextBracketDownfloaters,
+    /// C8: the scores of those downfloaters, highest first.
+    NextBracketDownfloaterScores,
+    /// C9: unplayed rounds of the player who takes the bye.
+    ByeUnplayedRounds,
+    /// C10: topscorers or their opponents beyond a colour difference of 2.
+    TopscorerColourDifference,
+    /// C11: topscorers or their opponents with the same colour three times running.
+    TopscorerColourRepeat,
+    /// C12: players who do not get their colour preference.
+    ColourPreference,
+    /// C13: players who do not get their strong colour preference.
+    StrongColourPreference,
+    /// C14: resident downfloaters who floated down last round.
+    RepeatDownfloat,
+    /// C15: opponents of moved-down players who floated up last round.
+    RepeatUpfloat,
+    /// C16: resident downfloaters who floated down two rounds ago.
+    RepeatDownfloatTwoRounds,
+    /// C17: opponents of moved-down players who floated up two rounds ago.
+    RepeatUpfloatTwoRounds,
+    /// C18: moved-down players who floated down last round, again.
+    RepeatMovedDown,
+    /// C19: their opponents who floated up last round.
+    RepeatMovedDownOpponent,
+    /// C20: moved-down players who floated down two rounds ago, again.
+    RepeatMovedDownTwoRounds,
+    /// C21: their opponents who floated up two rounds ago.
+    RepeatMovedDownOpponentTwoRounds,
+}
+
 /// Why a round cannot be paired, or why the input is unusable.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -108,6 +205,8 @@ pub enum Error {
     NoLegalPairing,
     /// A bracket mixes more score levels than the pairing weights can hold.
     TooComplex,
+    /// A knockout match of an earlier round has no single winner.
+    NoWinner { round: u32, board: u32 },
 }
 
 impl std::fmt::Display for Error {
@@ -119,6 +218,9 @@ impl std::fmt::Display for Error {
             Error::TournamentOver => write!(f, "every round has been played"),
             Error::NoLegalPairing => write!(f, "no pairing meets the absolute criteria"),
             Error::TooComplex => write!(f, "a bracket mixes too many scores to pair"),
+            Error::NoWinner { round, board } => {
+                write!(f, "match {board} of round {round} has no single winner")
+            }
         }
     }
 }
