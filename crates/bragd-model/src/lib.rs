@@ -171,6 +171,19 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
+    /// A Peer asks its model for another machine, which keeps the translation: `ask` keeps
+    /// nothing, and the translation goes over the wire as JSON.
+    #[test]
+    fn model_ask_keeps_nothing_and_travels() {
+        key::mock();
+        let (url, _seen) = client::tests::fake(vec![(200, r#"{"choices":[{"message":{"content":"White should have moved the knight."}}]}"#.into())]);
+        let t = ask(&cfg(&url, "qwen3", ""), DE, "en-GB").unwrap();
+        assert_eq!((t.text.as_str(), t.model.as_str()), ("White should have moved the knight.", "qwen3"));
+        let back: Translation = serde_json::from_str(&serde_json::to_string(&t).unwrap()).unwrap();
+        assert_eq!(back, t);
+        assert_eq!(ask(&ModelConfig::default(), DE, "en-GB").unwrap_err(), t!("model.error.not_ready"));
+    }
+
     #[test]
     fn model_not_ready_asks_nothing() {
         let (dir, s) = temp_store("off");
