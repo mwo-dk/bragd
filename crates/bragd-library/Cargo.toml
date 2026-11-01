@@ -35,7 +35,5 @@ serde_json = "1"
 zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
 # A Library's games exported for DuckDB to read. Pure Rust codecs only.
 parquet = { version = "60", default-features = false, features = ["snap"] }
-
-[dev-dependencies]
-# The Variant ids a Library stores are checked against the catalogue.
+# A stored Game played again, so an Engine can be asked about its positions (`replay`).
 bragd-games = { path = "../bragd-games" }
