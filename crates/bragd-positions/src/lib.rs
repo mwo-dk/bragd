@@ -186,6 +186,9 @@ CREATE TABLE annotations (
 ) WITHOUT ROWID;
 ";
 
+/// How long a write waits for another connection's.
+const BUSY: std::time::Duration = std::time::Duration::from_secs(10);
+
 /// The Position store.
 pub struct Store {
     conn: Connection,
@@ -203,8 +206,22 @@ impl Store {
         if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
             std::fs::create_dir_all(dir)?;
         }
+        // Turning a new file to WAL while another connection opens it is refused at once, not
+        // waited for (seen on Windows), so a busy open is tried again for as long as a write waits.
+        let until = std::time::Instant::now() + BUSY;
+        loop {
+            match Store::open_once(path) {
+                Err(Error::Sql(rusqlite::Error::SqliteFailure(e, _))) if e.code == rusqlite::ErrorCode::DatabaseBusy && std::time::Instant::now() < until => {
+                    std::thread::sleep(std::time::Duration::from_millis(20));
+                }
+                other => return other,
+            }
+        }
+    }
+
+    fn open_once(path: &Path) -> Result<Store> {
         let conn = Connection::open(path)?;
-        conn.busy_timeout(std::time::Duration::from_secs(10))?;
+        conn.busy_timeout(BUSY)?;
         conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
         let version = |c: &Connection| c.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0));
         let mut v = version(&conn)?;
@@ -536,7 +553,7 @@ pub(crate) mod tests {
     fn a_new_store_opened_at_once_from_many_threads_is_made_once() {
         let d = dir("at-once");
         let p = d.join("positions.sqlite");
-        let all: Vec<_> = (0..8).map(|_| { let p = p.clone(); std::thread::spawn(move || Store::open(&p).map(|_| ())) }).collect();
+        let all: Vec<_> = (0..16).map(|_| { let p = p.clone(); std::thread::spawn(move || Store::open(&p).map(|_| ())) }).collect();
         for t in all {
             t.join().unwrap().unwrap();
         }
