@@ -1,5 +1,6 @@
-//! Throwing the dice and sticks of the race Families. The randomness lives here, in the app:
-//! the rules crates and `bragd-games` only ever see the throw as an entry.
+//! Throwing the dice and sticks of the race Families. The randomness lives here, not in the rules:
+//! the rules crates and `bragd-games` only ever see the throw as an entry. The app throws for Play,
+//! the Helper for engine matches.
 
 use bragd_games::Family;
 

@@ -14,7 +14,6 @@ mod engines;
 mod files;
 mod rules;
 mod tablebases;
-mod throw;
 mod wizard;
 
 use std::collections::HashMap;
@@ -267,7 +266,7 @@ struct Started {
 #[tauri::command]
 fn game_new(variant: String) -> Result<Started, GameError> {
     bragd_core::tips::used("play");
-    let array = (bragd_games::variant(&variant)? == Variant::Chess960).then(throw::chess960_array);
+    let array = (bragd_games::variant(&variant)? == Variant::Chess960).then(bragd_core::throw::chess960_array);
     let initial = array.map(bragd_games::chess960_start);
     let state = bragd_games::replay::<&str>(&variant, initial.as_deref(), &[])?;
     Ok(Started { initial, array, state })
@@ -289,7 +288,7 @@ struct Thrown {
 #[tauri::command]
 fn game_throw(variant: String, initial: Option<String>, entries: Vec<String>) -> Result<Thrown, GameError> {
     let state = bragd_games::replay(&variant, initial.as_deref(), &entries)?;
-    let entry = throw::throw(state.variant.family(), &state.throws).ok_or_else(|| GameError::Refused {
+    let entry = bragd_core::throw::throw(state.variant.family(), &state.throws).ok_or_else(|| GameError::Refused {
         index: entries.len(),
         entry: String::new(),
         reason: "no throw is awaited".into(),

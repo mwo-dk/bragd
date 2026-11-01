@@ -10,6 +10,7 @@ pub mod fetch;
 pub mod images;
 pub mod known;
 pub mod lichess;
+pub mod local;
 pub mod matches;
 pub mod network;
 pub mod options;

@@ -23,3 +23,5 @@ sys-locale = "0.3.2"
 ureq = { version = "3", features = ["platform-verifier"] }
 # WinGet's record of what it installed (`update::winget_installed`) is an SQLite file.
 rusqlite = { version = "0.41", features = ["bundled"] }
+# Dice and sticks are thrown from the operating system's random source (`throw`).
+getrandom = "0.4"
