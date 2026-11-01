@@ -145,14 +145,25 @@ pub fn settings(t: &Trf) -> Settings {
     }
 }
 
+/// A pairing system's entry point.
+pub type System = fn(&Settings, &[Player], &[u32]) -> Result<Pairing, pairing::Error>;
+
 /// Pairs `round` from the history before it.
 pub fn pair(t: &Trf, round: usize) -> Pairing {
-    dutch::pair(&settings(t), &players(t, round), &paired_in(t, round)).expect("round pairs")
+    pair_with(dutch::pair, t, round)
+}
+
+pub fn pair_with(system: System, t: &Trf, round: usize) -> Pairing {
+    system(&settings(t), &players(t, round), &paired_in(t, round)).expect("round pairs")
 }
 
 /// Ours against the published one: (equal, a description of the difference).
 pub fn compare(t: &Trf, round: usize) -> (bool, String) {
-    let ours = pair(t, round);
+    compare_with(dutch::pair, t, round)
+}
+
+pub fn compare_with(system: System, t: &Trf, round: usize) -> (bool, String) {
+    let ours = pair_with(system, t, round);
     let mut mine = ours.boards.clone();
     mine.sort_by_key(|b| (b.white, b.black));
     let (theirs, bye) = published(t, round);

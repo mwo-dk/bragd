@@ -10,6 +10,8 @@
 
 pub mod dutch;
 pub mod knockout;
+pub mod monrad;
+pub mod nordic;
 pub mod round_robin;
 pub mod scheveningen;
 pub mod trf;
@@ -146,6 +148,12 @@ pub enum Rule {
     /// A round of a Scheveningen between two teams; colours are reversed in
     /// cycle 2 of a double one.
     Scheveningen { round: u32, cycle: u32 },
+    /// DSU's Monrad system: players in placement order, each meeting the
+    /// nearest one below not yet met. `natural` when that is 1-2, 3-4, ...
+    Monrad,
+    /// A score pool of the Nordic Swiss (DSU's Dansk Schweizer): the strong
+    /// half meets the weak half, `a1` against `b1`, the middle player floating.
+    Nordic,
 }
 
 /// The criteria of C.04.3 2.3-2.4 a bracket can fail.
