@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Bragd-ის საკუთარი საქაღალდე: {path}",
  "tablebases.folder_only": "მხოლოდ საქაღალდე.",
  "tablebases.folder_set": "თქვენი საკუთარი საქაღალდე. Bragd მას მხოლოდ კითხულობს და მასში ჩამოტვირთავს.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "ფაილები საქაღალდეში: {n}",
  "tablebases.intro": "Syzygy დასრულების ბაზები: იდეალური თამაში ცოტა ფიგურიანი ჭადრაკის პოზიციებისთვის. საქაღალდე ყველა ძრავას გადაეცემა. ჩამოტვირთვები მოდის აქედან: tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd ოფლაინ რეჟიმშია: არაფერი ჩამოიტვირთება და ონლაინ არაფერი ითხოვება.",

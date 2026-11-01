@@ -17,7 +17,8 @@ use bragd_games::{State, Variant};
 use bragd_library::chess::{openings, polyglot};
 use serde::Serialize;
 
-use crate::engines::{self, tr};
+use crate::engines;
+use bragd_core::i18n::tr;
 
 /// A Game being played online, as far as the fair-play guard needs it.
 #[derive(Clone, Copy, Debug, Default)]
@@ -41,11 +42,6 @@ fn live_games() -> Vec<LiveGame> {
 
 fn guard() -> Result<(), String> {
     if locked(&live_games()) { Err(tr("analyse.locked", &[])) } else { Ok(()) }
-}
-
-/// Nothing goes to the network while `BRAGD_OFFLINE` is set (tests and screenshots).
-pub fn offline() -> bool {
-    std::env::var_os("BRAGD_OFFLINE").is_some()
 }
 
 /// The Game asked about.
@@ -142,7 +138,7 @@ const SHOWN: usize = 10;
 /// whatever ran before stops.
 pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, entries: Vec<String>, engine: Option<String>, lines: Option<u32>) -> Result<(), String> {
     guard()?;
-    *held.live.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *crate::lock(&held.live) = None;
     let key = engine.filter(|k| !k.is_empty()).or_else(|| engines::default_for(cfg, variant)).ok_or_else(|| tr("engines.none_for", &[]))?;
     let chosen = engines::resolve(cfg, &key, variant)?;
     let asked = Asked { variant: variant.into(), initial, entries };
@@ -156,7 +152,7 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
             let (mut e, notation) = engines::start(&cfg, &chosen, &a.variant, &halt)?;
             let (pos, state) = seam::position(&a.variant, a.initial.as_deref(), &a.entries, notation)?;
             {
-                let mut raw = r.lock().unwrap_or_else(|e| e.into_inner());
+                let mut raw = crate::lock(&r);
                 raw.engine = e.about().name.clone();
                 raw.notation = Some(notation);
                 raw.second = state.to_move.is_some_and(|s| s.index == 1);
@@ -165,10 +161,10 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
                 return Ok(());
             }
             // Until stopped, or the engine's own cap (`Limit::cap`).
-            let report = &mut |i: &Info| r.lock().unwrap_or_else(|e| e.into_inner()).heard(i, wanted);
+            let report = &mut |i: &Info| crate::lock(&r).heard(i, wanted);
             let a = think(&mut e, &pos, Limit::Depth(99), wanted, &halt, report).map_err(|e| e.to_string())?;
             // An engine that reports no lines (GNU Go) still names its move.
-            let mut raw = r.lock().unwrap_or_else(|e| e.into_inner());
+            let mut raw = crate::lock(&r);
             if raw.lines.is_empty()
                 && let Some(b) = a.best
             {
@@ -176,7 +172,7 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
             }
             Ok(())
         })();
-        let mut raw = r.lock().unwrap_or_else(|e| e.into_inner());
+        let mut raw = crate::lock(&r);
         raw.done = true;
         if let Err(e) = result
             && !halt()
@@ -184,12 +180,12 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
             raw.error = Some(e);
         }
     });
-    *held.live.lock().unwrap_or_else(|e| e.into_inner()) = Some(Live { asked, raw, stop, shown: Default::default() });
+    *crate::lock(&held.live) = Some(Live { asked, raw, stop, shown: Default::default() });
     Ok(())
 }
 
 pub fn stop(held: &Held) {
-    if let Some(l) = held.live.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+    if let Some(l) = crate::lock(&held.live).as_ref() {
         l.stop.store(true, Ordering::Relaxed);
     }
 }
@@ -221,9 +217,9 @@ pub struct Now {
 pub fn now(held: &Held) -> Option<Now> {
     // Copied out, so the replays below hold neither lock and the engine's reports never wait.
     let (asked, raw, shown) = {
-        let live = held.live.lock().unwrap_or_else(|e| e.into_inner());
+        let live = crate::lock(&held.live);
         let l = live.as_ref()?;
-        let raw = l.raw.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        let raw = crate::lock(&l.raw).clone();
         (l.asked.clone(), raw, l.shown.clone())
     };
     let lines = raw
@@ -232,7 +228,7 @@ pub fn now(held: &Held) -> Option<Now> {
             let heard: Vec<&Info> = raw.lines.iter().filter(|i| !i.pv.is_empty()).collect();
             let pvs: Vec<Vec<String>> = heard.iter().map(|i| i.pv.iter().take(SHOWN).cloned().collect()).collect();
             let a = &asked;
-            let moves = shown_lines(&mut shown.lock().unwrap_or_else(|e| e.into_inner()), &pvs, |pv| seam::line(&a.variant, a.initial.as_deref(), &a.entries, n, pv));
+            let moves = shown_lines(&mut crate::lock(&shown), &pvs, |pv| seam::line(&a.variant, a.initial.as_deref(), &a.entries, n, pv));
             heard
                 .into_iter()
                 .zip(moves)
@@ -251,7 +247,7 @@ pub fn now(held: &Held) -> Option<Now> {
 /// Starts reviewing the whole Game with the Variant's engine (or `engine`).
 pub fn review_start(cfg: &Config, held: &Held, variant: &str, initial: Option<&str>, entries: &[String], engine: Option<String>) -> Result<(), String> {
     guard()?;
-    *held.review.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *crate::lock(&held.review) = None;
     let key = engine.filter(|k| !k.is_empty()).or_else(|| engines::default_for(cfg, variant)).ok_or_else(|| tr("engines.none_for", &[]))?;
     let chosen = engines::resolve(cfg, &key, variant)?;
     let protocol = chosen.protocols[0];
@@ -270,12 +266,12 @@ pub fn review_start(cfg: &Config, held: &Held, variant: &str, initial: Option<&s
         cache: bragd_core::dirs::app_cache().map(|c| c.join("reviews")),
     };
     let reviewer = Reviewer::start(&setup, &game);
-    *held.review.lock().unwrap_or_else(|e| e.into_inner()) = Some(Reviewing { reviewer, entries: game.moves.len() });
+    *crate::lock(&held.review) = Some(Reviewing { reviewer, entries: game.moves.len() });
     Ok(())
 }
 
 pub fn review_stop(held: &Held) {
-    *held.review.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *crate::lock(&held.review) = None;
 }
 
 /// A review as the move list shows it: each entry's mark and evaluation.
@@ -302,7 +298,7 @@ fn mark(nag: u8) -> &'static str {
 }
 
 pub fn review_now(held: &Held) -> Option<ReviewView> {
-    let r = held.review.lock().unwrap_or_else(|e| e.into_inner());
+    let r = crate::lock(&held.review);
     let r = r.as_ref()?;
     let rev = r.reviewer.now();
     let mut marks = vec![String::new(); r.entries];
@@ -386,7 +382,7 @@ pub fn tablebase(cfg: &Config, variant: &str, initial: Option<&str>, entries: &[
         return Ok(None);
     }
     let side = state.to_move.map(|s| tr(&format!("side.{}", s.name.to_lowercase()), &[])).unwrap_or_default();
-    let tb = Tablebases { folders: cfg.tablebase_folder().into_iter().collect(), online: cfg.tablebases.online && !offline() };
+    let tb = Tablebases { folders: cfg.tablebase_folder().into_iter().collect(), online: cfg.tablebases.online && !bragd_core::offline() };
     if tb.covers(fen) {
         return Ok(Some(TableView { pieces, local: true, ..Default::default() }));
     }

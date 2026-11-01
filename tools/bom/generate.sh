@@ -7,14 +7,13 @@
 #
 #   tools/bom/generate.sh [OUT_DIR]             (default target/bom)
 #
-# Needs cargo-cyclonedx, cargo-about (versions below), Node.js with `npm ci` done in gui/, and
-# python3. Checks as it goes: npm licences against the allowed list, and crypto.toml against the
+# Needs cargo-cyclonedx, cargo-about (versions below), Node.js with `npm ci` done in gui/ (the npm
+# SBOM tool is a devDependency there, locked by gui/package-lock.json), and python3. Checks as it goes: npm licences against the allowed list, and crypto.toml against the
 # build and the source.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 CYCLONEDX_RUST=0.5.7
-CYCLONEDX_NPM=6.0.1
 ABOUT=0.8.4
 
 out="${1:-target/bom}"
@@ -42,7 +41,7 @@ cargo cyclonedx -q -f json --spec-version 1.5 --target all --no-build-deps --ove
 cp gui/src-tauri/bom-rust.json "$tmp/rust.json"
 
 echo "== npm SBOM (what ships in the app)"
-(cd gui && npx --yes "@cyclonedx/cyclonedx-npm@$CYCLONEDX_NPM" --omit dev --spec-version 1.6 \
+(cd gui && npx --no-install cyclonedx-npm --omit dev --spec-version 1.6 \
   --output-format JSON --output-reproducible --output-file "$tmp/npm.json")
 
 echo "== npm licences"

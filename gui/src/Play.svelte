@@ -67,7 +67,6 @@
   const side = (/** @type {any} */ seat) => t(`side.${seat.name.toLowerCase()}`);
   const targets = $derived(st ? [...new Set(movesOf(st, sel).map((m) => m.to).filter(Boolean))] : []);
   const scoring = $derived(st?.moves.some((/** @type {any} */ m) => m.wire === "dead:"));
-  const race = $derived(["backgammon", "ur", "senet"].includes(family.id));
 
   /** The state `p` gives; `then` runs first, so the record and the state it shows change
    * together (an Engine's turn reads both: asked between them, it got the old record). */
@@ -273,7 +272,7 @@
                   </button>
                 {/each}
               {/each}
-              {#if !race || family.id !== "backgammon"}
+              {#if family.id !== "backgammon"}
                 {#each offs(seat) as h}
                   {#each h.pieces as p}
                     <button
@@ -349,7 +348,7 @@
           </div>
         {/if}
 
-        {#if race && st.awaiting === "move" && !choose.length}
+        {#if family.race && st.awaiting === "move" && !choose.length}
           <div class="choose">
             <p>{t("play.legal")}</p>
             {#each st.moves.filter((/** @type {any} */ m) => m.from || m.to) as m}

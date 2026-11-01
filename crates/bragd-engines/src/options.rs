@@ -177,11 +177,7 @@ impl OptionStore {
     /// Written whole to a file beside `path`, then moved over it: a crash never leaves half.
     pub fn save(&self, path: &Path) -> Result<(), String> {
         let text = toml::to_string(self).map_err(|e| e.to_string())?;
-        if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-        }
-        let tmp = path.with_extension("toml.new");
-        std::fs::write(&tmp, text).and_then(|_| std::fs::rename(&tmp, path)).map_err(|e| format!("{}: {e}", path.display()))
+        bragd_core::fs::replace(path, text.as_bytes(), false).map_err(|e| format!("{}: {e}", path.display()))
     }
 
     /// What to send to the engine `about` describes: each set option it offers, with a value

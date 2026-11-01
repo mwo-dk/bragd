@@ -71,6 +71,11 @@ impl Family {
     pub fn has_engine(self) -> bool {
         !matches!(self, Family::Tafl | Family::Ur | Family::Senet)
     }
+
+    /// Raced along a track by throws of the dice: backgammon, Ur and senet.
+    pub fn race(self) -> bool {
+        matches!(self, Family::Backgammon | Family::Ur | Family::Senet)
+    }
 }
 
 /// How the board is built, which decides how a front end draws it.
@@ -227,6 +232,12 @@ impl Variant {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_race_games_are_the_ones_with_dice() {
+        let race: Vec<&str> = Family::ALL.iter().filter(|f| f.race()).map(|f| f.key()).collect();
+        assert_eq!(race, ["backgammon", "ur", "senet"]);
+    }
 
     #[test]
     fn every_variant_has_one_row_and_its_key_finds_it() {

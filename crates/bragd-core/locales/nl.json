@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Eigen map van Bragd: {path}",
  "tablebases.folder_only": "Alleen een map.",
  "tablebases.folder_set": "Je eigen map. Bragd leest hem alleen en downloadt erin.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Tabellen in de map: {n}",
  "tablebases.intro": "Syzygy-eindspeltabellen: perfect spel voor schaakstellingen met weinig stukken. Elke engine krijgt de map. Downloads komen van tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd is offline: er wordt niets gedownload of online gevraagd.",

@@ -690,7 +690,6 @@
  "tablebases.folder_default": "Власна тека Bragd: {path}",
  "tablebases.folder_only": "Лише тека.",
  "tablebases.folder_set": "Ваша власна тека. Bragd лише читає її і завантажує в неї.",
- "tablebases.gb": "{n} ГБ",
  "tablebases.have": "Таблиць у теці: {n}",
  "tablebases.intro": "Ендшпільні бази Syzygy: ідеальна гра для шахових позицій з малою кількістю фігур. Кожен рушій отримує теку. Завантаження з tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd офлайн: нічого не завантажується і не запитується онлайн.",

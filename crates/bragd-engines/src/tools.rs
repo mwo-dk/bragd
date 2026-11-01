@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
+use bragd_core::update::flatpak;
+
 /// A program on PATH, like `which`. In a Flatpak, the host's `/usr/bin` too.
 pub fn which(program: &str) -> Option<PathBuf> {
     let names = if cfg!(windows) { vec![format!("{program}.exe"), format!("{program}.cmd"), format!("{program}.bat")] } else { vec![program.to_string()] };
@@ -90,13 +92,6 @@ pub fn container_runtime(choice: &str) -> Option<Runtime> {
         _ => &["podman", "docker"],
     };
     order.iter().find_map(|&name| which(name).map(|path| Runtime { name, path }))
-}
-
-/// The app id when Bragd runs in a Flatpak. The host's programs are then seen under
-/// `/run/host`, and run there with `flatpak-spawn --host`.
-pub fn flatpak() -> Option<&'static str> {
-    static ID: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
-    ID.get_or_init(|| std::env::var("FLATPAK_ID").ok().filter(|_| Path::new("/.flatpak-info").is_file())).as_deref()
 }
 
 /// Where a Flatpak sees the host's `/usr`.

@@ -153,7 +153,7 @@ fn push_pawn_move(
 /// in every position of every variant and puts a value on the hot path carrying
 /// the correctness gate. Neither applies: chess's generator above is untouched
 /// and does not call this, there is no branch — the role is written into the
-/// move — and the two callers hand over a constant. What it buys is that the
+/// move — and the one caller hands over a constant. What it buys is that the
 /// difference between the two games is named at the call site rather than
 /// implied by which file you are reading.
 ///
@@ -202,6 +202,56 @@ fn push_stepping_pawn_move(
         (false, false) => MoveKind::Quiet,
     };
     moves.push(Move::new(from, to, kind));
+}
+
+/// Every legal move of the two ancient games, which differ only in `elephant`.
+///
+/// The padati is chess's pawn without its double step, promoting to a mantri
+/// (`Role::Ferz`, one square diagonally) with no choice offered; no double step
+/// means no en passant. The rook, knight and king are chess's exactly. No queen
+/// or bishop appears, and no position these games reach contains one. The
+/// elephant is the alfil (shatranj, two squares diagonally and leaping) or the
+/// gaja (chaturanga, one square forward or diagonal). Only the gaja has to be
+/// told whose it is, so `us` is read for nothing else.
+///
+/// There is no castling generator to call. That absence is the rule.
+///
+/// The legality filter is shared because "you may not move into check" is
+/// shared, and `Position::attackers_to` already knows about both elephants.
+pub(crate) fn ancient_legal_moves(position: &Position, elephant: Role) -> MoveList {
+    let mut moves = MoveList::new();
+    stepping_pawn_moves(position, &mut moves, Role::Ferz);
+
+    let us = position.side_to_move();
+    let occupied = position.occupied();
+    let ours = position.by_color(us);
+    let enemies = position.by_color(us.opponent());
+
+    for role in [Role::Knight, Role::Rook, Role::King, Role::Ferz, elephant] {
+        for from in position.pieces(us, role) {
+            let targets = match role {
+                Role::Knight => attacks::knight(from),
+                Role::Rook => attacks::rook(from, occupied),
+                Role::King => attacks::king(from),
+                Role::Ferz => attacks::ferz(from),
+                Role::Alfil => attacks::alfil(from),
+                Role::Gaja => attacks::gaja(us, from),
+                _ => unreachable!("the ancient games have no other piece to generate here"),
+            } & !ours;
+
+            for to in targets {
+                let kind = if enemies.contains(to) {
+                    MoveKind::Capture
+                } else {
+                    MoveKind::Quiet
+                };
+                moves.push(Move::new(from, to, kind));
+            }
+        }
+    }
+
+    moves.retain(|mv| !position.make_move(mv).is_check_against(us));
+    moves
 }
 
 fn generate_piece_moves(position: &Position, moves: &mut MoveList) {

@@ -9,7 +9,8 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::State as Managed;
 
-use crate::engines::{self, tr};
+use crate::engines;
+use bragd_core::i18n::tr;
 use crate::{Ctx, analyse, tablebases};
 
 type Res<T> = Result<T, String>;

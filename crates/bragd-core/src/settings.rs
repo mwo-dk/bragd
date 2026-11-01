@@ -72,6 +72,11 @@ impl Opt {
         crate::i18n::tr(self.texts, &[])
     }
 
+    /// Listed in its area of Settings. Families and Disk use draw their own options.
+    pub fn listed(&self) -> bool {
+        self.area != Families && !self.name.starts_with("disk_")
+    }
+
     /// Its explanation, or empty.
     pub fn hint(&self) -> String {
         let key = format!("{}.hint", self.texts);
@@ -328,6 +333,16 @@ mod tests {
     use super::*;
     use Item::{Analyse, Databases, OpeningBooks, Play, Rules, Tablebases};
     const ENGINES: Item = Item::Engines;
+
+    #[test]
+    fn settings_lists_what_has_no_page_of_its_own() {
+        // Families and Disk use draw their own options; the rest are listed in their area.
+        assert!(!find("family_chess").unwrap().listed());
+        assert!(!find("disk_total").unwrap().listed());
+        assert!(find("theme").unwrap().listed());
+        let listed = options().filter(|o| o.listed()).count();
+        assert_eq!(listed, OTHER_OPTS.len() - 2);
+    }
 
     #[test]
     fn settings_every_option_has_its_texts_and_a_unique_name() {

@@ -62,11 +62,7 @@ pub fn networks_folder() -> Result<PathBuf, String> {
 
 /// The error when the system names no folder for Bragd's own files.
 pub fn no_folder() -> String {
-    tr("app.no_folder", &[])
-}
-
-pub fn tr(key: &str, args: &[(&str, &str)]) -> String {
-    i18n::tr(key, args)
+    i18n::tr("app.no_folder", &[])
 }
 
 /// Where the user's engine options are kept.
@@ -167,24 +163,24 @@ pub fn resolve(cfg: &Config, key: &str, variant: &str) -> Result<Chosen, String>
         let program = known::choose(k, installed(cfg, key, Some(k)), rt.as_ref(), |rt, i| !images::pulled(&rt.path, &[i.to_string()]).is_empty(), cfg.tablebase_folder().as_deref(), &networks_folder()?, dev).map_err(|m| missing(cfg, k, &m))?;
         return Ok(Chosen { key: key.into(), program, protocols: vec![k.protocol(variant)] });
     }
-    let family = cfg.engines.added.get(key).and_then(|f| Family::from_key(f)).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
-    let path = installed(cfg, key, None).ok_or_else(|| tr("engines.gone", &[("name", key)]))?;
+    let family = cfg.engines.added.get(key).and_then(|f| Family::from_key(f)).ok_or_else(|| i18n::tr("engines.unknown", &[("name", key)]))?;
+    let path = installed(cfg, key, None).ok_or_else(|| i18n::tr("engines.gone", &[("name", key)]))?;
     Ok(Chosen { key: key.into(), program: Program::Installed { path, args: vec![] }, protocols: seam::protocols(family).to_vec() })
 }
 
 fn missing(cfg: &Config, k: &Known, m: &Missing) -> String {
     match m {
-        Missing::NotPulled { .. } => tr("engines.state.get", &[("size", &bragd_helper::disk::bytes(k.image_size))]),
-        Missing::NoRuntime if !cfg.engines.containers => tr("engines.state.containers_off", &[]),
-        Missing::NoRuntime => tr("engines.state.no_runtime", &[]),
-        Missing::NoNetwork => tr("engines.network.missing", &[("name", k.name)]),
-        Missing::NoImage => format!("{} {}", tr("engines.state.no_image", &[]), install_hint(k)),
+        Missing::NotPulled { .. } => i18n::tr("engines.state.get", &[("size", &bragd_helper::disk::bytes(k.image_size))]),
+        Missing::NoRuntime if !cfg.engines.containers => i18n::tr("engines.state.containers_off", &[]),
+        Missing::NoRuntime => i18n::tr("engines.state.no_runtime", &[]),
+        Missing::NoNetwork => i18n::tr("engines.network.missing", &[("name", k.name)]),
+        Missing::NoImage => format!("{} {}", i18n::tr("engines.state.no_image", &[]), install_hint(k)),
     }
 }
 
 /// How to install `k` here: its package, and its download page when it has one.
 fn install_hint(k: &Known) -> String {
-    if k.site.is_empty() { tr("engines.install_hint_package", &[("program", k.programs[0])]) } else { tr("engines.install_hint", &[("program", k.programs[0]), ("site", k.site)]) }
+    if k.site.is_empty() { i18n::tr("engines.install_hint_package", &[("program", k.programs[0])]) } else { i18n::tr("engines.install_hint", &[("program", k.programs[0]), ("site", k.site)]) }
 }
 
 /// The engine a Variant is played and analysed with: the one chosen for it, else the first
@@ -200,10 +196,10 @@ pub fn default_for(cfg: &Config, variant: &str) -> Option<String> {
 /// Starts `chosen` for `variant`, with the user's options and the tablebases: the engine,
 /// and how it writes moves. Refused when it does not play the Variant.
 pub fn start(cfg: &Config, chosen: &Chosen, variant: &str, stop: &dyn Fn() -> bool) -> Result<(Engine, Notation), String> {
-    let mut e = Engine::start_any(&chosen.program, &chosen.protocols, Duration::from_secs(30), stop).map_err(|e| tr("engines.no_start", &[("name", &chosen.key), ("why", &e.to_string())]))?;
+    let mut e = Engine::start_any(&chosen.program, &chosen.protocols, Duration::from_secs(30), stop).map_err(|e| i18n::tr("engines.no_start", &[("name", &chosen.key), ("why", &e.to_string())]))?;
     used(&chosen.program);
     if !seam::plays(e.about(), e.protocol(), variant) {
-        return Err(tr("engines.not_this_variant", &[("name", &e.about().name)]));
+        return Err(i18n::tr("engines.not_this_variant", &[("name", &e.about().name)]));
     }
     let store = OptionStore::load(&store_path()?).unwrap_or_default();
     e.configure(&store, syzygy(cfg).as_deref()).map_err(|e| e.to_string())?;
@@ -290,8 +286,8 @@ pub struct PullWait {
 /// Why a pull failed, in the user's language.
 fn pull_why(e: &images::PullError) -> String {
     match e.fault {
-        images::Fault::Network => tr("engines.pull.no_network", &[]),
-        images::Fault::Registry => tr("engines.pull.busy", &[]),
+        images::Fault::Network => i18n::tr("engines.pull.no_network", &[]),
+        images::Fault::Registry => i18n::tr("engines.pull.busy", &[]),
         images::Fault::Lasting | images::Fault::Stopped => e.detail.clone(),
     }
 }
@@ -325,7 +321,7 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             // Only engines there to run are offered, and the one chosen before, whatever it is now.
             let all = engines_for(cfg, v.key);
             let engines: Vec<String> = all.iter().filter(|k| **k == chosen || availability(cfg, k).ready()).cloned().collect();
-            VariantRow { key: v.key, name: tr(&format!("variant.{}", v.key), &[]), waiting: engines.is_empty() && !all.is_empty(), engines, chosen, current: default_for(cfg, v.key) }
+            VariantRow { key: v.key, name: i18n::tr(&format!("variant.{}", v.key), &[]), waiting: engines.is_empty() && !all.is_empty(), engines, chosen, current: default_for(cfg, v.key) }
         })
         .collect();
     let mut keys: Vec<String> = vec![];
@@ -338,8 +334,8 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
     }
     let pulling = images::pulling();
     let waiting = images::waiting();
-    let failed = held.pulls.lock().unwrap_or_else(|e| e.into_inner()).clone();
-    let downloads = held.networks.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    let failed = crate::lock(&held.pulls).clone();
+    let downloads = crate::lock(&held.networks).clone();
     let engines = keys
         .into_iter()
         .map(|key| {
@@ -347,13 +343,13 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             let state = availability(cfg, &key);
             let hint = match (&state, k) {
                 // Running from a checkout with images allowed: the image can be built here.
-                (Availability::NoImage, Some(k)) if k.dev_image(known::dev_images()).is_some() => tr("engines.build_here", &[("command", &format!("tools/dev/images.sh {}", k.key))]),
-                (Availability::NoImage | Availability::NoRuntime | Availability::ContainersOff | Availability::Pull { .. }, Some(k)) => tr("engines.install_hint_package", &[("program", k.programs[0])]), // its download page is a button
-                (Availability::Gone { .. }, _) => tr("engines.gone", &[("name", &key)]),
+                (Availability::NoImage, Some(k)) if k.dev_image(known::dev_images()).is_some() => i18n::tr("engines.build_here", &[("command", &format!("tools/dev/images.sh {}", k.key))]),
+                (Availability::NoImage | Availability::NoRuntime | Availability::ContainersOff | Availability::Pull { .. }, Some(k)) => i18n::tr("engines.install_hint_package", &[("program", k.programs[0])]), // its download page is a button
+                (Availability::Gone { .. }, _) => i18n::tr("engines.gone", &[("name", &key)]),
                 _ => String::new(),
             };
             let image = k.and_then(Known::image);
-            let variants = family.variants().filter(|v| engines_for(cfg, v.key).contains(&key)).map(|v| tr(&format!("variant.{}", v.key), &[])).collect();
+            let variants = family.variants().filter(|v| engines_for(cfg, v.key).contains(&key)).map(|v| i18n::tr(&format!("variant.{}", v.key), &[])).collect();
             // Only an image needs the network: an installed engine brings its own, and an image
             // that cannot be had yet needs none.
             let network = network::for_engine(&key).filter(|_| matches!(state, Availability::Pull { .. } | Availability::Pulled { .. } | Availability::Built { .. })).map(|n| NetworkView {
@@ -384,15 +380,15 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
 /// Downloads the network the engine `key`'s image needs, on a thread; the page asks how far
 /// it is. Pressed under the network's licence, which is the user's consent to it.
 pub fn download_network(held: &Held, key: &str) -> Result<(), String> {
-    if crate::analyse::offline() {
-        return Err(tr("tablebases.offline", &[]));
+    if bragd_core::offline() {
+        return Err(i18n::tr("tablebases.offline", &[]));
     }
-    let n = network::for_engine(key).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
+    let n = network::for_engine(key).ok_or_else(|| i18n::tr("engines.unknown", &[("name", key)]))?;
     let jobs = held.networks.clone();
     {
-        let mut all = jobs.lock().unwrap_or_else(|e| e.into_inner());
+        let mut all = crate::lock(&jobs);
         if all.get(key).is_some_and(|j| !j.finished) {
-            return Err(tr("tablebases.busy", &[]));
+            return Err(i18n::tr("tablebases.busy", &[]));
         }
         all.insert(key.into(), NetworkJob { total: n.archive_size, ..Default::default() });
     }
@@ -400,12 +396,12 @@ pub fn download_network(held: &Held, key: &str) -> Result<(), String> {
     let folder = networks_folder()?;
     std::thread::spawn(move || {
         let r = n.download(&folder, &bragd_engines::fetch::Http, &mut |done, total| {
-            if let Some(j) = jobs.lock().unwrap_or_else(|e| e.into_inner()).get_mut(&key) {
+            if let Some(j) = crate::lock(&jobs).get_mut(&key) {
                 (j.done, j.total) = (done, total);
             }
             true
         });
-        if let Some(j) = jobs.lock().unwrap_or_else(|e| e.into_inner()).get_mut(&key) {
+        if let Some(j) = crate::lock(&jobs).get_mut(&key) {
             j.finished = true;
             j.error = r.err();
         }
@@ -422,9 +418,9 @@ pub fn set_default(variant: &str, engine: &str) -> Result<Config, String> {
 /// Family's protocols. One that says it is an engine Bragd knows (Stockfish) becomes that
 /// engine's program; any other is added under its own name.
 pub fn add(family: Family, path: &str) -> Result<Config, String> {
-    let p = home().and_then(|h| known::configured(path, &h)).ok_or_else(|| tr("engines.no_file", &[("path", path)]))?;
+    let p = home().and_then(|h| known::configured(path, &h)).ok_or_else(|| i18n::tr("engines.no_file", &[("path", path)]))?;
     let program = Program::Installed { path: p.clone(), args: vec![] };
-    let e = Engine::start_any(&program, seam::protocols(family), Duration::from_secs(10), &|| false).map_err(|e| tr("engines.no_start", &[("name", path), ("why", &e.to_string())]))?;
+    let e = Engine::start_any(&program, seam::protocols(family), Duration::from_secs(10), &|| false).map_err(|e| i18n::tr("engines.no_start", &[("name", path), ("why", &e.to_string())]))?;
     let name = options::engine_key(&e.about().name);
     drop(e);
     let key: String = name.to_lowercase().split_whitespace().collect::<Vec<_>>().join("-");
@@ -451,22 +447,22 @@ pub fn options_of(cfg: &Config, held: &Held, key: &str, variant: &str) -> Result
     let (e, _) = start(cfg, &chosen, variant, &|| false)?;
     let store = OptionStore::load(&store_path()?).unwrap_or_default();
     let info = EngineInfo::new(e.about(), chosen.program.container(), &store);
-    held.info.lock().unwrap_or_else(|e| e.into_inner()).insert(key.to_string(), info.clone());
+    crate::lock(&held.info).insert(key.to_string(), info.clone());
     Ok(info)
 }
 
 /// Sets (or with None clears) one option of the engine `key`, listed before by `options_of`.
 pub fn set_option(held: &Held, key: &str, name: &str, value: Option<&Value>) -> Result<EngineInfo, String> {
-    let mut all = held.info.lock().unwrap_or_else(|e| e.into_inner());
-    let info = all.get_mut(key).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
+    let mut all = crate::lock(&held.info);
+    let info = all.get_mut(key).ok_or_else(|| i18n::tr("engines.unknown", &[("name", key)]))?;
     let store = options::set_option(&store_path()?, info, name, value)?;
     info.refresh(&store);
     Ok(info.clone())
 }
 
 pub fn reset_options(held: &Held, key: &str) -> Result<EngineInfo, String> {
-    let mut all = held.info.lock().unwrap_or_else(|e| e.into_inner());
-    let info = all.get_mut(key).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
+    let mut all = crate::lock(&held.info);
+    let info = all.get_mut(key).ok_or_else(|| i18n::tr("engines.unknown", &[("name", key)]))?;
     let store = options::reset_options(&store_path()?, &info.key)?;
     info.refresh(&store);
     Ok(info.clone())
@@ -477,11 +473,11 @@ pub fn reset_options(held: &Held, key: &str) -> Result<EngineInfo, String> {
 /// (Retry now), it tries at once rather than starting a second pull.
 pub fn pull(cfg: &Config, held: &Held, key: &str) -> Result<(), String> {
     use std::sync::atomic::{AtomicBool, Ordering};
-    let k = known::known(key).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
-    let image = k.image().ok_or_else(|| tr("engines.state.no_image", &[]))?;
-    let rt = runtime(cfg).ok_or_else(|| tr("engines.state.no_runtime", &[]))?;
+    let k = known::known(key).ok_or_else(|| i18n::tr("engines.unknown", &[("name", key)]))?;
+    let image = k.image().ok_or_else(|| i18n::tr("engines.state.no_image", &[]))?;
+    let rt = runtime(cfg).ok_or_else(|| i18n::tr("engines.state.no_runtime", &[]))?;
     let wake = {
-        let mut running = held.running.lock().unwrap_or_else(|e| e.into_inner());
+        let mut running = crate::lock(&held.running);
         if let Some(w) = running.get(key) {
             w.store(true, Ordering::Relaxed);
             return Ok(());
@@ -491,7 +487,7 @@ pub fn pull(cfg: &Config, held: &Held, key: &str) -> Result<(), String> {
         w
     };
     let (key, name, pulls, running) = (key.to_string(), k.name.to_string(), held.pulls.clone(), held.running.clone());
-    pulls.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
+    crate::lock(&pulls).remove(&key);
     std::thread::spawn(move || {
         let stop = AtomicBool::new(false);
         let r = images::pull(&rt.path, &image, &stop, &|d| {
@@ -501,9 +497,9 @@ pub fn pull(cfg: &Config, held: &Held, key: &str) -> Result<(), String> {
             }
             true
         });
-        running.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
+        crate::lock(&running).remove(&key);
         if let Err(e) = r {
-            pulls.lock().unwrap_or_else(|e| e.into_inner()).insert(key, tr("engines.pull.failed", &[("name", &name), ("why", &pull_why(&e))]));
+            crate::lock(&pulls).insert(key, i18n::tr("engines.pull.failed", &[("name", &name), ("why", &pull_why(&e))]));
         }
     });
     Ok(())
@@ -521,8 +517,8 @@ pub struct Moved {
 /// stays running for the next move.
 #[allow(clippy::too_many_arguments, reason = "the Game, the engine and how it plays, as the command takes them")]
 pub fn engine_move(cfg: &Config, held: &Held, variant: &str, initial: Option<&str>, entries: &[String], key: Option<&str>, ms: u32, skill: Option<u8>) -> Result<Moved, String> {
-    let key = key.filter(|k| !k.is_empty()).map(String::from).or_else(|| default_for(cfg, variant)).ok_or_else(|| tr("engines.none_for", &[]))?;
-    let mut playing = held.playing.lock().unwrap_or_else(|e| e.into_inner());
+    let key = key.filter(|k| !k.is_empty()).map(String::from).or_else(|| default_for(cfg, variant)).ok_or_else(|| i18n::tr("engines.none_for", &[]))?;
+    let mut playing = crate::lock(&held.playing);
     let id = format!("{key} {variant}");
     if playing.as_ref().is_none_or(|(k, _)| *k != id) {
         *playing = None;
@@ -543,8 +539,8 @@ pub fn engine_move(cfg: &Config, held: &Held, variant: &str, initial: Option<&st
             return Err(err.to_string());
         }
     };
-    let best = a.best.ok_or_else(|| tr("engines.no_move", &[]))?;
-    let m = seam::entry(&state, notation, &best).ok_or_else(|| tr("engines.illegal", &[("move", &best)]))?;
+    let best = a.best.ok_or_else(|| i18n::tr("engines.no_move", &[]))?;
+    let m = seam::entry(&state, notation, &best).ok_or_else(|| i18n::tr("engines.illegal", &[("move", &best)]))?;
     Ok(Moved { entry: m.wire.clone(), notation: m.notation.clone() })
 }
 

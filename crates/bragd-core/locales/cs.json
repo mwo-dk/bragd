@@ -687,7 +687,6 @@
  "tablebases.folder_default": "Vlastní složka Bragdu: {path}",
  "tablebases.folder_only": "Jen složka.",
  "tablebases.folder_set": "Vaše vlastní složka. Bragd ji jen čte a stahuje do ní.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Tabulek ve složce: {n}",
  "tablebases.intro": "Syzygy tablebáze: dokonalá hra pro šachové pozice s málo figurami. Každý engine dostane složku. Stahování jde z tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd je offline: nic se nestahuje ani se nic nedotazuje online.",

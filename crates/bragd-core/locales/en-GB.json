@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Bragd's own folder: {path}",
  "tablebases.folder_only": "A folder only.",
  "tablebases.folder_set": "Your own folder. Bragd only reads it and downloads into it.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Tables in the folder: {n}",
  "tablebases.intro": "Syzygy tablebases: perfect play for chess positions with few pieces. Every engine is given the folder. Downloads come from tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd is offline: nothing is downloaded or asked online.",

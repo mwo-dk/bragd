@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-r"""Checks the shell scripts in .github/workflows before any of them runs (CI, docs job).
+r"""Checks the shell scripts in .github/workflows and .github/actions before any of them runs (CI,
+docs job).
 
-Every `run:` (and a VM action's `prepare:`) block goes through `bash -n` and shellcheck, and so
+Every `run:` block goes through `bash -n` and shellcheck, and so
 does every script inside a `bash -c '…'` / `sh -c '…'` in them: an apostrophe in a comment there
 once broke a job only after a long container start. A double-quoted `bash -c "…"` is
 checked as the inner shell gets it: the outer shell's escapes (\$ \" \\ \`) undone and its own
 expansions ($VER, $(…), ${…}, `…`) a plain word. `${{ … }}` expressions stand in as a plain word.
-A step with `shell: vmsh {0}` (a BSD VM's /bin/sh) is checked as sh, one with `shell: pwsh` or
-`python` is skipped. Prints `file:line: …` for each fault, exits 1 on any.
+A step with `shell: pwsh` is skipped; every other step is bash. Prints `file:line: …` for each fault, exits 1 on any.
 
-    python3 tools/workflow-shell-check.py [workflow.yml …]   (default: .github/workflows/*.yml)
+    python3 tools/workflow-shell-check.py [workflow.yml …]
+        (default: .github/workflows/*.yml and .github/actions/*/action.yml)
 
 Needs shellcheck (preinstalled on GitHub's Ubuntu runners). Plain text parsing, no YAML library:
 only block scalars (`run: |`) and one-line values are read, which is all the workflows use.
@@ -20,7 +21,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-KEY = re.compile(r"^(\s*)(- )?(run|prepare):[ \t]*(.*)$")
+KEY = re.compile(r"^(\s*)(- )?(run):[ \t]*(.*)$")
 EXPR = re.compile(r"\$\{\{.*?\}\}")
 INNER = re.compile(r"\b(?:bash|sh)\s+(?:-[a-zA-Z]+\s+)*-[a-zA-Z]*c\s+['\"]")
 # Off in every script: SC2016 ($ in single quotes is what `bash -c '…'` is for), SC1091 (sourced
@@ -49,7 +50,7 @@ def step_shell(lines: list[str], at: int, indent: int) -> str:
 
 
 def blocks(path: Path):
-    """(first line number, script, dialect) for each run/prepare block of a workflow."""
+    """(first line number, script) for each run block of a workflow or composite action."""
     lines = path.read_text(encoding="utf-8").split("\n")
     for i, line in enumerate(lines):
         m = KEY.match(line)
@@ -57,9 +58,8 @@ def blocks(path: Path):
             continue
         indent = len(m.group(1)) + (2 if m.group(2) else 0)
         shell = step_shell(lines, i, indent)
-        if shell.startswith(("pwsh", "powershell", "python", "cmd", "node")):
+        if shell.startswith("pwsh"):
             continue
-        dialect = "sh" if shell.startswith(("vmsh", "sh")) else "bash"
         value = m.group(4)
         if value[0] in "|>":
             body = []
@@ -70,14 +70,14 @@ def blocks(path: Path):
             while body and not body[-1].strip():
                 body.pop()
             cut = min((len(b) - len(b.lstrip()) for b in body if b.strip()), default=0)
-            yield i + 2, "\n".join(b[cut:] for b in body) + "\n", dialect
+            yield i + 2, "\n".join(b[cut:] for b in body) + "\n"
         else:
             value = re.sub(r"\s+#.*$", "", value)
             if value[0] == "'" and value.endswith("'"):
                 value = value[1:-1].replace("''", "'")
             elif value[0] == '"' and value.endswith('"'):
                 value = value[1:-1].replace('\\"', '"')
-            yield i + 1, value + "\n", dialect
+            yield i + 1, value + "\n"
 
 
 def outer_expanded(s: str) -> str:
@@ -165,12 +165,13 @@ def check(where: str, script: str, dialect: str) -> list[str]:
 def main() -> int:
     # The double-quoted case: what a `bash -c "…"` inside a container step gets.
     assert outer_expanded('[ \\"\\$i\\" = 4 ] && v=$VER $(a "b") `c` ${D}\\\nx" tail') == '[ "$i" = 4 ] && v=OUTER OUTER OUTER OUTERx'
-    files = [Path(a) for a in sys.argv[1:]] or sorted(Path(".github/workflows").glob("*.yml"))
+    files = [Path(a) for a in sys.argv[1:]] or sorted(Path(".github/workflows").glob("*.yml")) + sorted(Path(".github/actions").glob("*/action.yml"))
+    assert sys.argv[1:] or Path(".github/actions/apt-install/action.yml") in files, "composite actions are checked"
     faults, count = [], 0
     for f in files:
-        for line, script, dialect in blocks(f):
+        for line, script in blocks(f):
             count += 1
-            faults += check(f"{f}:{line}", script, dialect)
+            faults += check(f"{f}:{line}", script, "bash")
             for off, text, err in inner(script):
                 if err:
                     faults.append(f"{f}:{line + off}: bash -c: {err}")

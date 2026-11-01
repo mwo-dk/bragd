@@ -684,7 +684,6 @@
  "tablebases.folder_default": "Bragdin oma kansio: {path}",
  "tablebases.folder_only": "Vain kansio.",
  "tablebases.folder_set": "Oma kansiosi. Bragd lukee siitä vain ja lataa siihen vain.",
- "tablebases.gb": "{n} GB",
  "tablebases.have": "Taulukot kansiossa: {n}",
  "tablebases.intro": "Syzygy-loppupelitaulukot: täydellinen pelaaminen shakkiasemissa, joissa on vähän nappuloita. Jokainen Engine saa kansion. Lataukset tulevat osoitteesta tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd on offline-tilassa: mitään ei ladata eikä kysellä verkosta.",

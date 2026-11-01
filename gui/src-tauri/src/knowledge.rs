@@ -75,7 +75,7 @@ pub fn db_pick(app: AppHandle, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> 
 fn db_open(path: &Path, k: &Knowledge, cfg: &Config) -> Res<FileView> {
     let f = OpenFile::open(path, cfg)?;
     let v = f.view(cfg);
-    *k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()) = Some(f);
+    *crate::lock(&k.dbs.file) = Some(f);
     Ok(v)
 }
 
@@ -83,29 +83,29 @@ fn db_open(path: &Path, k: &Knowledge, cfg: &Config) -> Res<FileView> {
 #[tauri::command(async)]
 pub fn db_current(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Option<FileView>> {
     let cfg = ctx.cfg();
-    Ok(k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()).as_ref().map(|f| f.view(&cfg)))
+    Ok(crate::lock(&k.dbs.file).as_ref().map(|f| f.view(&cfg)))
 }
 
 #[tauri::command(async)]
 pub fn db_close(k: State<'_, Knowledge>) -> Res<()> {
-    *k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *crate::lock(&k.dbs.file) = None;
     Ok(())
 }
 
 #[tauri::command(async)]
 pub fn db_rows(query: Query, from: usize, count: usize, k: State<'_, Knowledge>) -> Res<Rows> {
-    let mut f = k.dbs.file.lock().unwrap_or_else(|e| e.into_inner());
+    let mut f = crate::lock(&k.dbs.file);
     Ok(f.as_mut().ok_or_else(|| t!("db.none_open"))?.rows(&query, from, count))
 }
 
 #[tauri::command(async)]
 pub fn db_game(id: u32, k: State<'_, Knowledge>) -> Res<Replay> {
-    let f = k.dbs.file.lock().unwrap_or_else(|e| e.into_inner());
+    let f = crate::lock(&k.dbs.file);
     f.as_ref().ok_or_else(|| t!("db.none_open"))?.game(id)
 }
 
 fn open_path(k: &Knowledge) -> Res<PathBuf> {
-    let f = k.dbs.file.lock().unwrap_or_else(|e| e.into_inner());
+    let f = crate::lock(&k.dbs.file);
     f.as_ref().map(|f| f.path().to_path_buf()).ok_or_else(|| t!("db.none_open"))
 }
 
@@ -131,11 +131,7 @@ fn save_to(from: &Path, to: &Path, confirmed: bool) -> Res<Saved> {
     }
     if from.canonicalize().ok() != to.canonicalize().ok() || !to.exists() {
         // Written beside it, then put in place: a failure leaves the old file whole.
-        let tmp = to.with_extension("bragd-saving");
-        std::fs::copy(from, &tmp).and_then(|_| std::fs::rename(&tmp, to)).map_err(|e| {
-            let _ = std::fs::remove_file(&tmp);
-            e.to_string()
-        })?;
+        bragd_core::fs::replace_with(to, false, |f| std::io::copy(&mut std::fs::File::open(from)?, f).map(drop)).map_err(|e| e.to_string())?;
     }
     Ok(Saved { path: to.display().to_string(), confirm: false })
 }
@@ -149,7 +145,7 @@ pub fn db_save_as(app: AppHandle, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) 
     let ask = files::Ask { title: t!("files.save_database"), save: Some(name), start: from.parent().map(Path::to_path_buf), ..Default::default() };
     let Some(to) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
     let saved = save_to(&from, &to, false)?;
-    *k.to_confirm.lock().unwrap_or_else(|e| e.into_inner()) = saved.confirm.then_some(to);
+    *crate::lock(&k.to_confirm) = saved.confirm.then_some(to);
     Ok(Some(saved))
 }
 
@@ -161,7 +157,7 @@ pub fn db_save_to(k: State<'_, Knowledge>) -> Res<Saved> {
 }
 
 fn save_confirmed(from: &Path, to_confirm: &Mutex<Option<PathBuf>>) -> Res<Saved> {
-    let to = to_confirm.lock().unwrap_or_else(|e| e.into_inner()).take().ok_or_else(|| t!("db.none_open"))?;
+    let to = crate::lock(to_confirm).take().ok_or_else(|| t!("db.none_open"))?;
     save_to(from, &to, true)
 }
 
