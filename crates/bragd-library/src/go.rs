@@ -9,6 +9,7 @@
 //! the list fills as it goes, and a game is read from where it starts when it is opened.
 
 use crate::chess::lex::{Lexer, Sgf};
+use rules_go::record::Record;
 use serde::Serialize;
 use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -454,41 +455,38 @@ impl Game {
     /// The board after node `at`: every node from the start to it played out.
     pub fn position(&self, at: u32) -> Position {
         let (w, h) = (self.info.width, self.info.height);
-        let mut p = Position { width: w, height: h, stones: vec![0; w as usize * h as usize], captures: [0, 0], last: None, black_next: true, number: 0 };
+        let mut board = Record::new(w, h);
+        let (mut last, mut black_next, mut number) = (None, true, 0);
         let mut path = vec![];
         let mut n = Some(at.min(self.nodes.len().saturating_sub(1) as u32));
         while let Some(i) = n {
             path.push(i);
             n = self.nodes[i as usize].parent;
         }
-        let mut seen = vec![false; p.stones.len()];
-        // Points looked at for captures: a crafted game of huge groups costs at most this
-        // much (about 50 ms) per board; past it, stones are only put down.
-        let mut budget: u64 = 20_000_000;
         let handicap = self.info.handicap.trim().parse::<u32>().unwrap_or(0);
         for &i in path.iter().rev() {
             let node = &self.nodes[i as usize];
-            p.last = None;
+            last = None;
             for &(c, x, y) in &node.setup {
-                p.stones[y as usize * w as usize + x as usize] = c;
+                board.set(x, y, c);
             }
             // Handicap stones set up: White plays next.
             if node.parent.is_none() && handicap > 1 && node.setup.iter().any(|s| s.0 == 1) {
-                p.black_next = false;
+                black_next = false;
             }
             if let Some(m) = node.mv {
                 if let Some((x, y)) = m.at {
-                    play(&mut p, &mut seen, &mut budget, m.black, x, y);
-                    p.last = Some((x, y));
+                    board.play(m.black, x, y);
+                    last = Some((x, y));
                 }
-                p.black_next = !m.black;
+                black_next = !m.black;
             }
             if let Some(b) = node.player {
-                p.black_next = b;
+                black_next = b;
             }
-            p.number = node.number;
+            number = node.number;
         }
-        p
+        Position { width: w, height: h, stones: board.stones, captures: board.captures, last, black_next, number }
     }
 
     /// The moves that go on from node `at` when there is more than one: each with its letter's
@@ -549,67 +547,6 @@ pub fn stars(w: u8, h: u8) -> Vec<(u8, u8)> {
         lines.insert(1, w / 2);
     }
     lines.iter().flat_map(|&x| lines.iter().map(move |&y| (x, y))).collect()
-}
-
-/// A stone of Black (else White) played at `x`, `y`: the other side's groups without a
-/// liberty are taken off, then its own (a suicide, which some rules allow).
-fn play(p: &mut Position, seen: &mut [bool], budget: &mut u64, black: bool, x: u8, y: u8) {
-    let (w, h) = (p.width as usize, p.height as usize);
-    let me = if black { 1 } else { 2 };
-    let at = y as usize * w + x as usize;
-    p.stones[at] = me;
-    let neighbours = |i: usize| {
-        let (x, y) = (i % w, i / w);
-        [(x > 0).then(|| i - 1), (x + 1 < w).then(|| i + 1), (y > 0).then(|| i - w), (y + 1 < h).then(|| i + w)].into_iter().flatten()
-    };
-    // A group without liberties, taken off: how many stones.
-    let take = |p: &mut Position, seen: &mut [bool], budget: &mut u64, from: usize| -> u32 {
-        let colour = p.stones[from];
-        let mut group = vec![from];
-        let mut stack = vec![from];
-        seen[from] = true;
-        let mut free = false;
-        // Done at its first liberty; out of budget counts as one.
-        while !free && let Some(i) = stack.pop() {
-            if *budget == 0 {
-                free = true;
-                break;
-            }
-            *budget -= 1;
-            for n in neighbours(i) {
-                match p.stones[n] {
-                    0 => free = true,
-                    c if c == colour && !seen[n] => {
-                        seen[n] = true;
-                        group.push(n);
-                        stack.push(n);
-                    }
-                    _ => {}
-                }
-            }
-        }
-        for &i in &group {
-            seen[i] = false;
-        }
-        if free {
-            return 0;
-        }
-        for &i in &group {
-            p.stones[i] = 0;
-        }
-        group.len() as u32
-    };
-    let mut taken = 0;
-    for n in neighbours(at) {
-        if p.stones[n] == 3 - me {
-            taken += take(p, seen, budget, n);
-        }
-    }
-    p.captures[(!black) as usize] += taken;
-    if taken == 0 {
-        let lost = take(p, seen, budget, at);
-        p.captures[black as usize] += lost;
-    }
 }
 
 /// An SGF file's games: their list, read on a thread of its own and filling as it goes, each
