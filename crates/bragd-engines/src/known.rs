@@ -48,7 +48,7 @@ pub const PIN_FRUIT: Option<&str> = Some("sha256:02a2f8406f6d9a0da1301dbeb98cb84
 pub const PIN_SCAN: Option<&str> = Some("sha256:c2d6ca3c144e6f53cd7fd86b1656078e0490e886f3043076e286be953b42afbd");
 pub const PIN_GNUBG: Option<&str> = Some("sha256:44655c588d9183af80d286f41905c565d31d809c2a806ee49a4e6e783f4f748e");
 
-pub const PIN_ELEPHANTEYE: Option<&str> = None;
+pub const PIN_ELEPHANTEYE: Option<&str> = Some("sha256:670778ef998b900fe3d01289e0d835d38b32a7cdbc4ed11e31e6e4e1632fec41");
 
 /// An engine Bragd knows.
 #[derive(Debug, PartialEq)]
@@ -109,7 +109,7 @@ pub const KNOWN: &[Known] = &[
     },
     Known { key: "pikafish", name: "Pikafish", programs: &["pikafish"], args: &[], variants: &["xiangqi"], tag: Some("2026-09-06"), pin: PIN_PIKAFISH, image_size: 989_513, site: "https://github.com/official-pikafish/Pikafish/releases", syzygy: false },
     // ElephantEye 3.3 speaks UCCI, not UCI: the one image Bragd builds that does.
-    Known { key: "elephanteye", name: "ElephantEye", programs: &["eleeye", "elephanteye", "ELEEYE"], args: &[], variants: &["xiangqi"], tag: Some("3.3"), pin: PIN_ELEPHANTEYE, image_size: 0, site: "https://github.com/xqbase/eleeye", syzygy: false },
+    Known { key: "elephanteye", name: "ElephantEye", programs: &["eleeye", "elephanteye", "ELEEYE"], args: &[], variants: &["xiangqi"], tag: Some("3.3"), pin: PIN_ELEPHANTEYE, image_size: 131_969, site: "https://github.com/xqbase/eleeye", syzygy: false },
     Known { key: "yaneuraou", name: "YaneuraOu", programs: &["YaneuraOu", "yaneuraou", "YaneuraOu-by-gcc"], args: &[], variants: &["shogi"], tag: None, pin: None, image_size: 0, site: "https://github.com/yaneurao/YaneuraOu/releases", syzygy: false },
     Known { key: "katago", name: "KataGo", programs: &["katago"], args: &["gtp"], variants: GO, tag: Some("1.18.2-eigen"), pin: PIN_KATAGO, image_size: 51_866_241, site: "https://github.com/lightvector/KataGo/releases", syzygy: false },
     Known { key: "gnugo", name: "GNU Go", programs: &["gnugo"], args: &["--mode", "gtp"], variants: GO, tag: Some("3.8"), pin: PIN_GNUGO, image_size: 1_491_608, site: "https://www.gnu.org/software/gnugo/", syzygy: false },

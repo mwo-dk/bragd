@@ -1,0 +1,1 @@
+| **ElephantEye can be pulled as a sealed image.** A xiangqi player without ElephantEye installed can run it from Bragd's image, about 132 KB, like the other Engines. | [Engine container images](engines/container-images.md#the-images) |

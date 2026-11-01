@@ -38,6 +38,7 @@ Each image holds one Engine, built from its released source, and nothing else: n
 | `bragd-fruit` | Fruit 2.1 | None: it has no network |
 | `bragd-lc0` | Leela Chess Zero | Not in the image: network 791556 (18.6 MB) is downloaded once you agree, from the Lc0 project's own storage |
 | `bragd-pikafish` | Pikafish | Not in the image: downloaded once you agree to its licence |
+| `bragd-elephanteye` | ElephantEye | None: it plays with its hand-crafted evaluation, over UCCI |
 | `bragd-katago` | KataGo | In the image |
 | `bragd-gnugo` | GNU Go | None: it has no network |
 | `bragd-scan` | Scan | In the image, with its opening book; no endgame tables |
