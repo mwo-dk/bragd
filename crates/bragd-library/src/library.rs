@@ -13,7 +13,7 @@
 //!
 //! Position keys: chess uses the Polyglot Zobrist key (`chess::polyglot::key`), as the
 //! `positions` table does for position search. Draughts, xiangqi and shogi use a hash of the
-//! position's FEN or SFEN. Go uses its Zobrist key over the stones, the side to move and the
+//! text their rules crate makes of the position, with no move number (`position_keys`). Go uses its Zobrist key over the stones, the side to move and the
 //! ko point (`rules_go::zobrist`).
 
 use std::collections::{BTreeMap, HashSet};
@@ -208,16 +208,18 @@ impl NewGame {
     }
 
     /// A draughts, xiangqi or shogi game: their moves as the file writes them, each position's
-    /// key a hash of its FEN (SFEN for shogi). The main line stops at a move that cannot be played.
+    /// key as `position_keys` makes it. The main line stops at a move that cannot be played.
     /// `usual_start`: the Variant's start position; empty when only a FEN tag says it is another.
     pub fn from_family(g: &pgn::Game, family: &str, variant: &str, usual_start: &str) -> NewGame {
-        let (mut moves, mut keys) = (vec![], vec![]);
+        let (mut moves, mut texts) = (vec![], vec![g.start.clone()]);
         for i in g.main_line() {
             let n = &g.nodes[i as usize];
             let Some(fen) = &n.fen else { break };
             moves.push(n.san.clone());
-            keys.push(text_key(fen));
+            texts.push(fen.clone());
         }
+        let mut keys = position_keys(family, &texts);
+        let start_key = keys.remove(0);
         NewGame {
             family: family.into(),
             variant: variant.into(),
@@ -225,7 +227,7 @@ impl NewGame {
             moves,
             start: if usual_start.is_empty() { g.tag("FEN").map(|_| g.start.clone()) } else { (g.start != usual_start).then(|| g.start.clone()) },
             result: g.result.clone(),
-            start_key: text_key(&g.start),
+            start_key,
             keys,
         }
     }
@@ -280,8 +282,7 @@ impl NewGame {
 impl NewGame {
     /// A Game Bragd played itself (an engine match): its moves as a Player writes them and the
     /// position before the first and after each (`positions`, one more than `moves`), in the
-    /// Family's notation. A chess position's key is its Polyglot key and a go position's its
-    /// Zobrist key, as an imported game has them; any other's is a hash of its text.
+    /// Family's notation. Each position's key is as an imported game has it (`position_keys`).
     pub fn played(family: &str, variant: &str, start: Option<String>, moves: Vec<String>, positions: &[String], headers: Vec<(String, String)>, result: &str) -> NewGame {
         let mut keys = position_keys(family, positions);
         let start_key = if keys.is_empty() { 0 } else { keys.remove(0) };
@@ -289,9 +290,12 @@ impl NewGame {
     }
 }
 
-/// The keys of a Game's positions, in order, each in its Family's notation as Bragd's games write
-/// it: a chess position's Polyglot key, a go position's Zobrist key (its ko point from the one
-/// before), and a hash of the text for any other. The Position store keys its rows by these.
+/// The keys of a Game's positions, in order, each in its Family's notation as Bragd's games or
+/// its readers write it: a chess position's Polyglot key, a go position's Zobrist key (its ko
+/// point from the one before), for draughts, xiangqi and shogi a hash of the text their rules
+/// crate makes of it with no move number, so the same position has one key at any move and
+/// from any writer. Any other's, or a text its rules cannot read, is a hash of the text. The
+/// Position store keys its rows by these.
 pub fn position_keys(family: &str, positions: &[String]) -> Vec<u64> {
     let mut before: Option<Vec<u8>> = None;
     let mut key = |p: &String| match family {
@@ -305,6 +309,9 @@ pub fn position_keys(family: &str, positions: &[String]) -> Vec<u64> {
             }
             None => text_key(p),
         },
+        "draughts" => rules_draughts::record::canonical(p).map_or_else(|| text_key(p), |c| text_key(&c)),
+        "xiangqi" => rules_xiangqi::Position::from_fen_lenient(p).map_or_else(|| text_key(p), |b| text_key(&b.to_short_fen())),
+        "shogi" => rules_shogi::record::Board::from_sfen(p).map_or_else(|| text_key(p), |b| text_key(&b.sfen())),
         _ => text_key(p),
     };
     positions.iter().map(&mut key).collect()
@@ -1106,12 +1113,41 @@ pub(crate) mod tests {
         lib.add(&played, "match", "1").unwrap();
         lib.add(&imported, "pgn", "x").unwrap();
         assert_eq!(lib.count().unwrap(), 1);
-        // Another Family keys its positions by their text.
+        // A text its Family's rules cannot read is keyed by the text itself.
         let other = NewGame::played("xiangqi", "xiangqi", None, vec!["h2e2".into()], &["a".into(), "b".into()], vec![], "*");
         assert_eq!((other.start_key, other.keys.clone()), (text_key("a"), vec![text_key("b")]));
         assert_eq!(lib.families().unwrap(), ["chess"]);
         lib.add(&other, "match", "2").unwrap();
         assert_eq!(lib.families().unwrap(), ["chess", "xiangqi"]);
+    }
+
+    /// Draughts, xiangqi and shogi: a position has one key whatever the moves that led to it,
+    /// its move number, and whether a game file or Bragd's own game wrote it; another position
+    /// has another.
+    #[test]
+    fn a_position_has_one_key_however_it_was_reached() {
+        let cases: [(&str, [&str; 4], [&str; 4], &[&str], String); 3] = [
+            ("draughts", ["31-26", "20-25", "33-29", "17-21"], ["33-29", "17-21", "31-26", "20-25"], &[], rules_draughts::record::Board::start(rules_draughts::record::INTERNATIONAL).fen()),
+            ("xiangqi", ["h3e3", "h10g8", "h1g3", "b10c8"], ["h3e3", "b10c8", "h1g3", "h10g8"], &["h3h4", "h8h7", "h4h3", "h7h8"], crate::xiangqi::parse("1. Che3 *").start),
+            ("shogi", ["7g7f", "3c3d", "2g2f", "8c8d"], ["2g2f", "8c8d", "7g7f", "3c3d"], &["4i4h", "6a6b", "4h4i", "6b6a"], crate::shogi::START.to_string()),
+        ];
+        for (family, a, b, back, reader_start) in cases {
+            let texts = |moves: &[&str]| (0..=moves.len()).map(|i| bragd_games::replay(family, None, &moves[..i]).unwrap().position).collect::<Vec<_>>();
+            let (ta, tb) = (texts(&a), texts(&b));
+            let (ka, kb) = (position_keys(family, &ta), position_keys(family, &tb));
+            assert_eq!(ka[4], kb[4], "{family}: one position by two move orders");
+            assert_eq!(ka[0], position_keys(family, &[reader_start])[0], "{family}: a game file's start is Bragd's");
+            if !back.is_empty() {
+                assert_eq!(position_keys(family, &texts(back))[4], ka[0], "{family}: the start again, four moves on");
+            }
+            let mut all = ka.clone();
+            all.sort();
+            all.dedup();
+            assert_eq!(all.len(), 5, "{family}: other positions, other keys");
+            for i in 1..4 {
+                assert_eq!(ka[i] == kb[i], ta[i] == tb[i], "{family}: move {i} of the two orders");
+            }
+        }
     }
 
     fn import(lib: &mut Library, path: &Path, source: &str) -> Progress {

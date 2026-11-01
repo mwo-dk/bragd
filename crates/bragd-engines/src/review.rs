@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use bragd_positions::annotation::{self, Mark, Motif};
-use bragd_positions::{Annotation, Edition, Evaluation, Store};
+use bragd_positions::{Annotation, Edition, Evaluation, Second, Store};
 
 use crate::options::OptionStore;
 use crate::protocol::{Limit, Position, Protocol, Score};
@@ -115,11 +115,10 @@ fn io(e: bragd_positions::Error) -> std::io::Error {
     std::io::Error::other(e.to_string())
 }
 
-/// What a review knows of each position: its Evaluation, and for one the Engine thought about
-/// here, how much worse its second choice was (from the mover's side).
+/// What a review knows of each position: its Evaluation, with the Engine's second choice when
+/// it gave one.
 struct Known {
     evals: Vec<Option<Evaluation>>,
-    gaps: Vec<Option<f64>>,
 }
 
 fn run(setup: &Setup, game: &Position, shared: &Mutex<Review>, stop: &AtomicBool) -> std::io::Result<()> {
@@ -130,7 +129,7 @@ fn run(setup: &Setup, game: &Position, shared: &Mutex<Review>, stop: &AtomicBool
     }
     let mut store = setup.store.as_deref().map(Store::open).transpose().map_err(io)?;
     // First what the store has, at once; then the Engine for the rest.
-    let mut known = Known { evals: vec![None; n + 1], gaps: vec![None; n + 1] };
+    let mut known = Known { evals: vec![None; n + 1] };
     if let Some(s) = &store {
         for (i, k) in setup.keys.iter().enumerate() {
             known.evals[i] = s.shown(&setup.family, &setup.variant, *k, &setup.engine).map_err(io)?;
@@ -167,8 +166,7 @@ fn run(setup: &Setup, game: &Position, shared: &Mutex<Review>, stop: &AtomicBool
         let score = |l: usize| a.lines.get(l).and_then(|l| l.score).map(bragd_positions::Score::from);
         // No score at all: no move, so nothing to judge it by.
         let Some(best) = score(0) else { continue };
-        let first = pos.first_to_move();
-        known.gaps[i] = score(1).and_then(|second| annotation::gap(best, second, first));
+        let pv = |l: usize| a.lines[l].pv.iter().take(LINE).cloned().collect::<Vec<_>>().join(" ");
         let eval = Evaluation {
             family: setup.family.clone(),
             variant: setup.variant.clone(),
@@ -176,8 +174,9 @@ fn run(setup: &Setup, game: &Position, shared: &Mutex<Review>, stop: &AtomicBool
             edition: edition.clone(),
             score: best,
             depth: a.depth,
-            line: a.lines[0].pv.iter().take(LINE).cloned().collect::<Vec<_>>().join(" "),
+            line: pv(0),
             time: now(),
+            second: score(1).map(|score| Second { score, line: pv(1) }),
         };
         if let Some(s) = &mut store {
             s.put(&eval).map_err(io)?;
@@ -209,7 +208,7 @@ fn annotate(setup: &Setup, game: &Position, known: &Known, store: Option<&mut St
     let note = match stored.filter(|a| a.edition == before.edition && a.depth >= depth) {
         Some(a) => a,
         None => {
-            let a = made(setup, game, known, i, before, after);
+            let a = made(setup, game, i, before, after);
             if let Some(s) = store {
                 s.put_annotation(&a).map_err(io)?;
             }
@@ -232,11 +231,12 @@ fn annotate(setup: &Setup, game: &Position, known: &Known, store: Option<&mut St
 }
 
 /// Move `i`'s Annotation from the Evaluations before and after it.
-fn made(setup: &Setup, game: &Position, known: &Known, i: usize, before: &Evaluation, after: &Evaluation) -> Annotation {
+fn made(setup: &Setup, game: &Position, i: usize, before: &Evaluation, after: &Evaluation) -> Annotation {
     let mv = &game.moves[i];
     let mover_first = Position { moves: game.moves[..i].to_vec(), ..game.clone() }.first_to_move();
     let played_best = before.line.split_whitespace().next() == Some(mv.as_str());
-    let mark = annotation::mark(before.score, after.score, mover_first, known.gaps[i].filter(|_| played_best));
+    let gap = before.second.as_ref().filter(|_| played_best).and_then(|s| annotation::gap(before.score, s.score, mover_first));
+    let mark = annotation::mark(before.score, after.score, mover_first, gap);
     let mut motifs = vec![];
     if setup.family == "chess"
         && matches!(setup.variant.as_str(), "chess" | "chess960")
@@ -356,6 +356,34 @@ mod tests {
         assert_eq!((r.error.as_deref(), r.plies.len()), (None, 3));
         assert_eq!(thought(&d), 5);
         std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// The Engine's best move earns `!` or `!!` from the second choice kept with the
+    /// Evaluation before it, so an Evaluation read from the store earns it as one just made does.
+    #[test]
+    fn the_second_choice_kept_with_an_evaluation_earns_good_and_brilliant() {
+        let d = crate::test_dir("review-second");
+        let s = setup(&d, &d.join("none"), &[1, 2]);
+        let game = Position::new("chess", &["e2e4"]);
+        let ev = |score, line: &str, second: Option<Second>| Evaluation {
+            family: "chess".into(),
+            variant: "chess".into(),
+            key: 1,
+            edition: Edition { engine: "fake".into(), version: "Fake 2".into(), network: None, image: None },
+            score: bragd_positions::Score::Cp(score),
+            depth: 20,
+            line: line.into(),
+            time: 1,
+            second,
+        };
+        let second = |cp| Some(Second { score: bragd_positions::Score::Cp(cp), line: "d2d4".into() });
+        let after = ev(20, "e7e5", None);
+        let mark = |before: Evaluation| made(&s, &game, 0, &before, &after).mark;
+        assert_eq!(mark(ev(20, "e2e4 e7e5", None)), None, "no second choice known");
+        assert_eq!(mark(ev(20, "e2e4 e7e5", second(-130))), Some(Mark::Good));
+        assert_eq!(mark(ev(20, "e2e4 e7e5", second(-400))), Some(Mark::Brilliant));
+        assert_eq!(mark(ev(20, "d2d4 e7e5", second(-400))), None, "not the Engine's move");
+        let _ = std::fs::remove_dir_all(&d);
     }
 
     #[test]

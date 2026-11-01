@@ -22,7 +22,7 @@ The store fills by itself as you analyse and review. Export and Import are in *S
 
 | Row | Kept for | What it holds |
 |---|---|---|
-| Evaluation | A position and an Edition | The score, the depth and the Engine's best line |
+| Evaluation | A position and an Edition | The score, the depth, the Engine's best line, and its second choice with its score when the Engine gave one |
 | Annotation | A move from a position, and an Edition | The mark, the better line and the named motifs ([Game review](../engines/review.md#annotations)) |
 
 An Edition is one exact build of an Engine: its version, its network, and its image when it runs in a container. Every Edition is kept. Bragd shows the newest Edition's row, and the deepest of those.
@@ -42,6 +42,7 @@ One row per Evaluation or Annotation, compressed with Snappy:
 | `depth`, `time` | How deep, and when, in seconds since 1970 |
 | `line` | The best line, or an Annotation's better line |
 | `move`, `mark`, `motifs` | An Annotation's move, mark and motifs (empty for an Evaluation) |
+| `kind2`, `score2`, `lead2`, `line2` | The Engine's second choice: its kind (empty when there is none), score, go's lead and line (empty for an Annotation). A file written before these columns imports without a second choice |
 
 ## What it needs
 

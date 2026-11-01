@@ -14,6 +14,11 @@
 //! What is shown for a position and an Engine is its newest Edition's row, then the deepest,
 //! then the latest (`shown`). A new Edition never re-queues anything by itself.
 //!
+//! An Evaluation keeps the Engine's second choice too (schema 3, MultiPV 2), when it gave one:
+//! a move is `!` or `!!` by how much worse that second choice is, so a position from the store
+//! can earn them. It comes last in the merge order: `(depth, time, kind, score, lead, line,
+//! second)`, a row without one less than a row with one.
+//!
 //! Annotations (schema 2) are kept the same way, keyed also by the move, and merged by the same
 //! rule: the greater by `(depth, time, mark, better, motifs)` wins (`put_annotation`).
 
@@ -127,6 +132,38 @@ pub struct Evaluation {
     pub line: String,
     /// When it was reached, in seconds since 1970.
     pub time: i64,
+    /// The Engine's second choice (MultiPV 2), when it gave one.
+    #[serde(default)]
+    pub second: Option<Second>,
+}
+
+/// The Engine's second-best line in a position.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Second {
+    /// From the first Side's view, as `Evaluation::score`.
+    pub score: Score,
+    /// Its moves in the engine's notation, separated by spaces.
+    pub line: String,
+}
+
+impl Second {
+    /// As the store writes it: `kind2` empty, numbers 0 and `line2` empty for none.
+    fn columns(s: Option<&Second>) -> (&'static str, f64, f64, &str) {
+        match s {
+            None => ("", 0.0, 0.0, ""),
+            Some(s) => {
+                let (kind, score, lead) = s.score.columns();
+                (kind, score, lead, &s.line)
+            }
+        }
+    }
+
+    pub(crate) fn from_columns(kind: &str, score: f64, lead: f64, line: String) -> Result<Option<Second>> {
+        if kind.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(Second { score: Score::from_columns(kind, score, lead)?, line }))
+    }
 }
 
 /// What a merge did.
@@ -138,9 +175,10 @@ pub struct Merged {
     pub changed: u64,
 }
 
-/// The store's schema version (`PRAGMA user_version`): 2 added Annotations. Commentary comes as
-/// version 3, keyed the same way: (family, variant, key) and its own columns.
-const VERSION: i64 = 2;
+/// The store's schema version (`PRAGMA user_version`): 2 added Annotations, 3 the second
+/// choice. Commentary comes as version 4, keyed the same way: (family, variant, key) and its own
+/// columns.
+const VERSION: i64 = 3;
 
 const SCHEMA_1: &str = "
 CREATE TABLE editions (
@@ -184,6 +222,14 @@ CREATE TABLE annotations (
     time INTEGER NOT NULL,
     PRIMARY KEY (family, variant, key, move, edition)
 ) WITHOUT ROWID;
+";
+
+// Not NULL when there is none, so the merge rule's row values always compare.
+const SCHEMA_3: &str = "
+ALTER TABLE evaluations ADD COLUMN kind2 TEXT NOT NULL DEFAULT '' CHECK (kind2 IN ('', 'cp', 'mate', 'winrate', 'equity'));
+ALTER TABLE evaluations ADD COLUMN score2 REAL NOT NULL DEFAULT 0;
+ALTER TABLE evaluations ADD COLUMN lead2 REAL NOT NULL DEFAULT 0;
+ALTER TABLE evaluations ADD COLUMN line2 TEXT NOT NULL DEFAULT '';
 ";
 
 /// How long a write waits for another connection's.
@@ -238,7 +284,10 @@ impl Store {
                 if v < 1 {
                     tx.execute_batch(SCHEMA_1)?;
                 }
-                tx.execute_batch(&format!("{SCHEMA_2} PRAGMA user_version = {VERSION};"))?;
+                if v < 2 {
+                    tx.execute_batch(SCHEMA_2)?;
+                }
+                tx.execute_batch(&format!("{SCHEMA_3} PRAGMA user_version = {VERSION};"))?;
             }
             tx.commit()?;
             return Ok(Store { conn });
@@ -358,7 +407,7 @@ impl Store {
 
     fn select(&self, rest: &str, p: impl rusqlite::Params) -> Result<Vec<Evaluation>> {
         let mut st = self.conn.prepare(&format!(
-            "SELECT v.family, v.variant, v.key, d.engine, d.version, d.network, d.image, v.kind, v.score, v.lead, v.depth, v.line, v.time \
+            "SELECT v.family, v.variant, v.key, d.engine, d.version, d.network, d.image, v.kind, v.score, v.lead, v.depth, v.line, v.time, v.kind2, v.score2, v.lead2, v.line2 \
              FROM evaluations v JOIN editions d ON d.n = v.edition {rest}"
         ))?;
         let rows = st.query_map(p, |r| {
@@ -372,15 +421,16 @@ impl Store {
                     depth: r.get(10)?,
                     line: r.get(11)?,
                     time: r.get(12)?,
+                    second: None,
                 },
-                r.get::<_, String>(7)?,
-                r.get::<_, f64>(8)?,
-                r.get::<_, f64>(9)?,
+                (r.get::<_, String>(7)?, r.get::<_, f64>(8)?, r.get::<_, f64>(9)?),
+                (r.get::<_, String>(13)?, r.get::<_, f64>(14)?, r.get::<_, f64>(15)?, r.get::<_, String>(16)?),
             ))
         })?;
         rows.map(|row| {
-            let (mut e, kind, score, lead) = row?;
+            let (mut e, (kind, score, lead), (kind2, score2, lead2, line2)) = row?;
             e.score = Score::from_columns(&kind, score, lead)?;
+            e.second = Second::from_columns(&kind2, score2, lead2, line2)?;
             Ok(e)
         })
         .collect()
@@ -424,23 +474,26 @@ fn put_annotation(tx: &Connection, a: &Annotation) -> Result<bool> {
 }
 
 /// The merge rule, in one place: insert, or replace a row that is less by
-/// `(depth, time, kind, score, lead, line)`.
+/// `(depth, time, kind, score, lead, line, kind2, score2, lead2, line2)`.
 fn put(tx: &Connection, e: &Evaluation) -> Result<bool> {
     let (kind, score, lead) = e.score.columns();
-    if !score.is_finite() || !lead.is_finite() {
-        return Err(Error::Bad(format!("{kind} {score} {lead}")));
+    let (kind2, score2, lead2, line2) = Second::columns(e.second.as_ref());
+    if ![score, lead, score2, lead2].iter().all(|x| x.is_finite()) {
+        return Err(Error::Bad(format!("{kind} {score} {lead} {kind2} {score2} {lead2}")));
     }
     let n = edition_n(tx, &e.edition)?;
     let changed = tx
         .prepare_cached(
-            "INSERT INTO evaluations (family, variant, key, edition, kind, score, lead, depth, line, time) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) \
+            "INSERT INTO evaluations (family, variant, key, edition, kind, score, lead, depth, line, time, kind2, score2, lead2, line2) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14) \
              ON CONFLICT (family, variant, key, edition) DO UPDATE SET \
-             kind = excluded.kind, score = excluded.score, lead = excluded.lead, depth = excluded.depth, line = excluded.line, time = excluded.time \
-             WHERE (excluded.depth, excluded.time, excluded.kind, excluded.score, excluded.lead, excluded.line) \
-                 > (evaluations.depth, evaluations.time, evaluations.kind, evaluations.score, evaluations.lead, evaluations.line)",
+             kind = excluded.kind, score = excluded.score, lead = excluded.lead, depth = excluded.depth, line = excluded.line, time = excluded.time, \
+             kind2 = excluded.kind2, score2 = excluded.score2, lead2 = excluded.lead2, line2 = excluded.line2 \
+             WHERE (excluded.depth, excluded.time, excluded.kind, excluded.score, excluded.lead, excluded.line, excluded.kind2, excluded.score2, excluded.lead2, excluded.line2) \
+                 > (evaluations.depth, evaluations.time, evaluations.kind, evaluations.score, evaluations.lead, evaluations.line, \
+                    evaluations.kind2, evaluations.score2, evaluations.lead2, evaluations.line2)",
         )?
-        .execute(params![e.family, e.variant, e.key as i64, n, kind, score, lead, e.depth, e.line, e.time])?;
+        .execute(params![e.family, e.variant, e.key as i64, n, kind, score, lead, e.depth, e.line, e.time, kind2, score2, lead2, line2])?;
     Ok(changed > 0)
 }
 
@@ -462,7 +515,7 @@ pub(crate) mod tests {
     }
 
     pub(crate) fn eval(key: u64, edition: Edition, depth: u32, time: i64, score: Score) -> Evaluation {
-        Evaluation { family: "chess".into(), variant: "chess".into(), key, edition, score, depth, line: format!("e2e4 d{depth}"), time }
+        Evaluation { family: "chess".into(), variant: "chess".into(), key, edition, score, depth, line: format!("e2e4 d{depth}"), time, second: None }
     }
 
     fn store(name: &str) -> (PathBuf, Store) {
@@ -500,8 +553,12 @@ pub(crate) mod tests {
             eval(7, sf("Stockfish 17"), 22, 80, Score::Mate(-3)),
             eval(7, sf("Stockfish 17.1"), 15, 80, Score::Cp(0)),
             eval(8, sf("Stockfish 17"), 1, 1, Score::Cp(1)),
-            Evaluation { family: "go".into(), variant: "go-19".into(), key: 7, edition: Edition { engine: "katago".into(), version: "KataGo 1.18.2".into(), network: Some("abc".into()), image: None }, score: Score::WinRate { win: 0.6, lead: 2.5 }, depth: 400, line: "Q16 D4".into(), time: 5 },
-            Evaluation { family: "backgammon".into(), variant: "backgammon".into(), key: 7, edition: Edition { engine: "gnubg".into(), version: "GNU Backgammon 1.08.003".into(), network: None, image: None }, score: Score::Equity(-0.25), depth: 2, line: "24/18 13/11".into(), time: 5 },
+            Evaluation { family: "go".into(), variant: "go-19".into(), key: 7, edition: Edition { engine: "katago".into(), version: "KataGo 1.18.2".into(), network: Some("abc".into()), image: None }, score: Score::WinRate { win: 0.6, lead: 2.5 }, depth: 400, line: "Q16 D4".into(), time: 5, second: Some(Second { score: Score::WinRate { win: 0.4, lead: -1.0 }, line: "D4".into() }) },
+            Evaluation { family: "backgammon".into(), variant: "backgammon".into(), key: 7, edition: Edition { engine: "gnubg".into(), version: "GNU Backgammon 1.08.003".into(), network: None, image: None }, score: Score::Equity(-0.25), depth: 2, line: "24/18 13/11".into(), time: 5, second: None },
+            // The same as row 3 but for the second choice: with one beats without, the greater one wins.
+            Evaluation { second: Some(Second { score: Score::Cp(-200), line: "d2d4".into() }), ..eval(7, sf("Stockfish 17"), 22, 80, Score::Mate(-3)) },
+            Evaluation { second: Some(Second { score: Score::Mate(-9), line: "c2c4 e7e5".into() }), ..eval(7, sf("Stockfish 17"), 22, 80, Score::Mate(-3)) },
+            Evaluation { second: Some(Second { score: Score::Cp(5), line: "g1f3".into() }), ..eval(8, sf("Stockfish 17"), 1, 1, Score::Cp(1)) },
         ];
         let mut want = None;
         // Every rotation and its reverse: each row comes first and last at least once.
@@ -526,7 +583,8 @@ pub(crate) mod tests {
         assert_eq!(want.len(), 5);
         let sf17 = want.iter().find(|e| e.key == 7 && e.edition.version == "Stockfish 17").unwrap();
         assert_eq!((sf17.depth, sf17.score), (22, Score::Mate(-3)));
-        assert!(want.contains(&rows[6]) && want.contains(&rows[7]));
+        assert_eq!(sf17.second, rows[9].second, "of two seconds the greater, by kind first");
+        assert!(want.contains(&rows[6]) && want.contains(&rows[7]) && want.contains(&rows[10]));
     }
 
     #[test]
@@ -572,6 +630,37 @@ pub(crate) mod tests {
         let mut s = Store::open(&p).unwrap();
         assert_eq!(s.all().unwrap().len(), 1);
         assert!(s.put_annotation(&note(1, "e2e4", sf("Stockfish 17"), 20, 1, None)).unwrap());
+    }
+
+    /// A store of schema 2 gains the second choice: its rows read back without one, and a
+    /// row with one replaces an equal row without.
+    #[test]
+    fn a_store_of_schema_2_gains_the_second_choice() {
+        let d = dir("schema2");
+        let p = d.join("positions.sqlite");
+        let c = Connection::open(&p).unwrap();
+        c.execute_batch(&format!("{SCHEMA_1} {SCHEMA_2} PRAGMA user_version = 2")).unwrap();
+        c.execute(
+            "INSERT INTO editions (n, id, engine, version, network, image) VALUES (1, ?1, 'stockfish', 'Stockfish 17', NULL, ?2)",
+            params![sf("Stockfish 17").id(), sf("Stockfish 17").image],
+        )
+        .unwrap();
+        c.execute("INSERT INTO evaluations VALUES ('chess', 'chess', 1, 1, 'cp', 30, 0, 20, 'e2e4 d20', 100)", []).unwrap();
+        drop(c);
+        let mut s = Store::open(&p).unwrap();
+        let old = eval(1, sf("Stockfish 17"), 20, 100, Score::Cp(30));
+        assert_eq!(s.all().unwrap(), std::slice::from_ref(&old));
+        let with = Evaluation { second: Some(Second { score: Score::Cp(-150), line: "d2d4".into() }), ..old };
+        assert!(s.put(&with).unwrap());
+        drop(s);
+        assert_eq!(Store::open(&p).unwrap().all().unwrap(), [with]);
+    }
+
+    #[test]
+    fn a_second_score_that_is_not_a_number_is_refused() {
+        let (_d, mut s) = store("nan2");
+        let e = Evaluation { second: Some(Second { score: Score::Equity(f64::INFINITY), line: String::new() }), ..eval(1, sf("Stockfish 17"), 1, 1, Score::Equity(0.0)) };
+        assert!(matches!(s.put(&e), Err(Error::Bad(_))));
     }
 
     pub(crate) fn note(key: u64, mv: &str, edition: Edition, depth: u32, time: i64, mark: Option<Mark>) -> Annotation {

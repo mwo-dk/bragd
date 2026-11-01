@@ -222,9 +222,9 @@ Everything is local in 0.3.0. Online sync comes later, on Bragd's own server.
 The same position turns up in thousands of Games. Bragd judges it once and keeps the judgement (`docs/adr/0004-one-position-store-per-machine.md`).
 
 - **Position store:** one SQLite file per machine. It is shared by every Library, Foreign database and Game played, and deleting a Library does not touch it.
-  - Rows are keyed by Family, Variant and position key: the Polyglot Zobrist key for chess, a FEN or SFEN hash for draughts, xiangqi and shogi, and a new Zobrist key for go (stones, side to move, ko point).
+  - Rows are keyed by Family, Variant and position key: the Polyglot Zobrist key for chess, a hash of the position without its move number for draughts, xiangqi and shogi, and a new Zobrist key for go (stones, side to move, ko point).
   - Export and import go through Parquet, for backups, moving a store by hand, and reading it in DuckDB.
-- **Evaluation:** one Edition's score, depth and best line for one position.
+- **Evaluation:** one Edition's score, depth and best line for one position, and its second choice (MultiPV 2) when the Engine gives one.
   - A score has a kind: centipawns, mate in N, win rate (go) or equity (backgammon).
   - Every Edition is kept. Bragd shows the newest Edition's result, and the deepest within it.
   - A new Edition never re-queues anything by itself. It analyses positions you open, or a Slice you ask for.

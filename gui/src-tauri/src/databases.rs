@@ -14,7 +14,7 @@ use bragd_core::t;
 use bragd_helper::disk;
 use bragd_library::chess::{self, Format, Query, Table, games::Limits, pgn};
 use bragd_library::go::Collection;
-use bragd_library::library::{Library, Stored, text_key};
+use bragd_library::library::{Library, Stored, position_keys};
 use bragd_library::slice;
 use serde::Serialize;
 use serde_json::Value;
@@ -477,14 +477,12 @@ pub fn query_in(mut v: Value) -> Result<slice::Query, String> {
     Ok(q)
 }
 
-/// The key a Library finds a position by (`slice::Query::position`): Polyglot for chess, the
-/// hash of its notation for the other Families the readers give positions for.
+/// The key a Library finds a position by (`slice::Query::position`), as `position_keys` makes it.
 pub fn position_key(family: &str, fen: &str) -> Result<String, String> {
-    if family == "chess" {
-        let b = pgn::board(fen).ok_or_else(|| t!("db.bad_position"))?;
-        return Ok(chess::polyglot::key(&b).to_string());
+    if family == "chess" && pgn::board(fen).is_none() {
+        return Err(t!("db.bad_position"));
     }
-    Ok(text_key(fen).to_string())
+    Ok(position_keys(family, &[fen.to_string()])[0].to_string())
 }
 
 fn row_of(lib: &Library, id: i64) -> RowView {

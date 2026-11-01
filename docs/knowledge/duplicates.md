@@ -19,7 +19,7 @@ Two Games are Duplicates when they have the same moves from the same starting po
 
 Each Game gets a key made from its Family, its Variant, its starting position and the position after every move. Two Games with the same key are the same Game.
 
-- Chess positions use the Polyglot Zobrist key. Draughts, xiangqi and shogi use a hash of the position's FEN or SFEN.
+- Chess positions use the Polyglot Zobrist key. Draughts, xiangqi and shogi use a hash of the position with its move number left out: the pieces, the side to move, and in shogi the pieces in hand. A draughts position written by a PDN file and the same position from a Game played in Bragd have the same key.
 - Go positions use a Zobrist key of their own, over the stones, the side to move and the ko point. The same position reached by another move order has the same key.
 - Headers play no part: different spellings of the players, events or dates do not stop a match.
 
@@ -60,6 +60,10 @@ The review shows at most 500 Duplicates and 500 Near-duplicate pairs, so the pag
 #### Why is a go Game I imported before not matched to its new copy?
 
 Go Games got their position key in 0.4.0. Before that, a go Game's key was made from its moves. A go Game stored by an earlier build keeps its old key, so a copy imported now is not found as its Duplicate. Make the Library again from its Sources to have every go Game keyed the new way. Other Families are not affected.
+
+#### Why is a draughts Game I imported before not matched to its new copy?
+
+Draughts, xiangqi and shogi positions got a key without the move number in 0.4.0. The key of a draughts position from a file changed with it, so a draughts Game stored by an earlier build keeps its old key, and a copy imported now is not found as its Duplicate. Position search does not find it either. Make the Library again from its Sources to have every draughts Game keyed the new way. Xiangqi and shogi Games from files keep their key. Games from engine matches of all three Families keep their old key.
 
 #### What names go in the priority list?
 

@@ -20,7 +20,7 @@ use crate::{Annotation, Edition, Error, Evaluation, Merged, Result, Score, Store
 
 /// The columns, as SQL selects them from `evaluations` (`v`) and from `annotations` (`a`), each
 /// with `editions` (`d`), and as Parquet holds them, in the same order.
-const COLUMNS: [(&str, &str, &str); 17] = [
+const COLUMNS: [(&str, &str, &str); 21] = [
     ("v.family", "a.family", "required binary family (STRING)"),
     ("v.variant", "a.variant", "required binary variant (STRING)"),
     ("v.key", "a.key", "required int64 key"),
@@ -38,6 +38,10 @@ const COLUMNS: [(&str, &str, &str); 17] = [
     ("NULL", "a.move", "optional binary move (STRING)"),
     ("NULL", "a.mark", "optional binary mark (STRING)"),
     ("NULL", "a.motifs", "optional binary motifs (STRING)"),
+    ("v.kind2", "NULL", "optional binary kind2 (STRING)"),
+    ("v.score2", "NULL", "optional double score2"),
+    ("v.lead2", "NULL", "optional double lead2"),
+    ("v.line2", "NULL", "optional binary line2 (STRING)"),
 ];
 
 /// Rows in one row group.
@@ -52,7 +56,8 @@ const ROWS: usize = 64 * 1024;
 /// (optional string), `kind` (string: cp, mate, winrate, equity), `score` (double), `lead`
 /// (double), `depth` (int32), `line` (string), `time` (int64), then for an Annotation (its
 /// `kind` `annotation`, `score` and `lead` 0, `line` the better line) `move`, `mark` and `motifs`
-/// (optional strings, empty for an Evaluation).
+/// (optional strings, empty for an Evaluation), then `kind2`, `score2`, `lead2` and `line2`
+/// (optional second-choice score kind, score, lead and line, empty for an Evaluation without one).
 pub fn to_parquet(store: &Store, out: &Path) -> Result<u64> {
     let mut part = out.as_os_str().to_owned();
     part.push(".part");
@@ -158,6 +163,14 @@ fn optional(row: &Row, i: usize) -> Result<Option<String>> {
     }
 }
 
+/// An optional double: 0.0 when NULL or the file has no such column; any other read error is an error.
+fn optional_double(row: &Row, i: usize) -> Result<f64> {
+    match row.get_column_iter().nth(i) {
+        None | Some((_, Field::Null)) => Ok(0.0),
+        _ => row.get_double(i).map_err(Error::from),
+    }
+}
+
 fn edition(row: &Row) -> Result<Edition> {
     Ok(Edition { engine: row.get_string(4)?.clone(), version: row.get_string(5)?.clone(), network: optional(row, 6)?, image: optional(row, 7)? })
 }
@@ -169,6 +182,10 @@ fn depth(row: &Row) -> Result<u32> {
 /// One row read back as an Evaluation. The `edition` column is not read: `Edition::id` is
 /// made from the fields it is written from.
 fn evaluation(row: &Row) -> Result<Evaluation> {
+    let kind2 = optional(row, 17)?.unwrap_or_default();
+    let score2 = optional_double(row, 18)?;
+    let lead2 = optional_double(row, 19)?;
+    let line2 = optional(row, 20)?.unwrap_or_default();
     Ok(Evaluation {
         family: row.get_string(0)?.clone(),
         variant: row.get_string(1)?.clone(),
@@ -178,6 +195,7 @@ fn evaluation(row: &Row) -> Result<Evaluation> {
         depth: depth(row)?,
         line: row.get_string(12)?.clone(),
         time: row.get_long(13)?,
+        second: crate::Second::from_columns(&kind2, score2, lead2, line2)?,
     })
 }
 
@@ -208,8 +226,8 @@ mod tests {
         vec![
             eval(u64::MAX, sf("Stockfish 17"), 20, 100, Score::Cp(-30)),
             eval(3, sf("Stockfish 17.1"), 9, 100, Score::Mate(4)),
-            Evaluation { family: "go".into(), variant: "go-19".into(), key: 1 << 63, edition: Edition { engine: "katago".into(), version: "KataGo 1.18.2".into(), network: Some("ab12".into()), image: None }, score: Score::WinRate { win: 0.625, lead: -1.5 }, depth: 400, line: "Q16 D4".into(), time: 5 },
-            Evaluation { family: "backgammon".into(), variant: "backgammon".into(), key: 0, edition: Edition { engine: "gnubg".into(), version: "GNU Backgammon 1.08.003".into(), network: None, image: None }, score: Score::Equity(0.125), depth: 2, line: String::new(), time: -1 },
+            Evaluation { family: "go".into(), variant: "go-19".into(), key: 1 << 63, edition: Edition { engine: "katago".into(), version: "KataGo 1.18.2".into(), network: Some("ab12".into()), image: None }, score: Score::WinRate { win: 0.625, lead: -1.5 }, depth: 400, line: "Q16 D4".into(), time: 5, second: Some(crate::Second { score: Score::WinRate { win: 0.5, lead: 0.25 }, line: "D4 Q16".into() }) },
+            Evaluation { family: "backgammon".into(), variant: "backgammon".into(), key: 0, edition: Edition { engine: "gnubg".into(), version: "GNU Backgammon 1.08.003".into(), network: None, image: None }, score: Score::Equity(0.125), depth: 2, line: String::new(), time: -1, second: Some(crate::Second { score: Score::Equity(-0.5), line: String::new() }) },
         ]
     }
 
@@ -228,6 +246,32 @@ mod tests {
         assert_eq!(b.annotations().unwrap().iter().find(|n| n.mv == "e2e4").unwrap().motifs, [Motif::Hangs, Motif::Fork]);
         // Imported again: read, and nothing changes.
         assert_eq!(from_parquet(&mut b, &out).unwrap(), Merged { read: 6, changed: 0 });
+    }
+
+    #[test]
+    fn old_files_without_the_second_choice_still_import() {
+        let d = dir("parquet-old");
+        let out = d.join("old.parquet");
+        let fields: Vec<&str> = COLUMNS[..17].iter().map(|c| c.2).collect();
+        let schema = Arc::new(parse_message_type(&format!("message evaluations {{ {}; }}", fields.join("; "))).unwrap());
+        let props = Arc::new(WriterProperties::builder().set_compression(Compression::SNAPPY).build());
+        let mut writer = SerializedFileWriter::new(File::create(&out).unwrap(), schema, props).unwrap();
+        let edition = sf("Stockfish 17");
+        let values = vec![
+            Value::Text("chess".into()), Value::Text("chess".into()), Value::Integer(1),
+            Value::Text(edition.id()), Value::Text(edition.engine), Value::Text(edition.version),
+            Value::Null, Value::Null, Value::Text("cp".into()), Value::Real(25.0), Value::Real(0.0),
+            Value::Integer(12), Value::Text("e2e4".into()), Value::Integer(100),
+            Value::Null, Value::Null, Value::Null,
+        ];
+        write_group(&mut writer, &[values]).unwrap();
+        writer.close().unwrap();
+
+        let mut store = Store::open(&d.join("fresh.sqlite")).unwrap();
+        assert_eq!(from_parquet(&mut store, &out).unwrap(), Merged { read: 1, changed: 1 });
+        let imported = store.all().unwrap();
+        assert_eq!(imported.len(), 1);
+        assert_eq!(imported[0].second, None);
     }
 
     /// An import is a merge: a deeper row in the store stays, a deeper row in the file wins.
