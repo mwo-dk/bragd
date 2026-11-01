@@ -1,0 +1,1 @@
+| **Bragd knows ElephantEye, an old xiangqi Engine that speaks UCCI.** Installed as `eleeye`, it plays xiangqi, and Bragd's UCCI support is now tested against the real program, which builds as a test image only. | [Engines Bragd knows](engines/engines.md#what-it-needs) |

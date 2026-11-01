@@ -55,13 +55,14 @@ The page has four parts:
   | Fruit 2.1 | chess | `fruit` | Your system's packages: its site is gone |
   | Fairy-Stockfish | chess and its Variants, xiangqi, janggi, shogi | `fairy-stockfish` | <https://github.com/fairy-stockfish/Fairy-Stockfish/releases> |
   | Pikafish | xiangqi | `pikafish` | <https://github.com/official-pikafish/Pikafish/releases> |
+  | ElephantEye | xiangqi | `eleeye`, `elephanteye`, `ELEEYE` | <https://github.com/xqbase/eleeye>. Speaks UCCI. No published image yet: Bragd builds it for tests only |
   | YaneuraOu | shogi | `YaneuraOu`, `yaneuraou` | <https://github.com/yaneurao/YaneuraOu/releases> |
   | KataGo | go | `katago` | <https://github.com/lightvector/KataGo/releases> |
   | GNU Go | go | `gnugo` | <https://www.gnu.org/software/gnugo/> |
   | Scan | international draughts | `scan` | <https://hjetten.home.xs4all.nl/scan/scan.html> |
   | GNU Backgammon | backgammon | `gnubg` | <https://www.gnu.org/software/gnubg/> |
 
-- Every Engine above but Igel and YaneuraOu has an image of Bragd's own, pulled when you press **Get it** on its card. See [Engine container images](container-images.md).
+- Every Engine above but Igel, ElephantEye and YaneuraOu has an image of Bragd's own, pulled when you press **Get it** on its card. See [Engine container images](container-images.md).
 
 ## Settings and config.toml
 

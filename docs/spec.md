@@ -98,7 +98,7 @@ The Helper is a separate background process shared by every Bragd window ([ADR 0
 | Game family | Engines | Protocol |
 |---|---|---|
 | Chess and its Variants | Stockfish, Fairy-Stockfish | UCI |
-| Xiangqi, janggi | Fairy-Stockfish, Pikafish | UCI / UCCI |
+| Xiangqi, janggi | Fairy-Stockfish, Pikafish, ElephantEye | UCI / UCCI |
 | Shogi | Fairy-Stockfish, YaneuraOu | USI |
 | Go | KataGo, GNU Go | GTP |
 | Draughts | Scan | Hub |

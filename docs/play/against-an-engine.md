@@ -31,7 +31,7 @@ An Engine for the Variant that is ready: installed on your machine, added by its
 | Game family | Engines |
 |---|---|
 | Chess and its Variants | Stockfish, Fairy-Stockfish |
-| Xiangqi, janggi | Fairy-Stockfish, Pikafish |
+| Xiangqi, janggi | Fairy-Stockfish, Pikafish, ElephantEye (xiangqi only) |
 | Shogi | Fairy-Stockfish, YaneuraOu |
 | Go | KataGo, GNU Go |
 | Draughts | Scan, International draughts only |

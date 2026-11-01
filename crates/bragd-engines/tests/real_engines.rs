@@ -2,7 +2,7 @@
 //! (`localhost/bragd-<engine>:dev`), run sealed as Bragd runs them. Each test runs only with
 //! `BRAGD_DEV_IMAGES=1` and its image built with podman; otherwise it says so and passes.
 //!
-//!     tools/dev/images.sh scan gnubg katago pikafish fairy-stockfish
+//!     tools/dev/images.sh scan gnubg katago pikafish fairy-stockfish elephanteye
 //!     BRAGD_DEV_IMAGES=1 cargo test -p bragd-engines --test real_engines -- --nocapture
 //!
 //! Each asks the engine about a Game played in `bragd-games` and checks that the move it names
@@ -81,6 +81,27 @@ fn pikafish_speaks_uci_with_ranks_from_zero() {
     let file = if net.path(&dir).is_file() { net.path(&dir) } else { net.download(&dir, &bragd_engines::fetch::Http, &mut |_, _| true).unwrap() };
     let red = wire("xiangqi", &[], "h3e3");
     best("pikafish", "xiangqi", &[red.as_str()], Limit::Depth(8), Some(file));
+}
+
+#[test]
+fn elephanteye_speaks_ucci_in_milliseconds_with_ranks_from_zero() {
+    let Some((rt, image)) = dev("elephanteye") else { return };
+    let program = Program::Container { rt, image, args: vec![], syzygy: None, network: None };
+    let mut e = Engine::start(&program, known("elephanteye").unwrap().protocol("xiangqi"), Duration::from_secs(60), &|| false).expect("ElephantEye answered `ucci` with `ucciok`");
+    assert_eq!(e.protocol(), bragd_engines::Protocol::Ucci);
+    assert!(e.about().name.starts_with("ElephantEye"), "{}", e.about().name);
+    assert!(e.about().option("usemillisec").is_some(), "UCCI engines offer usemillisec");
+    assert!(seam::plays(e.about(), e.protocol(), "xiangqi"));
+    assert_eq!(seam::notation("xiangqi", e.protocol(), &e.about().name), seam::Notation::RanksFromZero);
+    // Red's cannon to the middle file, then Black to move, with a time limit in milliseconds.
+    let red = wire("xiangqi", &[], "h3e3");
+    let (p, state) = seam::position("xiangqi", None, std::slice::from_ref(&red), seam::Notation::RanksFromZero).unwrap();
+    let a = think(&mut e, &p, Limit::Time(1500), 1, &|| false, &mut |_| {}).unwrap();
+    let mv = a.best.expect("ElephantEye named a move");
+    let legal = seam::entry(&state, seam::Notation::RanksFromZero, &mv).unwrap_or_else(|| panic!("ElephantEye said {mv}, not a legal reply to h3e3"));
+    eprintln!("{} (xiangqi): {mv} = {}", a.engine, legal.wire);
+    // The start position and a depth limit too: UCCI has no `startpos` in Bragd's wording.
+    best("elephanteye", "xiangqi", &[], Limit::Depth(6), None);
 }
 
 #[test]
