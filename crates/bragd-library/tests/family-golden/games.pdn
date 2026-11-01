@@ -1,0 +1,65 @@
+[White "A"]
+[Black "B"]
+[Result "2-0"]
+
+1. 32-28 19-23 2. 28x19 14x23 {back} 3. 37-32 (3. 33-28 23x32 4. 38x27) 3... 10-14 4. 34-29 23x34 5. 40x29 14-19 2-0
+
+[GameType "20"]
+[FEN "W:W37:B32,22,41"]
+[Result "*"]
+
+1. 37x28x17 41-46 *
+
+[GameType "20"]
+[FEN "W:W37:B32,22,41"]
+[Result "*"]
+
+1. 37x17 41-46 2. 17-11 46x5 *
+
+[GameType "20"]
+[FEN "W:WK46:B23"]
+[Result "*"]
+
+1. 46x5 *
+
+[GameType "21"]
+[FEN "B:W18:B23"]
+[Result "*"]
+
+1. 23x14 *
+
+[GameType "21"]
+[FEN "B:W18:B14"]
+[Result "*"]
+
+1. 14x23 *
+
+[GameType "21"]
+[FEN "B:W18:BK9"]
+[Result "*"]
+
+1. 9x23 *
+
+[GameType "21"]
+[FEN "W:W10:B6,7"]
+[Result "*"]
+
+1. 10x1 *
+
+[GameType "21"]
+[Result "*"]
+
+1. 11-15 23-19 2. 8-11 22-17 3. 15x22 25x18 4. 4-8 *
+
+[GameType "25"]
+[FEN "W:W21,22:B10,11"]
+[Result "*"]
+
+1. 21-17 10-14 2. 17x10 *
+
+[GameType "20"]
+[FEN "nonsense"]
+[Result "*"]
+
+1. 32-28 *
+
