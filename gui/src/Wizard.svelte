@@ -176,8 +176,14 @@
           </li>
         {/snippet}
         <ul class="offers">
-          {#each data.offers.filter((/** @type {any} */ o) => !o.more) as o (o.id)}{@render offer(o)}{/each}
+          {#each data.offers.filter((/** @type {any} */ o) => !o.list) as o (o.id)}{@render offer(o)}{/each}
         </ul>
+        {#if data.offers.some((/** @type {any} */ o) => o.list)}
+          <h4>{t("clubs.lists")}</h4>
+          <ul class="offers">
+            {#each data.offers.filter((/** @type {any} */ o) => o.list && !o.more) as o (o.id)}{@render offer(o)}{/each}
+          </ul>
+        {/if}
         {#if data.offers.some((/** @type {any} */ o) => o.more)}
           <details>
             <summary>{t("source.more_lists")}</summary>

@@ -148,6 +148,8 @@ pub struct Source {
     /// "weekly", "monthly"…
     pub schedule: String,
     pub fetchable: bool,
+    /// A rating list, offered under its own heading.
+    pub list: bool,
     /// A rating list of another country's federation: offered under More lists.
     pub more: bool,
 }
@@ -164,6 +166,8 @@ pub struct Offer {
     pub note: Option<String>,
     /// At least `BIG`: the note warns about the disk.
     pub big: bool,
+    /// A rating list, shown under its own heading.
+    pub list: bool,
     /// Shown folded, under More lists.
     pub more: bool,
 }
@@ -181,6 +185,7 @@ pub fn offers(sources: &[Source], cfg: &Config, bytes: fn(u64) -> String) -> Vec
             recommended: true,
             note: None,
             big: false,
+            list: false,
             more: false,
         });
     }
@@ -193,6 +198,7 @@ pub fn offers(sources: &[Source], cfg: &Config, bytes: fn(u64) -> String) -> Vec
             recommended: RECOMMENDED.contains(&s.id.as_str()),
             note: big.then(|| t!("wizard.big", "size" => bytes(s.size))),
             big,
+            list: s.list,
             more: s.more,
         });
     }
@@ -320,6 +326,7 @@ mod tests {
             size,
             schedule: "weekly".into(),
             fetchable,
+            list: id == "far-list",
             more: id == "far-list",
         };
         vec![
@@ -375,6 +382,7 @@ mod tests {
         let ids: Vec<&str> = o.iter().map(|o| o.id.as_str()).collect();
         assert_eq!(ids, ["syzygy", "twic", "custom:x", "far-list"], "what cannot be fetched is not offered");
         assert_eq!(o.iter().map(|o| o.more).collect::<Vec<_>>(), [false, false, false, true], "another country's list waits under More lists");
+        assert!(o.iter().all(|o| o.list == (o.id == "far-list")), "only the rating list goes under its heading");
         assert_eq!(ticked(&o), ["syzygy", "twic"]);
         assert!(o.iter().all(|o| !o.big), "no warning on what cannot be chosen");
         assert!(o[1].note.is_none() && o[1].size.contains("1500000"));

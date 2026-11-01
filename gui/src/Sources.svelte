@@ -200,7 +200,9 @@
   {#if message}<p role="status">{message}</p>{/if}
   {#if !page && !error}<p class="hint">{t("helper.connecting")}</p>{/if}
 
-  {#each shown.filter((/** @type {any} */ s) => !s.more) as s (s.id)}{@render source(s)}{/each}
+  {#each shown.filter((/** @type {any} */ s) => !s.ratingList) as s (s.id)}{@render source(s)}{/each}
+  {#if shown.some((/** @type {any} */ s) => s.ratingList)}<h3>{t("clubs.lists")}</h3>{/if}
+  {#each shown.filter((/** @type {any} */ s) => s.ratingList && !s.more) as s (s.id)}{@render source(s)}{/each}
   {#if shown.some((/** @type {any} */ s) => s.more)}
     <details class="more">
       <summary>{t("source.more_lists")}</summary>

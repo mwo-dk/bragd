@@ -473,6 +473,8 @@
         </div>
         <p class="dim">{t("tournaments.team_score_hint")}</p>
       {/if}
+      <!-- A knockout ranks by how far a player went: it has no tiebreaks to order. -->
+      {#if T.system.kind !== "knockout"}
       <h4>{t("tournaments.tiebreaks")}</h4>
       <p class="dim">{t("tournaments.tiebreaks_hint")}</p>
       {#if order}
@@ -503,6 +505,7 @@
         </ol>
         <button disabled={!official} onclick={() => (order = tv.tiebreaks.map((/** @type {any} */ x) => x.code))}>{t("tournaments.change_tiebreaks")}</button>
       {/if}
+      {/if}
       <h4>{t("tournaments.rate")}</h4>
       <p class="dim">{T.rated ? t("tournaments.rated") : t("tournaments.rate_hint")}</p>
       <button disabled={!director || T.rated || T.played.length === 0} onclick={rate}>{t("tournaments.rate_button")}</button>
@@ -516,7 +519,7 @@
           </li>
         {/each}
       </ul>
-      <p class="dim">{t("tournaments.dsu")}</p>
+      {#if variants.find((v) => v.key === T.variant)?.family === "chess"}<p class="dim">{t("tournaments.dsu")}</p>{/if}
     {:else}
       {#if T.log.length === 0}
         <p class="dim">{t("clubs.log_empty")}</p>
@@ -618,18 +621,6 @@
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
   }
-  /* On a phone-wide window the four columns of a Round must fit without scrolling sideways:
-     Black is the column that would go out of sight. */
-  @media (max-width: 30rem) {
-    th,
-    td {
-      padding: 0.25rem 0.2rem;
-    }
-    td select {
-      max-width: 5.5rem;
-      padding-inline: 0.3rem;
-    }
-  }
   tr.total td {
     font-weight: 600;
   }
@@ -681,6 +672,18 @@
   td select {
     min-width: 0;
     max-width: 9rem;
+  }
+  /* On a phone-wide window the four columns of a Round must fit without scrolling sideways:
+     Black is the column that would go out of sight. */
+  @media (max-width: 30rem) {
+    th,
+    td {
+      padding: 0.25rem 0.2rem;
+    }
+    td select {
+      max-width: 5.5rem;
+      padding-inline: 0.3rem;
+    }
   }
   .dim {
     color: var(--dim);

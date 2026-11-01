@@ -229,7 +229,7 @@
               </p>
             {/if}
             {#if found}
-              {#if found.length === 0}<p class="dim">{t("clubs.none_found")}</p>{/if}
+              {#if found.length === 0 && page?.lists.some((/** @type {any} */ l) => l.players)}<p class="dim">{t("clubs.none_found")}</p>{/if}
               <ul class="found">
                 {#each found as p (p.list + p.id)}
                   <li>
