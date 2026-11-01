@@ -23,3 +23,5 @@ libc = "0.2"
 
 [dev-dependencies]
 bragd-core = { path = "../bragd-core", features = ["test-home"] }
+# A test counts a search's work in SQLite steps (`progress_handler`).
+rusqlite = { version = "0.41.1", features = ["bundled", "hooks"] }

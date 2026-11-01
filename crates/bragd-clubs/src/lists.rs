@@ -252,6 +252,8 @@ CREATE TABLE IF NOT EXISTS players (
 CREATE INDEX IF NOT EXISTS players_id ON players (id);
 CREATE INDEX IF NOT EXISTS players_fide ON players (fide_id);
 CREATE TABLE IF NOT EXISTS lists (list TEXT PRIMARY KEY, players INTEGER NOT NULL, at INTEGER NOT NULL);
+-- The words of each name's `key`, so a search reads the players it finds, not all of them.
+CREATE VIRTUAL TABLE IF NOT EXISTS names USING fts5 (key, content = 'players', content_rowid = 'rowid', tokenize = 'unicode61', prefix = '2 3');
 ";
 
 fn open(path: &Path) -> rusqlite::Result<Connection> {
@@ -320,6 +322,7 @@ pub fn import_with(path: &Path, list: &str, fill: impl FnOnce(Each) -> io::Resul
             Ok(())
         })?;
     }
+    tx.execute("INSERT INTO names (names) VALUES ('rebuild')", []).map_err(sql)?;
     tx.execute("INSERT OR REPLACE INTO lists (list, players, at) VALUES (?1, ?2, ?3)", params![list, n as i64, bragd_core::fs::now() as i64]).map_err(sql)?;
     tx.commit().map_err(sql)?;
     Ok(n)
@@ -344,14 +347,17 @@ pub fn lists(path: &Path) -> rusqlite::Result<Vec<Imported>> {
 /// The most players one search gives.
 pub const LIMIT: usize = 50;
 
-/// Players whose ID (or FIDE ID) is `query`, or whose name holds every word of it, in any
-/// order and without regard to accents: the highest rated first.
+/// Players whose ID (or FIDE ID) is `query`, or whose name has a word starting with each word
+/// of it, in any order and without regard to accents: the highest rated first.
 pub fn search(path: &Path, query: &str) -> rusqlite::Result<Vec<Found>> {
     let q = query.trim();
     if q.is_empty() || !path.exists() {
         return Ok(vec![]);
     }
-    let db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    search_on(&Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?, q)
+}
+
+fn search_on(db: &Connection, q: &str) -> rusqlite::Result<Vec<Found>> {
     const COLS: &str = "SELECT list, id, name, federation, club, title, rating, rapid, blitz, born, fide_id FROM players";
     let row = |r: &rusqlite::Row| {
         Ok(Found {
@@ -363,13 +369,13 @@ pub fn search(path: &Path, query: &str) -> rusqlite::Result<Vec<Found>> {
         let mut s = db.prepare(&format!("{COLS} WHERE id = ?1 OR fide_id = ?1 ORDER BY list LIMIT {LIMIT}"))?;
         return s.query_map([q], row)?.collect();
     }
-    let words: Vec<String> = fold(q).split(' ').filter(|w| !w.is_empty()).map(|w| format!("%{}%", w.replace(['%', '_'], ""))).collect();
+    // Every word, as the start of a word of the name: `fold` leaves letters and digits only.
+    let words: Vec<String> = fold(q).split(' ').filter(|w| !w.is_empty()).map(|w| format!("\"{w}\"*")).collect();
     if words.is_empty() {
         return Ok(vec![]);
     }
-    let cond = (1..=words.len()).map(|i| format!("key LIKE ?{i}")).collect::<Vec<_>>().join(" AND ");
-    let mut s = db.prepare(&format!("{COLS} WHERE {cond} ORDER BY rating IS NULL, rating DESC, name LIMIT {LIMIT}"))?;
-    s.query_map(rusqlite::params_from_iter(words.iter()), row)?.collect()
+    let mut s = db.prepare(&format!("{COLS} WHERE rowid IN (SELECT rowid FROM names WHERE names MATCH ?1) ORDER BY rating IS NULL, rating DESC, name LIMIT {LIMIT}"))?;
+    s.query_map([words.join(" ")], row)?.collect()
 }
 
 #[cfg(test)]
@@ -409,6 +415,31 @@ mod tests {
         assert_eq!(names("moller"), ["dsu:Søren Møller"]);
         let l = lists(&db).unwrap();
         assert_eq!(l.iter().map(|i| (i.list.as_str(), i.players)).collect::<Vec<_>>(), [("dsu", 1), ("fide", 1)]);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// A name search asks the name index, not every player: on FIDE's whole list (1.95 M
+    /// players, 311 MB) a scan took some 7.8 M SQLite steps for each search.
+    #[test]
+    fn a_name_search_does_not_read_every_player() {
+        let d = std::env::temp_dir().join(format!("bragd-lists-work-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let db = d.join("rating-lists.sqlite");
+        let many = (0..20_000).map(|i| p(&i.to_string(), &format!("Player{i}, Name{}", i % 97), Some(1000 + i % 1500)));
+        import(&db, "fide", many.chain([p("1503014", "Carlsen, Magnus", Some(2830))])).unwrap();
+        let mut c = Connection::open(&db).unwrap();
+        let steps = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let counted = steps.clone();
+        c.progress_handler(1, Some(move || {
+            counted.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            false
+        }))
+        .unwrap();
+        let found = search_on(&c, "magnus carl").unwrap();
+        assert_eq!(found.iter().map(|f| f.player.name.as_str()).collect::<Vec<_>>(), ["Carlsen, Magnus"]);
+        // A scan is four steps or more for each of the 20,001 players.
+        let steps = steps.load(std::sync::atomic::Ordering::Relaxed);
+        assert!(steps < 2_000, "{steps} steps");
         let _ = std::fs::remove_dir_all(&d);
     }
 
@@ -476,3 +507,4 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
     }
 }
+

@@ -183,6 +183,10 @@ No. It stays in `rating-lists.sqlite` on your machine. Searching it at check-in 
 
 The FIDE combined list is 45 MB zipped and 320 MB unzipped, about 1.9 million lines. The standard-only list is 13 MB. The Danish list is 0.5 MB and the English one 4.5 MB. The wizard and the Sources page show each list's size before anything is downloaded.
 
+#### How much disk does a list take, and how fast is a search?
+
+The whole FIDE list, 1,949,163 players, takes 386 MB in `rating-lists.sqlite`, its name index included (measured on 2026-11-01). The import takes about a minute and a half. A search by name reads only the players whose names match, through the index: a full name such as `magnus carlsen` or a surname such as `nielsen` is answered at once. A single letter matches most of the list and takes longest.
+
 #### How often does Bragd fetch?
 
 Once a month, once you tick the list in the wizard or turn it on under Sources. FIDE builds its files on the last day of the month. **Fetch now** on the Sources page fetches one at once.
