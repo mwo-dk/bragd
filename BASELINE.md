@@ -15,4 +15,4 @@ What is settled, and what is known to be broken. Read this before starting work.
 
 ## Known broken
 
-- Text set in the bundled Noto Sans Runic draws nothing in WebKitGTK: the font loads, but the runes have no width. The sidebar shows the rune wordmark from `assets/brand/wordmark-runes.svg` (outlines) instead. The cause is not found yet.
+- Runic text draws nothing in WebKitGTK (seen in 2.54.2; its Skia text code since 2.46 has the same line), whatever the font. WebKit takes a run's direction from `hb_script_get_horizontal_direction()`, which is `HB_DIRECTION_INVALID` for Runic, as runes are written either way, and HarfBuzz then gives every glyph an advance of 0. Upstream WebKit has not fixed it ([#2](https://github.com/mwo-dk/bragd/issues/2)). The sidebar shows the rune wordmark from `assets/brand/wordmark-runes.svg` (outlines), named *Bragd* for screen readers. The window title is drawn by GTK and is not affected.

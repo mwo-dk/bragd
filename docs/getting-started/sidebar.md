@@ -57,6 +57,10 @@ Tafl, Ur and Senet have no outside Engine to run. Their built-in Bots are planne
 
 It is lit while the Helper answers, shows when jobs are running, and warns when Disk watch has a notice. The line asks the Helper every 5 seconds, and every 1.5 seconds while a job runs.
 
+#### Why is the wordmark a picture and not text?
+
+WebKitGTK, which draws Bragd's window on Linux, draws runes in text with no width, whatever the font. The wordmark is therefore the outline of each rune, taken from the bundled Noto Sans Runic. Screen readers call it *Bragd*.
+
 #### Can I change the order of the Families?
 
 No. They follow the catalogue: chess, xiangqi, shogi, go, draughts, tafl, backgammon, ur, senet. Turning off the ones you do not play is the way to shorten the list.
