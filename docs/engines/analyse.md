@@ -48,6 +48,10 @@ Until you press **Stop**, or for at most 60 s on one position. Each move you mak
 
 Scores are always from the first Side's view, so `+1.0` is good for White whoever is to move. In xiangqi that is Red, in shogi Sente.
 
+#### Why does backgammon show a score with no moves?
+
+Before the roll there is no move to suggest. GNU Backgammon then gives its equity for the player on roll, and Analyse shows it alone. Press **Throw**, and the next lines name the best moves for that roll.
+
 #### Which positions can I paste?
 
 The Variant's own notation: FEN for chess and xiangqi, SFEN for shogi, PDN for draughts, and a go picture for go. Bragd checks it by replaying it, and says why when it is refused.

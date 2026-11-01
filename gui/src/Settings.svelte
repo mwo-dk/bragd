@@ -125,8 +125,10 @@
     font-size: 0.9em;
   }
   @media (max-width: 760px) {
+    /* Stretched, so a wide table scrolls in its own box instead of widening the page. */
     .frame {
       flex-direction: column;
+      align-items: stretch;
     }
     .areas {
       flex-direction: row;

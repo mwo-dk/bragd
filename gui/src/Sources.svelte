@@ -113,7 +113,7 @@
         <input type="checkbox" checked={s.options.enabled} disabled={!s.fetchable} onchange={(e) => save(s.id, { ...s.options, enabled: e.currentTarget.checked })} />
         <strong>{s.name}</strong>
       </label>
-      <span class="meta">{s.familyName} · {s.size} · {t("source.last", { when: s.last })}</span>
+      <span class="meta">{s.familyName} · {s.size}{s.fetchable ? ` · ${t("source.last", { when: s.last })}` : ""}</span>
       <button onclick={() => expand(s)} aria-expanded={open === s.id} disabled={!s.fetchable}>{open === s.id ? t("source.less") : t("source.more")}</button>
       <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.fetchable || !s.options.enabled}>{t("source.fetch_now")}</button>
       {#if s.custom}<button onclick={() => (removing = s.id)}>{t("source.remove")}</button>{/if}

@@ -38,7 +38,7 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `sshl-ratings` | Finnish Chess Federation (SShL) | chess | 0.75 MB | Monthly | Yes |
 | `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly | Yes |
 
-The Sources marked *Not yet* are listed so you know they are coming. They are greyed out, and a notice says this version cannot fetch them.
+The Sources marked *Not yet* are listed so you know they are coming. They are greyed out, they show only their size per fetch, such as *about 30 GB*, with no schedule and no last fetch, and a notice says this version cannot fetch them.
 
 **TWIC.** The first fetch takes only the newest issue. Each later fetch takes the new issues in order, at most 26 at a time. The zips are imported as they are, without unpacking.
 
