@@ -142,7 +142,7 @@ Two Bragd players on the Bragd server can Chat and Call during a Game.
 
 **Install wizard** steps:
 1. Welcome: language, Theme and Board theme.
-2. Game families and Variants.
+2. Which games do you play? One click picks a single Family, such as *Only chess*, and *Several…* opens the full list of Families and Variants. Someone who picks one Family never sees another: not in the sidebar, menus, Settings, What's new, Tips or update notes. What concerns every Family still shows. More Families can be added in Settings at any time.
 3. Engines: those found installed, or images to pull.
 4. Knowledge: recommended Sources and Syzygy 3–5, with size and disk warnings.
 5. Online sign-in.
