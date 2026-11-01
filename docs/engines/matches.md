@@ -132,4 +132,4 @@ Each Engine is timed from the moment Bragd asks for its move to the moment its m
 Open the Library under **Databases**. Each Game has the Engines' names as White and Black, its round, the result, and why it ended.
 
 ---
-[← Previous: Opening books](opening-books.md) · [Next: Clubs →](../clubs/README.md)
+[← Previous: Opening books](opening-books.md) · [Next: Background analysis →](background-analysis.md)

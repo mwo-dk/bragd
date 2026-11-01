@@ -4,7 +4,7 @@
 //! so the work grows with the player's Games, not with the Library.
 
 use std::cmp::Reverse;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use serde::Serialize;
 
@@ -83,12 +83,6 @@ pub(crate) const GAMES: &str = "SELECT id, family, date, white, black, white_elo
      UNION ALL
      SELECT id, family, date, white, black, white_elo, black_elo, eco, opening, result FROM games WHERE black = ?1 AND white != ?1";
 
-/// The names starting with `?1` (to before `?2`), with their Games, most Games first.
-pub(crate) const NAMES: &str = "SELECT name, count(*) AS n FROM (
-         SELECT white AS name FROM games WHERE white >= ?1 AND white < ?2
-         UNION ALL
-         SELECT black FROM games WHERE black >= ?1 AND black < ?2 AND black != white
-     ) GROUP BY name ORDER BY n DESC, name LIMIT ?3";
 
 /// Who won: Some(true) the `white` column's side, Some(false) the other, None a draw; Err for
 /// a Game with no result Bragd reads. PGN and PDN scores, and go's `B+…` and `W+…`.
@@ -97,7 +91,7 @@ pub fn winner(result: &str) -> std::result::Result<Option<bool>, ()> {
     match result {
         "1-0" | "2-0" => Ok(Some(true)),
         "0-1" | "0-2" => Ok(Some(false)),
-        "1/2-1/2" | "1-1" | "0" => Ok(None),
+        "1/2-1/2" | "½-½" | "1-1" | "0" => Ok(None),
         r if r.eq_ignore_ascii_case("draw") || r.eq_ignore_ascii_case("jigo") => Ok(None),
         r if r.starts_with("W+") => Ok(Some(true)),
         r if r.starts_with("B+") => Ok(Some(false)),
@@ -105,7 +99,36 @@ pub fn winner(result: &str) -> std::result::Result<Option<bool>, ()> {
     }
 }
 
-/// One of the player's Games, as read from `GAMES`. `elo` and `opponent_elo` are the player's
+/// A Game's headers as a player's summary reads them, from a Library or a Foreign database.
+/// `id` is what opens it again.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Seen {
+    pub id: i64,
+    pub family: String,
+    pub date: String,
+    pub white: String,
+    pub black: String,
+    pub white_elo: Option<i64>,
+    pub black_elo: Option<i64>,
+    pub eco: String,
+    pub opening: String,
+    pub result: String,
+}
+
+/// The summary of `name` over `games`: those they played, as either side, by Game family.
+pub fn summary(name: &str, games: impl IntoIterator<Item = Seen>) -> PlayerSummary {
+    let mut by_family: BTreeMap<String, Vec<Played>> = BTreeMap::new();
+    for g in games.into_iter().filter(|g| g.white == name || g.black == name) {
+        let first_side = g.white == name;
+        let (elo, opponent_elo, opponent) = if first_side { (g.white_elo, g.black_elo, g.black) } else { (g.black_elo, g.white_elo, g.white) };
+        let p = Played { id: g.id, family: g.family, date: g.date, opponent, opponent_elo, elo, eco: g.eco, opening: g.opening, result: g.result, first_side };
+        by_family.entry(p.family.clone()).or_default().push(p);
+    }
+    let families = by_family.into_iter().map(|(family, games)| family_summary(family, games)).collect();
+    PlayerSummary { name: name.to_string(), families }
+}
+
+/// One of the player's Games. `elo` and `opponent_elo` are the player's
 /// and the opponent's rating.
 struct Played {
     id: i64,
@@ -219,59 +242,57 @@ impl Library {
     /// The summary of the player named exactly `name`, over every Family the Library holds.
     pub fn player(&self, name: &str) -> Result<PlayerSummary> {
         let mut st = self.conn().prepare(GAMES)?;
-        let mut by_family: BTreeMap<String, Vec<Played>> = BTreeMap::new();
-        for g in st.query_map([name], |r| {
-            let white: String = r.get(3)?;
-            let black: String = r.get(4)?;
-            let (white_elo, black_elo): (Option<i64>, Option<i64>) = (r.get(5)?, r.get(6)?);
-            let first_side = white == name;
-            let (elo, opponent_elo, opponent) = if first_side { (white_elo, black_elo, black) } else { (black_elo, white_elo, white) };
-            Ok(Played {
+        let games = st.query_map([name], |r| {
+            Ok(Seen {
                 id: r.get(0)?,
                 family: r.get(1)?,
                 date: r.get(2)?,
-                opponent,
-                opponent_elo,
-                elo,
+                white: r.get(3)?,
+                black: r.get(4)?,
+                white_elo: r.get(5)?,
+                black_elo: r.get(6)?,
                 eco: r.get(7)?,
                 opening: r.get(8)?,
                 result: r.get(9)?,
-                first_side,
             })
-        })? {
-            let g = g?;
-            by_family.entry(g.family.clone()).or_default().push(g);
-        }
-        let families = by_family.into_iter().map(|(family, games)| family_summary(family, games)).collect();
-        Ok(PlayerSummary { name: name.to_string(), families })
+        })?;
+        Ok(summary(name, games.collect::<rusqlite::Result<Vec<_>>>()?))
     }
 
-    /// The players whose name starts with `text` (as typed, or with its first letter upper
-    /// case), with how many Games each has here, most Games first, at most `limit`.
+    /// The players with a word of their name starting with each word of `text`, in any case
+    /// and with or without accents ("garry" finds "Kasparov, Garry"), with how many Games each
+    /// has here, most Games first, at most `limit`. The first search after Games came or went
+    /// makes the name index again.
     pub fn players(&self, text: &str, limit: usize) -> Result<Vec<(String, u32)>> {
-        let text = text.trim();
-        if text.is_empty() {
+        let words: Vec<String> = text.split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).map(|w| format!("\"{w}\"*")).collect();
+        if words.is_empty() {
             return Ok(Vec::new());
         }
-        let mut chars = text.chars();
-        let capitalised: String = chars.next().map(|c| c.to_uppercase().chain(chars).collect()).unwrap_or_default();
-        let mut prefixes = vec![text.to_string(), capitalised];
-        prefixes.dedup();
-        let mut st = self.conn().prepare(NAMES)?;
-        let mut counts: HashMap<String, u32> = HashMap::new();
-        for prefix in &prefixes {
-            let end = format!("{prefix}\u{10FFFF}");
-            for row in st.query_map(rusqlite::params![prefix, end, limit as i64], |r| Ok((r.get::<_, String>(0)?, r.get::<_, u32>(1)?)))? {
-                let (name, n) = row?;
-                *counts.entry(name).or_default() += n;
-            }
+        let fresh: bool = self.conn().query_row("SELECT EXISTS (SELECT 1 FROM player_names_fresh)", [], |r| r.get(0))?;
+        if !fresh {
+            self.conn().execute_batch(NAMES_AGAIN)?;
         }
-        let mut found: Vec<(String, u32)> = counts.into_iter().collect();
-        found.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-        found.truncate(limit);
-        Ok(found)
+        let mut st = self.conn().prepare_cached(FIND)?;
+        let found = st.query_map(rusqlite::params![words.join(" "), limit as i64], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        Ok(found.collect::<rusqlite::Result<_>>()?)
     }
 }
+
+/// The names whose words match `?1`, with their Games, most Games first, at most `?2`.
+pub(crate) const FIND: &str = "SELECT n.name, n.games FROM player_words w JOIN player_names n ON n.rowid = w.rowid WHERE player_words MATCH ?1 ORDER BY n.games DESC, n.name LIMIT ?2";
+
+/// Every name in the `white` and `black` columns with its Games, and the index of their words.
+const NAMES_AGAIN: &str = "BEGIN;
+    DELETE FROM player_names;
+    INSERT INTO player_names (name, games) SELECT name, count(*) FROM (
+        SELECT white AS name FROM games
+        UNION ALL
+        SELECT black FROM games WHERE black != white
+    ) WHERE name != '' GROUP BY name;
+    INSERT INTO player_words (player_words) VALUES ('rebuild');
+    DELETE FROM player_names_fresh;
+    INSERT INTO player_names_fresh VALUES (1);
+    COMMIT;";
 
 #[cfg(test)]
 mod tests {
@@ -307,6 +328,7 @@ mod tests {
         assert_eq!(winner("1-0"), Ok(Some(true)));
         assert_eq!(winner("0-1"), Ok(Some(false)));
         assert_eq!(winner("1/2-1/2"), Ok(None));
+        assert_eq!(winner("½-½"), Ok(None), "as a Foreign database lists it");
         assert_eq!(winner("2-0"), Ok(Some(true)));
         assert_eq!(winner("0-2"), Ok(Some(false)));
         assert_eq!(winner("1-1"), Ok(None));
@@ -348,12 +370,24 @@ mod tests {
     }
 
     #[test]
-    fn players_are_found_by_the_start_of_their_name() {
+    fn players_are_found_by_the_start_of_any_word_of_their_name() {
         let d = Dir::new("player-find");
-        let lib = library(&d);
+        let mut lib = library(&d);
+        assert_eq!(lib.players("Garry", 10).unwrap(), [("Kasparov, Garry".to_string(), 6)]);
+        assert_eq!(lib.players("gar kasp", 10).unwrap(), [("Kasparov, Garry".to_string(), 6)]);
+        assert!(lib.players("Garry Karpov", 10).unwrap().is_empty(), "every word must match");
+        assert_eq!(lib.players("visw", 10).unwrap(), [("Anand, Viswanathan".to_string(), 1)]);
+        // Games that come after the first search are found, and counted.
+        add(&mut lib, &[("White", "Polgár, Judit"), ("Black", "Short, Nigel")], "1. e4", "1-0");
+        assert_eq!(lib.players("polgar", 10).unwrap(), [("Polgár, Judit".to_string(), 1)], "accents aside");
+        assert_eq!(lib.players("nigel", 10).unwrap(), [("Short, Nigel".to_string(), 3)]);
+        // A name changed by merging headers again is found by its new name.
+        lib.conn().execute("UPDATE games SET white = 'Polgar, Judit' WHERE white = 'Polgár, Judit'", []).unwrap();
+        assert_eq!(lib.players("judit", 10).unwrap(), [("Polgar, Judit".to_string(), 1)]);
+        assert!(lib.players("\"*", 10).unwrap().is_empty(), "search syntax is only text");
         assert_eq!(lib.players("Kas", 10).unwrap(), [("Kasparov, Garry".to_string(), 6)]);
         assert_eq!(lib.players("kas", 10).unwrap(), [("Kasparov, Garry".to_string(), 6)]);
-        assert_eq!(lib.players("Short", 10).unwrap(), [("Short, Nigel".to_string(), 2)]);
+        assert_eq!(lib.players("Short", 10).unwrap(), [("Short, Nigel".to_string(), 3)]);
         assert_eq!(lib.players("K", 1).unwrap().len(), 1);
         assert_eq!(lib.players("K", 10).unwrap().iter().map(|p| p.0.as_str()).collect::<Vec<_>>(), ["Kasparov, Garry", "Karpov, Anatoly"]);
         assert!(lib.players("", 10).unwrap().is_empty());
@@ -374,7 +408,10 @@ mod tests {
         let d = Dir::new("player-work");
         let mut lib = library(&d);
         let summary = |lib: &Library| steps(lib, GAMES, &[&"Kasparov, Garry"]);
-        let names = |lib: &Library| steps(lib, NAMES, &[&"Kas", &"Kas\u{10FFFF}", &10]);
+        let names = |lib: &Library| {
+            lib.players("Kas", 10).unwrap();
+            steps(lib, FIND, &[&"\"Kas\"*", &10])
+        };
         let before = (summary(&lib), names(&lib));
         // 300 Games of moves no other Game has, so none is merged as a Duplicate.
         let w = ["a3", "a4", "b3", "b4", "c3", "c4", "d3", "d4", "e3", "e4", "f3", "f4", "g3", "g4", "h3", "h4", "Nc3", "Nf3", "Na3", "Nh3"];
@@ -387,9 +424,6 @@ mod tests {
         assert_eq!((summary(&lib), names(&lib)), before);
         let mut st = lib.conn().prepare(GAMES).unwrap();
         assert_eq!(st.query(["Kasparov, Garry"]).unwrap().mapped(|_| Ok(())).count(), 6);
-        assert_eq!(st.get_status(StatementStatus::FullscanStep), 0);
-        let mut st = lib.conn().prepare(NAMES).unwrap();
-        assert_eq!(st.query(rusqlite::params!["Kas", "Kas\u{10FFFF}", 10]).unwrap().mapped(|_| Ok(())).count(), 1);
         assert_eq!(st.get_status(StatementStatus::FullscanStep), 0);
     }
 }

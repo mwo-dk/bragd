@@ -27,6 +27,7 @@ pub struct Config {
     pub disk: DiskConfig,
     pub tips: TipsConfig,
     pub model: ModelConfig,
+    pub analysis: AnalysisConfig,
     /// The user's own Themes, `[themes.<name>]`: each colour not given is Racing green's. One
     /// named like a built-in Theme replaces it.
     pub themes: BTreeMap<String, Theme>,
@@ -190,6 +191,50 @@ impl Default for UpdatesConfig {
     }
 }
 
+/// Background analysis: the Helper's queue of positions for the Position store, and what this
+/// machine allows it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct AnalysisConfig {
+    /// Queue the positions of each Game opened from a Library or a Foreign database.
+    pub open_games: bool,
+    /// How deep each position of an opened Game is analysed.
+    pub depth: u64,
+    /// Engines run at once, each on one thread.
+    pub threads: u64,
+    /// It runs from this hour of the day, local time, 0 to 23 …
+    pub from_hour: u64,
+    /// … until this one, 1 to 24; the same hour as `from_hour` is any hour.
+    pub until_hour: u64,
+    /// It runs while the machine is on its battery too.
+    pub on_battery: bool,
+}
+
+impl Default for AnalysisConfig {
+    fn default() -> Self {
+        AnalysisConfig { open_games: true, depth: 18, threads: 1, from_hour: 0, until_hour: 24, on_battery: false }
+    }
+}
+
+impl AnalysisConfig {
+    /// Whether it may run at `hour` (0 to 23): between `from_hour` and `until_hour`, across
+    /// midnight when `until_hour` is the smaller.
+    pub fn hour_allowed(&self, hour: u64) -> bool {
+        let (from, until) = (self.from_hour % 24, self.until_hour % 24);
+        match from.cmp(&until) {
+            std::cmp::Ordering::Equal => true,
+            std::cmp::Ordering::Less => (from..until).contains(&hour),
+            std::cmp::Ordering::Greater => hour >= from || hour < until,
+        }
+    }
+
+    /// Engines run at once: at least one, at most the machine's threads.
+    pub fn engines(&self) -> usize {
+        let most = std::thread::available_parallelism().map_or(1, |n| n.get());
+        (self.threads as usize).clamp(1, most)
+    }
+}
+
 /// How often a Tip may show (`tips`).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -231,6 +276,7 @@ impl Default for Config {
             disk: DiskConfig::default(),
             tips: TipsConfig::default(),
             model: ModelConfig::default(),
+            analysis: AnalysisConfig::default(),
             themes: BTreeMap::new(),
             refused: vec![],
         }
@@ -460,6 +506,17 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn analysis_hours_wrap_round_midnight() {
+        let at = |from, until| AnalysisConfig { from_hour: from, until_hour: until, ..AnalysisConfig::default() };
+        assert!((0..24).all(|h| AnalysisConfig::default().hour_allowed(h)));
+        assert!((0..24).all(|h| at(9, 9).hour_allowed(h)));
+        assert!(at(22, 7).hour_allowed(23) && at(22, 7).hour_allowed(3) && !at(22, 7).hour_allowed(7) && !at(22, 7).hour_allowed(12));
+        assert!(at(9, 17).hour_allowed(9) && !at(9, 17).hour_allowed(17) && !at(9, 17).hour_allowed(8));
+        assert_eq!(at(0, 0).engines(), 1);
+        assert_eq!(AnalysisConfig { threads: 0, ..at(0, 0) }.engines(), 1);
+    }
+
     use super::*;
 
     #[test]

@@ -13,6 +13,7 @@ An Engine plays a Side in Play, analyses a position in Analyse and reviews a who
 | [Tablebases](tablebases.md) | Syzygy sets, their folder, the Lichess fallback |
 | [Opening books](opening-books.md) | Polyglot books and opening names |
 | [Engine matches](matches.md) | Round robins, gauntlets and SPRT matches between Engines, played in the Helper |
+| [Background analysis](background-analysis.md) | The Helper's queue of positions for the Position store, and its limits |
 
 ## Which Engine plays which Family
 

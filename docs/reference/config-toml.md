@@ -49,7 +49,13 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`.
 | `tips.frequency` | `"sometimes"` | How often a Tip may show: `often` (once a day at most), `sometimes` (once a week at most) or `off` ([Tips](../getting-started/tips.md)) |
 | `disk.total` | `0` | The most, in bytes, that everything Bragd keeps may take together. `0` is no limit ([Disk watch](../knowledge/disk-watch.md)) |
 | `disk.free_below` | `0` | Warn when free space on a disk Bragd uses falls below this many bytes. `0` is no warning |
-| `disk.items` | empty | A table: item id → the most bytes it may take. Ids: `library:main.bragd`, `downloads:twic`, `helper`, `tablebases`, `image:<name>`, `cache` |
+| `disk.items` | empty | A table: item id → the most bytes it may take. Ids: `library:main.bragd`, `downloads:twic`, `helper`, `tablebases`, `image:<name>`, `positions`, `cache` |
+| `analysis.open_games` | `true` | Queue each chess Game you open for background analysis ([Background analysis](../engines/background-analysis.md)) |
+| `analysis.depth` | `18` | Half-moves deep for an opened Game's positions |
+| `analysis.threads` | `1` | Engines at once in background analysis, each on one thread |
+| `analysis.from_hour` | `0` | Background analysis runs from this hour, local time |
+| `analysis.until_hour` | `24` | … until this hour; the same as `analysis.from_hour` is any hour |
+| `analysis.on_battery` | `false` | Background analysis runs on the battery too |
 | `themes` | none | Your own Themes, one table `[themes.<name>]` each. A colour not given is Racing green's. A name like a built-in one replaces it ([Themes](../look/themes.md)) |
 
 ## An example

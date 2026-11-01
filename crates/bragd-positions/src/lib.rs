@@ -25,6 +25,7 @@
 pub mod annotation;
 pub mod edition;
 pub mod parquet;
+pub mod queue;
 
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
@@ -173,6 +174,14 @@ pub struct Merged {
     pub read: u64,
     /// Rows that were new, or deeper than the store's.
     pub changed: u64,
+}
+
+/// What one Edition takes in the store (`Store::sizes`).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct Size {
+    pub edition: Edition,
+    pub rows: u64,
+    pub bytes: u64,
 }
 
 /// The store's schema version (`PRAGMA user_version`): 2 added Annotations, 3 the second
@@ -405,6 +414,69 @@ impl Store {
         self.select("ORDER BY v.family, v.variant, v.key, d.id", [])
     }
 
+    /// Whether the store already answers `spot` of `job` well enough (`queue::Job::answered`).
+    pub fn answers(&self, job: &queue::Job, spot: &queue::Spot) -> Result<bool> {
+        Ok(self.evaluations(&job.family, &job.variant, spot.key)?.iter().any(|e| job.answered(spot, e)))
+    }
+
+    /// What each Edition takes: its Evaluations, and its share of the file's bytes by the size
+    /// of its rows, its Annotations' included. By Engine, then Edition id.
+    pub fn sizes(&self) -> Result<Vec<Size>> {
+        let file: i64 = self.conn.query_row("SELECT page_count * page_size FROM pragma_page_count(), pragma_page_size()", [], |r| r.get(0))?;
+        let mut st = self.conn.prepare(
+            "SELECT d.engine, d.version, d.network, d.image, \
+             (SELECT count(*) FROM evaluations v WHERE v.edition = d.n), \
+             (SELECT coalesce(sum(length(v.line) + length(v.line2) + length(v.family) + length(v.variant) + 64), 0) FROM evaluations v WHERE v.edition = d.n) \
+             + (SELECT coalesce(sum(length(a.move) + length(a.better) + length(a.motifs) + length(a.family) + length(a.variant) + 40), 0) FROM annotations a WHERE a.edition = d.n) \
+             FROM editions d ORDER BY d.engine, d.id",
+        )?;
+        let rows = st.query_map([], |r| {
+            Ok((Edition { engine: r.get(0)?, version: r.get(1)?, network: r.get(2)?, image: r.get(3)? }, r.get::<_, i64>(4)? as u64, r.get::<_, i64>(5)? as u64))
+        })?;
+        let rows: Vec<_> = rows.collect::<rusqlite::Result<_>>()?;
+        let weight: u64 = rows.iter().map(|r| r.2).sum();
+        Ok(rows.into_iter().map(|(edition, rows, w)| Size { edition, rows, bytes: if weight == 0 { 0 } else { (file as u128 * w as u128 / weight as u128) as u64 } }).collect())
+    }
+
+    /// Deletes the rows of every Edition older than its Engine's newest (`Edition::newer`;
+    /// another network or image of the newest version stays), and gives the space back. The
+    /// rows deleted.
+    pub fn prune_older(&mut self) -> Result<u64> {
+        let editions = self.editions()?;
+        let old: Vec<i64> = editions.iter().filter(|(_, e)| editions.iter().any(|(_, o)| o.newer(e) == Some(Ordering::Greater))).map(|(n, _)| *n).collect();
+        self.delete(&old)
+    }
+
+    /// Deletes the rows of the Engines `engines` (by key), and gives the space back. The rows
+    /// deleted.
+    pub fn prune_engines(&mut self, engines: &[String]) -> Result<u64> {
+        let gone: Vec<i64> = self.editions()?.into_iter().filter(|(_, e)| engines.contains(&e.engine)).map(|(n, _)| n).collect();
+        self.delete(&gone)
+    }
+
+    fn editions(&self) -> Result<Vec<(i64, Edition)>> {
+        let mut st = self.conn.prepare("SELECT n, engine, version, network, image FROM editions")?;
+        let rows = st.query_map([], |r| Ok((r.get(0)?, Edition { engine: r.get(1)?, version: r.get(2)?, network: r.get(3)?, image: r.get(4)? })))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// The Evaluations and Annotations of the Editions numbered `ns` and the Editions themselves
+    /// gone, then VACUUM. The Evaluations deleted.
+    fn delete(&mut self, ns: &[i64]) -> Result<u64> {
+        let tx = self.conn.transaction()?;
+        let mut rows = 0;
+        for n in ns {
+            rows += tx.execute("DELETE FROM evaluations WHERE edition = ?1", [n])? as u64;
+            tx.execute("DELETE FROM annotations WHERE edition = ?1", [n])?;
+            tx.execute("DELETE FROM editions WHERE n = ?1", [n])?;
+        }
+        tx.commit()?;
+        if !ns.is_empty() {
+            self.conn.execute_batch("VACUUM")?;
+        }
+        Ok(rows)
+    }
+
     fn select(&self, rest: &str, p: impl rusqlite::Params) -> Result<Vec<Evaluation>> {
         let mut st = self.conn.prepare(&format!(
             "SELECT v.family, v.variant, v.key, d.engine, d.version, d.network, d.image, v.kind, v.score, v.lead, v.depth, v.line, v.time, v.kind2, v.score2, v.lead2, v.line2 \
@@ -585,6 +657,46 @@ pub(crate) mod tests {
         assert_eq!((sf17.depth, sf17.score), (22, Score::Mate(-3)));
         assert_eq!(sf17.second, rows[9].second, "of two seconds the greater, by kind first");
         assert!(want.contains(&rows[6]) && want.contains(&rows[7]) && want.contains(&rows[10]));
+    }
+
+    #[test]
+    fn sizes_by_edition_and_pruning() {
+        let (_d, mut s) = store("prune");
+        let lc0 = |v: &str| Edition { engine: "lc0".into(), version: v.into(), network: None, image: None };
+        let other_image = Edition { image: Some("sha256:00".into()), ..sf("Stockfish 17.1") };
+        for k in 0..30 {
+            s.put(&eval(k, sf("Stockfish 17"), 20, 1, Score::Cp(1))).unwrap();
+        }
+        for k in 0..10 {
+            s.put(&eval(k, sf("Stockfish 17.1"), 20, 1, Score::Cp(1))).unwrap();
+            s.put(&eval(k, other_image.clone(), 20, 1, Score::Cp(1))).unwrap();
+            s.put(&eval(k, lc0("Lc0 0.31"), 20, 1, Score::Cp(1))).unwrap();
+        }
+        // An Annotation by the old Edition goes with it.
+        s.put_annotation(&Annotation { family: "chess".into(), variant: "chess".into(), key: 1, mv: "e2e4".into(), edition: sf("Stockfish 17"), mark: None, better: String::new(), motifs: vec![], depth: 20, time: 1 }).unwrap();
+        let sizes = s.sizes().unwrap();
+        assert_eq!(sizes.iter().map(|z| (z.edition.version.as_str(), z.rows)).collect::<Vec<_>>(), [("Lc0 0.31", 10), ("Stockfish 17.1", 10), ("Stockfish 17.1", 10), ("Stockfish 17", 30)]);
+        assert!(sizes[3].bytes > 2 * sizes[1].bytes && sizes[1].bytes > 0, "{sizes:?}");
+        // Older Editions: Stockfish 17 goes; both builds of 17.1 and the only Lc0 stay.
+        assert_eq!(s.prune_older().unwrap(), 30);
+        assert_eq!(s.sizes().unwrap().len(), 3);
+        assert_eq!(s.prune_older().unwrap(), 0);
+        // A removed Engine.
+        assert_eq!(s.prune_engines(&["lc0".into()]).unwrap(), 10);
+        assert!(s.sizes().unwrap().iter().all(|z| z.edition.engine == "stockfish"));
+        assert_eq!(s.all().unwrap().len(), 20);
+    }
+
+    #[test]
+    fn a_job_skips_what_the_store_answers() {
+        let (_d, mut s) = store("answers");
+        let spot = queue::Spot { key: 5, setup: "x".into(), moves: vec![], count: 1 };
+        let job = queue::Job::new("chess", "chess", "stockfish", Some("Stockfish 17".into()), queue::Per::Depth(20), vec![spot.clone()], false, "");
+        assert!(!s.answers(&job, &spot).unwrap());
+        s.put(&eval(5, sf("Stockfish 16"), 30, 1, Score::Cp(1))).unwrap();
+        assert!(!s.answers(&job, &spot).unwrap(), "too old");
+        s.put(&eval(5, sf("Stockfish 17"), 22, 1, Score::Cp(1))).unwrap();
+        assert!(s.answers(&job, &spot).unwrap());
     }
 
     #[test]

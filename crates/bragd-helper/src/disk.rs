@@ -21,13 +21,15 @@ pub enum Kind {
     Tablebases,
     Image,
     Cache,
+    /// The Position store (`bragd_positions`).
+    Positions,
 }
 
 /// One thing Bragd keeps on disk.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Item {
     /// Its id, which `[disk.items]` sets a limit by: `library:main.bragd`, `downloads:twic`,
-    /// `helper`, `tablebases`, `image:<name>`, `cache`.
+    /// `helper`, `tablebases`, `image:<name>`, `cache`, `positions`.
     pub id: String,
     pub kind: Kind,
     /// The Library's file, the Source's id, the image: what `label` names.
@@ -100,6 +102,8 @@ pub struct Places {
     pub sources: Vec<(String, PathBuf)>,
     pub tablebases: PathBuf,
     pub cache: PathBuf,
+    /// The Position store's file.
+    pub positions: PathBuf,
 }
 
 /// Bytes in `path`, a file or a folder and all in it; links are not followed.
@@ -140,6 +144,8 @@ pub fn report(places: &Places, limits: &DiskConfig, images: &[(String, u64)], fr
     for (name, n) in images {
         item(format!("image:{name}"), Kind::Image, name.clone(), None, *n, false);
     }
+    let store = |end: &str| size(&PathBuf::from(format!("{}{end}", places.positions.display())));
+    item("positions".into(), Kind::Positions, String::new(), Some(places.positions.clone()), store("") + store("-wal") + store("-shm"), false);
     item("cache".into(), Kind::Cache, String::new(), Some(places.cache.clone()), size(&places.cache), false);
 
     let total = items.iter().filter(|i| !i.external).map(|i| i.bytes).sum();
@@ -216,6 +222,7 @@ pub(crate) mod tests {
             sources: vec![("twic".into(), data.join("helper/sources/twic")), ("fics".into(), data.join("helper/sources/fics"))],
             tablebases: root.join("syzygy"),
             cache: root.join("cache/bragd"),
+            positions: data.join("positions.sqlite"),
             data,
         }
     }
@@ -232,6 +239,8 @@ pub(crate) mod tests {
         put(p.helper.join("sources/twic/twic1600g.zip"), 3000);
         put(p.tablebases.join("KQvK.rtbw"), 9000);
         put(p.cache.join("x"), 10);
+        put(p.positions.clone(), 700);
+        put(p.positions.with_extension("sqlite-wal"), 50);
     }
 
     #[test]
@@ -244,9 +253,9 @@ pub(crate) mod tests {
         let got: Vec<(&str, u64, bool)> = r.items.iter().map(|i| (i.id.as_str(), i.bytes, i.external)).collect();
         assert_eq!(
             got,
-            [("library:main.bragd", 6000, false), ("downloads:twic", 3000, false), ("helper", 100, false), ("tablebases", 9000, true), ("image:bragd-stockfish:17.1", 200_000, false), ("cache", 10, false)]
+            [("library:main.bragd", 6000, false), ("downloads:twic", 3000, false), ("helper", 100, false), ("tablebases", 9000, true), ("image:bragd-stockfish:17.1", 200_000, false), ("positions", 750, false), ("cache", 10, false)]
         );
-        assert_eq!(r.total, 6000 + 3000 + 100 + 200_000 + 10, "the folder the user chose counts against nothing");
+        assert_eq!(r.total, 6000 + 3000 + 100 + 200_000 + 750 + 10, "the folder the user chose counts against nothing");
         assert!(r.crossed.is_empty(), "no limits, no notices");
         assert_eq!(r.items[1].label(), "Downloads of twic");
         let limits = DiskConfig { total: 200_000, free_below: 2 << 40, items: [("library:main.bragd".to_string(), 4000), ("downloads:twic".to_string(), 3000)].into() };

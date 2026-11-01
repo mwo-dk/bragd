@@ -42,7 +42,32 @@ pub enum Work {
     /// An engine match (`crate::matches`), its Games into `Setup::library`. Matches run beside
     /// the other jobs, one at a time, so a long one never holds up a Source.
     Match { setup: bragd_engines::matches::Setup },
+    /// Positions for the Position store (`crate::analysis`), on a worker of their own inside the
+    /// limits of `[analysis]`; a job from a Game the user opened (`Job::low`) after the others.
+    Analyse { job: bragd_positions::queue::Job },
 }
+
+/// The workers that take jobs: one for most, one for engine matches, one for background
+/// analysis, so a long match or analysis never holds up a Source.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Lane {
+    Main,
+    Matches,
+    Analysis,
+}
+
+impl Lane {
+    pub fn of(work: &Work) -> Lane {
+        match work {
+            Work::Match { .. } => Lane::Matches,
+            Work::Analyse { .. } => Lane::Analysis,
+            _ => Lane::Main,
+        }
+    }
+}
+
+/// Jobs from Games the user opened, queued at most: the oldest give way.
+const LOW_QUEUED: usize = 20;
 
 /// What a Strip or Prune job did, or would do in a dry run, and how far a match is.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -57,6 +82,9 @@ pub struct Report {
     /// (`bragd_engines::matches::unplayed`).
     #[serde(default)]
     pub results: Option<String>,
+    /// Background analysis: an estimate of the seconds left.
+    #[serde(default)]
+    pub left: Option<u64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -172,6 +200,8 @@ pub struct Jobs {
     crossed: Mutex<Vec<Crossed>>,
     /// Work waits for the machine to be plugged in.
     pub paused: AtomicBool,
+    /// Background analysis waits for its hours, or for the machine to be plugged in.
+    pub analysis_waits: AtomicBool,
     quit: AtomicBool,
     cancelled: Mutex<HashSet<u64>>,
 }
@@ -197,6 +227,7 @@ impl Jobs {
             images,
             crossed: Mutex::default(),
             paused: AtomicBool::new(false),
+            analysis_waits: AtomicBool::new(false),
             quit: AtomicBool::new(false),
             cancelled: Mutex::default(),
         });
@@ -218,6 +249,20 @@ impl Jobs {
     /// Queues `work`: its id.
     pub fn add(&self, work: Work) -> u64 {
         let mut st = self.lock();
+        if let Work::Analyse { job } = &work
+            && job.low
+        {
+            // A Game opened again is not queued twice; the oldest of too many give way.
+            if let Some(j) = st.jobs.iter().find(|j| j.work == work && matches!(j.status, Status::Queued | Status::Running)) {
+                return j.id;
+            }
+            let low: Vec<u64> = st.jobs.iter().filter(|j| j.status == Status::Queued && matches!(&j.work, Work::Analyse { job } if job.low)).map(|j| j.id).collect();
+            for id in low.iter().take((low.len() + 1).saturating_sub(LOW_QUEUED)) {
+                if let Some(j) = st.jobs.iter_mut().find(|j| j.id == *id) {
+                    j.status = Status::Cancelled;
+                }
+            }
+        }
         st.next_id += 1;
         let id = st.next_id;
         st.jobs.push(Job { id, work, status: Status::Queued, done: 0, total: None, error: None, resumed: 0, report: None });
@@ -259,9 +304,11 @@ impl Jobs {
         self.lock().jobs.iter().filter(|j| matches!(j.status, Status::Queued | Status::Running)).count()
     }
 
-    /// Whether a job runs now and is not paused: the Helper does not leave in the middle.
+    /// Whether a job runs now and is not waiting (for the mains, or background analysis for its
+    /// hours): the Helper does not leave in the middle.
     pub fn busy(&self) -> bool {
-        !self.paused.load(Ordering::Relaxed) && self.lock().jobs.iter().any(|j| j.status == Status::Running)
+        let waits = |j: &Job| if Lane::of(&j.work) == Lane::Analysis { self.analysis_waits.load(Ordering::Relaxed) } else { self.paused.load(Ordering::Relaxed) };
+        self.lock().jobs.iter().any(|j| j.status == Status::Running && !waits(j))
     }
 
     /// Every Source, built in or a custom URL, with its options and what was remembered.
@@ -404,15 +451,22 @@ impl Jobs {
 
     /// Runs the first queued job other than a match: false when there is none.
     pub fn run_next(&self) -> bool {
-        self.run_first(false)
+        self.run_first(Lane::Main)
     }
 
-    /// Runs the first queued job that is a match (`matches`) or that is not: false when there
-    /// is none.
-    fn run_first(&self, matches: bool) -> bool {
+    /// The first queued job of `lane` (for analysis, the ones asked for before those from Games
+    /// opened): its place in the list.
+    fn first_queued(st: &State, lane: Lane) -> Option<usize> {
+        let queued = |low: bool| st.jobs.iter().position(|j| j.status == Status::Queued && Lane::of(&j.work) == lane && matches!(&j.work, Work::Analyse { job } if job.low) == low);
+        queued(false).or_else(|| queued(true))
+    }
+
+    /// Runs the first queued job of `lane`: false when there is none.
+    pub fn run_first(&self, lane: Lane) -> bool {
         let (id, work) = {
             let mut st = self.lock();
-            let Some(j) = st.jobs.iter_mut().find(|j| j.status == Status::Queued && matches!(j.work, Work::Match { .. }) == matches) else { return false };
+            let Some(i) = Self::first_queued(&st, lane) else { return false };
+            let j = &mut st.jobs[i];
             j.status = Status::Running;
             let next = (j.id, j.work.clone());
             self.save(&st);
@@ -466,6 +520,52 @@ impl Jobs {
                 Ok(games)
             }
             Work::Match { setup } => self.play_match(id, setup),
+            Work::Analyse { job } => self.analyse(id, job),
+        }
+    }
+
+    /// Background analysis of `job`, its results into the Position store: the positions done.
+    fn analyse(&self, id: u64, job: &bragd_positions::queue::Job) -> Result<u64, String> {
+        let cfg = Config::load().unwrap_or_default();
+        let store = bragd_positions::Store::path().ok_or_else(bragd_engines::local::no_folder)?;
+        let chosen = bragd_engines::local::resolve(&cfg, &job.engine, &job.variant)?;
+        let stop = || self.quit.load(Ordering::Relaxed) || self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).contains(&id);
+        let start = || {
+            use bragd_engines::Session;
+            let (mut e, notation) = bragd_engines::local::start(&cfg, &chosen, &job.variant, &stop)?;
+            // One thread each: `[analysis] threads` says how many engines run at once.
+            if e.about().option("Threads").is_some() {
+                e.set_option("Threads", "1").map_err(|e| e.to_string())?;
+            }
+            let edition = bragd_engines::edition::of(&job.engine, e.about(), &chosen.program);
+            Ok(crate::analysis::Started { session: Box::new(e), notation, edition })
+        };
+        let gate = || self.analysis_gate(id);
+        let progress = |p: crate::analysis::Progress| {
+            if let Some(j) = self.lock().jobs.iter_mut().find(|j| j.id == id) {
+                j.done = p.done;
+                j.total = Some(p.total);
+                j.report.get_or_insert_with(Report::default).left = p.left;
+            }
+        };
+        crate::analysis::run(&crate::analysis::Run { job, store: &store, engines: cfg.analysis.engines(), start: &start, gate: &gate, stop: &stop, progress: &progress })
+    }
+
+    /// Asked before each position of background analysis: waits while `[analysis]` holds it back
+    /// (outside its hours, or on the battery unless allowed), as read now, so a change in
+    /// Settings counts at once. True to stop.
+    fn analysis_gate(&self, id: u64) -> bool {
+        loop {
+            if self.quit.load(Ordering::Relaxed) || self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).contains(&id) {
+                return true;
+            }
+            let a = Config::load().unwrap_or_default().analysis;
+            let go = (a.on_battery || !(self.battery)()) && a.hour_allowed(crate::analysis::local_hour());
+            self.analysis_waits.store(!go, Ordering::Relaxed);
+            if go {
+                return false;
+            }
+            std::thread::sleep(Duration::from_millis(if cfg!(test) { 10 } else { 1000 }));
         }
     }
 
@@ -568,6 +668,7 @@ impl Jobs {
             sources: self.sources().into_iter().map(|(a, _, _)| (a.id.clone(), self.source_dir(&a.id))).collect(),
             tablebases: cfg.tablebase_folder()?,
             cache: bragd_core::dirs::app_cache()?,
+            positions: bragd_positions::Store::path()?,
             data: bragd_core::dirs::app_data()?,
         })
     }
@@ -738,19 +839,20 @@ impl Jobs {
             if !ran {
                 // Under the lock, so a job added or a stop since is not missed.
                 let st = self.lock();
-                if !self.quit.load(Ordering::Relaxed) && !st.jobs.iter().any(|j| j.status == Status::Queued && !matches!(j.work, Work::Match { .. })) {
+                if !self.quit.load(Ordering::Relaxed) && Self::first_queued(&st, Lane::Main).is_none() {
                     let _ = self.wake.wait_timeout(st, Duration::from_secs(60));
                 }
             }
         }
     }
 
-    /// The worker for matches, beside `work`: one match at a time, until `stop`.
-    pub fn work_matches(self: Arc<Self>) {
+    /// The worker for matches or background analysis (`lane`), beside `work`: one job at a
+    /// time, until `stop`.
+    pub fn work_lane(self: Arc<Self>, lane: Lane) {
         while !self.quit.load(Ordering::Relaxed) {
-            if !self.run_first(true) {
+            if !self.run_first(lane) {
                 let st = self.lock();
-                if !self.quit.load(Ordering::Relaxed) && !st.jobs.iter().any(|j| j.status == Status::Queued && matches!(j.work, Work::Match { .. })) {
+                if !self.quit.load(Ordering::Relaxed) && Self::first_queued(&st, lane).is_none() {
                     let _ = self.wake.wait_timeout(st, Duration::from_secs(60));
                 }
             }
@@ -825,6 +927,7 @@ pub(crate) mod tests {
             let mut sh = std::process::Command::new("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(&p).stdin(std::process::Stdio::piped()).spawn().unwrap();
             std::io::Write::write_all(&mut sh.stdin.take().unwrap(), format!("#!/bin/sh\n{script}\n").as_bytes()).unwrap();
             assert!(sh.wait().unwrap().success());
+            let _config = CONFIG.lock().unwrap_or_else(|e| e.into_inner());
             Config::save_value(&["engines", "added", k], "chess".into()).unwrap();
             Config::save_value(&["engines", "paths", k], p.display().to_string().as_str().into()).unwrap();
             keys.push(k.to_string());
@@ -834,7 +937,7 @@ pub(crate) mod tests {
         let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
         let id = jobs.add(Work::Match { setup });
         assert!(!jobs.run_next(), "the other jobs' worker leaves a match alone");
-        assert!(jobs.run_first(true));
+        assert!(jobs.run_first(Lane::Matches));
         let j = jobs.list().into_iter().find(|j| j.id == id).unwrap();
         assert_eq!((j.status, j.error.clone(), j.done, j.total), (Status::Done, None, 2, Some(2)));
         assert_eq!(j.report.unwrap().results.as_deref(), Some("00"));
@@ -844,6 +947,113 @@ pub(crate) mod tests {
         assert_eq!(lib.sources(1).unwrap().len(), 2);
         let g = lib.stored(1).unwrap();
         assert_eq!((g.result.as_str(), g.headers["Termination"].as_str()), ("0-1", Some("no move")));
+    }
+
+    /// Held while a test writes config.toml: two tests writing it at once lose an entry.
+    static CONFIG: Mutex<()> = Mutex::new(());
+
+    /// A fake UCI engine added by its path for chess, `Fake 2.0`, that finds `e2e4` at depth 20.
+    #[cfg(unix)]
+    fn fake_analyst(d: &Path, key: &str) {
+        let _config = CONFIG.lock().unwrap_or_else(|e| e.into_inner());
+        let script = "while read l; do case \"$l\" in uci) echo 'id name Fake 2.0'; echo uciok;; isready) echo readyok;; go*) echo 'info depth 20 score cp 31 pv e2e4 e7e5'; echo 'bestmove e2e4';; quit) exit 0;; esac; done";
+        let p = d.join(key);
+        let mut sh = std::process::Command::new("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(&p).stdin(std::process::Stdio::piped()).spawn().unwrap();
+        std::io::Write::write_all(&mut sh.stdin.take().unwrap(), format!("#!/bin/sh\n{script}\n").as_bytes()).unwrap();
+        assert!(sh.wait().unwrap().success());
+        Config::save_value(&["engines", "added", key], "chess".into()).unwrap();
+        Config::save_value(&["engines", "paths", key], p.display().to_string().as_str().into()).unwrap();
+    }
+
+    fn analyse_job(engine: &str, keys: &[(u64, u32)], min: &str, low: bool) -> bragd_positions::queue::Job {
+        use bragd_positions::queue::{Job, Per, Spot};
+        let spots = keys.iter().map(|&(key, count)| Spot { key, setup: bragd_library::chess::pgn::START.into(), moves: vec![], count }).collect();
+        Job::new("chess", "chess", engine, Some(min.into()), Per::Depth(20), spots, low, "test")
+    }
+
+    /// Background analysis takes the jobs asked for before those from Games opened, the most
+    /// frequent positions first, skips what the store answers already, and keeps each result
+    /// with its exact Edition. An Edition older than the job's minimum does not answer.
+    #[cfg(unix)]
+    #[test]
+    fn background_analysis_fills_the_position_store() {
+        use bragd_positions::{Edition, Evaluation, Score, Store};
+        let d = crate::tests::Dir::new("analyse");
+        // The store is the test home's, kept between runs: keys of this run's own.
+        let k = |n: u64| (u64::from(std::process::id()) << 32) | n;
+        fake_analyst(&d.0, "fake-analyst");
+        let mut store = Store::open(&Store::path().unwrap()).unwrap();
+        let fake = |version: &str| Edition { engine: "fake-analyst".into(), version: version.into(), network: None, image: None };
+        let had = Evaluation { family: "chess".into(), variant: "chess".into(), key: k(2), edition: fake("Fake 2.0"), score: Score::Cp(-5), depth: 25, line: "d2d4".into(), time: 1, second: None };
+        store.put(&had).unwrap();
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
+        let low = jobs.add(Work::Analyse { job: analyse_job("fake-analyst", &[(k(9), 1)], "", true) });
+        let id = jobs.add(Work::Analyse { job: analyse_job("fake-analyst", &[(k(1), 1), (k(2), 5), (k(3), 3)], "Fake 2", false) });
+        assert!(!jobs.run_next(), "the other jobs' worker leaves analysis alone");
+        assert!(jobs.run_first(Lane::Analysis));
+        let find = |id| jobs.list().into_iter().find(|j| j.id == id).unwrap();
+        let j = find(id);
+        assert_eq!((j.status, j.error.clone(), j.done, j.total), (Status::Done, None, 3, Some(3)));
+        assert!(j.report.unwrap().left.is_some());
+        assert_eq!(find(low).status, Status::Queued, "a Game opened waits for the jobs asked for");
+        let shown = |key| store.shown("chess", "chess", key, "fake-analyst").unwrap().unwrap();
+        for key in [k(1), k(3)] {
+            let e = shown(key);
+            assert_eq!((e.edition, e.depth, e.score, e.line.as_str()), (fake("Fake 2.0"), 20, Score::Cp(31), "e2e4 e7e5"));
+        }
+        assert_eq!(shown(k(2)), had, "answered already: not analysed again");
+        let old = jobs.add(Work::Analyse { job: analyse_job("fake-analyst", &[(k(4), 1)], "Fake 3", false) });
+        assert!(jobs.run_first(Lane::Analysis));
+        let j = find(old);
+        assert_eq!(j.status, Status::Failed);
+        assert!(j.error.unwrap().contains("Fake 2.0"));
+        assert!(store.shown("chess", "chess", k(4), "fake-analyst").unwrap().is_none());
+    }
+
+    /// On the battery, background analysis waits until the machine is plugged in.
+    #[cfg(unix)]
+    #[test]
+    fn background_analysis_waits_on_the_battery() {
+        let d = crate::tests::Dir::new("analyse-battery");
+        fake_analyst(&d.0, "fake-analyst-b");
+        let battery = Arc::new(AtomicBool::new(true));
+        let jobs = jobs_in(&d.0, Recorded::default(), battery.clone());
+        let id = jobs.add(Work::Analyse { job: analyse_job("fake-analyst-b", &[((u64::from(std::process::id()) << 32) | 0xBA77, 1)], "", false) });
+        let runner = {
+            let jobs = jobs.clone();
+            std::thread::spawn(move || jobs.run_first(Lane::Analysis))
+        };
+        let until = std::time::Instant::now() + Duration::from_secs(30);
+        while !jobs.analysis_waits.load(Ordering::Relaxed) {
+            assert!(std::time::Instant::now() < until, "it never waited");
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert_eq!(jobs.list().into_iter().find(|j| j.id == id).unwrap().done, 0);
+        assert!(!jobs.busy(), "waiting, it does not keep the Helper from leaving");
+        battery.store(false, Ordering::Relaxed);
+        assert!(runner.join().unwrap());
+        let j = jobs.list().into_iter().find(|j| j.id == id).unwrap();
+        assert_eq!((j.status, j.done), (Status::Done, 1));
+        assert!(!jobs.analysis_waits.load(Ordering::Relaxed));
+    }
+
+    /// A Game opened again is queued once, and only the newest Games opened stay queued.
+    #[test]
+    fn games_opened_are_queued_once_and_not_without_end() {
+        let d = crate::tests::Dir::new("analyse-low");
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
+        let first = jobs.add(Work::Analyse { job: analyse_job("x", &[(1, 1)], "", true) });
+        assert_eq!(jobs.add(Work::Analyse { job: analyse_job("x", &[(1, 1)], "", true) }), first);
+        for k in 2..=LOW_QUEUED as u64 + 1 {
+            jobs.add(Work::Analyse { job: analyse_job("x", &[(k, 1)], "", true) });
+        }
+        let queued: Vec<u64> = jobs.list().iter().filter(|j| j.status == Status::Queued).map(|j| j.id).collect();
+        assert_eq!(queued.len(), LOW_QUEUED);
+        assert!(!queued.contains(&first), "the oldest gave way");
+        // A job asked for never gives way.
+        let asked = jobs.add(Work::Analyse { job: analyse_job("x", &[(99, 1)], "", false) });
+        jobs.add(Work::Analyse { job: analyse_job("x", &[(100, 1)], "", true) });
+        assert!(jobs.list().iter().any(|j| j.id == asked && j.status == Status::Queued));
     }
 
     #[test]

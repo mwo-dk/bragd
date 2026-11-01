@@ -18,7 +18,7 @@ tauri-plugin-opener = "2"
 # Engines, tablebases and their downloads; opening books and names from the library.
 bragd-library = { path = "../../crates/bragd-library" }
 # The Position store: Analyse and reviews read Evaluations and Annotations from it and write
-# them to it; Disk watch exports and imports it.
+# them to it; Disk watch exports, imports and prunes it; background analysis queues jobs for it.
 bragd-positions = { path = "../../crates/bragd-positions" }
 # The language model: Settings → Language model and a Comment's Translate.
 bragd-model = { path = "../../crates/bragd-model" }

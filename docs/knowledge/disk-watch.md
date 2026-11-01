@@ -17,7 +17,7 @@ On the page:
 1. Type a limit beside an item, beside *All together*, and beside *Warn when free space falls below*. Type sizes as `500 MB` or `5 GB`; leave a field empty for no limit.
 2. Press **Save limits**. The next check uses them; no restart is needed.
 3. Under *Prune the Library*, **Preview** counts what the Strip rules of the Sources' Routes to the main Library would take from it. **Prune now** takes it.
-4. Under *Position store*, **Export Position store** and **Import Position store** write and merge the store's Parquet file ([Position store](position-store.md)).
+4. Under *Position store*, **Export Position store** and **Import Position store** write and merge the store's Parquet file ([Position store](position-store.md)). Below them, the store's housekeeping ([below](#the-position-store)).
 5. Under *What Disk watch may do by itself*, tick what may happen for each Source when a limit it counts against is crossed.
 
 ## What it counts
@@ -29,6 +29,7 @@ On the page:
 | The Helper's own files | `helper` | The Helper's folder, without the downloads |
 | Tablebases | `tablebases` | The tablebase folder |
 | Engine image *name* | `image:<name>` | A pulled engine image, kept by the container runtime |
+| Position store | `positions` | `<data>/bragd/positions.sqlite`, the Evaluations of every Engine ([below](#the-position-store)) |
 | Caches | `cache` | `<cache>/bragd` |
 
 A tablebase folder you chose outside Bragd's data folder is marked *outside Bragd*: it is shown, counts toward no total, and is never touched. Free space is checked for the disk of `<data>/bragd`, and also for the Library folder's disk when it is elsewhere. Sizes are in powers of 1000.
@@ -48,6 +49,19 @@ What happens next is up to you, per Source. All three are off until you turn the
 | Apply its Strip rule | Runs the Source's [Strip rule](strip-rules.md) on its downloads and the Library, at most once a day |
 | Delete its oldest downloads | Removes downloads, oldest first, until the Source is within its limit |
 | Stop fetching it | The Source is skipped until a check finds the disk within the limits again |
+
+## The Position store
+
+![Disk watch's Position store: Export and Import, then Stockfish 17 with its positions and size, and the two delete buttons](../screenshots/store-1100.png)
+
+Under *Position store*, below Export and Import, a table lists what each Engine and Edition takes: its positions and its share of the file, its Annotations included. [Background analysis](../engines/background-analysis.md) and Analyse fill it. Two actions delete rows for good:
+
+| Action | What it deletes |
+|---|---|
+| Delete older Editions | The Evaluations and Annotations of every Edition older than its Engine's newest one here. Another network or image of the newest version stays |
+| Delete removed Engines | The Evaluations and Annotations of Engines no longer set up on this machine: not installed, no image pulled, or added by a path that is gone |
+
+Each button names how many positions it would delete. A shallower Evaluation of the same Edition is never kept: the deeper one replaces it as it arrives. The file shrinks once the rows are gone.
 
 ## What it needs
 

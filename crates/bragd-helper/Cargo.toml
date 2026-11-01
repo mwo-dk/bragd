@@ -18,6 +18,8 @@ bragd-clubs = { path = "../bragd-clubs" }
 # Disk watch asks the container runtime what its engine images take, and engine matches run
 # engines.
 bragd-engines = { path = "../bragd-engines" }
+# Background analysis keeps its results in the Position store.
+bragd-positions = { path = "../bragd-positions" }
 # Engine matches are played out in its rules.
 bragd-games = { path = "../bragd-games" }
 serde = { version = "1", features = ["derive"] }
@@ -27,13 +29,15 @@ getrandom = "0.4"
 # Source downloads, with the system's certificate store.
 ureq = { version = "3", features = ["platform-verifier"] }
 
-# launchd's domain names the user by uid; Disk watch asks statvfs for the free space.
+# launchd's domain names the user by uid; Disk watch asks statvfs for the free space; background
+# analysis asks localtime_r for the hour.
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
-# Whether a laptop runs on its battery, and the free space on a disk.
+# Whether a laptop runs on its battery, the free space on a disk, and the local hour for
+# background analysis.
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_System_Power", "Win32_Storage_FileSystem"] }
+windows-sys = { version = "0.61", features = ["Win32_System_Power", "Win32_Storage_FileSystem", "Win32_System_SystemInformation"] }
 
 [dev-dependencies]
 bragd-core = { path = "../bragd-core", features = ["test-home"] }

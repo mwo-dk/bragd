@@ -66,6 +66,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Tablebases](engines/tablebases.md) | Syzygy sets, their folder, the Lichess fallback |
 | [Opening books](engines/opening-books.md) | Polyglot books and opening names |
 | [Engine matches](engines/matches.md) | Round robins, gauntlets and SPRT matches between Engines, played in the Helper |
+| [Background analysis](engines/background-analysis.md) | The Helper's queue of positions for the Position store, and its limits |
 
 ## [Clubs](clubs/README.md)
 

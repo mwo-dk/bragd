@@ -462,6 +462,7 @@ dependencies = [
  "bragd-engines",
  "bragd-games",
  "bragd-library",
+ "bragd-positions",
  "getrandom 0.4.3",
  "libc",
  "serde",

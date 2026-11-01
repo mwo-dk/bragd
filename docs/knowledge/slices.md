@@ -14,6 +14,7 @@ A Slice is a named query over a Library, such as "Grünfeld" or "both players 25
 3. Fill in the fields. *Games in this Slice now* updates as you type.
 4. Press **Save Slice**. The Slice is stored in the Library and shows under the Family's **Databases** in the sidebar, and only there: a Slice belongs to its Family, or to its Variant's. An older Slice that names neither shows under the Families whose Games its Library holds.
 5. **Keep as a separate copy** copies the Slice's Games into a new Library beside this one.
+6. **Analyse in background** (chess, a saved Slice) queues the Slice's most frequent positions for the Engines you choose ([Background analysis](../engines/background-analysis.md)).
 
 | Field | What it matches |
 |---|---|

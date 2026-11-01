@@ -106,6 +106,9 @@ pub struct Status {
     /// The disk limits crossed at Disk watch's last check: a notice each.
     #[serde(default)]
     pub disk: Vec<crate::disk::Crossed>,
+    /// Background analysis waits for its hours, or for the machine to be plugged in.
+    #[serde(default)]
+    pub analysis_waits: bool,
 }
 
 /// 128 bits from the system's random source, as hex.
@@ -269,7 +272,11 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     };
     let match_worker = {
         let jobs = jobs.clone();
-        std::thread::spawn(move || jobs.work_matches())
+        std::thread::spawn(move || jobs.work_lane(crate::jobs::Lane::Matches))
+    };
+    let analysis_worker = {
+        let jobs = jobs.clone();
+        std::thread::spawn(move || jobs.work_lane(crate::jobs::Lane::Analysis))
     };
     let (clients, quit, last) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicBool::new(false)), Arc::new(Mutex::new(Instant::now())));
     {
@@ -300,6 +307,7 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     jobs.stop();
     let _ = worker.join();
     let _ = match_worker.join();
+    let _ = analysis_worker.join();
     let _ = std::fs::remove_file(addr_file);
     Ok(if quit.load(Ordering::SeqCst) { Ended::Asked } else { Ended::Idle })
 }
@@ -414,6 +422,7 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, mut
                 paused: jobs.paused.load(Ordering::Relaxed),
                 active: jobs.active(),
                 disk: jobs.crossed(),
+                analysis_waits: jobs.analysis_waits.load(Ordering::Relaxed),
             }),
             Request::Jobs => Reply::Jobs { jobs: jobs.list() },
             Request::Start { work } => started(work),

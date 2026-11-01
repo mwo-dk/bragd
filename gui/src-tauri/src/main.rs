@@ -3,6 +3,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod background;
 mod clubs;
 mod leagues;
 mod tournaments;
@@ -449,6 +450,10 @@ fn main() {
             knowledge::library_game,
             knowledge::library_review,
             knowledge::library_player,
+            knowledge::db_player,
+            background::slice_analyse,
+            background::store_report,
+            background::store_prune,
             knowledge::library_players,
             knowledge::library_dedupe,
             knowledge::library_export,

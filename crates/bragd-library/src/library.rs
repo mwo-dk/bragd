@@ -136,6 +136,14 @@ CREATE TABLE IF NOT EXISTS slices (
     materialised INTEGER NOT NULL DEFAULT 0,
     path TEXT
 );
+-- Find a player by any word of the name (`Library::players`). Made on the first search, and
+-- made again after the triggers below have emptied `player_names_fresh`.
+CREATE TABLE IF NOT EXISTS player_names (name TEXT PRIMARY KEY, games INTEGER NOT NULL);
+CREATE VIRTUAL TABLE IF NOT EXISTS player_words USING fts5 (name, content = 'player_names', tokenize = 'unicode61 remove_diacritics 2', prefix = '2 3');
+CREATE TABLE IF NOT EXISTS player_names_fresh (fresh INTEGER NOT NULL);
+CREATE TRIGGER IF NOT EXISTS games_names_added AFTER INSERT ON games BEGIN DELETE FROM player_names_fresh; END;
+CREATE TRIGGER IF NOT EXISTS games_names_deleted AFTER DELETE ON games BEGIN DELETE FROM player_names_fresh; END;
+CREATE TRIGGER IF NOT EXISTS games_names_changed AFTER UPDATE OF white, black ON games BEGIN DELETE FROM player_names_fresh; END;
 ";
 
 /// A Game as it goes into a Library, from any reader.
