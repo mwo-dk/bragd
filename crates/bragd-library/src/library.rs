@@ -173,15 +173,30 @@ pub struct Note {
 }
 
 /// The Notes of `g`'s first `plies` main-line moves: its comment before the first move, then each
-/// move's comments (before and after it, in one) and NAGs.
+/// move's comments (before and after it, in one) and NAGs. Commands such as `[%clk …]` and
+/// `[%eval …]` are left out: a Lichess file has them at every move, and no one reads them as text.
 fn pgn_notes(g: &pgn::Game, plies: usize) -> Vec<Note> {
-    let join = |a: &str, b: &str| [a.trim(), b.trim()].into_iter().filter(|c| !c.is_empty()).collect::<Vec<_>>().join(" ");
-    let first = Note { ply: 0, comment: g.comment.trim().to_string(), nags: vec![] };
+    let join = |a: &str, b: &str| [text(a), text(b)].into_iter().filter(|c| !c.is_empty()).collect::<Vec<_>>().join(" ");
+    let first = Note { ply: 0, comment: text(&g.comment), nags: vec![] };
     let moves = g.main_line().into_iter().take(plies).enumerate().map(|(i, n)| {
         let n = &g.nodes[n as usize];
         Note { ply: i + 1, comment: join(&n.before, &n.after), nags: n.nags.clone() }
     });
     std::iter::once(first).chain(moves).filter(|n| !n.comment.is_empty() || !n.nags.is_empty()).collect()
+}
+
+/// Comment `c` without its `[%…]` commands.
+fn text(c: &str) -> String {
+    let mut out = String::new();
+    let mut rest = c;
+    while let Some(i) = rest.find("[%") {
+        let Some(end) = rest[i..].find(']') else { break };
+        out.push_str(&rest[..i]);
+        out.push(' ');
+        rest = &rest[i + end + 1..];
+    }
+    out.push_str(rest);
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// A stable 64-bit mix (SplitMix64's finaliser). Stored in Libraries: never change it.
@@ -1148,6 +1163,9 @@ pub(crate) mod tests {
         assert_eq!(sgf.notes, [note(0, "Start", &[]), note(2, "Gote", &[])]);
         let kif = from_parsed(Format::Csa, &crate::shogi::parse("V2.2\nPI\n+\n+7776FU\n'** a comment\n-3334FU\n%TORYO\n", Format::Csa));
         assert_eq!(kif.notes, [note(1, "a comment", &[])]);
+        // Commands are not Comments: a Lichess move's clock and evaluation alone leave no Note.
+        let lichess = NewGame::from_chess(&pgn::parse("1. e4 { [%eval 0.17] [%clk 0:03:00] } e5 { Sharp [%clk 0:02:58] reply. }"));
+        assert_eq!(lichess.notes, [note(2, "Sharp reply.", &[])]);
     }
 
     /// A Duplicate keeps the Notes of the Source ranked first that has any, never a mix; a file
