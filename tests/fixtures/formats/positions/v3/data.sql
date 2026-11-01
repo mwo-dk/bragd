@@ -1,7 +1,8 @@
-INSERT INTO "annotations" ("family", "variant", "key", "move", "edition", "mark", "better", "motifs", "depth", "time") VALUES ('chess', 'chess', 7, 'g1f3', 2, '??', 'e2e4 e7e5', 'fork hangs', 20, 1800000002);
+INSERT INTO "annotations" ("family", "variant", "key", "move", "edition", "mark", "better", "motifs", "depth", "time", "seq") VALUES ('chess', 'chess', 7, 'g1f3', 2, '??', 'e2e4 e7e5', 'fork hangs', 20, 1800000002, 4);
+INSERT INTO "changes" ("n") VALUES (4);
 INSERT INTO "editions" ("n", "id", "engine", "version", "network", "image") VALUES (1, 'stockfish|Stockfish 17.1|ab12cd34ef56ab12|00ff', 'stockfish', 'Stockfish 17.1', 'ab12cd34ef56ab12cd34', 'sha256:00ff');
 INSERT INTO "editions" ("n", "id", "engine", "version", "network", "image") VALUES (2, 'stockfish|Stockfish 17|ab12cd34ef56ab12|', 'stockfish', 'Stockfish 17', 'ab12cd34ef56ab12cd34', NULL);
 INSERT INTO "editions" ("n", "id", "engine", "version", "network", "image") VALUES (3, 'katago|KataGo 1.16||', 'katago', 'KataGo 1.16', NULL, NULL);
-INSERT INTO "evaluations" ("family", "variant", "key", "edition", "kind", "score", "lead", "depth", "line", "time", "kind2", "score2", "lead2", "line2") VALUES ('chess', 'chess', 7, 1, 'mate', -3.0, 0.0, 24, 'e2e4 e7e5', 1800000000, '', 0.0, 0.0, '');
-INSERT INTO "evaluations" ("family", "variant", "key", "edition", "kind", "score", "lead", "depth", "line", "time", "kind2", "score2", "lead2", "line2") VALUES ('chess', 'chess', 7, 2, 'cp', 31.0, 0.0, 24, 'e2e4 e7e5', 1800000000, 'cp', -12.0, 0.0, 'd2d4');
-INSERT INTO "evaluations" ("family", "variant", "key", "edition", "kind", "score", "lead", "depth", "line", "time", "kind2", "score2", "lead2", "line2") VALUES ('go', 'go-19', -1, 3, 'winrate', 0.625, 3.5, 400, 'Q16', 1800000001, '', 0.0, 0.0, '');
+INSERT INTO "evaluations" ("family", "variant", "key", "edition", "kind", "score", "lead", "depth", "line", "time", "kind2", "score2", "lead2", "line2", "seq") VALUES ('chess', 'chess', 7, 1, 'mate', -3.0, 0.0, 24, 'e2e4 e7e5', 1800000000, '', 0.0, 0.0, '', 1);
+INSERT INTO "evaluations" ("family", "variant", "key", "edition", "kind", "score", "lead", "depth", "line", "time", "kind2", "score2", "lead2", "line2", "seq") VALUES ('chess', 'chess', 7, 2, 'cp', 31.0, 0.0, 24, 'e2e4 e7e5', 1800000000, 'cp', -12.0, 0.0, 'd2d4', 2);
+INSERT INTO "evaluations" ("family", "variant", "key", "edition", "kind", "score", "lead", "depth", "line", "time", "kind2", "score2", "lead2", "line2", "seq") VALUES ('go', 'go-19', -1, 3, 'winrate', 0.625, 3.5, 400, 'Q16', 1800000001, '', 0.0, 0.0, '', 3);

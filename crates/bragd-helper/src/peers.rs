@@ -1,9 +1,11 @@
 //! Peers in the Helper (`bragd-peers`): it listens for the user's other machines only while
 //! `[peers] on` is set, on the interface picked or the home network's addresses, and announces
 //! itself there by mDNS. Settings → Peers asks it to show a code, pair, unpair, look around and
-//! say hello. Its key and Peers are in `peers/` in the Helper's folder.
+//! say hello. Its key and Peers are in `peers/` in the Helper's folder. While Peers are on, it
+//! shares the Position store and the queue with them (`crate::share`).
 
-use std::sync::{Arc, LazyLock, Mutex, MutexGuard};
+use std::sync::atomic::Ordering;
+use std::sync::{Arc, LazyLock, Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -30,6 +32,10 @@ pub struct View {
     pub code: Option<(String, u64, u32)>,
     pub peers: Vec<PeerView>,
     pub interfaces: Vec<Interface>,
+    /// The shared queue as this machine sees it: its analysis and model jobs still to do or
+    /// running (lent to a Peer, or here), and those it does for a Peer.
+    #[serde(default)]
+    pub queue: Vec<crate::jobs::Job>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -38,6 +44,9 @@ pub struct PeerView {
     pub peer: Peer,
     /// Whether it answered just now; `None` when not asked.
     pub online: Option<bool>,
+    /// How the Position store's sync with it stands, and what it works on; None before the first.
+    #[serde(default)]
+    pub sync: Option<crate::share::Synced>,
 }
 
 #[derive(Default)]
@@ -49,6 +58,19 @@ struct Live {
 }
 
 static LIVE: LazyLock<Mutex<Live>> = LazyLock::new(Mutex::default);
+/// The Helper's jobs, shared with Peers once this machine is one (`start`).
+static JOBS: OnceLock<Arc<crate::jobs::Jobs>> = OnceLock::new();
+static SHARE: OnceLock<Arc<crate::share::Share>> = OnceLock::new();
+
+/// The Helper's jobs, to share with Peers: before `apply`.
+pub fn start(jobs: &Arc<crate::jobs::Jobs>) {
+    let _ = JOBS.set(jobs.clone());
+}
+
+/// What this machine shares with its Peers, once it is one and the Helper has started.
+pub fn share() -> Option<&'static Arc<crate::share::Share>> {
+    SHARE.get()
+}
 
 fn live() -> MutexGuard<'static, Live> {
     LIVE.lock().unwrap_or_else(|e| e.into_inner())
@@ -61,6 +83,10 @@ fn node(l: &mut Live) -> Result<Arc<Node>, String> {
     }
     let dir = crate::folder().ok_or("no data folder")?.join("peers");
     let n = Node::open(&dir, &bragd_peers::machine_name(), crate::VERSION).map_err(|e| e.to_string())?;
+    if let Some(jobs) = JOBS.get() {
+        let share = SHARE.get_or_init(|| crate::share::Share::new(n.clone(), jobs.clone()));
+        let _ = jobs.peers.set(share.clone() as Arc<dyn crate::jobs::Peers>);
+    }
     l.node = Some(n.clone());
     Ok(n)
 }
@@ -70,6 +96,9 @@ pub fn apply() {
     let cfg = bragd_core::config::Config::load().unwrap_or_default().peers;
     let mut l = live();
     (l.advert, l.listening, l.error) = (None, None, None);
+    if let Some(s) = SHARE.get() {
+        s.on.store(false, Ordering::Relaxed);
+    }
     if !cfg.on {
         return;
     }
@@ -87,6 +116,9 @@ pub fn apply() {
             // Without mDNS a Peer is still reached by its address.
             l.advert = find::advertise(n.name(), &n.id(), &listening.addrs).map_err(|e| crate::note(format_args!("mDNS: {e}"))).ok();
             l.listening = Some(listening);
+            if let Some(s) = SHARE.get() {
+                s.on.store(true, Ordering::Relaxed);
+            }
         }
         Err(e) => l.error = Some(t!("peers.error.listen", "why" => e)),
     }
@@ -121,9 +153,17 @@ pub fn view(hello: bool) -> Result<View, String> {
         error,
         code: n.code(),
         // Fresh names and versions after the hellos.
-        peers: n.peers().into_iter().zip(online).map(|(peer, online)| PeerView { peer, online }).collect(),
+        peers: n.peers().into_iter().zip(online).map(|(peer, online)| PeerView { sync: SHARE.get().and_then(|s| s.synced(&peer.key)), peer, online }).collect(),
         interfaces: find::interfaces(),
+        queue: JOBS.get().map(|j| shared_queue(&j.list())).unwrap_or_default(),
     })
+}
+
+/// The jobs of the shared queue among `jobs`: analysis and model jobs to do or running, and
+/// those done for a Peer that run now.
+fn shared_queue(jobs: &[crate::jobs::Job]) -> Vec<crate::jobs::Job> {
+    use crate::jobs::{Lane, Status};
+    jobs.iter().filter(|j| matches!(Lane::of(&j.work), Lane::Analysis | Lane::Model) && matches!(j.status, Status::Queued | Status::Running)).cloned().collect()
 }
 
 fn listening() -> Result<Arc<Node>, String> {
@@ -145,7 +185,7 @@ pub fn hide_code() -> Result<View, String> {
     view(false)
 }
 
-fn why(f: Failed, addr: &str) -> String {
+pub(crate) fn why(f: Failed, addr: &str) -> String {
     match f {
         Failed::Refused(w) => t!(&format!("peers.error.{}", w.id())),
         Failed::Line(e) => t!("peers.error.unreachable", "addr" => addr, "why" => e),
@@ -162,6 +202,9 @@ pub fn pair(addr: &str, code: &str) -> Result<View, String> {
 pub fn unpair(id: &str) -> Result<View, String> {
     let n = node(&mut live())?;
     n.unpair(id).map_err(|e| e.to_string())?;
+    if let Some(s) = SHARE.get() {
+        s.forget(id);
+    }
     view(false)
 }
 

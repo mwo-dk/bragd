@@ -256,6 +256,8 @@ export const pairWith = (/** @type {string} */ addr, /** @type {string} */ code)
 export const peerUnpair = (/** @type {string} */ id) => invoke("peer_unpair", { id });
 /** Other Helpers on the home network. @returns {Promise<any[]>} */
 export const peersLook = () => invoke("peers_look");
+/** Takes what is new from every Peer now, in the background. @returns {Promise<any>} */
+export const peersSync = () => invoke("peers_sync");
 
 // Play online (bragd-online, gui/src-tauri/src/online.rs).
 /** The page: the account, the challenges, the Game and its chat. @returns {Promise<any>} */

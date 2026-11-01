@@ -14,6 +14,7 @@ pub mod matches;
 pub mod net;
 pub mod peers;
 pub mod service;
+pub mod share;
 pub mod sources;
 
 use std::path::PathBuf;

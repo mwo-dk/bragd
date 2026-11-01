@@ -10,7 +10,7 @@
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
 
 use bragd_core::config::Config;
@@ -45,15 +45,22 @@ pub enum Work {
     /// Positions for the Position store (`crate::analysis`), on a worker of their own inside the
     /// limits of `[analysis]`; a job from a Game the user opened (`Job::low`) after the others.
     Analyse { job: bragd_positions::queue::Job },
+    /// A Comment's `text` into `language` (a locale code) by the language model, on a worker
+    /// of its own. Queued when this machine has no model ready, for a Peer whose model is, and
+    /// kept in this machine's translations. Commentary comes as a kind beside it.
+    Translate { text: String, language: String },
 }
 
 /// The workers that take jobs: one for most, one for engine matches, one for background
-/// analysis, so a long match or analysis never holds up a Source.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// analysis and one for the language model, so a long match or analysis never holds up a
+/// Source or a translation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Lane {
     Main,
     Matches,
     Analysis,
+    Model,
 }
 
 impl Lane {
@@ -61,6 +68,7 @@ impl Lane {
         match work {
             Work::Match { .. } => Lane::Matches,
             Work::Analyse { .. } => Lane::Analysis,
+            Work::Translate { .. } => Lane::Model,
             _ => Lane::Main,
         }
     }
@@ -85,6 +93,9 @@ pub struct Report {
     /// Background analysis: an estimate of the seconds left.
     #[serde(default)]
     pub left: Option<u64>,
+    /// A translation, once done.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub translation: Option<bragd_model::Translation>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -113,7 +124,59 @@ pub struct Job {
     /// What a Strip or Prune job did, once it is done.
     #[serde(default)]
     pub report: Option<Report>,
+    /// Lent to a Peer (the shared queue): it runs there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lent: Option<Lease>,
+    /// Borrowed from a Peer: it runs here for that Peer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<Owner>,
 }
+
+/// A job lent to a Peer, until `until` (seconds since 1970) unless the Peer renews it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Lease {
+    /// The Peer's id and name.
+    pub peer: String,
+    pub name: String,
+    pub until: u64,
+}
+
+/// The Peer a borrowed job belongs to, and the job's id there.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Owner {
+    pub peer: String,
+    pub name: String,
+    pub id: u64,
+}
+
+/// How a job lent to a Peer came back.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "outcome", rename_all = "snake_case")]
+pub enum Outcome {
+    /// Done there: the positions done; the results come with the Position store's sync.
+    Done { done: u64 },
+    Translated { translation: bragd_model::Translation },
+    /// That Peer cannot do it (no such Engine, too old an Edition, it failed there): it goes
+    /// back to the queue, and is not lent to that Peer again.
+    Cannot { why: String },
+    /// That Peer stopped (it was told to, or its Helper left): back to the queue.
+    Stopped,
+}
+
+/// The Helper's side of the shared queue (`crate::share`): asks Peers for work, and tells
+/// them how it goes.
+pub trait Peers: Send + Sync {
+    /// A job from a Peer for `lane`, now that this machine has nothing of its own there.
+    fn borrow(&self, lane: Lane) -> Option<(Owner, Work)>;
+    /// Tells the owner how far: false when it wants the job back (cancelled, or the lease lost).
+    fn renew(&self, owner: &Owner, done: u64, total: Option<u64>) -> bool;
+    fn give_back(&self, owner: &Owner, outcome: Outcome);
+}
+
+/// How long a Peer keeps a job lent without renewing it.
+pub const LEASE: u64 = 600;
+/// How often a Peer working on a job renews it.
+const RENEW: Duration = Duration::from_secs(60);
 
 /// What is kept of a Source: the user's options (none until changed) and what the fetches
 /// remembered.
@@ -196,6 +259,8 @@ fn folder_name(id: &str) -> String {
 /// The jobs and the Sources, shared by the connections and the worker.
 pub struct Jobs {
     dir: PathBuf,
+    /// Bragd's data folder: the Position store and the translations.
+    data: PathBuf,
     /// False when `state.json` is from a newer Bragd: it is left as it is.
     keep: bool,
     state: Mutex<State>,
@@ -214,20 +279,33 @@ pub struct Jobs {
     pub analysis_waits: AtomicBool,
     quit: AtomicBool,
     cancelled: Mutex<HashSet<u64>>,
+    /// Jobs a Peer could not do, by id and Peer: not lent to it again.
+    declined: Mutex<HashSet<(u64, String)>>,
+    /// The shared queue, once Peers are on.
+    pub peers: OnceLock<Arc<dyn Peers>>,
 }
 
 impl Jobs {
     /// The jobs kept in `dir`, the ones that were running queued again. Sources go into
     /// `library`, merged by `priority`. `images`: the engine images Bragd pulled, for Disk watch.
-    pub fn open(dir: &Path, net: Box<dyn Fetcher>, library: PathBuf, priority: Vec<String>, battery: Box<dyn Fn() -> bool + Send + Sync>, images: Box<dyn Fn() -> Vec<(String, u64)> + Send + Sync>) -> Arc<Jobs> {
+    /// `data`: Bragd's data folder, where the Position store and the translations are.
+    #[allow(clippy::too_many_arguments, reason = "one argument per part, each named where it is called")]
+    pub fn open(dir: &Path, data: &Path, net: Box<dyn Fetcher>, library: PathBuf, priority: Vec<String>, battery: Box<dyn Fn() -> bool + Send + Sync>, images: Box<dyn Fn() -> Vec<(String, u64)> + Send + Sync>) -> Arc<Jobs> {
         let (mut state, keep) = State::load(&dir.join("state.json"));
-        for j in state.jobs.iter_mut().filter(|j| j.status == Status::Running) {
-            crate::note(format_args!("job {} was stopped while it ran: it starts again", j.id));
-            j.status = Status::Queued;
-            j.resumed += 1;
+        for j in state.jobs.iter_mut().filter(|j| matches!(j.status, Status::Queued | Status::Running)) {
+            if j.from.is_some() {
+                // Its owner lends it again once the lease runs out.
+                j.status = Status::Cancelled;
+            } else if j.status == Status::Running {
+                crate::note(format_args!("job {} was stopped while it ran: it starts again", j.id));
+                j.status = Status::Queued;
+                j.resumed += 1;
+            }
+            j.lent = None;
         }
         let jobs = Arc::new(Jobs {
             dir: dir.to_path_buf(),
+            data: data.to_path_buf(),
             keep,
             state: Mutex::new(state),
             wake: Condvar::new(),
@@ -241,9 +319,16 @@ impl Jobs {
             analysis_waits: AtomicBool::new(false),
             quit: AtomicBool::new(false),
             cancelled: Mutex::default(),
+            declined: Mutex::default(),
+            peers: OnceLock::new(),
         });
         jobs.save(&jobs.lock());
         jobs
+    }
+
+    /// Bragd's data folder, where the Position store and the translations are.
+    pub fn data(&self) -> &Path {
+        &self.data
     }
 
     fn lock(&self) -> MutexGuard<'_, State> {
@@ -262,6 +347,11 @@ impl Jobs {
 
     /// Queues `work`: its id.
     pub fn add(&self, work: Work) -> u64 {
+        self.add_from(work, None)
+    }
+
+    /// Queues `work`, borrowed from a Peer when `from` says so: its id here.
+    fn add_from(&self, work: Work, from: Option<Owner>) -> u64 {
         let mut st = self.lock();
         if let Work::Analyse { job } = &work
             && job.low
@@ -279,7 +369,7 @@ impl Jobs {
         }
         st.next_id += 1;
         let id = st.next_id;
-        st.jobs.push(Job { id, work, status: Status::Queued, done: 0, total: None, error: None, resumed: 0, report: None });
+        st.jobs.push(Job { id, work, status: Status::Queued, done: 0, total: None, error: None, resumed: 0, report: None, lent: None, from });
         // The oldest finished ones go.
         let finished = st.jobs.iter().filter(|j| !matches!(j.status, Status::Queued | Status::Running)).count();
         let mut extra = finished.saturating_sub(KEEP);
@@ -300,6 +390,7 @@ impl Jobs {
         let Some(j) = st.jobs.iter_mut().find(|j| j.id == id) else { return false };
         match j.status {
             Status::Queued => j.status = Status::Cancelled,
+            // A lent one: its Peer hears so when it next renews, and gives it back.
             Status::Running => {
                 self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).insert(id);
             }
@@ -477,18 +568,30 @@ impl Jobs {
 
     /// Runs the first queued job of `lane`: false when there is none.
     pub fn run_first(&self, lane: Lane) -> bool {
-        let (id, work) = {
+        let (id, work, from) = {
             let mut st = self.lock();
             let Some(i) = Self::first_queued(&st, lane) else { return false };
             let j = &mut st.jobs[i];
             j.status = Status::Running;
-            let next = (j.id, j.work.clone());
+            let next = (j.id, j.work.clone(), j.from.clone());
             self.save(&st);
             next
         };
-        let done = self.run(id, &work);
+        let done = self.run(id, &work, from.as_ref());
         let quit = self.quit.load(Ordering::Relaxed);
         let cancelled = self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
+        if let (Some(owner), Some(peers)) = (&from, self.peers.get()) {
+            let report = self.lock().jobs.iter().find(|j| j.id == id).and_then(|j| j.report.clone());
+            let outcome = match &done {
+                _ if quit || cancelled => Outcome::Stopped,
+                Ok(n) => match report.and_then(|r| r.translation) {
+                    Some(translation) => Outcome::Translated { translation },
+                    None => Outcome::Done { done: *n },
+                },
+                Err(e) => Outcome::Cannot { why: e.clone() },
+            };
+            peers.give_back(owner, outcome);
+        }
         let mut st = self.lock();
         if let Some(j) = st.jobs.iter_mut().find(|j| j.id == id) {
             match done {
@@ -510,7 +613,7 @@ impl Jobs {
         true
     }
 
-    fn run(&self, id: u64, work: &Work) -> Result<u64, String> {
+    fn run(&self, id: u64, work: &Work, from: Option<&Owner>) -> Result<u64, String> {
         match work {
             Work::Import { path, library, source } => {
                 if !path.exists() {
@@ -534,14 +637,24 @@ impl Jobs {
                 Ok(games)
             }
             Work::Match { setup } => self.play_match(id, setup),
-            Work::Analyse { job } => self.analyse(id, job),
+            Work::Analyse { job } => self.analyse(id, job, from),
+            Work::Translate { text, language } => {
+                let t = bragd_model::ask(&Config::load().unwrap_or_default().model, text, language)?;
+                // Borrowed: the owner keeps it, not this machine.
+                if from.is_none() {
+                    let store = bragd_model::Translations::open(&self.data.join("translations.sqlite")).map_err(|e| e.to_string())?;
+                    store.put(text.trim(), language, &t).map_err(|e| e.to_string())?;
+                }
+                self.set_report(id, Report { translation: Some(t), ..Default::default() });
+                Ok(1)
+            }
         }
     }
 
     /// Background analysis of `job`, its results into the Position store: the positions done.
-    fn analyse(&self, id: u64, job: &bragd_positions::queue::Job) -> Result<u64, String> {
+    fn analyse(&self, id: u64, job: &bragd_positions::queue::Job, from: Option<&Owner>) -> Result<u64, String> {
         let cfg = Config::load().unwrap_or_default();
-        let store = bragd_positions::Store::path().ok_or_else(bragd_engines::local::no_folder)?;
+        let store = self.data.join("positions.sqlite");
         let chosen = bragd_engines::local::resolve(&cfg, &job.engine, &job.variant)?;
         let stop = || self.quit.load(Ordering::Relaxed) || self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).contains(&id);
         let start = || {
@@ -555,14 +668,141 @@ impl Jobs {
             Ok(crate::analysis::Started { session: Box::new(e), notation, edition })
         };
         let gate = || self.analysis_gate(id);
+        // The first progress tells the owner at once, then every `RENEW`.
+        let renewed: Mutex<Option<std::time::Instant>> = Mutex::new(None);
         let progress = |p: crate::analysis::Progress| {
             if let Some(j) = self.lock().jobs.iter_mut().find(|j| j.id == id) {
                 j.done = p.done;
                 j.total = Some(p.total);
                 j.report.get_or_insert_with(Report::default).left = p.left;
             }
+            // A borrowed job tells its owner how far, and stops when the owner wants it back.
+            if let (Some(owner), Some(peers)) = (from, self.peers.get()) {
+                let mut at = renewed.lock().unwrap_or_else(|e| e.into_inner());
+                if at.is_none_or(|t| t.elapsed() >= RENEW) {
+                    *at = Some(std::time::Instant::now());
+                    if !peers.renew(owner, p.done, Some(p.total)) {
+                        self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).insert(id);
+                    }
+                }
+            }
         };
         crate::analysis::run(&crate::analysis::Run { job, store: &store, engines: cfg.analysis.engines(), start: &start, gate: &gate, stop: &stop, progress: &progress })
+    }
+
+    /// Whether background analysis may run now, by `[analysis]` as read now: inside its hours,
+    /// and plugged in unless allowed on the battery.
+    fn analysis_open(&self) -> bool {
+        let a = Config::load().unwrap_or_default().analysis;
+        (a.on_battery || !(self.battery)()) && a.hour_allowed(crate::analysis::local_hour())
+    }
+
+    /// Whether this machine may take a job of `lane` from a Peer now: background analysis
+    /// inside its limits, model jobs with a model ready.
+    fn can_take(&self, lane: Lane) -> bool {
+        match lane {
+            Lane::Analysis => self.analysis_open(),
+            Lane::Model => bragd_model::ready(&Config::load().unwrap_or_default().model),
+            Lane::Main | Lane::Matches => false,
+        }
+    }
+
+    /// Nothing of its own to do in `lane`: runs a job a Peer has for this machine, if one has.
+    /// True when one ran.
+    pub fn run_borrowed(&self, lane: Lane) -> bool {
+        let Some(peers) = self.peers.get() else { return false };
+        if !self.can_take(lane) {
+            return false;
+        }
+        let Some((owner, work)) = peers.borrow(lane) else { return false };
+        self.add_from(work, Some(owner));
+        self.run_first(lane)
+    }
+
+    /// The first job of `lane` queued here that the Peer `peer` may take, lent to it for
+    /// `LEASE`; for analysis, the ones asked for before those from Games opened. Never a job
+    /// borrowed from another Peer, nor one that Peer could not do.
+    pub fn lend(&self, peer: &str, name: &str, lane: Lane, now: u64) -> Option<(u64, Work)> {
+        if !matches!(lane, Lane::Analysis | Lane::Model) {
+            return None;
+        }
+        self.expire(now);
+        let declined = self.declined.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        let mut st = self.lock();
+        let ok = |j: &Job, low: bool| {
+            j.status == Status::Queued && j.from.is_none() && Lane::of(&j.work) == lane && matches!(&j.work, Work::Analyse { job } if job.low) == low && !declined.contains(&(j.id, peer.to_string()))
+        };
+        let i = st.jobs.iter().position(|j| ok(j, false)).or_else(|| st.jobs.iter().position(|j| ok(j, true)))?;
+        let j = &mut st.jobs[i];
+        j.status = Status::Running;
+        j.lent = Some(Lease { peer: peer.into(), name: name.into(), until: now + LEASE });
+        if let Work::Analyse { job } = &j.work {
+            (j.done, j.total) = (0, Some(job.spots.len() as u64));
+        }
+        let lent = (j.id, j.work.clone());
+        self.save(&st);
+        Some(lent)
+    }
+
+    /// The job `id` lent to `peer`, renewed with how far it is: false when it is not lent to
+    /// that Peer any more, or was cancelled here.
+    pub fn renew(&self, peer: &str, id: u64, done: u64, total: Option<u64>, now: u64) -> bool {
+        if self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).contains(&id) {
+            return false;
+        }
+        let mut st = self.lock();
+        let Some(j) = st.jobs.iter_mut().find(|j| j.id == id && j.status == Status::Running && j.lent.as_ref().is_some_and(|l| l.peer == peer)) else { return false };
+        (j.done, j.total) = (done, total);
+        if let Some(l) = j.lent.as_mut() {
+            l.until = now + LEASE;
+        }
+        true
+    }
+
+    /// The job `id` that `peer` had, back with how it went.
+    pub fn returned(&self, peer: &str, id: u64, outcome: Outcome) {
+        let cancelled = self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
+        let mut st = self.lock();
+        let Some(j) = st.jobs.iter_mut().find(|j| j.id == id && j.lent.as_ref().is_some_and(|l| l.peer == peer)) else { return };
+        let name = j.lent.take().map(|l| l.name).unwrap_or_default();
+        j.status = Status::Queued;
+        match outcome {
+            _ if cancelled => j.status = Status::Cancelled,
+            Outcome::Done { done } => (j.status, j.done) = (Status::Done, done),
+            Outcome::Translated { translation } => {
+                if let Work::Translate { text, language } = &j.work {
+                    match bragd_model::Translations::open(&self.data.join("translations.sqlite")).map_err(|e| e.to_string()).and_then(|s| s.put(text.trim(), language, &translation).map_err(|e| e.to_string())) {
+                        Ok(()) => {
+                            j.status = Status::Done;
+                            j.report.get_or_insert_with(Report::default).translation = Some(translation);
+                        }
+                        Err(e) => (j.status, j.error) = (Status::Failed, Some(e)),
+                    }
+                }
+            }
+            Outcome::Cannot { why } => {
+                crate::note(format_args!("job {id}: {name} cannot do it: {why}"));
+                self.declined.lock().unwrap_or_else(|e| e.into_inner()).insert((id, peer.into()));
+            }
+            Outcome::Stopped => {}
+        }
+        self.save(&st);
+        self.wake.notify_all();
+    }
+
+    /// Jobs whose lease ran out by `now` go back to the queue: their Peer went away.
+    pub fn expire(&self, now: u64) {
+        let mut st = self.lock();
+        let mut changed = false;
+        for j in st.jobs.iter_mut().filter(|j| j.status == Status::Running && j.lent.as_ref().is_some_and(|l| l.until < now)) {
+            crate::note(format_args!("job {}: {} did not renew it: back in the queue", j.id, j.lent.as_ref().map_or("", |l| l.name.as_str())));
+            (j.status, j.lent) = (Status::Queued, None);
+            changed = true;
+        }
+        if changed {
+            self.save(&st);
+            self.wake.notify_all();
+        }
     }
 
     /// Asked before each position of background analysis: waits while `[analysis]` holds it back
@@ -573,8 +813,7 @@ impl Jobs {
             if self.quit.load(Ordering::Relaxed) || self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).contains(&id) {
                 return true;
             }
-            let a = Config::load().unwrap_or_default().analysis;
-            let go = (a.on_battery || !(self.battery)()) && a.hour_allowed(crate::analysis::local_hour());
+            let go = self.analysis_open();
             self.analysis_waits.store(!go, Ordering::Relaxed);
             if go {
                 return false;
@@ -864,13 +1103,24 @@ impl Jobs {
     /// time, until `stop`.
     pub fn work_lane(self: Arc<Self>, lane: Lane) {
         while !self.quit.load(Ordering::Relaxed) {
-            if !self.run_first(lane) {
+            self.expire(bragd_core::fs::now());
+            // Background analysis starts here only inside `[analysis]`, and model jobs only with
+            // a model ready: till then they wait in the queue, where a Peer may take them.
+            let open = !matches!(lane, Lane::Analysis | Lane::Model) || self.can_take(lane);
+            let mine = open && self.run_first(lane);
+            if !mine && !self.run_borrowed(lane) {
                 let st = self.lock();
-                if !self.quit.load(Ordering::Relaxed) && Self::first_queued(&st, lane).is_none() {
+                // Held back, it looks again within the minute rather than at once.
+                if !self.quit.load(Ordering::Relaxed) && (!open || Self::first_queued(&st, lane).is_none()) {
                     let _ = self.wake.wait_timeout(st, Duration::from_secs(60));
                 }
             }
         }
+    }
+
+    /// Whether the Helper is leaving.
+    pub fn quitting(&self) -> bool {
+        self.quit.load(Ordering::Relaxed)
     }
 
     /// Stops the worker: a job running is left to start again with the next Helper.
@@ -919,7 +1169,16 @@ pub(crate) mod tests {
     pub const PGN: &str = "[Event \"Fixture\"]\n[White \"A\"]\n[Black \"B\"]\n[Result \"1-0\"]\n\n1. e4 e5 2. Nf3 Nc6 1-0\n\n[Event \"Fixture\"]\n[White \"C\"]\n[Black \"D\"]\n[Result \"0-1\"]\n\n1. d4 d5 2. c4 e6 0-1\n";
 
     pub fn jobs_in(dir: &Path, net: Recorded, battery: Arc<AtomicBool>) -> Arc<Jobs> {
-        Jobs::open(dir, Box::new(net), dir.join("lib/main.bragd"), vec!["twic".into(), "lichess".into()], Box::new(move || battery.load(Ordering::Relaxed)), Box::new(|| vec![("bragd-stockfish:17.1".into(), 1000)]))
+        jobs_with(dir, &bragd_core::dirs::app_data().unwrap(), net, battery)
+    }
+
+    /// Jobs with a data folder of their own: a machine of their own for Peers' tests.
+    pub fn jobs_in_data(dir: &Path, data: &Path, net: Recorded) -> Arc<Jobs> {
+        jobs_with(dir, data, net, Arc::default())
+    }
+
+    fn jobs_with(dir: &Path, data: &Path, net: Recorded, battery: Arc<AtomicBool>) -> Arc<Jobs> {
+        Jobs::open(dir, data, Box::new(net), dir.join("lib/main.bragd"), vec!["twic".into(), "lichess".into()], Box::new(move || battery.load(Ordering::Relaxed)), Box::new(|| vec![("bragd-stockfish:17.1".into(), 1000)]))
     }
 
     fn count(lib: &Path) -> u64 {
@@ -965,12 +1224,12 @@ pub(crate) mod tests {
 
     /// Held while a test writes config.toml: two tests writing it at once lose an entry.
     #[cfg(unix)]
-    static CONFIG: Mutex<()> = Mutex::new(());
+    pub(crate) static CONFIG: Mutex<()> = Mutex::new(());
 
     /// A fake UCI engine added by its path for chess, `Fake 2.0`, that finds `e2e4` at depth 20.
     #[cfg(unix)]
     /// The caller holds `CONFIG`.
-    fn fake_analyst(d: &Path, key: &str) {
+    pub(crate) fn fake_analyst(d: &Path, key: &str) {
         let script = "while read l; do case \"$l\" in uci) echo 'id name Fake 2.0'; echo uciok;; isready) echo readyok;; go*) echo 'info depth 20 score cp 31 pv e2e4 e7e5'; echo 'bestmove e2e4';; quit) exit 0;; esac; done";
         let p = d.join(key);
         let mut sh = std::process::Command::new("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(&p).stdin(std::process::Stdio::piped()).spawn().unwrap();
@@ -980,7 +1239,7 @@ pub(crate) mod tests {
         Config::save_value(&["engines", "paths", key], p.display().to_string().as_str().into()).unwrap();
     }
 
-    fn analyse_job(engine: &str, keys: &[(u64, u32)], min: &str, low: bool) -> bragd_positions::queue::Job {
+    pub(crate) fn analyse_job(engine: &str, keys: &[(u64, u32)], min: &str, low: bool) -> bragd_positions::queue::Job {
         use bragd_positions::queue::{Job, Per, Spot};
         let spots = keys.iter().map(|&(key, count)| Spot { key, setup: bragd_library::chess::pgn::START.into(), moves: vec![], count }).collect();
         Job::new("chess", "chess", engine, Some(min.into()), Per::Depth(20), spots, low, "test")
@@ -1229,7 +1488,7 @@ pub(crate) mod tests {
         let pgn = d.0.join("a.pgn");
         std::fs::write(&pgn, PGN).unwrap();
         let lib = d.0.join("lib/main.bragd");
-        let job = |id, path: &Path| Job { id, work: Work::Import { path: path.into(), library: lib.clone(), source: "file".into() }, status: Status::Running, done: 1, total: None, error: None, resumed: 0, report: None };
+        let job = |id, path: &Path| Job { id, work: Work::Import { path: path.into(), library: lib.clone(), source: "file".into() }, status: Status::Running, done: 1, total: None, error: None, resumed: 0, report: None, lent: None, from: None };
         let st = State { next_id: 2, jobs: vec![job(1, &pgn), job(2, &d.0.join("gone.pgn"))], sources: BTreeMap::new() };
         std::fs::write(d.0.join("state.json"), serde_json::to_vec(&st).unwrap()).unwrap();
         let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
@@ -1418,7 +1677,7 @@ pub(crate) mod tests {
             a.fetch_add(1, Ordering::SeqCst);
             vec![("bragd-stockfish:17.1".to_string(), 1000)]
         });
-        let jobs = Jobs::open(&d.0, Box::new(Recorded::default()), d.0.join("lib/main.bragd"), vec![], Box::new(|| false), images);
+        let jobs = Jobs::open(&d.0, &bragd_core::dirs::app_data().unwrap(), Box::new(Recorded::default()), d.0.join("lib/main.bragd"), vec![], Box::new(|| false), images);
         let url = "https://example.org/club.zip";
         let mut o = sources::find("custom:club", url).unwrap().about().defaults();
         o.url = url.into();

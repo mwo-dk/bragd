@@ -174,3 +174,20 @@ fn a_typed_address_gets_the_peers_port() {
     assert_eq!(bragd_peers::node::resolve("localhost:4000").unwrap()[0].port(), 4000);
     assert_eq!(bragd_peers::node::resolve("[::1]:4001").unwrap()[0].port(), 4001);
 }
+
+/// A paired machine's Helper answers the other's requests, knowing who asks; a machine not
+/// paired gets nothing, and a request goes to a paired machine only.
+#[test]
+fn paired_machines_answer_each_others_calls() {
+    let (a, b, stranger) = (Machine::new("a"), Machine::new("b"), Machine::new("s"));
+    paired(&a, &b);
+    assert_eq!(a.node.call(&b.node.id(), &serde_json::json!({"op": "x"})).unwrap(), serde_json::Value::Null, "no handler yet");
+    b.node.on_call(Arc::new(|who: &str, body: serde_json::Value| serde_json::json!({"who": who, "asked": body, "big": "x".repeat(200_000)})));
+    let r = a.node.call(&b.node.id(), &serde_json::json!({"op": "changes"})).unwrap();
+    assert_eq!((r["who"].as_str(), &r["asked"]["op"]), (Some(a.node.id().as_str()), &serde_json::json!("changes")));
+    assert_eq!(r["big"].as_str().map(str::len), Some(200_000), "a reply may be longer than a line");
+    assert_eq!(refused(stranger.node.call(&b.node.id(), &serde_json::json!({}))), Why::NotPaired);
+    // Unpaired, B no longer answers A.
+    b.node.unpair(&a.node.id()).unwrap();
+    assert!(a.node.call(&b.node.id(), &serde_json::json!({})).is_err());
+}

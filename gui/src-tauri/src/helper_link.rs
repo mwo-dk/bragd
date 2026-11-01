@@ -135,6 +135,7 @@ pub fn what(work: &Work) -> String {
         Work::Prune { library, dry_run: true } => t!("job.prune_preview", "library" => file_name(library)),
         Work::Prune { library, .. } => t!("job.prune", "library" => file_name(library)),
         Work::Analyse { job } => t!(if job.low { "job.analyse_game" } else { "job.analyse" }, "about" => job.about, "engine" => engine_name(&job.engine)),
+        Work::Translate { language, .. } => t!("job.translate", "language" => bragd_core::i18n::find(language).map_or(language.as_str(), |l| l.name)),
         Work::Match { setup } => t!("job.match", "engines" => setup.engines.iter().map(|k| bragd_engines::known::known(k).map_or(k.as_str(), |k| k.name)).collect::<Vec<_>>().join(" – ")),
     }
 }
@@ -252,7 +253,7 @@ mod tests {
 
     #[test]
     fn a_job_shows_its_progress() {
-        let j = Job { id: 1, work: Work::Fetch { source: "twic".into() }, status: Status::Running, done: 25, total: Some(100), error: None, resumed: 0, report: None };
+        let j = Job { id: 1, work: Work::Fetch { source: "twic".into() }, status: Status::Running, done: 25, total: Some(100), error: None, resumed: 0, report: None, lent: None, from: None };
         let v = job_view(&j);
         assert_eq!(v.progress, Some(0.25));
         assert!(v.live && v.what.contains("twic"));
@@ -263,7 +264,7 @@ mod tests {
     fn background_analysis_says_the_time_left() {
         use bragd_positions::queue::{Job as Analyse, Per};
         let job = Analyse::new("chess", "chess", "stockfish", None, Per::Depth(20), vec![], false, "Grünfeld");
-        let j = Job { id: 2, work: Work::Analyse { job }, status: Status::Running, done: 10, total: Some(40), error: None, resumed: 0, report: Some(Report { left: Some(7_300), ..Default::default() }) };
+        let j = Job { id: 2, work: Work::Analyse { job }, status: Status::Running, done: 10, total: Some(40), error: None, resumed: 0, report: Some(Report { left: Some(7_300), ..Default::default() }), lent: None, from: None };
         let v = job_view(&j);
         assert!(v.analysis && v.what.contains("Grünfeld") && v.what.contains("Stockfish"), "{}", v.what);
         assert_eq!(v.report, left(7_300));

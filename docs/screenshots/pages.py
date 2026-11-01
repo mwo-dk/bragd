@@ -587,6 +587,46 @@ def peers():
         (folder / "peers.json").unlink(missing_ok=True)
 
 
+def sharing():
+    """peers-sharing-390.png and peers-sharing-1100.png: Settings → Peers with a real paired
+    machine sharing: its sync and what it works on, and the shared queue. SHARING_FROM names a
+    home whose Helper was paired with another machine that is running now (the two-machine test
+    in `docs/peers/sharing.md`'s PR): its key, its Peers, its Position store and its jobs are
+    copied into the demo home, so the sandbox's Helper is that machine, and removed afterwards."""
+    import shutil
+    home = Path(_env()["DEMO_HOME"])
+    src = Path(os.environ["SHARING_FROM"]) / ".local/share/bragd"
+    data = home / ".local/share/bragd"
+    copied = [data / "helper/peers", data / "positions.sqlite", data / "helper/state.json"]
+    shutil.copytree(src / "helper/peers", data / "helper/peers", dirs_exist_ok=True)
+    shutil.copy(src / "positions.sqlite", data / "positions.sqlite")
+    shutil.copy(src / "helper/state.json", data / "helper/state.json")
+    # Background analysis waits outside its hours here, so the job stays for the other machine.
+    config("[peers]\non = true\n[analysis]\nfrom_hour = 3\nuntil_hour = 4\n")
+    try:
+        def page(d):
+            js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+            d.wait(0.4)
+            click(d, "Settings", "nav")
+            click(d, "Peers", "main")
+            # The other machine asks for work once a minute: time for it to take the job.
+            d.wait(70)
+            click(d, "Sync now", "main")
+            d.wait(8)
+            js(d, "const s = document.querySelector('main .peers .state'); if (s) s.textContent = s.textContent.replace(/listening on .*$/, 'listening on 192.168.1.20:47247.');")
+            # The other machine's address too.
+            js(d, "document.querySelectorAll('main .peers .peer small').forEach(s => { if (/^[0-9.:]+$/.test(s.textContent.trim())) s.textContent = '192.168.1.30:47247'; });")
+            js(d, "const h = [...document.querySelectorAll('main h3')].find(h => h.textContent.trim() === 'Paired machines'); h && h.scrollIntoView()")
+            d.wait(0.5)
+
+        widths("peers-sharing", page)
+    finally:
+        config("")
+        shutil.rmtree(copied[0], ignore_errors=True)
+        for p in copied[1:]:
+            p.unlink(missing_ok=True)
+
+
 def online():
     """online-sign-in, online-lobby and online-game, each -390.png and -1100.png: Play online
     against the fake Lichess (`fake-lichess`, built by `cargo build --release -p bragd-online
@@ -630,7 +670,7 @@ def online():
             p.wait(5)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background, "peers": peers, "online": online}
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background, "peers": peers, "sharing": sharing, "online": online}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

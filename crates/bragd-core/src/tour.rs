@@ -39,6 +39,7 @@ pub const CARDS: &[Card] = &[
     card("1.0.0", "model"),
     card("1.0.0", "background"),
     card("1.0.0", "peers"),
+    card("1.0.0", "sharing"),
     card("1.0.0", "online"),
 ];
 

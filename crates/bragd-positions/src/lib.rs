@@ -26,6 +26,7 @@ pub mod annotation;
 pub mod edition;
 pub mod parquet;
 pub mod queue;
+pub mod sync;
 
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
@@ -224,6 +225,8 @@ CREATE TABLE evaluations (
     score2 REAL NOT NULL DEFAULT 0,
     lead2 REAL NOT NULL DEFAULT 0,
     line2 TEXT NOT NULL DEFAULT '',
+    -- The change number (`sync`): the store's counter when the row last changed.
+    seq INTEGER NOT NULL,
     PRIMARY KEY (family, variant, key, edition)
 ) WITHOUT ROWID;
 CREATE TABLE annotations (
@@ -240,7 +243,23 @@ CREATE TABLE annotations (
     motifs TEXT NOT NULL,
     depth INTEGER NOT NULL,
     time INTEGER NOT NULL,
+    seq INTEGER NOT NULL,
     PRIMARY KEY (family, variant, key, move, edition)
+) WITHOUT ROWID;
+CREATE INDEX evaluations_seq ON evaluations (seq);
+CREATE INDEX annotations_seq ON annotations (seq);
+-- The last change number given.
+CREATE TABLE changes (n INTEGER NOT NULL);
+INSERT INTO changes (n) VALUES (0);
+-- This store's id, made the first time a Peer asks: a store made again is another store.
+CREATE TABLE store (id TEXT NOT NULL);
+-- What was taken from each Peer: its store's id and the last change number, when, and how many rows.
+CREATE TABLE pulled (
+    peer TEXT PRIMARY KEY,
+    store TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    time INTEGER NOT NULL,
+    rows INTEGER NOT NULL
 ) WITHOUT ROWID;
 ";
 
@@ -309,15 +328,7 @@ impl Store {
     /// Merges Evaluations and Annotations in one transaction: nothing when one is refused.
     pub fn merge<'a>(&mut self, evaluations: impl IntoIterator<Item = &'a Evaluation>, annotations: impl IntoIterator<Item = &'a Annotation>) -> Result<Merged> {
         let tx = self.conn.transaction()?;
-        let mut m = Merged::default();
-        for e in evaluations {
-            m.read += 1;
-            m.changed += u64::from(put(&tx, e)?);
-        }
-        for a in annotations {
-            m.read += 1;
-            m.changed += u64::from(put_annotation(&tx, a)?);
-        }
+        let m = merge(&tx, evaluations, annotations)?;
         tx.commit()?;
         Ok(m)
     }
@@ -344,8 +355,13 @@ impl Store {
     }
 
     fn select_annotations(&self, rest: &str, p: impl rusqlite::Params) -> Result<Vec<Annotation>> {
+        Ok(self.select_annotations_seq(rest, p)?.into_iter().map(|(_, a)| a).collect())
+    }
+
+    /// As `select_annotations`, each with its change number (`sync`).
+    pub(crate) fn select_annotations_seq(&self, rest: &str, p: impl rusqlite::Params) -> Result<Vec<(u64, Annotation)>> {
         let mut st = self.conn.prepare(&format!(
-            "SELECT a.family, a.variant, a.key, a.move, d.engine, d.version, d.network, d.image, a.mark, a.better, a.motifs, a.depth, a.time \
+            "SELECT a.family, a.variant, a.key, a.move, d.engine, d.version, d.network, d.image, a.mark, a.better, a.motifs, a.depth, a.time, a.seq \
              FROM annotations a JOIN editions d ON d.n = a.edition {rest}"
         ))?;
         let rows = st.query_map(p, |r| {
@@ -364,12 +380,13 @@ impl Store {
                 },
                 r.get::<_, String>(8)?,
                 r.get::<_, String>(10)?,
+                r.get::<_, i64>(13)? as u64,
             ))
         })?;
         rows.map(|row| {
-            let (mut a, mark, motifs) = row?;
+            let (mut a, mark, motifs, seq) = row?;
             (a.mark, a.motifs) = annotation_columns(&mark, &motifs)?;
-            Ok(a)
+            Ok((seq, a))
         })
         .collect()
     }
@@ -458,8 +475,13 @@ impl Store {
     }
 
     fn select(&self, rest: &str, p: impl rusqlite::Params) -> Result<Vec<Evaluation>> {
+        Ok(self.select_seq(rest, p)?.into_iter().map(|(_, e)| e).collect())
+    }
+
+    /// As `select`, each with its change number (`sync`).
+    pub(crate) fn select_seq(&self, rest: &str, p: impl rusqlite::Params) -> Result<Vec<(u64, Evaluation)>> {
         let mut st = self.conn.prepare(&format!(
-            "SELECT v.family, v.variant, v.key, d.engine, d.version, d.network, d.image, v.kind, v.score, v.lead, v.depth, v.line, v.time, v.kind2, v.score2, v.lead2, v.line2 \
+            "SELECT v.family, v.variant, v.key, d.engine, d.version, d.network, d.image, v.kind, v.score, v.lead, v.depth, v.line, v.time, v.kind2, v.score2, v.lead2, v.line2, v.seq \
              FROM evaluations v JOIN editions d ON d.n = v.edition {rest}"
         ))?;
         let rows = st.query_map(p, |r| {
@@ -477,13 +499,14 @@ impl Store {
                 },
                 (r.get::<_, String>(7)?, r.get::<_, f64>(8)?, r.get::<_, f64>(9)?),
                 (r.get::<_, String>(13)?, r.get::<_, f64>(14)?, r.get::<_, f64>(15)?, r.get::<_, String>(16)?),
+                r.get::<_, i64>(17)? as u64,
             ))
         })?;
         rows.map(|row| {
-            let (mut e, (kind, score, lead), (kind2, score2, lead2, line2)) = row?;
+            let (mut e, (kind, score, lead), (kind2, score2, lead2, line2), seq) = row?;
             e.score = Score::from_columns(&kind, score, lead)?;
             e.second = Second::from_columns(&kind2, score2, lead2, line2)?;
-            Ok(e)
+            Ok((seq, e))
         })
         .collect()
     }
@@ -506,23 +529,38 @@ fn edition_n(tx: &Connection, d: &Edition) -> Result<i64> {
     Ok(tx.prepare_cached("SELECT n FROM editions WHERE id = ?1")?.query_row([d.id()], |r| r.get(0))?)
 }
 
+/// Merges Evaluations and Annotations inside `tx`.
+fn merge<'a>(tx: &Connection, evaluations: impl IntoIterator<Item = &'a Evaluation>, annotations: impl IntoIterator<Item = &'a Annotation>) -> Result<Merged> {
+    let mut m = Merged::default();
+    for e in evaluations {
+        m.read += 1;
+        m.changed += u64::from(put(tx, e)?);
+    }
+    for a in annotations {
+        m.read += 1;
+        m.changed += u64::from(put_annotation(tx, a)?);
+    }
+    Ok(m)
+}
+
 /// The merge rule for Annotations: insert, or replace one that is less by
 /// `(depth, time, mark, better, motifs)`.
 fn put_annotation(tx: &Connection, a: &Annotation) -> Result<bool> {
     let n = edition_n(tx, &a.edition)?;
     let mark = a.mark.map_or("", Mark::sign);
     let motifs: Vec<&str> = a.motifs.iter().map(|m| m.id()).collect();
+    let seq = sync::next(tx)?;
     let changed = tx
         .prepare_cached(
-            "INSERT INTO annotations (family, variant, key, move, edition, mark, better, motifs, depth, time) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) \
+            "INSERT INTO annotations (family, variant, key, move, edition, mark, better, motifs, depth, time, seq) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) \
              ON CONFLICT (family, variant, key, move, edition) DO UPDATE SET \
-             mark = excluded.mark, better = excluded.better, motifs = excluded.motifs, depth = excluded.depth, time = excluded.time \
+             mark = excluded.mark, better = excluded.better, motifs = excluded.motifs, depth = excluded.depth, time = excluded.time, seq = excluded.seq \
              WHERE (excluded.depth, excluded.time, excluded.mark, excluded.better, excluded.motifs) \
                  > (annotations.depth, annotations.time, annotations.mark, annotations.better, annotations.motifs)",
         )?
-        .execute(params![a.family, a.variant, a.key as i64, a.mv, n, mark, a.better, motifs.join(" "), a.depth, a.time])?;
-    Ok(changed > 0)
+        .execute(params![a.family, a.variant, a.key as i64, a.mv, n, mark, a.better, motifs.join(" "), a.depth, a.time, seq])?;
+    sync::taken(tx, seq, changed > 0)
 }
 
 /// The merge rule, in one place: insert, or replace a row that is less by
@@ -534,19 +572,20 @@ fn put(tx: &Connection, e: &Evaluation) -> Result<bool> {
         return Err(Error::Bad(format!("{kind} {score} {lead} {kind2} {score2} {lead2}")));
     }
     let n = edition_n(tx, &e.edition)?;
+    let seq = sync::next(tx)?;
     let changed = tx
         .prepare_cached(
-            "INSERT INTO evaluations (family, variant, key, edition, kind, score, lead, depth, line, time, kind2, score2, lead2, line2) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14) \
+            "INSERT INTO evaluations (family, variant, key, edition, kind, score, lead, depth, line, time, kind2, score2, lead2, line2, seq) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15) \
              ON CONFLICT (family, variant, key, edition) DO UPDATE SET \
              kind = excluded.kind, score = excluded.score, lead = excluded.lead, depth = excluded.depth, line = excluded.line, time = excluded.time, \
-             kind2 = excluded.kind2, score2 = excluded.score2, lead2 = excluded.lead2, line2 = excluded.line2 \
+             kind2 = excluded.kind2, score2 = excluded.score2, lead2 = excluded.lead2, line2 = excluded.line2, seq = excluded.seq \
              WHERE (excluded.depth, excluded.time, excluded.kind, excluded.score, excluded.lead, excluded.line, excluded.kind2, excluded.score2, excluded.lead2, excluded.line2) \
                  > (evaluations.depth, evaluations.time, evaluations.kind, evaluations.score, evaluations.lead, evaluations.line, \
                     evaluations.kind2, evaluations.score2, evaluations.lead2, evaluations.line2)",
         )?
-        .execute(params![e.family, e.variant, e.key as i64, n, kind, score, lead, e.depth, e.line, e.time, kind2, score2, lead2, line2])?;
-    Ok(changed > 0)
+        .execute(params![e.family, e.variant, e.key as i64, n, kind, score, lead, e.depth, e.line, e.time, kind2, score2, lead2, line2, seq])?;
+    sync::taken(tx, seq, changed > 0)
 }
 
 #[cfg(test)]

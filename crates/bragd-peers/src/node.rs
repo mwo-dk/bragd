@@ -10,6 +10,8 @@
 //!   the SPAKE2 key over a label and the TLS session's exporter, and the SPAKE2 identities are
 //!   the two keys TLS saw, so the code binds exactly these two keys on exactly this connection.
 //! - `unpaired`: the client has forgotten the server; the server forgets it too.
+//! - `call` → `reply`: a request of the Helper's own (`Node::on_call`), between paired machines
+//!   only. The reply may be up to `REPLY_MAX` long.
 
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream, ToSocketAddrs};
@@ -35,6 +37,8 @@ pub const CODE_TTL: Duration = Duration::from_secs(120);
 pub const CODE_TRIES: u32 = 5;
 /// A line longer than this ends the connection.
 const LINE_MAX: u64 = 64 * 1024;
+/// A reply to a `call`, at most: a Peer paired with this one sends it.
+const REPLY_MAX: u64 = 4 * 1024 * 1024;
 /// The whole of a connection, handshake included: a Peer answers at once.
 const DEADLINE: Duration = Duration::from_secs(5);
 /// How long dialling a Peer may take.
@@ -103,6 +107,7 @@ enum Ask {
     Pair { name: String, port: u16, spake: String },
     Confirm { mac: String },
     Unpaired,
+    Call { body: serde_json::Value },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -112,6 +117,7 @@ enum Answer {
     Spake { spake: String },
     Paired { name: String, mac: String },
     Done,
+    Reply { body: serde_json::Value },
     Refused { why: Why },
 }
 
@@ -162,10 +168,14 @@ where
     }
 
     fn hear<T: for<'a> Deserialize<'a>>(&mut self) -> io::Result<T> {
+        self.hear_up_to(LINE_MAX)
+    }
+
+    fn hear_up_to<T: for<'a> Deserialize<'a>>(&mut self, max: u64) -> io::Result<T> {
         self.time()?;
         // A reader per line is enough: each side waits for the answer before it says more.
         let mut text = String::new();
-        BufReader::new((&mut self.tls).take(LINE_MAX)).read_line(&mut text)?;
+        BufReader::new((&mut self.tls).take(max)).read_line(&mut text)?;
         if !text.ends_with('\n') {
             return Err(io::ErrorKind::UnexpectedEof.into());
         }
@@ -205,6 +215,9 @@ impl std::fmt::Display for Failed {
     }
 }
 
+/// What answers a `call`: the caller's id and its request, to the reply.
+pub type Handler = dyn Fn(&str, serde_json::Value) -> serde_json::Value + Send + Sync;
+
 /// `peers.json`'s format: a list of Peers is version 1. A later version is an object with its
 /// `format`, which this one refuses, leaving the file as it is.
 pub const FORMAT: bragd_core::format::Json = bragd_core::format::Json { file: "peers.json", migrations: &[] };
@@ -222,6 +235,7 @@ pub struct Node {
     /// Open connections, by the key of the machine on the other end.
     open: Mutex<Vec<(Key, TcpStream)>>,
     serving: AtomicUsize,
+    handler: Mutex<Option<Arc<Handler>>>,
 }
 
 impl Node {
@@ -243,7 +257,7 @@ impl Node {
         };
         let trust = Arc::new(Trust { peers: Mutex::new(peers), code: Mutex::new(None) });
         let server = tls::server(certified.clone(), trust.clone()).map_err(io::Error::other)?;
-        Ok(Arc::new(Node { dir: dir.into(), me, certified, name: name.into(), version: version.into(), trust, server, port: AtomicU16::new(PORT), open: Mutex::new(vec![]), serving: AtomicUsize::new(0) }))
+        Ok(Arc::new(Node { dir: dir.into(), me, certified, name: name.into(), version: version.into(), trust, server, port: AtomicU16::new(PORT), open: Mutex::new(vec![]), serving: AtomicUsize::new(0), handler: Mutex::new(None) }))
     }
 
     pub fn id(&self) -> String {
@@ -268,6 +282,11 @@ impl Node {
         let mut peers = lock(&self.trust.peers);
         change(&mut peers);
         self.save(&peers)
+    }
+
+    /// What answers the `call`s of paired machines from now on; until then they get `null`.
+    pub fn on_call(&self, handler: Arc<Handler>) {
+        *lock(&self.handler) = Some(handler);
     }
 
     /// A new code, good for `ttl` and `CODE_TRIES` tries, in place of any before.
@@ -361,6 +380,11 @@ impl Node {
                 let hex = keys::hex(&theirs);
                 self.update(|ps| ps.retain(|p| p.key != hex))?;
                 line.say(&Answer::Done)
+            }
+            Ask::Call { body } if pinned => {
+                let handler = lock(&self.handler).clone();
+                let body = handler.map_or(serde_json::Value::Null, |h| h(&keys::hex(&theirs), body));
+                line.say(&Answer::Reply { body })
             }
             Ask::Pair { name, port, spake } => self.pair_in(line, theirs, name, SocketAddr::new(from.ip(), port), &spake),
             _ => line.say(&Answer::Refused { why: Why::NotPaired }),
@@ -470,6 +494,18 @@ impl Node {
             }
         })?;
         seen.ok_or(Failed::Refused(Why::NotPaired))
+    }
+
+    /// Asks the Peer `id` its Helper's `body` (`on_call` there): its reply.
+    pub fn call(&self, id: &str, body: &serde_json::Value) -> Result<serde_json::Value, Failed> {
+        let (key, addr) = self.pinned_key(id).ok_or(Failed::Refused(Why::NotPaired))?;
+        let mut line = self.dial(&addr, Some(key))?;
+        line.say(&Ask::Call { body: body.clone() })?;
+        match line.hear_up_to(REPLY_MAX)? {
+            Answer::Reply { body } => Ok(body),
+            Answer::Refused { why } => Err(Failed::Refused(why)),
+            _ => Err(Failed::Line(io::Error::other("unexpected answer"))),
+        }
     }
 
     /// A Peer found at another address (mDNS): kept for the next time.

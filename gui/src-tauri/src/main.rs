@@ -397,6 +397,7 @@ fn main() {
             peers::pair_with,
             peers::peer_unpair,
             peers::peers_look,
+            peers::peers_sync,
             help::feature_list,
             help::notice_list,
             help::notice_dismiss,

@@ -5,10 +5,10 @@
 use std::path::{Path, PathBuf};
 
 use rusqlite::{Connection, OptionalExtension};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// A Comment machine-translated into one language.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Translation {
     pub text: String,
     /// The model that wrote it, as the server named it.
