@@ -18,6 +18,7 @@ Everything here is reached from the sidebar: a Family, then **Databases**. The p
 | [Strip rules](strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
 | [Disk watch](disk-watch.md) | What Bragd keeps on disk, limits, warnings and what happens when one is crossed |
 | [Position store](position-store.md) | Evaluations and Annotations kept by position, Export and Import |
+| [Language model](language-model.md) | Translate a Game's comments with a model on this machine or one you choose |
 | [The Helper](helper.md) | The background process, its jobs, *Start with my session*, battery |
 
 ---

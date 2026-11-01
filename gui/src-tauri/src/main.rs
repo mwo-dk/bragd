@@ -11,6 +11,7 @@ mod databases;
 mod helper_link;
 mod knowledge;
 mod matches;
+mod model;
 mod analyse;
 mod engine_commands;
 mod engines;
@@ -365,6 +366,12 @@ fn main() {
             game_play,
             game_throw,
             rules_page,
+            model::model_status,
+            model::model_find,
+            model::model_models,
+            model::model_key,
+            model::comment_view,
+            model::comment_translate,
             help::feature_list,
             help::notice_list,
             help::notice_dismiss,

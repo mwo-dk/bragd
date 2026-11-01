@@ -39,6 +39,7 @@ pub const FEATURES: &[Feature] = &[
     f("parquet", "knowledge/parquet-export.md", "item:databases"),
     f("disk", "knowledge/disk-watch.md", "settings:knowledge"),
     f("positions", "knowledge/position-store.md", "settings:knowledge"),
+    f("model", "knowledge/language-model.md", "settings:model"),
     f("helper", "knowledge/helper.md", "settings:knowledge"),
     f("engines", "engines/engines.md", "item:engines"),
     f("analyse", "engines/analyse.md", "item:analyse"),

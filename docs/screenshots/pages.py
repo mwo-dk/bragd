@@ -445,7 +445,67 @@ def players():
     widths("player-summary", page)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players}
+# A Game with a comment in German, for Translate (model()).
+COMMENTS_PGN = """[Event "Demo"]
+[Site "Demo"]
+[Date "2026.01.03"]
+[White "Weiß"]
+[Black "Schwarz"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 {Die Spanische Partie. Weiß greift den Springer an, der den Bauern auf e5 verteidigt.} a6 4. Ba4 Nf6 *
+"""
+
+
+def model():
+    """language-model-390.png and -1100.png: Settings → Language model with the model server
+    running on this machine, and translate-comment-390.png and -1100.png: a German comment
+    translated in replay. Needs a model server on the host (MODEL_URL and MODEL_NAME, default
+    Lemonade on 13305); one translation is asked, then kept in the demo home. The Foreign database
+    is opened through a stand-in for Coxswain's picker, put beside bragd-gui for the run."""
+    url = os.environ.get("MODEL_URL", "http://localhost:13305/api/v1")
+    name = os.environ.get("MODEL_NAME", "Qwen3-Coder-30B-A3B-Instruct-GGUF")
+    home = Path(_env()["DEMO_HOME"])
+    (home / "Games/comments.pgn").write_text(COMMENTS_PGN)
+    picker = HERE.parent.parent / "target/release/coxswain-gui"
+    picker.write_text('#!/bin/sh\ncase "$1" in --help) echo "--pick";; *) echo /home/demo/Games/comments.pgn;; esac\n')
+    picker.chmod(0o755)
+    config(f'[look]\nfile_picker = "coxswain"\n\n[model]\nurl = "{url}"\nname = "{name}"\n')
+    try:
+        def settings(d):
+            js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+            d.wait(0.4)
+            click(d, "Settings", "nav")
+            click(d, "Language model", "main")
+            d.wait(2)
+
+        widths("language-model", settings)
+
+        def comment(d):
+            js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+            d.wait(0.4)
+            nav(d, "chess", "Databases")
+            click(d, "Open a file…", "main")
+            d.wait(1.5)
+            js(d, "document.querySelector('main .body .row').click()")
+            d.wait(1.5)
+            js(d, "document.querySelectorAll('main .moves button')[4].click()")
+            d.wait(1)
+            js(d, "document.querySelector('main button.translate')?.click()")
+            # A local model may take a while; the second width finds it kept.
+            for _ in range(60):
+                if js(d, "return !!document.querySelector('main .machine')"):
+                    break
+                d.wait(1)
+            js(d, "document.querySelector('main .comment')?.scrollIntoView({block: 'center'})")
+
+        widths("translate-comment", comment)
+    finally:
+        config("")
+        picker.unlink(missing_ok=True)
+
+
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

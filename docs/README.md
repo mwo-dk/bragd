@@ -51,6 +51,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Strip rules](knowledge/strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
 | [Disk watch](knowledge/disk-watch.md) | What Bragd keeps on disk, limits, warnings and what happens when one is crossed |
 | [Position store](knowledge/position-store.md) | Evaluations and Annotations kept by position, Export and Import |
+| [Language model](knowledge/language-model.md) | Translate a Game's comments with a model on this machine or one you choose |
 | [The Helper](knowledge/helper.md) | The background process, its jobs, *Start with my session*, battery |
 
 ## [Engines](engines/README.md)
