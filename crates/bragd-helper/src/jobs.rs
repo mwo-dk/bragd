@@ -1104,10 +1104,12 @@ impl Jobs {
             self.expire(bragd_core::fs::now());
             // Background analysis starts here only inside `[analysis]`, and model jobs only with
             // a model ready: till then they wait in the queue, where a Peer may take them.
-            let mine = (!matches!(lane, Lane::Analysis | Lane::Model) || self.can_take(lane)) && self.run_first(lane);
+            let open = !matches!(lane, Lane::Analysis | Lane::Model) || self.can_take(lane);
+            let mine = open && self.run_first(lane);
             if !mine && !self.run_borrowed(lane) {
                 let st = self.lock();
-                if !self.quit.load(Ordering::Relaxed) && Self::first_queued(&st, lane).is_none() {
+                // Held back, it looks again within the minute rather than at once.
+                if !self.quit.load(Ordering::Relaxed) && (!open || Self::first_queued(&st, lane).is_none()) {
                     let _ = self.wake.wait_timeout(st, Duration::from_secs(60));
                 }
             }
