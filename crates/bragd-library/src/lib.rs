@@ -1,7 +1,7 @@
 //! Bragd's game databases: Foreign databases read where they lie (`chess`, `go`, `shogi`,
 //! `xiangqi`, `draughts`), Libraries of Bragd's own in SQLite with Duplicates merged
 //! (`library`), Slices over them (`slice`), and a Library's games exported to Parquet (`export`).
-//! Big downloads are read as a stream, game by game (`stream`), and Strip rules keep only the
+//! A player's summary over a Library (`player`). Big downloads are read as a stream, game by game (`stream`), and Strip rules keep only the
 //! Games wanted from them, as they come in and once stored (`strip`).
 
 // The readers spell out their tuple types, as written where they were copied from.
@@ -12,6 +12,7 @@ pub mod draughts;
 pub mod export;
 pub mod go;
 pub mod library;
+pub mod player;
 pub mod shogi;
 pub mod slice;
 pub mod stream;

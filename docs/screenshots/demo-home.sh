@@ -3,7 +3,7 @@
 # nothing downloaded. Its Settings are the defaults, so the Racing green Theme and Board theme
 # show. It holds a few games, and a demo Library made from them with the library crate
 # (`bragd-library`'s `demo_library` example, run here outside the sandbox, writing only into
-# <dir>): a Duplicate from two Sources, a Near-duplicate cut short, and a Slice.
+# <dir>): a Duplicate from two Sources, a Near-duplicate cut short, a Slice, and a player's Games.
 #
 #   docs/screenshots/demo-home.sh <dir>
 set -euo pipefail
@@ -68,10 +68,119 @@ cat > "$dir/Games/copies.pgn" <<'PGN'
 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 *
 PGN
 
+# A season and more of one club player, for the Player summary pictures: dates, ratings and
+# ECO codes, so every part of the summary shows. Made up for the demo.
+cat > "$dir/Games/players.pgn" <<'PGN'
+[Event "Club league"]
+[Site "Demo"]
+[Date "2019.03.10"]
+[White "Hansen, Anna"]
+[Black "Berg, Ola"]
+[WhiteElo "1850"]
+[BlackElo "1910"]
+[ECO "B22"]
+[Opening "Sicilian, Alapin"]
+[Result "1-0"]
+
+1. e4 c5 2. c3 d5 1-0
+
+[Event "Club league"]
+[Site "Demo"]
+[Date "2019.11.02"]
+[White "Larsen, Mads"]
+[Black "Hansen, Anna"]
+[WhiteElo "1990"]
+[BlackElo "1880"]
+[ECO "D02"]
+[Opening "Queen's pawn game"]
+[Result "1-0"]
+
+1. d4 d5 2. Nf3 Nf6 1-0
+
+[Event "Club league"]
+[Site "Demo"]
+[Date "2020.06.21"]
+[White "Hansen, Anna"]
+[Black "Dahl, Eva"]
+[WhiteElo "1925"]
+[BlackElo "1870"]
+[ECO "B22"]
+[Opening "Sicilian, Alapin"]
+[Result "1/2-1/2"]
+
+1. e4 c5 2. c3 Nf6 1/2-1/2
+
+[Event "Club league"]
+[Site "Demo"]
+[Date "2021.09.14"]
+[White "Moe, Lars"]
+[Black "Hansen, Anna"]
+[WhiteElo "2050"]
+[BlackElo "1960"]
+[ECO "C42"]
+[Opening "Petrov"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nc3 0-1
+
+[Event "Club league"]
+[Site "Demo"]
+[Date "2022.04.03"]
+[White "Hansen, Anna"]
+[Black "Strand, Per"]
+[WhiteElo "2010"]
+[BlackElo "2120"]
+[ECO "C50"]
+[Opening "Italian"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 1-0
+
+[Event "Club league"]
+[Site "Demo"]
+[Date "2023.01.28"]
+[White "Lie, Ida"]
+[Black "Hansen, Anna"]
+[WhiteElo "1940"]
+[BlackElo "2040"]
+[ECO "D02"]
+[Opening "Queen's pawn game"]
+[Result "0-1"]
+
+1. d4 d5 2. Nf3 e6 0-1
+
+[Event "Club league"]
+[Site "Demo"]
+[Date "2024.05.19"]
+[White "Hansen, Anna"]
+[Black "Holm, Siri"]
+[WhiteElo "2075"]
+[BlackElo "2160"]
+[ECO "B22"]
+[Opening "Sicilian, Alapin"]
+[Result "0-1"]
+
+1. e4 c5 2. c3 e6 0-1
+
+[Event "Club league"]
+[Site "Demo"]
+[Date "2025.02.08"]
+[White "Vik, Jon"]
+[Black "Hansen, Anna"]
+[WhiteElo "2010"]
+[BlackElo "2105"]
+[ECO "C42"]
+[Opening "Petrov"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 0-1
+PGN
+
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
 lib="$dir/.local/share/bragd/libraries/main.bragd"
 (cd "$repo" && cargo run -q --release -p bragd-library --example demo_library -- "$lib" twic "$dir/Games/demo.pgn")
 (cd "$repo" && cargo run -q --release -p bragd-library --example demo_library -- "$lib" lichess "$dir/Games/copies.pgn")
+(cd "$repo" && cargo run -q --release -p bragd-library --example demo_library -- "$lib" twic "$dir/Games/players.pgn")
 
 # A stand-in UCI engine for the pictures of Play against an Engine (pages.py sets it as
 # Stockfish's program): it answers from one line of the Italian game.

@@ -36,6 +36,10 @@ export const libraryRows = (/** @type {string} */ path, /** @type {Obj} */ query
 /** @returns {Promise<any>} */
 export const libraryGame = (/** @type {string} */ path, /** @type {number} */ id) => invoke("library_game", { path, id });
 /** @returns {Promise<any>} */
+export const libraryPlayer = (/** @type {string} */ path, /** @type {string} */ name) => invoke("library_player", { path, name });
+/** @returns {Promise<[string, number][]>} */
+export const libraryPlayers = (/** @type {string} */ path, /** @type {string} */ text) => invoke("library_players", { path, text });
+/** @returns {Promise<any>} */
 export const libraryReview = (/** @type {string} */ path) => invoke("library_review", { path });
 /** @returns {Promise<number>} */
 export const libraryDedupe = (/** @type {string} */ path) => invoke("library_dedupe", { path });

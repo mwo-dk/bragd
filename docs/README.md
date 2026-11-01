@@ -45,6 +45,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Libraries](knowledge/libraries.md) | Bragd's own store, importing, where it is kept |
 | [Duplicates](knowledge/duplicates.md) | How a Duplicate is found, merging, Source priority, Near-duplicates |
 | [Slices](knowledge/slices.md) | Named queries, live or kept as a copy, position search |
+| [Player summary](knowledge/players.md) | One player's results, rating, openings, best wins and worst losses in a Library |
 | [Export to Parquet](knowledge/parquet-export.md) | A Library as a Parquet file for DuckDB |
 | [Sources](knowledge/sources.md) | TWIC, custom URLs, the listed big Sources, schedules |
 | [Strip rules](knowledge/strip-rules.md) | Which Games a Source keeps, preview and apply, after import |

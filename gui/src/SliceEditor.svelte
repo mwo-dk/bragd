@@ -7,8 +7,8 @@
   import GameList from "./GameList.svelte";
   import Replay from "./Replay.svelte";
 
-  /** @type {{ library: string, slice: any, family: string, variants: {key: string, name: string}[], position: {family: string, fen: string} | null, onstep: (family: string, step: any) => void, onsaved: () => void }} */
-  let { library, slice, family, variants, position, onstep, onsaved } = $props();
+  /** @type {{ library: string, slice: any, family: string, variants: {key: string, name: string}[], position: {family: string, fen: string} | null, onstep: (family: string, step: any) => void, onsaved: () => void, onplayer: (name: string) => void }} */
+  let { library, slice, family, variants, position, onstep, onsaved, onplayer } = $props();
 
   const blank = () => ({ players: [], eco_from: "", eco_to: "", date_from: "", date_to: "", rating_min: null, result: "", family, variant: "", position: null });
   // svelte-ignore state_referenced_locally
@@ -93,7 +93,7 @@
     <Replay replay={game} onclose={() => (game = null)} onstep={(s) => onstep(game.family, s)} />
   {:else}
     <h3>{t("slice.live")}</h3>
-    <GameList {fetch} version={JSON.stringify(query)} onopen={async (r) => (game = await k.libraryGame(library, r.id))} />
+    <GameList {fetch} version={JSON.stringify(query)} {onplayer} onopen={async (r) => (game = await k.libraryGame(library, r.id))} />
   {/if}
 </div>
 

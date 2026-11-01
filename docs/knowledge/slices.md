@@ -75,4 +75,4 @@ A Slice with no Family shows under every Family's **Databases** in the sidebar. 
 Only chess positions match for now. Go has a key of its move sequence only, and the other Families key positions in a way the search does not use yet.
 
 ---
-[← Previous: Duplicates](duplicates.md) · [Next: Export to Parquet →](parquet-export.md)
+[← Previous: Duplicates](duplicates.md) · [Next: Player summary →](players.md)

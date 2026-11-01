@@ -439,6 +439,8 @@ fn main() {
             knowledge::library_rows,
             knowledge::library_game,
             knowledge::library_review,
+            knowledge::library_player,
+            knowledge::library_players,
             knowledge::library_dedupe,
             knowledge::library_export,
             knowledge::library_prune,

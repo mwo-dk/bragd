@@ -1248,5 +1248,37 @@
  "settings.variants_on": {
   "other": "{n} 種變體"
  },
- "wizard.coming": "稍後推出：{names}。"
+ "wizard.coming": "稍後推出：{names}。",
+ "player.close": "返回",
+ "player.none": "此棋手在你所玩的棋類中沒有對局。",
+ "player.games": {
+  "other": "{n} 盤對局"
+ },
+ "player.score": "得分 {p}%",
+ "player.record": "勝 {wins}，和 {draws}，負 {losses}",
+ "player.as": "作為{side}",
+ "player.unfinished": "{n} 盤未完",
+ "player.rating": "等級分",
+ "player.rating_from": "從 {from} 到 {to}；最低 {low}，最高 {high}。",
+ "player.openings": "{side}的開局",
+ "player.best_wins": "最佳勝局",
+ "player.worst_losses": "最差敗局",
+ "player.first": "第一盤對局",
+ "player.last": "最後一盤對局",
+ "player.open": "{name}：本收藏庫中的成績、等級分和開局",
+ "player.find": "尋找棋手",
+ "player.find_hint": "姓名開頭，例如 Carlsen",
+ "player.found": "找到的棋手",
+ "player.none_found": "沒有棋手的姓名以 {text} 開頭。",
+ "feature.players.title": "棋手摘要",
+ "feature.players.what": "一覽某位棋手在收藏庫中的對局：依執子方的成績、得分、隨時間變化的等級分、開局、最佳勝局和最差敗局。",
+ "feature.players.q1": "如何開啟棋手摘要？",
+ "feature.players.a1": "點擊收藏庫對局列表中的棋手姓名，或在「收藏庫」分頁的「尋找棋手」中輸入姓名開頭。",
+ "feature.players.q2": "為什麼沒有開局或等級分？",
+ "feature.players.a2": "開局來自 ECO 編碼，只有國際象棋對局才有。只有對局標頭給出等級分時才會顯示。",
+ "feature.players.q3": "它涵蓋我所有的收藏庫嗎？",
+ "feature.players.a3": "不。摘要只涵蓋開啟它時所在的收藏庫，以及你所玩的棋類。",
+ "feature.players.tip": "點擊收藏庫對局列表中的棋手姓名，即可查看其成績、等級分和開局。",
+ "tour.players.title": "棋手摘要",
+ "tour.players.text": "點擊收藏庫對局列表中的姓名，或使用「尋找棋手」，查看該棋手的成績、隨時間變化的等級分、開局和最佳勝局。"
 }

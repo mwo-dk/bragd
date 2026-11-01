@@ -397,7 +397,23 @@ def wizard():
     state.unlink(missing_ok=True)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes}
+def players():
+    """A player's summary over the demo Library, found through Find a player."""
+    def page(d):
+        js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+        d.wait(0.4)
+        nav(d, "chess", "Databases")
+        click(d, "Libraries", "main")
+        js(d, "document.querySelector('main td button.link').click()")
+        d.wait(1)
+        js(d, """const i = document.querySelector('main input[type=search]');
+          i.value = 'hansen'; i.dispatchEvent(new Event('input', {bubbles: true}));
+          i.form.requestSubmit();""")
+        d.wait(1.5)
+    widths("player-summary", page)
+
+
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes, "players": players}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

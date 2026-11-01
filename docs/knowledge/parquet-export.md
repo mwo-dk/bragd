@@ -59,4 +59,4 @@ No. It only reads it.
 Yes. A Library is an SQLite file. Open it read-only with `sqlite3` or DuckDB's SQLite reader. Do not write to it while Bragd runs.
 
 ---
-[← Previous: Slices](slices.md) · [Next: Sources →](sources.md)
+[← Previous: Player summary](players.md) · [Next: Sources →](sources.md)
