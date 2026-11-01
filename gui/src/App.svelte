@@ -21,6 +21,7 @@
   import Tablebases from "./Tablebases.svelte";
   import Books from "./Books.svelte";
   import Clubs from "./Clubs.svelte";
+  import PlayOnline from "./PlayOnline.svelte";
   import splash from "../../assets/brand/splash.svg";
 
   /** @type {any} */
@@ -45,6 +46,7 @@
     for (const [name, value] of s.appearance.vars) root.style.setProperty(name, value);
     // A page whose Family was just turned off goes back to Settings.
     if (page.kind === "item" && !s.families.find((/** @type {any} */ f) => f.id === page.family)?.shown) page = { kind: "settings" };
+    if (page.kind === "online" && !s.families.find((/** @type {any} */ f) => f.id === "chess")?.shown) page = { kind: "settings" };
   }
 
   api.snapshot().then((s) => {
@@ -85,6 +87,8 @@
     if (window.innerWidth < 760) collapsed = true;
   }
 
+  /** Online play is on Lichess, for chess. */
+  const chess = $derived(snap?.families.find((/** @type {any} */ f) => f.id === "chess"));
   const family = $derived(page.kind === "item" ? snap?.families.find((/** @type {any} */ f) => f.id === page.family) : null);
 </script>
 
@@ -113,6 +117,8 @@
         <WhatsNew />
       {:else if page.kind === "clubs"}
         <Clubs {snap} {go} />
+      {:else if page.kind === "online" && chess?.shown}
+        <PlayOnline family={chess} {save} />
       {:else if family && page.item === "play"}
         {#key family.id}
           <Play {family} {go} />

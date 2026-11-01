@@ -1,0 +1,37 @@
+[package]
+name = "bragd-online"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Bragd online: play on Lichess through its Board API, signed in over OAuth with the token in the OS keychain"
+
+[features]
+# The fake Lichess on 127.0.0.1 (`fake`), for tests and the screenshots' `fake-lichess`.
+fake = []
+
+[dependencies]
+# Texts, BRAGD_OFFLINE and the reader's language.
+bragd-core = { path = "../bragd-core" }
+# A Lichess Game replayed by Bragd's own rules: the board, the legal moves and a move checked
+# before it is sent.
+bragd-games = { path = "../bragd-games" }
+# The OS keychain, set up once there (`key::get_in`): the token is kept nowhere else.
+bragd-model = { path = "../bragd-model" }
+# The system's certificate store, as the update check.
+ureq = { version = "3", features = ["platform-verifier", "json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# OAuth PKCE: the verifier from the OS random source, its SHA-256 as the challenge, both in
+# base64url (tools/bom/crypto.toml).
+getrandom = "0.4"
+sha2 = "0.11"
+base64 = "0.23"
+
+[dev-dependencies]
+bragd-core = { path = "../bragd-core", features = ["test-home"] }
+bragd-model = { path = "../bragd-model", features = ["mock-keychain"] }
+
+[[example]]
+name = "fake-lichess"
+required-features = ["fake"]

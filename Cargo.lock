@@ -442,6 +442,7 @@ dependencies = [
  "bragd-helper",
  "bragd-library",
  "bragd-model",
+ "bragd-online",
  "bragd-peers",
  "bragd-positions",
  "pulldown-cmark",
@@ -512,6 +513,21 @@ dependencies = [
  "ureq",
  "whatlang",
  "windows-native-keyring-store",
+]
+
+[[package]]
+name = "bragd-online"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "bragd-core",
+ "bragd-games",
+ "bragd-model",
+ "getrandom 0.4.3",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "ureq",
 ]
 
 [[package]]

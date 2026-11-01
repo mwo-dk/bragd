@@ -29,6 +29,7 @@ pub struct Config {
     pub model: ModelConfig,
     pub analysis: AnalysisConfig,
     pub peers: PeersConfig,
+    pub online: OnlineConfig,
     /// The user's own Themes, `[themes.<name>]`: each colour not given is Racing green's. One
     /// named like a built-in Theme replaces it.
     pub themes: BTreeMap<String, Theme>,
@@ -273,6 +274,14 @@ pub struct PeersConfig {
     pub interface: String,
 }
 
+/// Playing online (`bragd-online`).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct OnlineConfig {
+    /// A Lichess Game's chat is read and written in Bragd. Off by default.
+    pub chat: bool,
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
@@ -289,6 +298,7 @@ impl Default for Config {
             model: ModelConfig::default(),
             analysis: AnalysisConfig::default(),
             peers: PeersConfig::default(),
+            online: OnlineConfig::default(),
             themes: BTreeMap::new(),
             refused: vec![],
         }
@@ -374,6 +384,7 @@ impl Config {
         take(&table, "analysis", &mut c.analysis, &mut refused);
         take(&table, "model", &mut c.model, &mut refused);
         take(&table, "peers", &mut c.peers, &mut refused);
+        take(&table, "online", &mut c.online, &mut refused);
         take(&table, "themes", &mut c.themes, &mut refused);
         c.refused = refused;
         c

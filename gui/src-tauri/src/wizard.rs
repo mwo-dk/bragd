@@ -100,6 +100,8 @@ pub struct Open {
     engines: Vec<FamilyEngines>,
     /// The sites the Online step names: those that play a Family that is on.
     servers: Vec<&'static str>,
+    /// Chess is on: Lichess is played in Bragd, and the step offers its sign-in.
+    lichess: bool,
     offers: Vec<wizard::Offer>,
     /// "Coming later: …": the Sources that cannot be fetched yet, in one line.
     coming: Option<String>,
@@ -148,9 +150,8 @@ fn engines(cfg: &Config) -> Vec<FamilyEngines> {
         .collect()
 }
 
-/// Where each Family can be played online today, in the browser.
+/// Where each Family can be played online today, in the browser. Lichess is played in Bragd.
 const SERVERS: &[(&str, &[&str])] = &[
-    ("https://lichess.org/", &["chess"]),
     ("https://lishogi.org/", &["shogi"]),
     ("https://www.pychess.org/", &["chess", "xiangqi", "shogi"]),
     ("https://online-go.com/", &["go"]),
@@ -171,6 +172,7 @@ pub fn wizard_open(ctx: tauri::State<'_, Ctx>) -> Open {
         boards: wizard::board_swatches(&cfg),
         engines: engines(&cfg),
         servers: servers(&cfg),
+        lichess: cfg.family_shown("chess"),
         ticked: wizard::ticked(&offers),
         coming: wizard::coming(&srcs, &cfg),
         offers,
@@ -292,7 +294,7 @@ mod tests {
             cfg
         };
         assert_eq!(servers(&only("go")), ["https://online-go.com/"]);
-        assert_eq!(servers(&only("chess")), ["https://lichess.org/", "https://www.pychess.org/"]);
+        assert_eq!(servers(&only("chess")), ["https://www.pychess.org/"], "Lichess is played in Bragd");
         assert!(servers(&only("tafl")).is_empty());
         let tafl = engines(&only("tafl"));
         assert_eq!(tafl.len(), 1, "tafl is listed, played by Bragd's own Bot");

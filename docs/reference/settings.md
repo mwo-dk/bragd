@@ -99,8 +99,9 @@ The Engine per Variant, added Engines and their options are on each Family's [En
 | Name | Shown as | `config.toml` key | What it does |
 |---|---|---|---|
 | `tablebases_online` | Ask Lichess for tablebase positions | `tablebases.online` | When your tables do not cover a position, that position is sent to the Lichess tablebase API. Shown while chess is on |
+| `online_chat` | Chat in Lichess Games | `online.chat` | Reads and writes a Lichess Game's chat in Bragd. Off, no line is fetched or shown. Shown while chess is on |
 
-Signing in to servers comes later ([Playing online](../online/playing-online.md)).
+Signing in to Lichess is on chess's *Play → Play online* ([Playing online](../online/playing-online.md)).
 
 ## Tips
 

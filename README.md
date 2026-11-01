@@ -60,7 +60,7 @@ Every feature has its own page under [docs/](docs/README.md), grouped by area:
 | [Knowledge](docs/knowledge/README.md) | Foreign databases, Libraries, Duplicates, Slices, Sources, Strip rules, Disk watch and the Helper |
 | [Engines](docs/engines/README.md) | Engines, container images, Analyse, review, tablebases, opening books and Engine matches |
 | [Look](docs/look/README.md) | Themes, Looks, Board themes and languages |
-| [Online](docs/online/README.md) | Playing online: not yet available |
+| [Online](docs/online/README.md) | Playing chess on Lichess, with chat if you turn it on |
 | [Reference](docs/reference/README.md) | `config.toml`, every setting, the command line, files on disk and privacy |
 | [Rules](docs/rules/README.md) | The rules of every Game family and Variant |
 

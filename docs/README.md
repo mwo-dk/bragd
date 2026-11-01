@@ -101,7 +101,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | Page | What it covers |
 |---|---|
 | [Online](online/README.md) | The area's pages |
-| [Playing online](online/playing-online.md) | What is coming: other servers, then Bragd's own. Not yet available |
+| [Playing online](online/playing-online.md) | Chess on Lichess: signing in, seeks, challenges, clocks, offers, the fair-play lock and chat; the servers coming later |
 
 ## [Reference](reference/README.md)
 

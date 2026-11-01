@@ -107,7 +107,7 @@ pub fn open_url(url: String, app: tauri::AppHandle) -> Result<(), String> {
     open(&app, &url)
 }
 
-fn open(app: &tauri::AppHandle, url: &str) -> Result<(), String> {
+pub fn open(app: &tauri::AppHandle, url: &str) -> Result<(), String> {
     app.opener().open_url(url, None::<&str>).map_err(|e| t!("settings.open_failed", "what" => url, "error" => e))
 }
 

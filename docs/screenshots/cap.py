@@ -31,7 +31,7 @@ folder. Linux only; needs bwrap, broadwayd, chromium (or the browser $CHROMIUM n
 and ImageMagick (magick).
 """
 
-import base64, json, os, shutil, socket, subprocess, sys, tempfile, threading, time, urllib.request
+import base64, json, os, shlex, shutil, socket, subprocess, sys, tempfile, threading, time, urllib.request
 from pathlib import Path
 
 import websocket
@@ -146,8 +146,9 @@ def _dpi():
 
 
 class Desktop:
-    def __init__(self, args=(), lang="en_GB.UTF-8", size=(1440, 900), state=None):
-        self.args, self.lang, self.size, self.state = list(args), lang, size, state
+    def __init__(self, args=(), lang="en_GB.UTF-8", size=(1440, 900), state=None, env=None):
+        """`env`: more variables for the app, such as `BRAGD_LICHESS_URL` for the fake Lichess."""
+        self.args, self.lang, self.size, self.state, self.env = list(args), lang, size, state, dict(env or {})
         self.procs, self.n, self.ws, self.wk, self.target, self.profile, self.logs = [], 0, None, None, None, None, []
 
     def __enter__(self):
@@ -186,9 +187,10 @@ class Desktop:
         # socket inside its class init, which holds GObject's class lock. GIO's default proxy
         # resolver (libproxy) then waits for D-Bus, which dconf's thread is setting up and cannot
         # finish without that lock: about one start in four hung. Without the inspector, no hang.
+        extra = "".join(f"{k}={shlex.quote(v)} " for k, v in self.env.items())
         run = (f"broadwayd --address 127.0.0.1 --port {self.port} {self.display} >/dev/null 2>&1 & until [ -e /home/demo/{go.name} ]; do sleep 0.2; done; rm /home/demo/{go.name}; "
                f"exec env LD_PRELOAD={RUNTIME}/dpi96.so GDK_BACKEND=broadway BROADWAY_DISPLAY={self.display} WEBKIT_DISABLE_DMABUF_RENDERER=1 "
-               f'GIO_USE_PROXY_RESOLVER=dummy WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:{self.inspector} BRAGD_WINDOW_SIZE={w}x{h} BRAGD_OFFLINE=1 LANG={self.lang} bragd-gui "$@"')
+               f'GIO_USE_PROXY_RESOLVER=dummy WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:{self.inspector} BRAGD_WINDOW_SIZE={w}x{h} BRAGD_OFFLINE=1 LANG={self.lang} {extra}bragd-gui "$@"')
         gui_log, chromium_log = RUNTIME / f"gui-{self.port}.log", RUNTIME / f"chromium-{self.port}.log"
         self.logs = [open(gui_log, "w"), open(chromium_log, "w")]
         sandbox = subprocess.Popen([str(SANDBOX), "sh", "-c", run, "sh", *self.args], env=env, stdout=self.logs[0], stderr=subprocess.STDOUT)
@@ -348,12 +350,12 @@ class Desktop:
         return frames
 
 
-def widths(name, setup=lambda d: None, args=(), out=HERE, state=None):
+def widths(name, setup=lambda d: None, args=(), out=HERE, state=None, env=None):
     """`<name>-390.png` and `<name>-1100.png`: the app started at each width, `setup(d)` run to
     reach the screen, then captured. Look at both before calling a UI change done."""
     made = []
     for w, h in WIDTHS.items():
-        with Desktop(args=args, size=(w, h), state=state) as d:
+        with Desktop(args=args, size=(w, h), state=state, env=env) as d:
             setup(d)
             d.wait(1)
             path = Path(out) / f"{name}-{w}.png"

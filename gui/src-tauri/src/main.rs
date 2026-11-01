@@ -13,6 +13,7 @@ mod helper_link;
 mod knowledge;
 mod matches;
 mod model;
+mod online;
 mod peers;
 mod analyse;
 mod engine_commands;
@@ -374,6 +375,18 @@ fn main() {
             model::model_key,
             model::comment_view,
             model::comment_translate,
+            online::online_view,
+            online::online_sign_in,
+            online::online_cancel_sign_in,
+            online::online_sign_out,
+            online::online_reconnect,
+            online::online_seek,
+            online::online_seek_cancel,
+            online::online_challenge,
+            online::online_answer,
+            online::online_move,
+            online::online_action,
+            online::online_say,
             peers::peers_view,
             peers::peers_apply,
             peers::pair_show,

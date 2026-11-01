@@ -28,6 +28,7 @@ Bragd sends nothing unless you ask, with one exception: the update check, which 
 | Engine images | When you press **Get it** on an Engine's card | A pull of the pinned image | `ghcr.io` | Do not press it, or turn off `engines.containers`. No image is published yet ([Engine container images](../engines/container-images.md)) |
 | Pikafish's evaluation network | When you press **Agree and download** under its licence on the Engines page | A request for Pikafish's release archive | `github.com`, Pikafish's release | Do not press it. An installed Pikafish needs none ([Engine container images](../engines/container-images.md#why-does-the-pikafish-image-need-a-download-of-its-own)) |
 | Language model | When you press **Translate** on a comment, or **List models** in *Settings → Language model* | The comment's text, or a request for the model list, with your key when you saved one | The address you set. Ollama, Lemonade and LM Studio found on this machine keep everything on it. An address off this machine is used only after you agree to it once | Leave the language model off. It starts off ([Language model](../knowledge/language-model.md)) |
+| Lichess | When you sign in, and while *Play online* is open and signed in | Your sign-in happens on Lichess's own page in your browser. Then, with your token: your moves, seeks, challenges, offers and, while chat is on, your chat lines | `lichess.org` | Do not sign in, or press **Sign out** ([Playing online](../online/playing-online.md)) |
 | Peers | While *Let my other machines pair with this one* is on: an mDNS announcement, a pairing, **Look around**, **Check again**, opening *Settings → Peers*, and **Unpair** | The announcement: this machine's name, key and port, on the home network. To a paired machine only, over TLS with its pinned key: this machine's name and Bragd version | Your own machines: the home network, or an address you typed | Leave Peers off. They start off ([Pairing your machines](../peers/peers.md)) |
 
 An Engine Bragd runs from an image has no network at all. An installed Engine is your own program: Bragd gives it no network rules.
@@ -81,7 +82,7 @@ Turn off *Check for a new version* and *Ask Lichess for tablebase positions*, an
 
 #### What will online play send?
 
-Online play is not available yet. When it comes, signing in to a server is per server, and tokens are kept in your system's keychain only ([Playing online](../online/playing-online.md)).
+Only what playing needs: your moves, seeks, challenges, offers, and chat lines while chat is on. Signing in is per server, on the server's own page, and the token is kept in your system's keychain only ([Playing online](../online/playing-online.md)).
 
 #### Is the Helper a server others can reach?
 

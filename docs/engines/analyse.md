@@ -58,7 +58,7 @@ GTP, the go Engines' protocol, has no command for a set-up position here. Analys
 
 #### Why is Analyse locked?
 
-Analyse, reviews, book moves and tablebases are locked while a rated online Game against a person is being played. Online play is not available yet, so this never happens today.
+Analyse, reviews, Engine moves, book moves and tablebases are locked while a rated Game on Lichess against a person is being played, as Lichess's terms ask. They come back when the Game ends ([Playing online](../online/playing-online.md#fair-play)).
 
 #### Can I analyse a Game from a Library?
 

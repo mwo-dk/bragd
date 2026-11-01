@@ -22,6 +22,8 @@ bragd-library = { path = "../../crates/bragd-library" }
 bragd-positions = { path = "../../crates/bragd-positions" }
 # The language model: Settings → Language model and a Comment's Translate.
 bragd-model = { path = "../../crates/bragd-model" }
+# Play online: Lichess, signed in over OAuth with the token in the OS keychain.
+bragd-online = { path = "../../crates/bragd-online" }
 # Clubs, their members and ratings, and the rating lists.
 bragd-clubs = { path = "../../crates/bragd-clubs" }
 # Lists written into config.toml (the opening books), as bragd-core writes them.
