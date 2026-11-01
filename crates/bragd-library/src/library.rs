@@ -283,24 +283,31 @@ impl NewGame {
     /// Family's notation. A chess position's key is its Polyglot key and a go position's its
     /// Zobrist key, as an imported game has them; any other's is a hash of its text.
     pub fn played(family: &str, variant: &str, start: Option<String>, moves: Vec<String>, positions: &[String], headers: Vec<(String, String)>, result: &str) -> NewGame {
-        let mut before: Option<Vec<u8>> = None;
-        let mut key = |p: &String| match family {
-            "chess" => pgn::board(p).map_or_else(|| text_key(p), |b| polyglot::key(&b)),
-            "go" => match go_picture(p) {
-                Some((size, stones, black_next)) => {
-                    let ko = before.as_ref().and_then(|b| rules_go::zobrist::ko_after(size, size, b, &stones));
-                    let k = rules_go::zobrist::key(size, size, &stones, black_next, ko);
-                    before = Some(stones);
-                    k
-                }
-                None => text_key(p),
-            },
-            _ => text_key(p),
-        };
-        let mut keys: Vec<u64> = positions.iter().map(&mut key).collect();
+        let mut keys = position_keys(family, positions);
         let start_key = if keys.is_empty() { 0 } else { keys.remove(0) };
         NewGame { family: family.into(), variant: variant.into(), headers, moves, start, result: result.into(), start_key, keys }
     }
+}
+
+/// The keys of a Game's positions, in order, each in its Family's notation as Bragd's games write
+/// it: a chess position's Polyglot key, a go position's Zobrist key (its ko point from the one
+/// before), and a hash of the text for any other. The Position store keys its rows by these.
+pub fn position_keys(family: &str, positions: &[String]) -> Vec<u64> {
+    let mut before: Option<Vec<u8>> = None;
+    let mut key = |p: &String| match family {
+        "chess" => pgn::board(p).map_or_else(|| text_key(p), |b| polyglot::key(&b)),
+        "go" => match go_picture(p) {
+            Some((size, stones, black_next)) => {
+                let ko = before.as_ref().and_then(|b| rules_go::zobrist::ko_after(size, size, b, &stones));
+                let k = rules_go::zobrist::key(size, size, &stones, black_next, ko);
+                before = Some(stones);
+                k
+            }
+            None => text_key(p),
+        },
+        _ => text_key(p),
+    };
+    positions.iter().map(&mut key).collect()
 }
 
 /// A go position as Bragd's games write it (`X..O/…/… b`, rows from the top): its size, its

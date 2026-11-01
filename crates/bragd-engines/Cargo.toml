@@ -13,6 +13,8 @@ bragd-games = { path = "../bragd-games" }
 bragd-core = { path = "../bragd-core" }
 # The Edition type an engine's exact build is recorded as, in the Position store.
 bragd-positions = { path = "../bragd-positions" }
+# Named motifs (fork, pin, hangs a piece) of a reviewed chess move.
+rules-chess = { path = "../rules-chess" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Engine options the user sets are kept per engine in a TOML file of their own.

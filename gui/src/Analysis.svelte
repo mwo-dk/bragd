@@ -1,15 +1,16 @@
 <script>
   // Analyse's panel: set up a position, run an engine on it and show its best lines (scored from
   // the first Side's view, moves in the Variant's notation, each one playable), what the
-  // tablebases say for a chess ending, and a review of the whole Game whose marks the move list
-  // shows. Rust runs the engine and turns its moves into entries.
+  // tablebases say for a chess ending, and a review of the whole Game: its Annotations, worded
+  // by Rust, listed here and marked in the move list. Rust runs the engine, reads and writes the
+  // Position store, and turns its moves into entries.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
   import { current } from "./current.svelte.js";
 
-  /** @type {{ family: any, game: {variant: string, initial: string|null, entries: string[]}, over: boolean, onentries: (entries: string[]) => void, onsetup: (initial: string|null, entries?: string[]) => void, marks: string[], onmore: (() => void) | null }} */
-  let { family, game, over, onentries, onsetup, marks = $bindable(), onmore } = $props();
+  /** @type {{ family: any, game: {variant: string, initial: string|null, entries: string[]}, over: boolean, onentries: (entries: string[]) => void, onsetup: (initial: string|null, entries?: string[]) => void, marks: string[], titles: string[], onmore: (() => void) | null }} */
+  let { family, game, over, onentries, onsetup, marks = $bindable(), titles = $bindable(), onmore } = $props();
 
   /** The engines there to run. @type {{key: string, name: string}[]} */
   let choices = $state([]);
@@ -81,6 +82,7 @@
       reviewing = setInterval(async () => {
         review = await api.reviewNow();
         marks = review?.marks ?? [];
+        titles = review?.titles ?? [];
         if (!review || review.done) clearInterval(reviewing);
       }, 500);
     } catch (e) {
@@ -140,6 +142,9 @@
         </li>
       {/each}
     </ol>
+    {#if now.note}
+      <p class="note"><span class="label">{now.note.label}{now.note.mark}</span> {now.note.text}</p>
+    {/if}
     {#if now.error}<p class="error">{now.error}</p>{/if}
   {/if}
 
@@ -171,6 +176,16 @@
       {/if}
     </div>
     {#if review?.error}<p class="error">{review.error}</p>{/if}
+    {#if review?.notes.length}
+      <h3>{t("analyse.notes")}</h3>
+      <ul class="notes">
+        {#each review.notes as n (n.index)}
+          <li><span class="label" class:bad={n.mark.startsWith("?")}>{n.label}{n.mark}</span> {n.text}</li>
+        {/each}
+      </ul>
+    {:else if review?.done && !review.error}
+      <p class="dim">{t("analyse.notes_none")}</p>
+    {/if}
   {/if}
 
   {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -238,6 +253,23 @@
     font-size: 0.9em;
   }
   .error {
+    color: var(--red);
+  }
+  .notes {
+    margin: 0;
+    padding-inline-start: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .note {
+    margin: 0.2rem 0;
+  }
+  .label {
+    font-weight: 600;
+    margin-inline-end: 0.2rem;
+  }
+  .label.bad {
     color: var(--red);
   }
 </style>

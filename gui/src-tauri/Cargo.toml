@@ -17,6 +17,9 @@ bragd-engines = { path = "../../crates/bragd-engines" }
 tauri-plugin-opener = "2"
 # Engines, tablebases and their downloads; opening books and names from the library.
 bragd-library = { path = "../../crates/bragd-library" }
+# The Position store: Analyse and reviews read Evaluations and Annotations from it and write
+# them to it; Disk watch exports and imports it.
+bragd-positions = { path = "../../crates/bragd-positions" }
 # Clubs, their members and ratings, and the rating lists.
 bragd-clubs = { path = "../../crates/bragd-clubs" }
 # Lists written into config.toml (the opening books), as bragd-core writes them.

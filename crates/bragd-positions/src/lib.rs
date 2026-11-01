@@ -13,7 +13,11 @@
 //!
 //! What is shown for a position and an Engine is its newest Edition's row, then the deepest,
 //! then the latest (`shown`). A new Edition never re-queues anything by itself.
+//!
+//! Annotations (schema 2) are kept the same way, keyed also by the move, and merged by the same
+//! rule: the greater by `(depth, time, mark, better, motifs)` wins (`put_annotation`).
 
+pub mod annotation;
 pub mod edition;
 pub mod parquet;
 
@@ -23,6 +27,7 @@ use std::path::{Path, PathBuf};
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 
+pub use annotation::{Annotation, Mark, Motif};
 pub use edition::Edition;
 
 #[derive(Debug)]
@@ -133,9 +138,9 @@ pub struct Merged {
     pub changed: u64,
 }
 
-/// The store's schema version (`PRAGMA user_version`). Annotations and Commentary come as
-/// version 2 and on, keyed the same way: (family, variant, key) and their own columns.
-const VERSION: i64 = 1;
+/// The store's schema version (`PRAGMA user_version`): 2 added Annotations. Commentary comes as
+/// version 3, keyed the same way: (family, variant, key) and its own columns.
+const VERSION: i64 = 2;
 
 const SCHEMA_1: &str = "
 CREATE TABLE editions (
@@ -159,6 +164,25 @@ CREATE TABLE evaluations (
     line TEXT NOT NULL,
     time INTEGER NOT NULL,
     PRIMARY KEY (family, variant, key, edition)
+) WITHOUT ROWID;
+";
+
+const SCHEMA_2: &str = "
+CREATE TABLE annotations (
+    family TEXT NOT NULL,
+    variant TEXT NOT NULL,
+    -- The position the move was played in.
+    key INTEGER NOT NULL,
+    move TEXT NOT NULL,
+    edition INTEGER NOT NULL REFERENCES editions (n),
+    -- `Mark::sign`, or empty.
+    mark TEXT NOT NULL,
+    better TEXT NOT NULL,
+    -- `Motif::id`s, separated by spaces.
+    motifs TEXT NOT NULL,
+    depth INTEGER NOT NULL,
+    time INTEGER NOT NULL,
+    PRIMARY KEY (family, variant, key, move, edition)
 ) WITHOUT ROWID;
 ";
 
@@ -186,8 +210,13 @@ impl Store {
         if v > VERSION {
             return Err(Error::Newer(v));
         }
-        if v < 1 {
-            conn.execute_batch(&format!("BEGIN; {SCHEMA_1} PRAGMA user_version = {VERSION}; COMMIT;"))?;
+        if v < VERSION {
+            let mut ddl = String::new();
+            if v < 1 {
+                ddl.push_str(SCHEMA_1);
+            }
+            ddl.push_str(SCHEMA_2);
+            conn.execute_batch(&format!("BEGIN; {ddl} PRAGMA user_version = {VERSION}; COMMIT;"))?;
         }
         Ok(Store { conn })
     }
@@ -208,14 +237,75 @@ impl Store {
 
     /// Merges many in one transaction.
     pub fn put_all<'a>(&mut self, all: impl IntoIterator<Item = &'a Evaluation>) -> Result<Merged> {
+        self.merge(all, [])
+    }
+
+    /// Merges Evaluations and Annotations in one transaction: nothing when one is refused.
+    pub fn merge<'a>(&mut self, evaluations: impl IntoIterator<Item = &'a Evaluation>, annotations: impl IntoIterator<Item = &'a Annotation>) -> Result<Merged> {
         let tx = self.conn.transaction()?;
         let mut m = Merged::default();
-        for e in all {
+        for e in evaluations {
             m.read += 1;
             m.changed += u64::from(put(&tx, e)?);
         }
+        for a in annotations {
+            m.read += 1;
+            m.changed += u64::from(put_annotation(&tx, a)?);
+        }
         tx.commit()?;
         Ok(m)
+    }
+
+    /// Merges `a`: kept if the store has none for its position, move and Edition, or if it is
+    /// greater than that one by `(depth, time, mark, better, motifs)`. True when the store changed.
+    pub fn put_annotation(&mut self, a: &Annotation) -> Result<bool> {
+        let tx = self.conn.transaction()?;
+        let changed = put_annotation(&tx, a)?;
+        tx.commit()?;
+        Ok(changed)
+    }
+
+    /// What Bragd shows for a move and an Engine: as `shown`, its newest Edition's Annotation,
+    /// the deepest of the equally new, then the latest.
+    pub fn annotation(&self, family: &str, variant: &str, key: u64, mv: &str, engine: &str) -> Result<Option<Annotation>> {
+        let all = self.select_annotations("WHERE a.family = ?1 AND a.variant = ?2 AND a.key = ?3 AND a.move = ?4 AND d.engine = ?5", params![family, variant, key as i64, mv, engine])?;
+        Ok(all.into_iter().max_by(|a, b| a.edition.newer(&b.edition).unwrap_or(Ordering::Equal).then(a.depth.cmp(&b.depth)).then(a.time.cmp(&b.time))))
+    }
+
+    /// Every Annotation in the store, by position, move and Edition id.
+    pub fn annotations(&self) -> Result<Vec<Annotation>> {
+        self.select_annotations("ORDER BY a.family, a.variant, a.key, a.move, d.id", [])
+    }
+
+    fn select_annotations(&self, rest: &str, p: impl rusqlite::Params) -> Result<Vec<Annotation>> {
+        let mut st = self.conn.prepare(&format!(
+            "SELECT a.family, a.variant, a.key, a.move, d.engine, d.version, d.network, d.image, a.mark, a.better, a.motifs, a.depth, a.time \
+             FROM annotations a JOIN editions d ON d.n = a.edition {rest}"
+        ))?;
+        let rows = st.query_map(p, |r| {
+            Ok((
+                Annotation {
+                    family: r.get(0)?,
+                    variant: r.get(1)?,
+                    key: r.get::<_, i64>(2)? as u64,
+                    mv: r.get(3)?,
+                    edition: Edition { engine: r.get(4)?, version: r.get(5)?, network: r.get(6)?, image: r.get(7)? },
+                    mark: None,
+                    better: r.get(9)?,
+                    motifs: vec![],
+                    depth: r.get(11)?,
+                    time: r.get(12)?,
+                },
+                r.get::<_, String>(8)?,
+                r.get::<_, String>(10)?,
+            ))
+        })?;
+        rows.map(|row| {
+            let (mut a, mark, motifs) = row?;
+            (a.mark, a.motifs) = annotation_columns(&mark, &motifs)?;
+            Ok(a)
+        })
+        .collect()
     }
 
     /// Every Edition's Evaluation of one position.
@@ -269,6 +359,42 @@ impl Store {
     }
 }
 
+/// An Annotation's mark and motifs as the store writes them: refused when one is not known.
+pub(crate) fn annotation_columns(mark: &str, motifs: &str) -> Result<(Option<Mark>, Vec<Motif>)> {
+    let mark = match mark {
+        "" => None,
+        m => Some(Mark::from_sign(m).ok_or_else(|| Error::Bad(format!("mark {m:?}")))?),
+    };
+    let motifs = motifs.split_whitespace().map(|m| Motif::from_id(m).ok_or_else(|| Error::Bad(format!("motif {m:?}")))).collect::<Result<_>>()?;
+    Ok((mark, motifs))
+}
+
+/// The store's own number for an Edition, added when it is new.
+fn edition_n(tx: &Connection, d: &Edition) -> Result<i64> {
+    tx.prepare_cached("INSERT INTO editions (id, engine, version, network, image) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT (id) DO NOTHING")?
+        .execute(params![d.id(), d.engine, d.version, d.network, d.image])?;
+    Ok(tx.prepare_cached("SELECT n FROM editions WHERE id = ?1")?.query_row([d.id()], |r| r.get(0))?)
+}
+
+/// The merge rule for Annotations: insert, or replace one that is less by
+/// `(depth, time, mark, better, motifs)`.
+fn put_annotation(tx: &Connection, a: &Annotation) -> Result<bool> {
+    let n = edition_n(tx, &a.edition)?;
+    let mark = a.mark.map_or("", Mark::sign);
+    let motifs: Vec<&str> = a.motifs.iter().map(|m| m.id()).collect();
+    let changed = tx
+        .prepare_cached(
+            "INSERT INTO annotations (family, variant, key, move, edition, mark, better, motifs, depth, time) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) \
+             ON CONFLICT (family, variant, key, move, edition) DO UPDATE SET \
+             mark = excluded.mark, better = excluded.better, motifs = excluded.motifs, depth = excluded.depth, time = excluded.time \
+             WHERE (excluded.depth, excluded.time, excluded.mark, excluded.better, excluded.motifs) \
+                 > (annotations.depth, annotations.time, annotations.mark, annotations.better, annotations.motifs)",
+        )?
+        .execute(params![a.family, a.variant, a.key as i64, a.mv, n, mark, a.better, motifs.join(" "), a.depth, a.time])?;
+    Ok(changed > 0)
+}
+
 /// The merge rule, in one place: insert, or replace a row that is less by
 /// `(depth, time, kind, score, lead, line)`.
 fn put(tx: &Connection, e: &Evaluation) -> Result<bool> {
@@ -276,10 +402,7 @@ fn put(tx: &Connection, e: &Evaluation) -> Result<bool> {
     if !score.is_finite() || !lead.is_finite() {
         return Err(Error::Bad(format!("{kind} {score} {lead}")));
     }
-    let d = &e.edition;
-    tx.prepare_cached("INSERT INTO editions (id, engine, version, network, image) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT (id) DO NOTHING")?
-        .execute(params![d.id(), d.engine, d.version, d.network, d.image])?;
-    let n: i64 = tx.prepare_cached("SELECT n FROM editions WHERE id = ?1")?.query_row([d.id()], |r| r.get(0))?;
+    let n = edition_n(tx, &e.edition)?;
     let changed = tx
         .prepare_cached(
             "INSERT INTO evaluations (family, variant, key, edition, kind, score, lead, depth, line, time) \
@@ -393,8 +516,77 @@ pub(crate) mod tests {
         Connection::open(&p).unwrap().execute_batch("PRAGMA user_version = 99").unwrap();
         assert!(matches!(Store::open(&p), Err(Error::Newer(99))));
         // Opened again at the same version, nothing is made twice.
-        Connection::open(&p).unwrap().execute_batch("PRAGMA user_version = 1").unwrap();
+        Connection::open(&p).unwrap().execute_batch(&format!("PRAGMA user_version = {VERSION}")).unwrap();
         Store::open(&p).unwrap();
+    }
+
+    #[test]
+    fn a_store_of_schema_1_gains_annotations_and_keeps_its_evaluations() {
+        let d = dir("schema1");
+        let p = d.join("positions.sqlite");
+        let c = Connection::open(&p).unwrap();
+        c.execute_batch(&format!("{SCHEMA_1} PRAGMA user_version = 1")).unwrap();
+        drop(c);
+        let mut s = Store::open(&p).unwrap();
+        s.put(&eval(1, sf("Stockfish 17"), 20, 100, Score::Cp(30))).unwrap();
+        drop(s);
+        let mut s = Store::open(&p).unwrap();
+        assert_eq!(s.all().unwrap().len(), 1);
+        assert!(s.put_annotation(&note(1, "e2e4", sf("Stockfish 17"), 20, 1, None)).unwrap());
+    }
+
+    pub(crate) fn note(key: u64, mv: &str, edition: Edition, depth: u32, time: i64, mark: Option<Mark>) -> Annotation {
+        Annotation { family: "chess".into(), variant: "chess".into(), key, mv: mv.into(), edition, mark, better: if mark.is_some() { "g1f3 b8c6".into() } else { String::new() }, motifs: if mark == Some(Mark::Blunder) { vec![Motif::Hangs, Motif::Fork] } else { vec![] }, depth, time }
+    }
+
+    /// Annotations merge as Evaluations do: the deeper wins, every order gives the same store,
+    /// and moves and Editions are kept apart.
+    #[test]
+    fn annotations_merge_by_the_same_rule() {
+        let rows = [
+            note(5, "e2e4", sf("Stockfish 17"), 20, 100, None),
+            note(5, "e2e4", sf("Stockfish 17"), 20, 100, Some(Mark::Good)),
+            note(5, "e2e4", sf("Stockfish 17"), 18, 300, Some(Mark::Blunder)),
+            note(5, "e2e4", sf("Stockfish 17"), 22, 50, Some(Mark::Mistake)),
+            note(5, "d2d4", sf("Stockfish 17"), 10, 50, Some(Mark::Blunder)),
+            note(5, "e2e4", sf("Stockfish 17.1"), 5, 50, Some(Mark::Inaccuracy)),
+        ];
+        let mut want = None;
+        for start in 0..rows.len() {
+            for reverse in [false, true] {
+                let mut order: Vec<&Annotation> = rows.iter().cycle().skip(start).take(rows.len()).collect();
+                if reverse {
+                    order.reverse();
+                }
+                let (_d, mut s) = store("notes");
+                s.merge([], order.iter().copied()).unwrap();
+                let once = s.annotations().unwrap();
+                assert_eq!(s.merge([], order.iter().copied()).unwrap(), Merged { read: 6, changed: 0 });
+                match &want {
+                    None => want = Some(once),
+                    Some(w) => assert_eq!(&once, w, "order {start} {reverse}"),
+                }
+            }
+        }
+        let want = want.unwrap();
+        assert_eq!(want.len(), 3);
+        let (_d, mut s) = store("notes-shown");
+        s.merge([], &rows).unwrap();
+        let e4 = s.annotation("chess", "chess", 5, "e2e4", "stockfish").unwrap().unwrap();
+        assert_eq!((e4.edition.version.as_str(), e4.mark), ("Stockfish 17.1", Some(Mark::Inaccuracy)), "the newest Edition shows");
+        let old = want.iter().find(|a| a.mv == "e2e4" && a.edition.version == "Stockfish 17").unwrap();
+        assert_eq!((old.depth, old.mark), (22, Some(Mark::Mistake)));
+        let d4 = want.iter().find(|a| a.mv == "d2d4").unwrap();
+        assert_eq!((d4.better.as_str(), d4.motifs.as_slice()), ("g1f3 b8c6", [Motif::Hangs, Motif::Fork].as_slice()));
+        assert_eq!(s.annotation("chess", "chess", 5, "c2c4", "stockfish").unwrap(), None);
+        assert_eq!(s.annotation("chess", "chess", 5, "e2e4", "lc0").unwrap(), None);
+    }
+
+    #[test]
+    fn an_unknown_mark_is_refused_on_reading() {
+        assert!(matches!(annotation_columns("?!?", ""), Err(Error::Bad(_))));
+        assert!(matches!(annotation_columns("", "skewer"), Err(Error::Bad(_))));
+        assert_eq!(annotation_columns("!!", "pin fork").unwrap(), (Some(Mark::Brilliant), vec![Motif::Pin, Motif::Fork]));
     }
 
     #[test]

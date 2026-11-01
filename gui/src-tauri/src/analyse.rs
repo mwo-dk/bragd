@@ -1,6 +1,8 @@
 //! Analyse: an engine's best lines for a position, as they come, in the Variant's notation and
-//! scored from the first Side's view; a whole Game reviewed with its moves marked; and for
-//! chess the opening's name, the opening books' moves and what the tablebases say.
+//! scored from the first Side's view; a whole Game reviewed with its moves annotated; and for
+//! chess the opening's name, the opening books' moves and what the tablebases say. Both read
+//! the Position store first and write what the Engine finds to it, so a position judged once
+//! shows at once.
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -9,12 +11,13 @@ use std::sync::{Arc, Mutex};
 use bragd_core::config::Config;
 use bragd_engines::lichess;
 use bragd_engines::protocol::{Info, Limit, Score};
-use bragd_engines::review::{Reviewer, Setup};
+use bragd_engines::review::{Ply, Reviewer, Setup};
 use bragd_engines::seam::{self, Notation};
 use bragd_engines::session::{Session, think};
 use bragd_engines::syzygy::{Tablebases, material};
 use bragd_games::{State, Variant};
 use bragd_library::chess::{openings, polyglot};
+use bragd_positions::{Annotation, Evaluation, Mark, Store};
 use serde::Serialize;
 
 use crate::engines;
@@ -61,8 +64,13 @@ struct Raw {
     notation: Option<Notation>,
     /// The second Side is to move: its scores are turned round.
     second: bool,
+    /// Line 1 came from the Position store at this depth: the engine's own replaces it once it
+    /// is as deep.
+    floor: u32,
     done: bool,
     error: Option<String>,
+    /// The last move's Annotation, from the store.
+    note: Option<NoteView>,
 }
 
 impl Raw {
@@ -72,6 +80,12 @@ impl Raw {
         // memory: `multipv 1000000000`), not a line to make room for.
         if i.line > wanted as usize {
             return;
+        }
+        if i.line <= 1 {
+            if i.depth.unwrap_or(0) < self.floor {
+                return;
+            }
+            self.floor = 0;
         }
         let at = i.line.max(1) - 1;
         if self.lines.len() <= at {
@@ -120,7 +134,8 @@ impl Drop for Live {
 
 struct Reviewing {
     reviewer: Reviewer,
-    entries: usize,
+    asked: Asked,
+    notation: Notation,
 }
 
 #[derive(Default)]
@@ -142,29 +157,59 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
     let key = engine.filter(|k| !k.is_empty()).or_else(|| engines::default_for(cfg, variant)).ok_or_else(|| tr("engines.none_for", &[]))?;
     let chosen = engines::resolve(cfg, &key, variant)?;
     let asked = Asked { variant: variant.into(), initial, entries };
-    let raw = Arc::new(Mutex::new(Raw { engine: key, ..Default::default() }));
+    let raw = Arc::new(Mutex::new(Raw { engine: key.clone(), ..Default::default() }));
     let stop = Arc::new(AtomicBool::new(false));
-    let (r, s, a, cfg) = (raw.clone(), stop.clone(), asked.clone(), cfg.clone());
+    let (r, s, a, cfg, key) = (raw.clone(), stop.clone(), asked.clone(), cfg.clone(), key.clone());
     let wanted = lines.unwrap_or(LINES).clamp(1, bragd_engines::session::MAX_LINES);
     std::thread::spawn(move || {
         let halt = || s.load(Ordering::Relaxed);
         let result = (|| -> Result<(), String> {
             let (mut e, notation) = engines::start(&cfg, &chosen, &a.variant, &halt)?;
             let (pos, state) = seam::position(&a.variant, a.initial.as_deref(), &a.entries, notation)?;
+            let second = state.to_move.is_some_and(|s| s.index == 1);
             {
                 let mut raw = crate::lock(&r);
                 raw.engine = e.about().name.clone();
                 raw.notation = Some(notation);
-                raw.second = state.to_move.is_some_and(|s| s.index == 1);
+                raw.second = second;
             }
             if state.to_move.is_none() {
                 return Ok(());
             }
+            let edition = bragd_engines::edition::of(&key, e.about(), &chosen.program);
+            let (family, _, keys) = positions(&a.variant, a.initial.as_deref(), &a.entries)?;
+            let mut store = Store::path().and_then(|p| Store::open(&p).ok());
+            let at = keys[keys.len() - 1];
+            if let Some(s) = &store {
+                let mut raw = crate::lock(&r);
+                if let Ok(Some(ev)) = s.shown(&family, &a.variant, at, &key) {
+                    let score = Score::from(ev.score);
+                    raw.lines = vec![Info { line: 1, depth: Some(ev.depth), score: Some(if second { score.flipped() } else { score }), pv: ev.line.split_whitespace().map(String::from).collect(), ..Default::default() }];
+                    raw.floor = ev.depth.max(1);
+                }
+                if let (Some(mv), Some(&before)) = (pos.moves.last(), keys.len().checked_sub(2).and_then(|i| keys.get(i)))
+                    && let Ok(Some(note)) = s.annotation(&family, &a.variant, before, mv, &key)
+                {
+                    let n = a.entries.len() - 1;
+                    raw.note = note_view(&state, &note, n, &a.variant, a.initial.as_deref(), &a.entries[..n], notation);
+                }
+            }
             // Until stopped, or the engine's own cap (`Limit::cap`).
             let report = &mut |i: &Info| crate::lock(&r).heard(i, wanted);
-            let a = think(&mut e, &pos, Limit::Depth(99), wanted, &halt, report).map_err(|e| e.to_string())?;
-            // An engine that reports no lines (GNU Go) still names its move.
+            let thought = think(&mut e, &pos, Limit::Depth(99), wanted, &halt, report);
+            // The engine's own line 1, however far it got, goes into the store.
             let mut raw = crate::lock(&r);
+            if let (Some(s), Some(Info { depth: Some(depth), score: Some(score), pv, .. })) = (&mut store, raw.lines.first().filter(|_| raw.floor == 0))
+                && !pv.is_empty()
+            {
+                let score = if second { score.flipped() } else { *score };
+                let ev = Evaluation { family, variant: a.variant.clone(), key: at, edition, score: score.into(), depth: *depth, line: pv.join(" "), time: now_secs() };
+                if let Err(e) = s.put(&ev) {
+                    raw.error = Some(e.to_string());
+                }
+            }
+            let a = thought.map_err(|e| e.to_string())?;
+            // An engine that reports no lines (GNU Go) still names its move.
             if raw.lines.is_empty()
                 && let Some(b) = a.best
             {
@@ -191,7 +236,7 @@ pub fn stop(held: &Held) {
 }
 
 /// A move of a line: its entry and how a Player writes it.
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct LineMove {
     entry: String,
     notation: String,
@@ -211,6 +256,8 @@ pub struct Now {
     engine: String,
     lines: Vec<LineView>,
     error: Option<String>,
+    /// The last move's Annotation, when the store has one by this Engine.
+    note: Option<NoteView>,
 }
 
 /// The analysis as far as it has come; None when none was started.
@@ -241,12 +288,28 @@ pub fn now(held: &Held) -> Option<Now> {
                 .collect()
         })
         .unwrap_or_default();
-    Some(Now { running: !raw.done, engine: raw.engine.clone(), lines, error: raw.error.clone() })
+    Some(Now { running: !raw.done, engine: raw.engine.clone(), lines, error: raw.error.clone(), note: raw.note })
+}
+
+/// The Game's Family, its positions in their Family's notation (before the first entry, then
+/// after each) and their keys in the Position store.
+fn positions(variant: &str, initial: Option<&str>, entries: &[String]) -> Result<(String, Vec<String>, Vec<u64>), String> {
+    let family = bragd_games::variant(variant).map_err(|e| e.to_string())?.family().key();
+    // shortcut: each prefix replayed from the start, n²/2 moves; replay once with every
+    // position kept if a long go Game makes this slow.
+    let texts = (0..=entries.len()).map(|i| bragd_games::replay(variant, initial, &entries[..i]).map(|s| s.position)).collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?;
+    let keys = bragd_library::library::position_keys(family, &texts);
+    Ok((family.to_string(), texts, keys))
+}
+
+fn now_secs() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64)
 }
 
 /// Starts reviewing the whole Game with the Variant's engine (or `engine`).
 pub fn review_start(cfg: &Config, held: &Held, variant: &str, initial: Option<&str>, entries: &[String], engine: Option<String>) -> Result<(), String> {
     guard()?;
+    bragd_core::tips::used("annotations");
     *crate::lock(&held.review) = None;
     let key = engine.filter(|k| !k.is_empty()).or_else(|| engines::default_for(cfg, variant)).ok_or_else(|| tr("engines.none_for", &[]))?;
     let chosen = engines::resolve(cfg, &key, variant)?;
@@ -257,16 +320,23 @@ pub fn review_start(cfg: &Config, held: &Held, variant: &str, initial: Option<&s
         return Err(tr("analyse.review_backgammon", &[]));
     }
     let (game, _) = seam::position(variant, initial, entries, notation)?;
+    let (family, texts, keys) = positions(variant, initial, entries)?;
     let setup = Setup {
+        engine: key,
         program: chosen.program,
         protocol,
         options: bragd_engines::options::OptionStore::load(&engines::store_path()?).unwrap_or_default(),
         syzygy: None,
         limit: Limit::Time(300),
-        cache: bragd_core::dirs::app_cache().map(|c| c.join("reviews")),
+        store: Store::path(),
+        family,
+        variant: variant.into(),
+        keys,
+        positions: texts,
     };
     let reviewer = Reviewer::start(&setup, &game);
-    *crate::lock(&held.review) = Some(Reviewing { reviewer, entries: game.moves.len() });
+    let asked = Asked { variant: variant.into(), initial: initial.map(String::from), entries: entries.to_vec() };
+    *crate::lock(&held.review) = Some(Reviewing { reviewer, asked, notation });
     Ok(())
 }
 
@@ -274,7 +344,54 @@ pub fn review_stop(held: &Held) {
     *crate::lock(&held.review) = None;
 }
 
-/// A review as the move list shows it: each entry's mark and evaluation.
+/// A move's Annotation, worded: its mark, what it means, and the better line as moves to play.
+#[derive(Clone, Serialize)]
+pub struct NoteView {
+    /// The move's index among the Game's entries, and the move as the move list writes it
+    /// (`12. Nf3`).
+    index: usize,
+    label: String,
+    mark: String,
+    /// In the reader's language: `Blunder. It leaves a piece hanging. Better was Nf3 Nc6.`
+    text: String,
+    /// Played from the position before the move.
+    better: Vec<LineMove>,
+}
+
+/// The Annotation worded from Bragd's own texts; None when it says nothing.
+fn worded(mark: Option<Mark>, motifs: &[bragd_positions::Motif], better: &[(String, String)]) -> Option<String> {
+    let mut words: Vec<String> = mark.map(|m| tr(&format!("annotation.mark.{}", m.id()), &[])).into_iter().collect();
+    words.extend(motifs.iter().map(|m| tr(&format!("annotation.motif.{}", m.id()), &[])));
+    let bad = matches!(mark, Some(Mark::Blunder | Mark::Mistake | Mark::Inaccuracy)) || motifs.contains(&bragd_positions::Motif::MissedMate);
+    if bad && !better.is_empty() {
+        let line: Vec<&str> = better.iter().map(|(_, n)| n.as_str()).collect();
+        words.push(tr("annotation.better", &[("line", &line.join(" "))]));
+    }
+    (!words.is_empty()).then(|| words.join(" "))
+}
+
+/// Move `index`'s note, its better line replayed from `entries` (the moves before it); `state`
+/// is the whole Game's, for the move's label.
+#[allow(clippy::too_many_arguments)]
+fn note(state: &State, index: usize, mark: Option<Mark>, motifs: &[bragd_positions::Motif], better: &[String], variant: &str, initial: Option<&str>, entries: &[String], notation: Notation) -> Option<NoteView> {
+    let better = if better.is_empty() { vec![] } else { seam::line(variant, initial, entries, notation, &better[..better.len().min(SHOWN)]) };
+    let text = worded(mark, motifs, &better)?;
+    // A reply has no number in the move list: here it is the move's, as `3… Qg5`.
+    let number = match state.numbers.get(index).map_or("", String::as_str) {
+        "" if index > 0 => state.numbers[index - 1].replace('.', "…"),
+        n => n.to_string(),
+    };
+    let label = format!("{number} {}", state.history.get(index).map_or("", String::as_str)).trim().to_string();
+    Some(NoteView { index, label, mark: mark.map_or("", Mark::sign).into(), text, better: better.into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect() })
+}
+
+fn note_view(state: &State, a: &Annotation, index: usize, variant: &str, initial: Option<&str>, entries: &[String], notation: Notation) -> Option<NoteView> {
+    let better: Vec<String> = a.better.split_whitespace().map(String::from).collect();
+    note(state, index, a.mark, &a.motifs, &better, variant, initial, entries, notation)
+}
+
+/// A review as the move list and Analyse show it: each entry's mark and evaluation, and the
+/// worded notes of the moves that have one.
 #[derive(Serialize)]
 pub struct ReviewView {
     engine: String,
@@ -283,33 +400,33 @@ pub struct ReviewView {
     total: usize,
     marks: Vec<String>,
     evals: Vec<String>,
+    /// Each entry's note in a few words, for its mark in the move list.
+    titles: Vec<String>,
+    notes: Vec<NoteView>,
     error: Option<String>,
 }
 
-/// A NAG as the move list writes it.
-fn mark(nag: u8) -> &'static str {
-    match nag {
-        2 => "?",
-        4 => "??",
-        5 => "!?",
-        6 => "?!",
-        _ => "",
-    }
-}
-
 pub fn review_now(held: &Held) -> Option<ReviewView> {
-    let r = crate::lock(&held.review);
-    let r = r.as_ref()?;
-    let rev = r.reviewer.now();
-    let mut marks = vec![String::new(); r.entries];
-    let mut evals = vec![String::new(); r.entries];
-    for p in &rev.plies {
-        if p.index < r.entries {
-            marks[p.index] = p.mark.map(mark).unwrap_or_default().to_string();
-            evals[p.index] = p.eval.clone();
+    let (rev, asked, notation) = {
+        let r = crate::lock(&held.review);
+        let r = r.as_ref()?;
+        (r.reviewer.now(), r.asked.clone(), r.notation)
+    };
+    let n = asked.entries.len();
+    let state = bragd_games::replay(&asked.variant, asked.initial.as_deref(), &asked.entries).ok()?;
+    let mut marks = vec![String::new(); n];
+    let mut evals = vec![String::new(); n];
+    let mut titles = vec![String::new(); n];
+    let mut notes = vec![];
+    for Ply { index, eval, mark, better, motifs } in &rev.plies {
+        if *index < n {
+            marks[*index] = mark.map_or("", Mark::sign).to_string();
+            evals[*index] = eval.clone();
+            titles[*index] = note(&state, *index, *mark, motifs, &[], &asked.variant, None, &[], notation).map(|n| n.text).unwrap_or_default();
+            notes.extend(note(&state, *index, *mark, motifs, better, &asked.variant, asked.initial.as_deref(), &asked.entries[..*index], notation));
         }
     }
-    Some(ReviewView { engine: rev.engine, done: rev.done, reviewed: rev.plies.len(), total: rev.total, marks, evals, error: rev.error })
+    Some(ReviewView { engine: rev.engine, done: rev.done, reviewed: rev.plies.len(), total: rev.total, marks, evals, titles, notes, error: rev.error })
 }
 
 /// A book's move for the position.
@@ -466,7 +583,6 @@ mod tests {
         assert!(t.unavailable && t.pieces == 4 && t.verdict.is_none(), "nothing asked online");
         assert!(tablebase(&cfg, "chess", None, &[]).unwrap().is_none(), "32 pieces");
         assert!(setup("chess", "not a fen").is_err());
-        assert_eq!(mark(4), "??");
     }
 
     /// A fake engine's lines, shown in SAN from White's view though Black is to move.
@@ -499,6 +615,77 @@ mod tests {
         let shown: Vec<&str> = n.lines[0].moves.iter().map(|m| m.notation.as_str()).collect();
         assert_eq!(shown, ["e5", "Nf3"]);
         assert_eq!(n.lines[1].score, "+0.40");
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn a_position_reached_another_way_has_the_same_key() {
+        let e = |m: &[&str]| m.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let (family, texts, a) = positions("chess", None, &e(&["e2e4", "e7e5", "g1f3"])).unwrap();
+        let (_, _, b) = positions("chess", None, &e(&["g1f3", "e7e5", "e2e4"])).unwrap();
+        assert_eq!((family.as_str(), texts.len(), a.len()), ("chess", 4, 4));
+        assert_eq!(a[3], b[3]);
+        assert_ne!(a[1], b[1]);
+        assert_eq!(a[0], b[0]);
+        let st = bragd_games::replay("chess", None, &e(&["e2e4", "e7e5", "g1f3"])).unwrap();
+        let label = |i| note(&st, i, Some(Mark::Mistake), &[], &[], "chess", None, &[], Notation::Wire).unwrap().label;
+        assert_eq!((label(0), label(1), label(2)), ("1. e4".to_string(), "1… e5".to_string(), "2. Nf3".to_string()));
+    }
+
+    #[test]
+    fn an_annotation_is_worded_in_the_readers_language() {
+        use bragd_positions::Motif;
+        let better = [("g1f3".to_string(), "Nf3".to_string()), ("b8c6".to_string(), "Nc6".to_string())];
+        assert_eq!(worded(Some(Mark::Blunder), &[Motif::Hangs], &better).unwrap(), "Blunder. It leaves a piece hanging. Better was Nf3 Nc6.");
+        // A good move names no better one, and a move with nothing to say has no note.
+        assert_eq!(worded(Some(Mark::Good), &[Motif::Fork], &better).unwrap(), "Good move. It forks two pieces.");
+        assert_eq!(worded(None, &[], &better), None);
+        assert_eq!(worded(None, &[Motif::MissedMate], &better).unwrap(), "It misses a forced mate. Better was Nf3 Nc6.");
+    }
+
+    /// What the store knows shows at once, before the engine is as deep; the engine's own line
+    /// goes into the store when it stops.
+    #[cfg(unix)]
+    #[test]
+    fn live_analysis_reads_and_writes_the_store() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = std::env::temp_dir().join(format!("bragd-gui-analyse-store-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("fake");
+        std::fs::write(&p, "#!/bin/sh\nwhile read l; do case \"$l\" in uci) echo 'id name Store 1'; echo uciok;; go*) echo 'info depth 5 multipv 1 score cp 25 pv e7e5 g1f3'; echo 'bestmove e7e5';; quit) exit 0;; esac; done\n").unwrap();
+        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut cfg = Config::default();
+        cfg.engines.added.insert("storefake".into(), "chess".into());
+        cfg.engines.paths.insert("storefake".into(), p.display().to_string());
+        let entries = |m: &[&str]| m.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let (_, _, keys) = positions("chess", None, &entries(&["d2d4", "g8f6"])).unwrap();
+        let mut store = Store::open(&Store::path().unwrap()).unwrap();
+        let edition = bragd_positions::Edition { engine: "storefake".into(), version: "Store 0".into(), network: None, image: None };
+        store.put(&Evaluation { family: "chess".into(), variant: "chess".into(), key: keys[2], edition, score: bragd_positions::Score::Cp(-50), depth: 30, line: "c2c4 e7e6".into(), time: 1 }).unwrap();
+        let held = Held::default();
+        let wait = |held: &Held| {
+            let mut n = now(held).unwrap();
+            for _ in 0..200 {
+                if !n.running {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(25));
+                n = now(held).unwrap();
+            }
+            n
+        };
+        start(&cfg, &held, "chess", None, entries(&["d2d4", "g8f6"]), Some("storefake".into()), Some(1)).unwrap();
+        let n = wait(&held);
+        assert_eq!(n.error, None);
+        assert_eq!((n.lines[0].score.as_str(), n.lines[0].depth), ("−0.50", Some(30)), "the store's, deeper than the engine got");
+        assert_eq!(n.lines[0].moves[0].notation, "c4");
+        // Elsewhere, the engine's own line is kept with its Edition.
+        start(&cfg, &held, "chess", None, entries(&["e2e4"]), Some("storefake".into()), Some(1)).unwrap();
+        let n = wait(&held);
+        assert_eq!((n.lines[0].score.as_str(), n.lines[0].depth), ("−0.25", Some(5)));
+        let (_, _, keys) = positions("chess", None, &entries(&["e2e4"])).unwrap();
+        let kept = store.shown("chess", "chess", keys[1], "storefake").unwrap().unwrap();
+        assert_eq!((kept.edition.version.as_str(), kept.score, kept.depth), ("Store 1", bragd_positions::Score::Cp(-25), 5));
         std::fs::remove_dir_all(&d).unwrap();
     }
 }

@@ -250,6 +250,43 @@ pub fn library_export(app: AppHandle, path: String, k: State<'_, Knowledge>, ctx
     k.link.start(&Request::Start { work: bragd_helper::jobs::Work::Export { library, to } }).map(Some)
 }
 
+/// The Position store opened, or why it cannot be.
+fn position_store() -> Res<bragd_positions::Store> {
+    let path = bragd_positions::Store::path().ok_or_else(|| t!("config.no_folder"))?;
+    bragd_positions::Store::open(&path).map_err(|e| e.to_string())
+}
+
+/// Export Position store: every Evaluation and Annotation written to a `.parquet` file the user
+/// picks: what was written, in words; None when the dialog was closed.
+#[tauri::command(async)]
+pub fn positions_export(app: AppHandle, ctx: State<'_, Ctx>) -> Res<Option<String>> {
+    bragd_core::tips::used("positions");
+    let ask = files::Ask { title: t!("positions.export_title"), save: Some("positions.parquet".into()), filters: vec![("Parquet".into(), vec!["parquet".into()])], ..Default::default() };
+    let Some(to) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
+    export_to(&position_store()?, &to).map(Some)
+}
+
+fn export_to(store: &bragd_positions::Store, to: &Path) -> Res<String> {
+    let n = bragd_positions::parquet::to_parquet(store, to).map_err(|e| e.to_string())?;
+    Ok(t!("positions.exported", "n" => n))
+}
+
+/// Import Position store: a `.parquet` file the user picks merged into the store, the deeper row
+/// kept for each position and Edition: what it read and changed, in words; None when the
+/// dialog was closed.
+#[tauri::command(async)]
+pub fn positions_import(app: AppHandle, ctx: State<'_, Ctx>) -> Res<Option<String>> {
+    bragd_core::tips::used("positions");
+    let ask = files::Ask { title: t!("positions.import_title"), filters: vec![("Parquet".into(), vec!["parquet".into()])], ..Default::default() };
+    let Some(from) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
+    import_from(&mut position_store()?, &from).map(Some)
+}
+
+fn import_from(store: &mut bragd_positions::Store, from: &Path) -> Res<String> {
+    let m = bragd_positions::parquet::from_parquet(store, from).map_err(|e| e.to_string())?;
+    Ok(t!("positions.imported", "read" => m.read, "changed" => m.changed))
+}
+
 /// A Source by id and by the name users know it by.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Named {
@@ -686,5 +723,21 @@ mod tests {
         assert_eq!(p.list.iter().map(|n| n.id.as_str()).collect::<Vec<_>>(), ["custom:mine", "ogs"]);
         assert!(p.choices.is_empty(), "no chess Source to add: {:?}", p.choices);
         assert_eq!(priority_merged(vec!["ogs".into(), "custom:mine".into()], &cfg, &known), ["ogs", "custom:mine", "twic"]);
+    }
+
+    #[test]
+    fn the_position_store_exports_and_imports_back_in_words() {
+        let d = std::env::temp_dir().join(format!("bragd-gui-positions-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let mut a = bragd_positions::Store::open(&d.join("a.sqlite")).unwrap();
+        let edition = bragd_positions::Edition { engine: "stockfish".into(), version: "Stockfish 17".into(), network: None, image: None };
+        a.put(&bragd_positions::Evaluation { family: "chess".into(), variant: "chess".into(), key: 7, edition, score: bragd_positions::Score::Cp(12), depth: 20, line: "e2e4".into(), time: 1 }).unwrap();
+        let out = d.join("p.parquet");
+        assert_eq!(export_to(&a, &out).unwrap(), "Rows written: 1.");
+        let mut b = bragd_positions::Store::open(&d.join("b.sqlite")).unwrap();
+        assert_eq!(import_from(&mut b, &out).unwrap(), "Rows read: 1. New or deeper: 1.");
+        assert_eq!(import_from(&mut b, &out).unwrap(), "Rows read: 1. New or deeper: 0.");
+        assert!(import_from(&mut b, &d.join("missing.parquet")).is_err());
+        std::fs::remove_dir_all(&d).unwrap();
     }
 }

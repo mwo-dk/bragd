@@ -131,6 +131,38 @@ def engine():
         config("")
 
 
+def review():
+    """review-chess-390.png and -1100.png: a Game reviewed in Analyse (fake-uci in the demo home
+    stands in for Stockfish, and calls 6...Qg5, off its line, a blunder), its Annotations listed
+    and marked in the move list. position-store-390.png and -1100.png: Disk watch at the
+    Position store's Export and Import."""
+    config('[engines.paths]\nstockfish = "/home/demo/fake-uci"\n')
+    try:
+        def page(d):
+            js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+            d.wait(0.4)
+            nav(d, "chess", "Analyse")
+            for a, b in (m.split() for m in ["e2 e4", "e7 e5", "g1 f3", "b8 c6", "f1 c4", "d8 g5"]):
+                move(d, a, b)
+            click(d, "Review the game", "main")
+            d.wait(5)
+            js(d, "document.querySelector('main .notes')?.scrollIntoView({block: 'center'})")
+
+        widths("review-chess", page)
+
+        def knowledge(d):
+            js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+            d.wait(0.4)
+            click(d, "Settings", "nav")
+            click(d, "Knowledge", "main")
+            d.wait(1.5)
+            js(d, "[...document.querySelectorAll('main h3')].find(h => h.textContent.trim() === 'Position store')?.scrollIntoView({block: 'start'})")
+
+        widths("position-store", knowledge)
+    finally:
+        config("")
+
+
 def screens():
     """The screens behind a tab or a button."""
     with Desktop(size=W1100) as d:
@@ -413,7 +445,7 @@ def players():
     widths("player-summary", page)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes, "players": players}
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

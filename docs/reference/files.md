@@ -30,6 +30,7 @@ In the Flatpak, the XDG folders are the app's own: `~/.var/app/io.github.mwo_dk.
 | data/`state.json` | What Bragd remembers that is not a setting: the wizard seen, the last version whose cards you saw, the last update check, notices closed, hints shown, the Club files you opened |
 | data/`libraries/` | Your Libraries, such as `main.bragd`, with their `-wal` and `-shm` files. Moved by `knowledge.library` |
 | data/`clubs/` | The Clubs you made, one `<name>.bragd-club` file each, with a `.bragd-club.lock` beside a Club while it is open ([Clubs](../clubs/clubs.md)) |
+| data/`positions.sqlite` | The [Position store](../knowledge/position-store.md): Engine Evaluations and Annotations by position, with its `-wal` and `-shm` files |
 | data/`rating-lists.sqlite` | The players of every rating list fetched ([Rating lists](rating-lists.md)) |
 | data/`tablebases/` | Syzygy tables. Moved by `tablebases.path` |
 | data/`networks/pikafish/pikafish.nnue` | Pikafish's evaluation network, for its image, downloaded once you agree to its licence |
@@ -40,7 +41,6 @@ In the Flatpak, the XDG folders are the app's own: `~/.var/app/io.github.mwo_dk.
 | data/`helper/helper.log` | What the Helper did, with times in UTC |
 | data/`helper/state.json` | Sources, their options and Routes with their Strip rules, what each fetch remembered, and the jobs |
 | data/`helper/sources/<source>/` | Each Source's downloads, kept as they came, one folder per Source id (`custom:club.a` is `custom_3aclub_2ea`) |
-| cache/`reviews/` | [Game reviews](../engines/review.md), the newest 1,000 |
 
 A file a Source downloads stays packed. Zips and packed PGN are read as a stream and never unpacked to disk.
 

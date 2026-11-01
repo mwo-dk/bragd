@@ -21,10 +21,14 @@ for raw in sys.stdin:
     elif cmd[0] == "go":
         rest = LINE[len(moves):] if LINE[: len(moves)] == moves else []
         if rest:
+            # White stays 0.31 ahead: the score is the side to move's.
+            sign = 1 if len(moves) % 2 == 0 else -1
             for mpv, cp in ((1, 31), (2, 18), (3, 5)):
-                print(f"info depth 18 multipv {mpv} score cp {cp} nodes 120000 pv {' '.join(rest[:10])}", flush=True)
+                print(f"info depth 18 multipv {mpv} score cp {sign * cp} nodes 120000 pv {' '.join(rest[:10])}", flush=True)
             print(f"bestmove {rest[0]}", flush=True)
         else:
+            # Off the line: the side to move is far ahead, so the move that left it was a blunder.
+            print("info depth 18 multipv 1 score cp 900 nodes 120000 pv", flush=True)
             print("bestmove 0000", flush=True)
     elif cmd[0] == "quit":
         break

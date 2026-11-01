@@ -1,50 +1,46 @@
-//! A whole Game reviewed by an engine: each position of its moves evaluated in the background,
-//! the moves that lose marked `?!`, `?` or `??` by how much they lose (and `!?` for the only
-//! move that holds), kept in a cache per Game, and written out with the marks, the evaluations
-//! and the engine's better lines. Marks need centipawns, so only Families whose engines score
-//! in them (chess, xiangqi, shogi, draughts) get marks; go and backgammon get evaluations.
+//! A whole Game reviewed by an Engine, through the Position store: each position's Evaluation is
+//! read from the store when it has one for the Engine, and the Engine thinks only about the
+//! rest, in the background, each result put into the store with its Edition. Each move gets
+//! its Annotation from the two Evaluations around it (`bragd_positions::annotation`): its mark,
+//! the better line, and for chess its named motifs. Annotations go into the store too, so a
+//! position judged once shows at once in every Game that reaches it.
 
-use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use serde::Serialize;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use bragd_positions::annotation::{self, Mark, Motif};
+use bragd_positions::{Annotation, Edition, Evaluation, Store};
+
 use crate::options::OptionStore;
-use crate::protocol::{Limit, MATE_CP, Position, Protocol};
+use crate::protocol::{Limit, Position, Protocol, Score};
 use crate::session::{Engine, Program, Session, think};
 
-/// What a lost advantage is worth, in centipawns from the mover's side: at least this much is
-/// `?!` (an inaccuracy), `?` (a mistake), `??` (a blunder). Evaluations count up to `CAP` either
-/// way, so a move in a won position is not a blunder for winning a little less.
-pub const INACCURACY: i32 = 50;
-pub const MISTAKE: i32 = 100;
-pub const BLUNDER: i32 = 300;
-pub const CAP: i32 = MATE_CP;
-/// `!?`: the engine's best move, played, where its second choice is this much worse, in a
-/// position not already won.
-pub const ONLY_MOVE: i32 = 300;
+/// The most moves of a line kept with an Evaluation.
+const LINE: usize = 12;
 
-/// One move, evaluated.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// One move, reviewed.
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct Ply {
     /// Its place among the Game's moves, from 0.
     pub index: usize,
-    /// The evaluation after it, from the first Side's view, and as shown (`+0.35`, `#3`).
-    pub cp: i32,
+    /// The Evaluation after it, from the first Side's view, as shown (`+0.35`, `#3`).
     pub eval: String,
-    /// Its mark as a NAG: 6 `?!`, 2 `?`, 4 `??`, 5 `!?`.
-    pub mark: Option<u8>,
-    /// What the engine would have played instead, in its notation; empty when it was played.
-    pub best: Vec<String>,
+    pub mark: Option<Mark>,
+    /// The Engine's line where the move was played, when it would have played another move;
+    /// in its notation.
+    pub better: Vec<String>,
+    pub motifs: Vec<Motif>,
 }
 
 /// A Game's review, as far as it has come.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct Review {
+    /// The Engine's name, as it gave it, or as the store's Edition names it, or its key.
     pub engine: String,
-    /// The start position's evaluation, then each move's.
-    pub start: Option<i32>,
+    /// The moves reviewed, by index.
     pub plies: Vec<Ply>,
     /// Of how many moves; done when all are in, or it stopped.
     pub total: usize,
@@ -52,95 +48,26 @@ pub struct Review {
     pub error: Option<String>,
 }
 
-/// The mark of a move that took the evaluation from `before` to `after` (first Side's view), by
-/// the first Side (`first`) or the second; `only`: it is the engine's best move, and by how much
-/// its second choice is worse.
-pub fn mark(before: i32, after: i32, first: bool, only: Option<i32>) -> Option<u8> {
-    let side = |v: i32| if first { v } else { -v };
-    let lost = side(before).clamp(-CAP, CAP) - side(after).clamp(-CAP, CAP);
-    if lost >= BLUNDER {
-        Some(4)
-    } else if lost >= MISTAKE {
-        Some(2)
-    } else if lost >= INACCURACY {
-        Some(6)
-    } else if only.is_some_and(|gap| gap >= ONLY_MOVE) && side(before) < MISTAKE * 3 {
-        Some(5)
-    } else {
-        None
-    }
-}
-
-/// The evaluation as shown: `+0.35`, `−1.20`, `#3`, `#−2`.
-pub fn shown(v: i32) -> String {
-    if v.abs() > CAP {
-        let m = CAP + 100 - v.abs();
-        return if v > 0 { format!("#{m}") } else { format!("#−{m}") };
-    }
-    let p = v.abs() as f64 / 100.0;
-    if v < 0 { format!("−{p:.2}") } else { format!("+{p:.2}") }
-}
-
-/// The evaluation as PGN's `[%eval]` writes it: `0.35`, `-1.20`, `#3`, `#-2`.
-fn pgn_eval(v: i32) -> String {
-    shown(v).replace('−', "-").replace('+', "")
-}
-
-/// The first Side's share of the Game, 0 to 1, for the bar beside the board and the graph.
-pub fn share(v: i32) -> f64 {
-    1.0 / (1.0 + (-(v.clamp(-CAP, CAP)) as f64 / 250.0).exp())
-}
-
-/// How a review is run: the engine, its protocol and options, the tablebases, the limit per
-/// position, and where reviews are cached.
+/// How a review is run: the Engine (its key, program, protocol and options), the tablebases,
+/// the limit per position, the store, and the Game's positions.
 #[derive(Clone, Debug)]
 pub struct Setup {
+    /// The Engine's key (`known::Known::key`): its Evaluations in the store are found by it.
+    pub engine: String,
     pub program: Program,
     pub protocol: Protocol,
     pub options: OptionStore,
     pub syzygy: Option<String>,
     pub limit: Limit,
-    pub cache: Option<PathBuf>,
-}
-
-/// Where the review of `game` by `engine` with `settings` is kept: by a hash of all three, so
-/// another engine, limit or option is another review.
-fn cached(dir: &Path, engine: &str, settings: &str, game: &Position) -> PathBuf {
-    // FNV-1a: stable across builds, unlike the standard hasher.
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    let mut feed = |s: &str| {
-        for b in s.bytes().chain([0]) {
-            h = (h ^ b as u64).wrapping_mul(0x100_0000_01b3);
-        }
-    };
-    feed(engine);
-    feed(settings);
-    feed(&game.variant);
-    feed(&format!("{:?}", game.start));
-    for m in &game.moves {
-        feed(m);
-    }
-    dir.join(format!("{h:016x}.json"))
-}
-
-/// How many reviews the cache keeps: the oldest go past it (a few KB each).
-const KEPT: usize = 1000;
-
-/// The newest `most` reviews in `dir` kept, the rest removed.
-fn keep_newest(dir: &Path, most: usize) {
-    let mut all: Vec<(std::time::SystemTime, PathBuf)> = std::fs::read_dir(dir)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
-        .filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path())))
-        .collect();
-    if all.len() > most {
-        all.sort();
-        for (_, p) in &all[..all.len() - most] {
-            let _ = std::fs::remove_file(p);
-        }
-    }
+    /// The Position store; None reviews without one.
+    pub store: Option<PathBuf>,
+    pub family: String,
+    pub variant: String,
+    /// The key of each position (`bragd_library::library::position_keys`): before the first
+    /// move, then after each.
+    pub keys: Vec<u64>,
+    /// Each position in its Family's notation, as `keys`: chess motifs are read from them.
+    pub positions: Vec<String>,
 }
 
 /// A Game being reviewed, on a thread of its own; dropped or stopped, the engine stops too.
@@ -156,37 +83,19 @@ impl Drop for Reviewer {
 }
 
 impl Reviewer {
-    /// Reviews `game` as `setup` says. A Game reviewed before (same engine, settings and
-    /// moves) comes from the cache at once.
+    /// Reviews `game` as `setup` says.
     pub fn start(setup: &Setup, game: &Position) -> Reviewer {
-        let settings = format!("{:?} {:?} {:?}", setup.limit, setup.options, setup.syzygy);
-        let file = setup.cache.as_ref().map(|d| cached(d, &setup.program.key(), &settings, game));
-        let shared = Arc::new(Mutex::new(Review { total: game.moves.len(), ..Default::default() }));
+        let shared = Arc::new(Mutex::new(Review { engine: setup.engine.clone(), total: game.moves.len(), ..Default::default() }));
         let stop = Arc::new(AtomicBool::new(false));
-        if let Some(r) = file.as_ref().and_then(|f| std::fs::read(f).ok()).and_then(|b| serde_json::from_slice::<Review>(&b).ok())
-            && r.done
-            && r.error.is_none()
-        {
-            *shared.lock().unwrap_or_else(|e| e.into_inner()) = r;
-            return Reviewer { shared, stop };
-        }
         let (s, st, g, setup) = (shared.clone(), stop.clone(), game.clone(), setup.clone());
         std::thread::spawn(move || {
             let r = run(&setup, &g, &s, &st);
             let mut out = s.lock().unwrap_or_else(|e| e.into_inner());
             out.done = true;
-            if let Err(e) = r {
-                if e.kind() != std::io::ErrorKind::Interrupted {
-                    out.error = Some(e.to_string());
-                }
-            } else if let Some(f) = file
-                && std::fs::create_dir_all(f.parent().unwrap_or(Path::new("."))).is_ok()
-                && let Ok(json) = serde_json::to_vec(&*out)
+            if let Err(e) = r
+                && e.kind() != std::io::ErrorKind::Interrupted
             {
-                let _ = std::fs::write(&f, json);
-                if let Some(dir) = f.parent() {
-                    keep_newest(dir, KEPT);
-                }
+                out.error = Some(e.to_string());
             }
         });
         Reviewer { shared, stop }
@@ -202,189 +111,263 @@ impl Reviewer {
     }
 }
 
+fn io(e: bragd_positions::Error) -> std::io::Error {
+    std::io::Error::other(e.to_string())
+}
+
+/// What a review knows of each position: its Evaluation, and for one the Engine thought about
+/// here, how much worse its second choice was (from the mover's side).
+struct Known {
+    evals: Vec<Option<Evaluation>>,
+    gaps: Vec<Option<f64>>,
+}
+
 fn run(setup: &Setup, game: &Position, shared: &Mutex<Review>, stop: &AtomicBool) -> std::io::Result<()> {
     let halt = || stop.load(Ordering::Relaxed);
-    let mut engine = Engine::start(&setup.program, setup.protocol, Duration::from_secs(30), &halt)?;
-    // Options it does not take: the live analysis says so; the Game is reviewed without them.
-    engine.configure(&setup.options, setup.syzygy.as_deref())?;
-    shared.lock().unwrap_or_else(|e| e.into_inner()).engine = engine.about().name.clone();
-    // The position before each move: its score, the engine's line, and how much worse its
-    // second choice is (from the mover's side).
-    let mut before: Option<(i32, Vec<String>, Option<i32>)> = None;
-    for i in 0..=game.moves.len() {
+    let n = game.moves.len();
+    if setup.keys.len() != n + 1 {
+        return Err(std::io::Error::other(format!("{} position keys for {n} moves", setup.keys.len())));
+    }
+    let mut store = setup.store.as_deref().map(Store::open).transpose().map_err(io)?;
+    // First what the store has, at once; then the Engine for the rest.
+    let mut known = Known { evals: vec![None; n + 1], gaps: vec![None; n + 1] };
+    if let Some(s) = &store {
+        for (i, k) in setup.keys.iter().enumerate() {
+            known.evals[i] = s.shown(&setup.family, &setup.variant, *k, &setup.engine).map_err(io)?;
+        }
+    }
+    // Until the Engine starts, if it must, the review is by the Engine the store names.
+    if let Some(e) = known.evals.iter().flatten().next() {
+        shared.lock().unwrap_or_else(|e| e.into_inner()).engine = e.edition.version.clone();
+    }
+    for i in 0..n {
+        annotate(setup, game, &known, store.as_mut(), shared, i)?;
+    }
+    let mut engine: Option<(Engine, Edition)> = None;
+    for i in 0..=n {
+        if known.evals[i].is_some() {
+            continue;
+        }
+        if halt() {
+            return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "stopped"));
+        }
+        let (e, edition) = match &mut engine {
+            Some(e) => e,
+            None => {
+                let mut e = Engine::start(&setup.program, setup.protocol, Duration::from_secs(30), &halt)?;
+                // Options it does not take: the live analysis says so; the Game is reviewed without them.
+                e.configure(&setup.options, setup.syzygy.as_deref())?;
+                let edition = crate::edition::of(&setup.engine, e.about(), &setup.program);
+                shared.lock().unwrap_or_else(|e| e.into_inner()).engine = e.about().name.clone();
+                engine.insert((e, edition))
+            }
+        };
         let pos = Position { moves: game.moves[..i].to_vec(), ..game.clone() };
-        let a = think(&mut engine, &pos, setup.limit, 2, &halt, &mut |_| {})?;
+        let a = think(e, &pos, setup.limit, 2, &halt, &mut |_| {})?;
+        let score = |l: usize| a.lines.get(l).and_then(|l| l.score).map(bragd_positions::Score::from);
+        // No score at all: no move, so nothing to judge it by.
+        let Some(best) = score(0) else { continue };
         let first = pos.first_to_move();
-        let score = |n: usize| a.lines.get(n).and_then(|l| l.score?.cp());
-        // No score at all: no move, and no mate said: a draw.
-        let v = score(0).unwrap_or(0);
-        let gap = score(0).zip(score(1)).map(|(x, y)| if first { x - y } else { y - x });
-        let line: Vec<String> = a.lines.first().map(|l| l.pv.iter().take(6).cloned().collect()).unwrap_or_default();
-        let mut r = shared.lock().unwrap_or_else(|e| e.into_inner());
-        match before.take() {
-            None => r.start = Some(v),
-            Some((prev, best, only)) => {
-                let played = &game.moves[i - 1];
-                let played_best = best.first() == Some(played);
-                r.plies.push(Ply {
-                    index: i - 1,
-                    cp: v,
-                    eval: shown(v),
-                    mark: mark(prev, v, !first, only.filter(|_| played_best)),
-                    best: if played_best { vec![] } else { best },
-                });
+        known.gaps[i] = score(1).and_then(|second| annotation::gap(best, second, first));
+        let eval = Evaluation {
+            family: setup.family.clone(),
+            variant: setup.variant.clone(),
+            key: setup.keys[i],
+            edition: edition.clone(),
+            score: best,
+            depth: a.depth,
+            line: a.lines[0].pv.iter().take(LINE).cloned().collect::<Vec<_>>().join(" "),
+            time: now(),
+        };
+        if let Some(s) = &mut store {
+            s.put(&eval).map_err(io)?;
+        }
+        known.evals[i] = Some(eval);
+        for m in [i.wrapping_sub(1), i] {
+            if m < n {
+                annotate(setup, game, &known, store.as_mut(), shared, m)?;
             }
         }
-        before = Some((v, line, gap));
     }
     Ok(())
 }
 
-/// The Game written out with its review, in PGN's way: `tags` (`Annotator` the engine), then
-/// `moves` as shown (SAN for chess), numbered from `number` with the first Side moving first
-/// when `first`; on each reviewed move its mark (a NAG), its evaluation as `[%eval 0.35]`, and
-/// for a marked move the engine's line as a variation, as `line` writes it (its moves as shown,
-/// numbered), from the move's index and the engine's moves.
-pub fn annotated(tags: &[(String, String)], review: &Review, moves: &[String], number: u32, first: bool, line: impl Fn(usize, &[String]) -> Option<String>) -> String {
-    let esc = |v: &str| v.replace('\\', "\\\\").replace('"', "\\\"");
-    let mut out = String::new();
-    for (k, v) in tags.iter().filter(|(k, _)| !k.eq_ignore_ascii_case("Annotator")) {
-        out.push_str(&format!("[{k} \"{}\"]\n", esc(v)));
-    }
-    out.push_str(&format!("[Annotator \"{}\"]\n\n", esc(&review.engine)));
-    let result = tags.iter().find(|(k, _)| k.eq_ignore_ascii_case("Result")).map_or("*", |(_, v)| v.as_str());
-    let mut words: Vec<String> = vec![];
-    let (mut n, mut mover_first, mut after_note) = (number, first, true);
-    for (i, mv) in moves.iter().enumerate() {
-        if mover_first {
-            words.push(format!("{n}."));
-        } else if after_note {
-            words.push(format!("{n}..."));
-        }
-        words.push(mv.clone());
-        after_note = false;
-        if let Some(p) = review.plies.iter().find(|p| p.index == i) {
-            words.extend(p.mark.map(|m| format!("${m}")));
-            words.push(format!("{{[%eval {}]}}", pgn_eval(p.cp)));
-            if p.mark.is_some_and(|m| m != 5)
-                && !p.best.is_empty()
-                && let Some(text) = line(i, &p.best)
-            {
-                words.push(format!("({text})"));
+fn now() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64)
+}
+
+/// Move `i`'s Annotation, once both Evaluations around it are known: the store's, when it has
+/// one as deep for the same Edition, else made here and put into the store. Shown in `shared`.
+fn annotate(setup: &Setup, game: &Position, known: &Known, store: Option<&mut Store>, shared: &Mutex<Review>, i: usize) -> std::io::Result<()> {
+    let (Some(before), Some(after)) = (&known.evals[i], &known.evals[i + 1]) else { return Ok(()) };
+    let mv = &game.moves[i];
+    let depth = before.depth.min(after.depth);
+    let stored = match &store {
+        Some(s) => s.annotation(&setup.family, &setup.variant, setup.keys[i], mv, &setup.engine).map_err(io)?,
+        None => None,
+    };
+    let note = match stored.filter(|a| a.edition == before.edition && a.depth >= depth) {
+        Some(a) => a,
+        None => {
+            let a = made(setup, game, known, i, before, after);
+            if let Some(s) = store {
+                s.put_annotation(&a).map_err(io)?;
             }
-            after_note = true;
+            a
         }
-        if !mover_first {
-            n += 1;
-        }
-        mover_first = !mover_first;
+    };
+    let ply = Ply {
+        index: i,
+        eval: Score::from(after.score).shown(),
+        mark: note.mark,
+        better: note.better.split_whitespace().map(String::from).collect(),
+        motifs: note.motifs,
+    };
+    let mut r = shared.lock().unwrap_or_else(|e| e.into_inner());
+    match r.plies.binary_search_by_key(&i, |p| p.index) {
+        Ok(at) => r.plies[at] = ply,
+        Err(at) => r.plies.insert(at, ply),
     }
-    words.push(result.to_string());
-    let mut text = String::new();
-    for w in words {
-        if !text.is_empty() && text.len() + 1 + w.len() > 79 {
-            out.push_str(&text);
-            out.push('\n');
-            text.clear();
+    Ok(())
+}
+
+/// Move `i`'s Annotation from the Evaluations before and after it.
+fn made(setup: &Setup, game: &Position, known: &Known, i: usize, before: &Evaluation, after: &Evaluation) -> Annotation {
+    let mv = &game.moves[i];
+    let mover_first = Position { moves: game.moves[..i].to_vec(), ..game.clone() }.first_to_move();
+    let played_best = before.line.split_whitespace().next() == Some(mv.as_str());
+    let mark = annotation::mark(before.score, after.score, mover_first, known.gaps[i].filter(|_| played_best));
+    let mut motifs = vec![];
+    if setup.family == "chess"
+        && matches!(setup.variant.as_str(), "chess" | "chess960")
+        && let Some(fen) = setup.positions.get(i)
+        && let Ok(board) = rules_chess::Position::from_fen(fen)
+    {
+        let bad = matches!(mark, Some(Mark::Blunder | Mark::Mistake | Mark::Inaccuracy));
+        for m in rules_chess::motifs::motifs(&board, mv) {
+            match m {
+                rules_chess::motifs::Motif::Fork => motifs.push(Motif::Fork),
+                rules_chess::motifs::Motif::Pin => motifs.push(Motif::Pin),
+                // A piece left where it can be taken is news only when the Engine says it costs.
+                rules_chess::motifs::Motif::Hangs if bad => motifs.push(Motif::Hangs),
+                rules_chess::motifs::Motif::Hangs => {}
+            }
         }
-        if !text.is_empty() {
-            text.push(' ');
+        if !played_best && annotation::missed_mate(before.score, after.score, mover_first) {
+            motifs.push(Motif::MissedMate);
         }
-        text.push_str(&w);
     }
-    out.push_str(&text);
-    out.push('\n');
-    out
+    Annotation {
+        family: setup.family.clone(),
+        variant: setup.variant.clone(),
+        key: setup.keys[i],
+        mv: mv.clone(),
+        edition: before.edition.clone(),
+        mark,
+        better: if played_best { String::new() } else { before.line.clone() },
+        motifs,
+        depth: before.depth.min(after.depth),
+        time: before.time.max(after.time),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::Score;
 
-    #[test]
-    fn marks_by_what_is_lost() {
-        // White from +0.30 to −0.10: 40 lost, nothing; to −0.30: 60, ?!; to −1.00: ?; to −3.00: ??.
-        assert_eq!(mark(30, -10, true, None), None);
-        assert_eq!(mark(30, -30, true, None), Some(6));
-        assert_eq!(mark(30, -100, true, None), Some(2));
-        assert_eq!(mark(30, -300, true, None), Some(4));
-        // Black's side: White's score going up is Black losing.
-        assert_eq!(mark(-30, 300, false, None), Some(4));
-        // Winning a little less in a won position is no blunder.
-        assert_eq!(mark(2000, 1000, true, None), None);
-        // The only move that holds, not in a position already won.
-        assert_eq!(mark(0, 0, true, Some(400)), Some(5));
-        assert_eq!(mark(0, 0, true, Some(200)), None);
-        assert_eq!(mark(900, 900, true, Some(400)), None);
-        assert_eq!((shown(35), shown(-120), shown(Score::Mate(3).cp().unwrap()), shown(Score::Mate(-2).cp().unwrap())), ("+0.35".into(), "−1.20".into(), "#3".into(), "#−2".into()));
-        assert!(share(300) > 0.7 && share(-300) < 0.3 && (share(0) - 0.5).abs() < 1e-9);
+    /// A fake engine that says +0.20 for the side to move, but +5.00 for Black once White has
+    /// played g1f3, and writes a line to `count` for each position it thinks about.
+    #[cfg(unix)]
+    fn fake(d: &std::path::Path) -> PathBuf {
+        let count = d.join("count");
+        crate::fake_program(
+            d,
+            "engine",
+            &format!(
+                "s=20; while read l; do case \"$l\" in uci) echo 'id name Fake 2'; echo uciok;; isready) echo readyok;; position*g1f3*) s=500;; position*) s=20;; go*) echo go >> '{}'; echo \"info depth 3 multipv 1 score cp $s pv e7e5 g1f3\"; echo 'bestmove e7e5';; quit) exit 0;; esac; done",
+                count.display()
+            ),
+        )
     }
 
-    #[test]
-    fn the_review_cache_keeps_its_newest() {
-        let d = crate::test_dir("review-kept");
-        for (i, days) in [(0, 3), (1, 2), (2, 1)] {
-            let f = d.join(format!("{i}.json"));
-            std::fs::write(&f, "{}").unwrap();
-            let t = std::time::SystemTime::now() - Duration::from_secs(days * 86400);
-            std::fs::File::options().write(true).open(&f).unwrap().set_modified(t).unwrap();
+    #[cfg(unix)]
+    fn wait(r: &Reviewer) -> Review {
+        let t = std::time::Instant::now();
+        while !r.now().done && t.elapsed() < Duration::from_secs(20) {
+            std::thread::sleep(Duration::from_millis(10));
         }
-        keep_newest(&d, 2);
-        assert!(!d.join("0.json").exists());
-        assert!(d.join("1.json").exists() && d.join("2.json").exists());
+        r.now()
+    }
+
+    fn setup(d: &std::path::Path, p: &std::path::Path, keys: &[u64]) -> Setup {
+        Setup {
+            engine: "fake".into(),
+            program: Program::Installed { path: p.to_path_buf(), args: vec![] },
+            protocol: Protocol::Uci,
+            options: OptionStore::default(),
+            syzygy: None,
+            limit: Limit::Time(50),
+            store: Some(d.join("positions.sqlite")),
+            family: "chess".into(),
+            variant: "chess".into(),
+            keys: keys.to_vec(),
+            positions: vec![],
+        }
+    }
+
+    #[cfg(unix)]
+    fn thought(d: &std::path::Path) -> usize {
+        std::fs::read_to_string(d.join("count")).unwrap_or_default().lines().count()
+    }
+
+    /// A Game reviewed through the store: marked, kept with its Edition, shown again with the
+    /// engine gone, and a second Game thinks only about the position the first had not.
+    #[cfg(unix)]
+    #[test]
+    fn a_game_reviewed_through_the_store() {
+        let d = crate::test_dir("review");
+        let p = fake(&d);
+        let game = Position::new("chess", &["e2e4", "e7e5", "g1f3"]);
+        let r = wait(&Reviewer::start(&setup(&d, &p, &[1, 2, 3, 4]), &game));
+        assert_eq!((r.engine.as_str(), r.plies.len(), r.error.as_deref()), ("Fake 2", 3, None));
+        assert_eq!(thought(&d), 4);
+        assert_eq!(r.plies.iter().map(|p| p.eval.as_str()).collect::<Vec<_>>(), ["−0.20", "+0.20", "−5.00"]);
+        assert_eq!(r.plies.iter().map(|p| p.mark).collect::<Vec<_>>(), [None, None, Some(Mark::Blunder)]);
+        assert!(r.plies[1].better.is_empty(), "e7e5 was the engine's move");
+        assert_eq!(r.plies[2].better, ["e7e5", "g1f3"]);
+
+        let store = Store::open(&d.join("positions.sqlite")).unwrap();
+        let e = store.shown("chess", "chess", 4, "fake").unwrap().unwrap();
+        assert_eq!((e.edition.version.as_str(), e.score, e.depth), ("Fake 2", bragd_positions::Score::Cp(-500), 3));
+        let a = store.annotation("chess", "chess", 3, "g1f3", "fake").unwrap().unwrap();
+        assert_eq!(a.mark, Some(Mark::Blunder));
+        drop(store);
+
+        // Again with the engine gone: all from the store.
+        std::fs::remove_file(&p).unwrap();
+        let again = wait(&Reviewer::start(&setup(&d, &p, &[1, 2, 3, 4]), &game));
+        assert_eq!((again.error.as_deref(), again.plies.clone()), (None, r.plies.clone()));
+        assert_eq!(again.engine, "Fake 2", "named by the store's Edition, never started");
+
+        // Another Game through the same positions: one new position to think about.
+        let p = fake(&d);
+        let other = Position::new("chess", &["e2e4", "e7e5", "d2d4"]);
+        let r = wait(&Reviewer::start(&setup(&d, &p, &[1, 2, 3, 5]), &other));
+        assert_eq!((r.error.as_deref(), r.plies.len()), (None, 3));
+        assert_eq!(thought(&d), 5);
         std::fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
-    fn an_annotated_game() {
-        let r = Review {
-            engine: "Fake \"1\"".into(),
-            start: Some(30),
-            plies: vec![
-                Ply { index: 0, cp: 30, eval: "+0.30".into(), mark: None, best: vec![] },
-                Ply { index: 5, cp: Score::Mate(5).cp().unwrap(), eval: "#5".into(), mark: Some(4), best: vec!["g7g6".into(), "h5f3".into()] },
-            ],
-            total: 7,
-            done: true,
-            error: None,
-        };
-        let sans: Vec<String> = ["e4", "e5", "Qh5", "Nc6", "Bc4", "Nf6", "Qxf7#"].map(String::from).to_vec();
-        let tags = [("White", "A"), ("Annotator", "Old"), ("Result", "1-0")].map(|(a, b)| (a.to_string(), b.to_string()));
-        let text = annotated(&tags, &r, &sans, 1, true, |i, best| (i == 5 && best[0] == "g7g6").then(|| "3... g6 4. Qf3".to_string()));
-        let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
-        assert!(text.contains("[Annotator \"Fake \\\"1\\\"\"]") && !text.contains("Old"), "{text}");
-        assert!(flat.contains("1. e4 {[%eval 0.30]} 1... e5 2. Qh5 Nc6 3. Bc4 Nf6 $4 {[%eval #5]} (3... g6 4. Qf3) 4. Qxf7# 1-0"), "{text}");
-    }
-
-    /// The whole Game by a fake engine that says +0.20 for the side to move: every position the
-    /// same for White, so no marks; Black's best move played; then from the cache.
-    #[cfg(unix)]
-    #[test]
-    fn a_game_reviewed_and_cached() {
-        let d = crate::test_dir("review");
-        let p = crate::fake_program(&d, "engine", "while read l; do case \"$l\" in uci) echo 'id name Fake 2'; echo uciok;; isready) echo readyok;; go*) echo 'info depth 3 multipv 1 score cp 20 pv e7e5'; echo 'bestmove e7e5';; quit) exit 0;; esac; done");
-        let setup = Setup { program: Program::Installed { path: p.clone(), args: vec![] }, protocol: Protocol::Uci, options: OptionStore::default(), syzygy: None, limit: Limit::Time(50), cache: Some(d.join("cache")) };
-        let game = Position::new("chess", &["e2e4", "e7e5", "g1f3"]);
-        let wait = |r: &Reviewer| {
-            let t = std::time::Instant::now();
-            while !r.now().done && t.elapsed() < Duration::from_secs(20) {
-                std::thread::sleep(Duration::from_millis(10));
-            }
-            r.now()
-        };
-        let r = wait(&Reviewer::start(&setup, &game));
-        assert_eq!((r.engine.as_str(), r.plies.len(), r.error.as_deref(), r.start), ("Fake 2", 3, None, Some(20)));
-        assert_eq!(r.plies.iter().map(|p| p.cp).collect::<Vec<_>>(), [-20, 20, -20]);
-        assert!(r.plies.iter().all(|p| p.mark.is_none()), "{r:?}");
-        assert!(r.plies[1].best.is_empty(), "e7e5 was the engine's move");
-        assert_eq!(r.plies[0].best, ["e7e5"]);
-        // From the cache, even with the engine gone; another limit is another review.
-        std::fs::remove_file(&p).unwrap();
-        let again = Reviewer::start(&setup, &game).now();
-        assert!(again.done && again.plies.len() == 3, "{again:?}");
-        let other = Setup { limit: Limit::Depth(5), ..setup.clone() };
-        assert_ne!(cached(Path::new("/c"), "x", &format!("{:?}", other.limit), &game), cached(Path::new("/c"), "x", &format!("{:?}", setup.limit), &game));
+    fn keys_that_do_not_fit_the_moves_are_an_error() {
+        let d = crate::test_dir("review-keys");
+        let s = Setup { keys: vec![1], ..setup(&d, &d.join("none"), &[]) };
+        let r = Reviewer::start(&s, &Position::new("chess", &["e2e4"]));
+        let t = std::time::Instant::now();
+        while !r.now().done && t.elapsed() < Duration::from_secs(20) {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(r.now().error.is_some_and(|e| e.contains("1 position keys for 1 moves")));
         std::fs::remove_dir_all(&d).unwrap();
     }
 }
