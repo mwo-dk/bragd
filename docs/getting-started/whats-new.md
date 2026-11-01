@@ -4,7 +4,7 @@
 
 After an upgrade, Bragd shows a tour card for each feature that came since the version you last saw. The cards open in the same frame as the install wizard, one at a time. Closing them marks them seen, so each shows once. *What's new* in the sidebar lists every version with its cards, newest first, whenever you want them again.
 
-![A What's new card in the wizard's frame: "What's new · 1 of 6" in the title, the version, the card's title and its text](../screenshots/whats-new-card-1100.png)
+![A What's new card in the wizard's frame: "What's new · 1 of 10" in the title, the version, the card's title and its text](../screenshots/whats-new-card-1100.png)
 *A tour card after an upgrade.*
 
 ![The What's new page: the heading for the version, then one panel per card](../screenshots/whats-new-1100.png)
