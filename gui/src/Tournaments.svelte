@@ -14,7 +14,15 @@
   let error = $state("");
   let note = $state("");
   const today = () => new Date().toISOString().slice(0, 10);
-  let fresh = $state({ name: "", system: "dutch", rounds: 7, date: today(), place: "" });
+  const blank = () => ({ name: "", system: "dutch", rounds: 7, date: today(), place: "", variant: variants[0]?.key ?? "chess", handicap: false, reduction: 0, max: 9, matchTo: 7 });
+  /** The Variants of the Families turned on. @type {any[]} */
+  let variants = $state([]);
+  let fresh = $state(blank());
+  api.tournamentVariants().then((v) => {
+    variants = v;
+    if (!v.some((x) => x.key === fresh.variant)) fresh.variant = v[0]?.key ?? "chess";
+  });
+  const family = $derived(variants.find((v) => v.key === fresh.variant)?.family);
   /** The guest being added: typed in, or found in a rating list. */
   let guest = $state({ name: "", rating: "", fide_id: "", federation: "", title: "" });
   let member = $state(/** @type {number|null} */ (null));
@@ -65,10 +73,12 @@
   async function create(/** @type {SubmitEvent} */ e) {
     e.preventDefault();
     const system = fresh.system === "dutch" ? { kind: "dutch" } : { kind: "round_robin", double: fresh.system === "double" };
-    const v = await run(() => api.tournamentNew(by, fresh.name, system, Number(fresh.rounds), fresh.date, fresh.place));
+    const handicap = family === "go" && fresh.handicap ? { reduction: Number(fresh.reduction), max: Number(fresh.max) } : null;
+    const matchTo = family === "backgammon" ? Number(fresh.matchTo) : null;
+    const v = await run(() => api.tournamentNew(by, fresh.name, system, Number(fresh.rounds), fresh.date, fresh.place, fresh.variant, handicap, matchTo));
     if (v) {
       onclub(v);
-      fresh = { name: "", system: "dutch", rounds: 7, date: today(), place: "" };
+      fresh = blank();
       if (v.tournaments.length) open(v.tournaments[0].id);
     }
   }
@@ -169,11 +179,11 @@
         {#each round.games as g, b (b)}
           <tr>
             <td class="num">{b + 1}</td>
-            <td>{name(g.white)}</td>
+            <td>{name(g.white)}{#if g.handicap}<span class="dim"> · {g.handicap === 1 ? t("tournaments.handicap_one") : t("tournaments.handicap_n", { n: num(g.handicap) })}</span>{/if}</td>
             <td>
               <select aria-label={t("tournaments.result_of", { white: name(g.white), black: name(g.black) })} value={g.result ?? ""} disabled={!official} onchange={(e) => setResult(r, b, e.currentTarget.value)}>
                 <option value="">–</option>
-                {#each OUTCOMES as o}<option value={o}>{t(`tournaments.outcome.${o}`)}</option>{/each}
+                {#each OUTCOMES.filter((o) => !(T.match_to && o === "draw")) as o}<option value={o}>{t(`tournaments.outcome.${o}`)}</option>{/each}
               </select>
             </td>
             <td>{name(g.black)}</td>
@@ -213,7 +223,25 @@
         {#if fresh.system === "dutch"}<label>{t("tournaments.rounds")} <input type="number" min="1" max="99" required bind:value={fresh.rounds} /></label>{/if}
         <label>{t("tournaments.date")} <input type="date" bind:value={fresh.date} /></label>
         <label>{t("tournaments.place")} <input type="text" bind:value={fresh.place} /></label>
+        {#if variants.length > 1}
+          <label
+            >{t("tournaments.variant")}
+            <select bind:value={fresh.variant}>
+              {#each variants as v (v.key)}<option value={v.key}>{v.name}</option>{/each}
+            </select>
+          </label>
+        {/if}
+        {#if family === "backgammon"}<label>{t("tournaments.match_to")} <input type="number" min="1" max="99" required bind:value={fresh.matchTo} /></label>{/if}
       </div>
+      {#if family === "go"}
+        <label class="check"><input type="checkbox" bind:checked={fresh.handicap} /> {t("tournaments.handicap")}</label>
+        {#if fresh.handicap}
+          <div class="grid">
+            <label>{t("tournaments.handicap_reduction")} <input type="number" min="0" max="9" bind:value={fresh.reduction} /></label>
+            <label>{t("tournaments.handicap_max")} <input type="number" min="0" max="9" bind:value={fresh.max} /></label>
+          </div>
+        {/if}
+      {/if}
       <p class="dim">{t("tournaments.new_hint")}</p>
       <div class="row">
         <button class="primary" disabled={!official}>{t("tournaments.create")}</button>
@@ -224,7 +252,7 @@
     <div class="head">
       <div>
         <h4>{T.name}</h4>
-        <p class="dim">{[T.date, T.place, t(systemKey(T.system)), t("tournaments.progress", { paired: num(T.played.length), rounds: num(T.rounds), players: num(T.players.length) })].filter(Boolean).join(" · ")}</p>
+        <p class="dim">{[T.date, T.place, T.variant === "chess" ? "" : tv.variant, T.match_to ? t("tournaments.match_of", { points: num(T.match_to) }) : "", t(systemKey(T.system)), t("tournaments.progress", { paired: num(T.played.length), rounds: num(T.rounds), players: num(T.players.length) })].filter(Boolean).join(" · ")}</p>
       </div>
       <div class="row">
         <button onclick={() => (tv = null)}>{t("clubs.close")}</button>

@@ -5,6 +5,7 @@
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
   import Tournaments from "./Tournaments.svelte";
+  import Leagues from "./Leagues.svelte";
 
   /** @type {{ snap: any, go: (page: any) => void }} */
   let { snap, go } = $props();
@@ -261,6 +262,7 @@
     {/if}
 
     <Tournaments {club} {by} {role} onclub={show} />
+    <Leagues {club} {by} {role} onclub={show} />
 
     <form class="panel row" onsubmit={(e) => (e.preventDefault(), change(() => api.clubSystem(by, system.value, system.why)))}>
       <label for="club-system">{t("clubs.system")}</label>

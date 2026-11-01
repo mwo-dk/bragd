@@ -4,6 +4,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod clubs;
+mod leagues;
 mod tournaments;
 mod help;
 mod databases;
@@ -378,7 +379,15 @@ fn main() {
             clubs::club_take_over,
             clubs::rating_search,
             tournaments::tournament_new,
+            tournaments::tournament_variants,
             tournaments::tournament_view,
+            leagues::league_new,
+            leagues::league_view,
+            leagues::league_remove,
+            leagues::league_add_team,
+            leagues::league_pair,
+            leagues::league_line_up,
+            leagues::league_result,
             tournaments::tournament_remove,
             tournaments::tournament_register,
             tournaments::tournament_status,

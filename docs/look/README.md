@@ -21,4 +21,4 @@ How Bragd looks and which language it speaks: the Theme for the app's colours, t
 | File picker | `look.file_picker` | `"auto"` |
 
 ---
-[← Previous: Tournaments](../clubs/tournaments.md) · [Next: Themes →](themes.md)
+[← Previous: Team Leagues](../clubs/leagues.md) · [Next: Themes →](themes.md)

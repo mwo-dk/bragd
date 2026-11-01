@@ -32,6 +32,7 @@ pub const CARDS: &[Card] = &[
     card("1.0.0", "clubs"),
     card("1.0.0", "matches"),
     card("1.0.0", "tournaments"),
+    card("1.0.0", "leagues"),
 ];
 
 /// Whether the card shows to the user of `cfg`: its feature concerns one of their Families.

@@ -13,6 +13,7 @@ A Club runs its own Tournaments: a Swiss paired by FIDE's Dutch rules, or a sing
 ## Contents
 
 - [How to reach it](#how-to-reach-it)
+- [Every Family](#every-family)
 - [On the night](#on-the-night)
 - [Changing a pairing](#changing-a-pairing)
 - [Results and corrections](#results-and-corrections)
@@ -29,11 +30,22 @@ A Club runs its own Tournaments: a Swiss paired by FIDE's Dutch rules, or a sing
 
 | Action | What it does |
 |---|---|
-| **Create Tournament** | Sets up a Tournament from its name, pairing system, number of Rounds (Swiss), first day and place |
+| **Create Tournament** | Sets up a Tournament from its name, pairing system, number of Rounds (Swiss), first day, place and Variant |
 | **Open a bundle…** | Adds the Tournament in a `.bragd-tournament` bundle to the open Club |
 | **Delete Tournament** | Deletes it with its Rounds and results, after asking |
 
 A Tournament has five tabs: **Players**, **Rounds**, **Standings**, **Publish and export** and **Log**.
+
+## Every Family
+
+A Tournament can be played in any Variant you have turned on. **Variant** shows on the form when more than one is on, and the Tournament names its Variant under its title. Two Families have options of their own:
+
+| Family | Option | What it does |
+|---|---|---|
+| Go | **Handicap games** | The weaker player of each pair takes Black. Every 100 rating points between the two is one stone, as on the European Go Federation's list, less **Stones fewer**, and at most **Most stones** (9 at the most). A gap of one stone is played with no stones, Black first and komi 0.5. From two stones up, Black gets the stones and White komi 0.5. The board shows its handicap beside White's name. Games within 50 points of each other are even, with the colours the pairing gave |
+| Backgammon | **Matches to (points)** | Each pairing is a match to that many points, from 1 to 99. Its result is the match's winner, so a draw cannot be entered |
+
+The Variant and these options are set when the Tournament is created and cannot change once Round 1 is paired. The PGN export names the Variant and each game's handicap.
 
 ## On the night
 
@@ -120,6 +132,10 @@ Tournaments have no settings. Each Tournament's system, Rounds and tiebreaks are
 
 ## Questions
 
+#### Why does a go player rated 1850 get two stones against 2000?
+
+The gap is 150 points, and Bragd rounds it to the nearest 100: two stones. Set **Stones fewer** to 1 if your club plays one stone fewer than the full difference.
+
 #### Why is Pair Round greyed out?
 
 The reason shows beside it: a result of the last Round is missing, every Round has been paired, or fewer than two players are checked in.
@@ -141,4 +157,4 @@ Since March 2026, C.07 caps the score that counts for a player's own unplayed Ro
 In Bragd's cache folder, as `pairings.html`, written each time you press **Show on a second screen**. The window shows that page and nothing else.
 
 ---
-[← Previous: Clubs](clubs.md) · [Next: Look →](../look/README.md)
+[← Previous: Clubs](clubs.md) · [Next: Team Leagues →](leagues.md)

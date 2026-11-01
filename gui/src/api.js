@@ -148,8 +148,19 @@ export const ratingSearch = (/** @type {string} */ query) => invoke("rating_sear
 // Tournament's view back; creating, removing and importing give the Club's.
 /** @typedef {number|null} By */
 /** @returns {Promise<any>} */
-export const tournamentNew = (/** @type {By} */ by, /** @type {string} */ name, /** @type {any} */ system, /** @type {number} */ rounds, /** @type {string} */ date, /** @type {string} */ place) =>
-  invoke("tournament_new", { by, name, system, rounds, date, place });
+export const tournamentNew = (
+  /** @type {By} */ by,
+  /** @type {string} */ name,
+  /** @type {any} */ system,
+  /** @type {number} */ rounds,
+  /** @type {string} */ date,
+  /** @type {string} */ place,
+  /** @type {string} */ variant,
+  /** @type {any} */ handicap,
+  /** @type {number|null} */ matchTo,
+) => invoke("tournament_new", { by, name, system, rounds, date, place, variant, handicap, matchTo });
+/** The Variants a Tournament can be played in. @returns {Promise<any[]>} */
+export const tournamentVariants = () => invoke("tournament_variants");
 /** @returns {Promise<any>} */
 export const tournamentView = (/** @type {number} */ id) => invoke("tournament_view", { id });
 /** @returns {Promise<any>} */
@@ -182,3 +193,30 @@ export const tournamentExport = (/** @type {number} */ id, /** @type {string} */
 export const tournamentImport = (/** @type {By} */ by) => invoke("tournament_import", { by });
 /** Shows a Round's pairings in a window of their own. */
 export const tournamentShow = (/** @type {number} */ id, /** @type {number} */ round) => invoke("tournament_show", { id, round });
+
+// Team Leagues of the open Club (gui/src-tauri/src/leagues.rs). Each change gives the League's
+// view back; creating and removing give the Club's.
+/** @returns {Promise<any>} */
+export const leagueNew = (/** @type {By} */ by, /** @type {string} */ name, /** @type {number} */ boards, /** @type {boolean} */ double, /** @type {string} */ date) =>
+  invoke("league_new", { by, name, boards, double, date });
+/** @returns {Promise<any>} */
+export const leagueView = (/** @type {number} */ id) => invoke("league_view", { id });
+/** @returns {Promise<any>} */
+export const leagueRemove = (/** @type {By} */ by, /** @type {number} */ id) => invoke("league_remove", { by, id });
+/** @returns {Promise<any>} */
+export const leagueAddTeam = (/** @type {By} */ by, /** @type {number} */ id, /** @type {string} */ name, /** @type {any[]} */ players) => invoke("league_add_team", { by, id, name, players });
+/** @returns {Promise<any>} */
+export const leaguePair = (/** @type {By} */ by, /** @type {number} */ id) => invoke("league_pair", { by, id });
+/** @returns {Promise<any>} */
+export const leagueLineUp = (/** @type {By} */ by, /** @type {number} */ id, /** @type {number} */ round, /** @type {number} */ m, /** @type {boolean} */ away, /** @type {(number|null)[]} */ players) =>
+  invoke("league_line_up", { by, id, round, m, away, players });
+/** @returns {Promise<any>} */
+export const leagueResult = (
+  /** @type {By} */ by,
+  /** @type {number} */ id,
+  /** @type {number} */ round,
+  /** @type {number} */ m,
+  /** @type {number} */ board,
+  /** @type {string|null} */ result,
+  /** @type {string} */ why,
+) => invoke("league_result", { by, id, round, m, board, result, why });

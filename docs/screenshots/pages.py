@@ -286,6 +286,56 @@ def tournaments():
             st.write_text(json.dumps({k: v for k, v in json.loads(st.read_text()).items() if k != "clubs"}))
 
 
+def leagues():
+    """leagues-1100.png (a League of four Teams on its Rounds tab: Round 1 played) and
+    leagues-390.png (its standings)."""
+    def club_page(d):
+        js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+        d.wait(0.4)
+        click(d, "Clubs", "nav")
+    d0 = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/clubs/Skovlunde Skakklub.bragd-club"
+    teams = {"Skovlunde 1": ["Bo Kjær", "Anna Lind"], "Ballerup": ["Peter Dahl", "Sara Holm"], "Herlev": ["Jens Moe", "Lise Berg"], "Ishøj": ["Karl Vang", "Eva Ravn"]}
+    try:
+        with Desktop(size=W1100) as d:
+            club_page(d)
+            fill(d, "Club name", "Skovlunde Skakklub")
+            fill(d, "Your name", "Mette Holm")
+            click(d, "Create Club")
+            fill(d, "League name", "Division 2")
+            fill(d, "Boards per match", "2")
+            click(d, "Create League")
+            d.wait(1)
+            for team, players in teams.items():
+                fill(d, "Team name", team)
+                for p in players:
+                    js(d, f"""const i = document.querySelector('main input[aria-label="A guest\\'s name"]');
+                      i.value = {json.dumps(p)}; i.dispatchEvent(new Event('input', {{bubbles: true}}));""")
+                    d.wait(0.2)
+                    click(d, "Add", "main", nth=1)
+                click(d, "Add Team")
+            click(d, "Rounds", "main")
+            click(d, "Pair Round 1", "main")
+            for k, r in enumerate(["white", "draw", "black", "black"]):
+                result(d, k, r)
+            js(d, "document.querySelector('main [role=tablist]').scrollIntoView()")
+            d.wait(0.5)
+            d.shot(HERE / "leagues-1100.png")
+        with Desktop(size=(390, 844)) as d:
+            club_page(d)
+            click(d, "Skovlunde Skakklub", "main")
+            click(d, "Division 2", "main")
+            click(d, "Standings", "main")
+            js(d, "document.querySelector('main [role=tablist]').scrollIntoView()")
+            d.wait(0.5)
+            d.shot(HERE / "leagues-390.png")
+    finally:
+        for p in (d0, d0.with_name(d0.name + ".lock")):
+            p.unlink(missing_ok=True)
+        st = d0.parent.parent / "state.json"
+        if st.exists():
+            st.write_text(json.dumps({k: v for k, v in json.loads(st.read_text()).items() if k != "clubs"}))
+
+
 def matches():
     """matches-chess-390.png and matches-chess-1100.png: Chess → Engine matches, an SPRT match
     between two stand-ins (fake-uci as Stockfish and as Fruit) played a few Games in the Helper."""
@@ -333,7 +383,7 @@ def wizard():
     state.unlink(missing_ok=True)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes}
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:
