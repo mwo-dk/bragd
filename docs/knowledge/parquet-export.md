@@ -6,7 +6,6 @@ A Library can be written out as a Parquet file, for DuckDB or any other tool tha
 
 ![The Libraries tab with Export to Parquet under the chosen Library's tabs](../screenshots/databases-libraries-1100.png)
 *Databases → Libraries.*
-<!-- screenshot: databases-libraries-1100.png: the Libraries tab with a Library chosen and its Export to Parquet button -->
 
 ## How to reach it
 

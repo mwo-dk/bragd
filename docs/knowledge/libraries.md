@@ -4,7 +4,7 @@
 
 A Library is Bragd's own store of Games: one SQLite file ending in `.bragd`. Imports land in it, and each Game appears once, however many Sources brought it. Every Game remembers its Sources. The default Library is `main.bragd`.
 
-![The Libraries tab: main.bragd listed with its Games, size, Duplicates and Near-duplicates, its Games below, and the Source priority list at the bottom](../screenshots/databases-libraries-1100.png)
+![The Libraries tab: main.bragd listed with its Games, size, Duplicates and Near-duplicates, its tabs and Export to Parquet, its Games below, and the Source priority list at the bottom](../screenshots/databases-libraries-1100.png)
 *Databases → Libraries.*
 
 ## How to reach it

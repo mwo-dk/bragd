@@ -6,7 +6,6 @@ A Slice is a named query over a Library, such as "Grünfeld" or "both players 25
 
 ![The Slice editor: name, players, ECO from and to, dates, lowest rating of both, result, Variant and position fields, Save Slice and Keep as a separate copy, and the Games in the Slice now below](../screenshots/slice-editor-1100.png)
 *Databases → Libraries → a Library → New Slice.*
-<!-- screenshot: slice-editor-1100.png: the Slice editor with the Variant as a list of the Family's Variants (Any, Chess, Chess960, …) -->
 
 ## How to reach it
 
