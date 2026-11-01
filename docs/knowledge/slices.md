@@ -12,7 +12,7 @@ A Slice is a named query over a Library, such as "Grünfeld" or "both players 25
 1. In the sidebar, open a Family and choose **Databases**, then **Libraries**.
 2. Click a Library's name, then **New Slice**. A saved Slice has a button of its own beside it.
 3. Fill in the fields. *Games in this Slice now* updates as you type.
-4. Press **Save Slice**. The Slice is stored in the Library and shows under the Family's **Databases** in the sidebar.
+4. Press **Save Slice**. The Slice is stored in the Library and shows under the Family's **Databases** in the sidebar, and only there: a Slice belongs to its Family, or to its Variant's. An older Slice that names neither shows under the Families whose Games its Library holds.
 5. **Keep as a separate copy** copies the Slice's Games into a new Library beside this one.
 
 | Field | What it matches |

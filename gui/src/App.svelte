@@ -64,7 +64,8 @@
   // A Tip at start and after a while without input; Rust decides whether one is due.
   const IDLE = 2 * 60 * 1000;
   const askTip = () => {
-    if (!guide.tip) api.tipNext(guide.wizard || guide.cards.length > 0 || guide.live).then((tip) => (guide.tip = tip));
+    // A Tip waits while a notice or hint is on screen: it is counted as shown when asked for.
+    if (!guide.tip && !guide.notices.length) api.tipNext(guide.wizard || guide.cards.length > 0 || guide.live).then((tip) => (guide.tip = tip));
   };
   let idle = setTimeout(askTip, IDLE);
   const active = () => {

@@ -48,7 +48,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Export to Parquet](knowledge/parquet-export.md) | A Library as a Parquet file for DuckDB |
 | [Sources](knowledge/sources.md) | TWIC, custom URLs, the listed big Sources, schedules |
 | [Strip rules](knowledge/strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
-| [Disk watch](knowledge/disk-watch.md) | Disk use, limits, warnings and what happens when one is crossed |
+| [Disk watch](knowledge/disk-watch.md) | What Bragd keeps on disk, limits, warnings and what happens when one is crossed |
 | [The Helper](knowledge/helper.md) | The background process, its jobs, *Start with my session*, battery |
 
 ## [Engines](engines/README.md)

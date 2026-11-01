@@ -2,12 +2,12 @@
 
 # Every setting
 
-Settings has eight areas: Overview, Game families, Look, Engines, Knowledge, Online, Tips, and Privacy and updates. An item that concerns one Game family only, such as the tablebase items for chess, leaves Settings while that Family is off. Each item is saved to `config.toml` the moment you change it. This page lists every item by area, with the name the app gives it and the key it writes.
+Settings has eight areas: Overview, Game families, Look, Engines, Knowledge, Online, Tips, and Privacy and updates. An item that concerns one Game family only, such as the tablebase items for chess, leaves Settings while that Family is off, and an area left with nothing to show is not listed: without chess, Online is gone. Each item is saved to `config.toml` the moment you change it. This page lists every item by area, with the name the app gives it and the key it writes.
 
 ![Settings at Overview: the areas on the left, the line with the version and how many Game families and Variants are on, and the buttons Run the install wizard again, Open config.toml and Suggest a better translation](../screenshots/settings-overview-1100.png)
 *Settings at Overview.*
 
-![Settings at Privacy and updates: the switch Check for a new version with its hint, then the Disk use page with its limits](../screenshots/settings-privacy-1100.png)
+![Settings at Privacy and updates: the switch Check for a new version with its hint](../screenshots/settings-privacy-1100.png)
 *Settings at Privacy and updates.*
 
 ## Contents
@@ -63,7 +63,7 @@ One switch per Game family, and under it one per Variant. All are on by default 
 | `theme` | Theme | `look.theme` | The app's colours, and with some Themes their own shapes. Racing green is the default |
 | `look` | Look | `look.look` | The shapes and chrome laid over the Theme's colours. Empty: the Theme's own |
 | `board_theme` | Board theme | `look.board_theme` | The four colours of every board. Match theme takes them from the Theme |
-| `file_picker` | File picker | `look.file_picker` | The dialog that opens and saves files: Automatic (Coxswain's picker when found, else the system's), Coxswain or the system's ([File picker](../look/file-picker.md)) |
+| `file_picker` | File picker | `look.file_picker` | The dialog that opens and saves files: the system's, or with Coxswain installed, Automatic (Coxswain's picker), Coxswain or the system's ([File picker](../look/file-picker.md)) |
 
 ## Engines
 
@@ -79,10 +79,14 @@ The Engine per Variant, added Engines and their options are on each Family's [En
 | Name | Shown as | `config.toml` key | What it does |
 |---|---|---|---|
 | `library` | Library folder | `knowledge.library` | Where your Libraries are kept. Empty: Bragd's data folder |
-| `source_priority` | Source priority | `knowledge.source_priority` | When Duplicates merge, a header conflict goes the way of the Source listed first. Typed as a list with commas |
+| `source_priority` | Source priority | `knowledge.source_priority` | When Duplicates merge, a header conflict goes the way of the Source listed first. Set on *Databases → Libraries*, where Sources are picked by name ([Duplicates](../knowledge/duplicates.md)) |
 | `max_unpack_ratio` | Largest unpacking ratio | `knowledge.max_unpack_ratio` | How many times its own size a packed game file may unpack to before an import, or reading it as a Foreign database, stops. `50` unless set ([Sources](../knowledge/sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
 | `tablebases_path` | Tablebase folder | `tablebases.path` | Your Syzygy tables. The folder is passed to every Engine. Shown while chess is on |
 | `start_with_session` | Start with my session | `helper.start_with_session` | The Helper keeps fetching and indexing while no window is open |
+| `disk_total` | Disk limit for all Bragd keeps | `disk.total` | In bytes, 0 is no limit. Set in Disk watch below |
+| `disk_free_below` | Warn below this much free space | `disk.free_below` | In bytes, 0 is no warning. Set in Disk watch below |
+
+[Disk watch](../knowledge/disk-watch.md) follows the items of this area. It also sets each item's own limit, `disk.items`.
 
 ## Online
 
@@ -103,10 +107,6 @@ Signing in to servers comes later ([Playing online](../online/playing-online.md)
 | Name | Shown as | `config.toml` key | What it does |
 |---|---|---|---|
 | `check_updates` | Check for a new version | `updates.check` | At start, then once a day, Bragd asks where it was installed from for the newest version number |
-| `disk_total` | Disk limit for all Bragd keeps | `disk.total` | In bytes, 0 is no limit. Set on the Disk use page below |
-| `disk_free_below` | Warn below this much free space | `disk.free_below` | In bytes, 0 is no warning. Set on the Disk use page below |
-
-The Disk use page is part of this area. It also sets each item's own limit, `disk.items` ([Disk watch](../knowledge/disk-watch.md)).
 
 ## Questions
 
@@ -124,11 +124,11 @@ They stay. Only the one key is changed, in place.
 
 #### Can I type a size such as 5 GB?
 
-On the Disk use page, yes: it reads `5 GB` or `500 MB`, in powers of 1000. In `config.toml` the value is in bytes.
+In Disk watch, yes: it reads `5 GB` or `500 MB`, in powers of 1000. In `config.toml` the value is in bytes.
 
 #### Why are some settings missing from the Settings window?
 
-Some keys have their own page: the Engine per Variant, opening books and disk item limits. Your own Themes are set only in `config.toml` (`themes`). Every key is in [config.toml](config-toml.md).
+Some keys have their own page: the Engine per Variant, opening books and the Source priority. Your own Themes are set only in `config.toml` (`themes`). Every key is in [config.toml](config-toml.md).
 
 ---
 [← Previous: config.toml](config-toml.md) · [Next: Command line →](command-line.md)

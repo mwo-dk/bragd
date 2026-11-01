@@ -18,8 +18,32 @@ pub mod stream;
 pub mod strip;
 pub mod xiangqi;
 
+/// The file formats Bragd reads for the Game family `family`, by the names their users know;
+/// none for a Family it has no reader for.
+pub fn formats(family: &str) -> &'static [&'static str] {
+    match family {
+        "chess" => &["PGN", "SCID", "ChessBase"],
+        "xiangqi" => &["PGN"],
+        "shogi" => &["KIF", "CSA"],
+        "go" => &["SGF"],
+        "draughts" => &["PDN"],
+        _ => &[],
+    }
+}
+
 /// A time limit for a test, only against a hang: ten times longer in a debug build.
 #[cfg(test)]
 pub(crate) fn test_limit(normal: std::time::Duration) -> std::time::Duration {
     if cfg!(debug_assertions) { (normal * 10).max(std::time::Duration::from_secs(120)) } else { normal * 2 }
+}
+
+#[cfg(test)]
+mod tests {
+    /// Each Family's page names only the formats of its own readers.
+    #[test]
+    fn formats_of_each_family() {
+        assert_eq!(super::formats("go"), ["SGF"]);
+        assert!(super::formats("chess").contains(&"ChessBase"));
+        assert!(super::formats("tafl").is_empty());
+    }
 }

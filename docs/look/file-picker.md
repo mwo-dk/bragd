@@ -2,15 +2,15 @@
 
 # File picker
 
-Every dialog Bragd shows to open or save a file, or to choose a folder, is one of two: Coxswain's picker or your system's own dialog. *Settings → Look → File picker* chooses which.
+Every dialog Bragd shows to open or save a file, or to choose a folder, is your system's own dialog. When Coxswain, a separate app, is installed, its picker can be used instead, and *Settings → Look → File picker* chooses which.
 
-Coxswain's picker shows full names, searches as you type, and looks the same on every system. It comes with Coxswain, a separate app: Bragd uses it when `coxswain-gui` is on your `PATH` and knows `--pick`.
+Coxswain's picker shows full names, searches as you type, and looks the same on every system. Bragd offers it when `coxswain-gui` is on your `PATH` and knows `--pick`. Without it, *File picker* has one choice, *The system's dialog*, and says nothing about Coxswain.
 
 ## How to reach it
 
 | Where | What to do |
 |---|---|
-| Settings | *Settings → Look → File picker*: *Automatic*, *Coxswain* or *The system's dialog* |
+| Settings | *Settings → Look → File picker*: *Automatic*, *Coxswain* or *The system's dialog* when Coxswain is installed; only *The system's dialog* otherwise |
 | Databases | **Open…** and **Save as…** on a Foreign database |
 | Engines | **Choose…** next to *Path to the engine program* |
 | Tablebases | **Choose…** next to the tablebase folder |
@@ -22,7 +22,7 @@ Coxswain's picker shows full names, searches as you type, and looks the same on 
 |---|---|---|---|
 | File picker | `look.file_picker` | `"auto"` | `auto`: Coxswain's picker when `coxswain-gui --help` names `--pick`, else the system's. `coxswain`: Coxswain's, else the system's when it is not found. `system`: always the system's |
 
-*Automatic* says which one it found: *Automatic: Coxswain's picker, found on your PATH*, or *Automatic: the system's dialog, as Coxswain is not found*.
+With Coxswain installed, *Automatic* reads *Automatic: Coxswain's picker, found on your PATH*.
 
 ## Questions
 

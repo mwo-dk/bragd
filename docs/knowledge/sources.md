@@ -84,7 +84,7 @@ A Source's options and what each fetch remembered live in the Helper's `state.js
 | Setting | `config.toml` key | Default | What it does |
 |---|---|---|---|
 | Library folder | `knowledge.library` | empty: `<data>/bragd/libraries` | Fetched Games go into `main.bragd` there |
-| Source priority | `knowledge.source_priority` | `["twic", "lichess"]` | Which Source wins a header conflict between [Duplicates](duplicates.md) |
+| Source priority | `knowledge.source_priority` | `["twic", "lichess-db"]` | Which Source wins a header conflict between [Duplicates](duplicates.md) |
 | Largest unpacking ratio | `knowledge.max_unpack_ratio` | `50` | How many times its own size a packed download may unpack to before the import stops |
 
 ## Questions

@@ -101,6 +101,8 @@ pub struct Open {
     /// The sites the Online step names: those that play a Family that is on.
     servers: Vec<&'static str>,
     offers: Vec<wizard::Offer>,
+    /// "Coming later: …": the Sources that cannot be fetched yet, in one line.
+    coming: Option<String>,
     ticked: Vec<String>,
 }
 
@@ -157,14 +159,16 @@ fn servers(cfg: &Config) -> Vec<&'static str> {
 #[tauri::command(async)]
 pub fn wizard_open(ctx: tauri::State<'_, Ctx>) -> Open {
     let cfg = ctx.cfg();
-    let offers = wizard::offers(&helper_sources(), &cfg, bragd_core::i18n::bytes);
+    let srcs = helper_sources();
+    let offers = wizard::offers(&srcs, &cfg, bragd_core::i18n::bytes);
     Open {
-        steps: wizard::steps(),
+        steps: wizard::steps(&cfg),
         themes: wizard::theme_swatches(),
         boards: wizard::board_swatches(&cfg),
         engines: engines(&cfg),
         servers: servers(&cfg),
         ticked: wizard::ticked(&offers),
+        coming: wizard::coming(&srcs, &cfg),
         offers,
     }
 }
@@ -208,11 +212,11 @@ fn done(cfg: &Config, chosen: &[String]) -> Vec<String> {
     if !plan.sources.is_empty()
         && let Err(e) = turn_on(&plan.sources, offline)
     {
-        failed.push(t!("wizard.failed", "what" => plan.sources.join(", "), "error" => e));
+        failed.push(t!("wizard.failed", "what" => names(&srcs, &plan.sources), "error" => e));
     }
     if plan.syzygy {
         if offline {
-            failed.push(t!("wizard.failed", "what" => t!("wizard.syzygy"), "error" => "BRAGD_OFFLINE"));
+            failed.push(t!("wizard.failed", "what" => t!("wizard.syzygy"), "error" => t!("common.offline")));
         } else {
             let folder = cfg.tablebase_folder();
             // TODO(tablebases): progress and errors belong on the Tablebases page; until it
@@ -232,10 +236,15 @@ fn done(cfg: &Config, chosen: &[String]) -> Vec<String> {
     failed
 }
 
+/// The Sources `ids` by their names: "The Week in Chess, Lichess broadcasts".
+fn names(srcs: &[wizard::Source], ids: &[String]) -> String {
+    ids.iter().map(|id| srcs.iter().find(|s| &s.id == id).map_or(id.as_str(), |s| s.name.as_str())).collect::<Vec<_>>().join(", ")
+}
+
 /// Each Source turned on through the Helper, with the options it has kept so far.
 fn turn_on(ids: &[String], offline: bool) -> Result<(), String> {
     if offline {
-        return Err("BRAGD_OFFLINE".into());
+        return Err(t!("common.offline"));
     }
     let mut c = line::program().and_then(|p| line::connect_or_start(&p)).map_err(|e| e.to_string())?;
     let Ok(Reply::Sources { sources }) = c.ask(&Request::Sources) else {
@@ -285,5 +294,11 @@ mod tests {
         assert_eq!(tafl.len(), 1, "tafl is listed, played by Bragd's own Bot");
         assert!(tafl[0].engines.is_empty());
         assert_eq!(servers(&Config::default()).len(), SERVERS.len());
+    }
+
+    /// A Source that could not start is named as users know it, not by its id.
+    #[test]
+    fn what_failed_is_named_as_users_know_it() {
+        assert_eq!(names(&helper_sources(), &["twic".into(), "custom:x".into()]), "The Week in Chess, custom:x");
     }
 }

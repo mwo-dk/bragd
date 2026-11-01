@@ -1,6 +1,7 @@
 <script>
   // The notice area: notices (shown once), hints (a few times) and the update notice, with its
-  // upgrade command to copy. Which ones show, and their texts, come from bragd-core.
+  // upgrade command to copy. Which ones show, and their texts, come from bragd-core. One at a
+  // time, notices before hints, a Tip only when neither waits: closing one shows the next.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import { guide } from "./guide.svelte.js";
@@ -10,9 +11,13 @@
   let copied = $state("");
 
   const areaName = (/** @type {string} */ id) => snap.areas.find((/** @type {any} */ a) => a[0] === id)?.[1] ?? id;
-  function dismiss(/** @type {string} */ id) {
+  const shown = $derived([...guide.notices.filter((n) => !n.id.startsWith("hint:")), ...guide.notices.filter((n) => n.id.startsWith("hint:"))][0]);
+  async function dismiss(/** @type {string} */ id) {
     guide.notices = guide.notices.filter((n) => n.id !== id);
-    if (!id.startsWith("local:")) api.noticeDismiss(id);
+    if (id.startsWith("local:")) return;
+    // Closing a hint brings the next one due.
+    const next = await api.noticeDismiss(id);
+    if (next && !guide.notices.some((n) => n.id === next.id)) guide.notices = [...guide.notices, next];
   }
   function settings(/** @type {any} */ n) {
     guide.area = n.settings;
@@ -42,9 +47,9 @@
   }
 </script>
 
-{#if (guide.notices.length || guide.tip) && !guide.wizard && !guide.cards.length}
+{#if (shown || guide.tip) && !guide.wizard && !guide.cards.length}
   <aside class="notices" aria-live="polite">
-    {#if guide.tip}
+    {#if !shown && guide.tip}
       {@const tip = guide.tip}
       <div class="notice panel hintish tip">
         <p><b>{t("tip.label")}:</b> {tip.text}</p>
@@ -55,7 +60,8 @@
         </div>
       </div>
     {/if}
-    {#each guide.notices as n (n.id)}
+    {#if shown}
+      {@const n = shown}
       <div class="notice panel" class:hintish={n.id.startsWith("hint:")}>
         <p>{n.text}</p>
         {#if n.copy}
@@ -66,7 +72,7 @@
           <button onclick={() => dismiss(n.id)} aria-label={t("common.close")} title={t("common.close")}>×</button>
         </div>
       </div>
-    {/each}
+    {/if}
   </aside>
 {/if}
 

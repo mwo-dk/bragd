@@ -36,7 +36,7 @@ pub const FEATURES: &[Feature] = &[
     f("play", "play/against-yourself.md", "item:play"),
     f("databases", "knowledge/foreign-databases.md", "item:databases"),
     f("parquet", "knowledge/parquet-export.md", "item:databases"),
-    f("disk", "knowledge/disk-watch.md", "settings:privacy"),
+    f("disk", "knowledge/disk-watch.md", "settings:knowledge"),
     f("helper", "knowledge/helper.md", "settings:knowledge"),
     f("engines", "engines/engines.md", "item:engines"),
     f("analyse", "engines/analyse.md", "item:analyse"),
@@ -202,6 +202,27 @@ mod tests {
         assert!(concerns(&cfg, &[]) && concerns(&cfg, &["chess"]));
         cfg.families.family.insert("chess".into(), false);
         assert!(concerns(&cfg, &[]) && !concerns(&cfg, &["chess"]) && concerns(&cfg, &["chess", "go"]));
+    }
+
+    /// What every user reads (the tour card, F1's line and the Tip of a Feature that names no
+    /// Family) names no Family, nor an Engine or Source of one: an *Only go* user is not told of
+    /// Stockfish or TWIC.
+    #[test]
+    fn features_for_everyone_name_no_family() {
+        let named = ["stockfish", "katago", "pikafish", "twic"];
+        let families: Vec<&str> = bragd_games::Family::ALL.iter().map(|f| f.key()).collect();
+        let mut bad = vec![];
+        for f in FEATURES.iter().filter(|f| f.families.is_empty()) {
+            for key in [format!("tour.{}.text", f.id), format!("feature.{}.what", f.id), format!("feature.{}.tip", f.id)] {
+                let text = crate::i18n::tr_in(crate::i18n::REFERENCE, &key);
+                // "in one go" is not the game: Go is named with its capital.
+                let words: Vec<String> = text.split(|c: char| !c.is_alphanumeric()).filter(|w| *w != "go").map(str::to_lowercase).collect();
+                if let Some(w) = words.iter().find(|w| families.contains(&w.as_str()) || named.contains(&w.as_str())) {
+                    bad.push(format!("{key}: {w}"));
+                }
+            }
+        }
+        assert!(bad.is_empty(), "{bad:?}");
     }
 
     #[test]

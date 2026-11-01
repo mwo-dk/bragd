@@ -975,6 +975,38 @@ mod tests {
         assert!(bad.is_empty(), "{}", bad.join("\n"));
     }
 
+    /// British English uses GLOSSARY.md's terms: Engine, Variant and Game family as names,
+    /// and Disk watch, not "Disk use".
+    #[test]
+    fn i18n_reference_uses_the_glossary_terms() {
+        let mut bad = vec![];
+        for (key, v) in catalogue(REFERENCE) {
+            if key.starts_with("family.") || key.starts_with("variant.") {
+                continue;
+            }
+            let texts: Vec<String> = match &v {
+                serde_json::Value::String(s) => vec![s.clone()],
+                serde_json::Value::Object(o) => o.values().filter_map(|x| x.as_str().map(String::from)).collect(),
+                _ => vec![],
+            };
+            for t in texts {
+                // Words outside {placeholders}, each with the one before it.
+                let plain: String = t.split('{').enumerate().map(|(i, p)| if i == 0 { p } else { p.split_once('}').map_or("", |x| x.1) }).collect();
+                let words: Vec<&str> = plain.split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).collect();
+                for (i, w) in words.iter().enumerate() {
+                    let game = i > 0 && words[i - 1] == "Game";
+                    if matches!(*w, "engine" | "engines" | "variant" | "variants") || (matches!(*w, "family" | "families") && !game) {
+                        bad.push(format!("{key}: {w}"));
+                    }
+                }
+                if t.contains("Disk use") {
+                    bad.push(format!("{key}: Disk use"));
+                }
+            }
+        }
+        assert!(bad.is_empty(), "{bad:?}");
+    }
+
     /// A language of its own has every text British English has, with the same placeholders;
     /// a variant holds only keys the reference knows.
     #[test]

@@ -104,6 +104,13 @@ pub fn hint_due(st: &mut AppState, id: &str) -> bool {
     true
 }
 
+/// The next hint of `hints` (in order, after `after` when given) still to be shown, counted as
+/// shown once more: one hint at a time, the next only once the one before is closed.
+pub fn next_hint<'a>(st: &mut AppState, hints: &[&'a str], after: Option<&str>) -> Option<&'a str> {
+    let from = after.and_then(|a| hints.iter().position(|h| *h == a)).map_or(0, |i| i + 1);
+    hints[from..].iter().copied().find(|h| hint_due(st, h))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -140,5 +147,17 @@ mod tests {
         let shown = (0..5).filter(|_| hint_due(&mut st, "sidebar")).count();
         assert_eq!(shown, TIMES as usize);
         assert!(hint_due(&mut st, "other"));
+    }
+
+    #[test]
+    fn notices_hints_come_one_at_a_time() {
+        let mut st = AppState::default();
+        let hints = ["a", "b", "c"];
+        assert_eq!(next_hint(&mut st, &hints, None), Some("a"));
+        assert_eq!(st.hints_shown.get("b"), None, "the hints after it wait, uncounted");
+        assert_eq!(next_hint(&mut st, &hints, Some("a")), Some("b"));
+        assert_eq!(next_hint(&mut st, &hints, Some("c")), None);
+        st.hints_shown.insert("a".into(), TIMES);
+        assert_eq!(next_hint(&mut st, &hints, None), Some("b"));
     }
 }

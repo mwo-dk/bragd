@@ -166,9 +166,9 @@
         <p class="lead">{t("wizard.knowledge")}</p>
         <ul class="offers">
           {#each data.offers as o (o.id)}
-            <li class:off={!o.fetchable}>
+            <li>
               <label>
-                <input type="checkbox" disabled={!o.fetchable} checked={chosen.includes(o.id)} onchange={(e) => tick(o.id, e.currentTarget.checked)} />
+                <input type="checkbox" checked={chosen.includes(o.id)} onchange={(e) => tick(o.id, e.currentTarget.checked)} />
                 <b>{o.name}</b>
                 {#if o.recommended}<span class="badge">{t("wizard.recommended")}</span>{/if}
                 <span class="dim">{o.size}</span>
@@ -177,6 +177,7 @@
             </li>
           {/each}
         </ul>
+        {#if data.coming}<p class="dim">{data.coming}</p>{/if}
         {#if info}
           <p><b>{info.totals.text}</b></p>
           {#if info.totals.warning}<p class="warn" role="alert">{info.totals.warning}</p>{/if}
@@ -197,7 +198,7 @@
           {#if info.totals.warning}<p class="warn" role="alert">{info.totals.warning}</p>{/if}
         {/if}
       {/if}
-      {#if current}
+      {#if current?.later}
         <p><button class="link" onclick={() => settings(current.area)}>{current.later}</button></p>
       {/if}
     </div>
@@ -406,10 +407,6 @@
   .offers {
     list-style: none;
     padding: 0;
-  }
-  /* An offer that is not ticked keeps readable text: its box says it is off. */
-  .offers li.off {
-    color: var(--dim);
   }
   .badge {
     font-size: 0.75em;

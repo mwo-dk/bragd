@@ -4,7 +4,7 @@
 
 Bragd sends nothing unless you ask, with one exception: the update check, which you can turn off. There is no telemetry, no account and no crash report. This page lists every request Bragd can make, when it makes it, and how to stop it. In F1 → Features the update check is the entry `update`.
 
-![Settings at Privacy and updates: the switch Check for a new version with its hint, then the Disk use page](../screenshots/settings-privacy-1100.png)
+![Settings at Privacy and updates: the switch Check for a new version with its hint](../screenshots/settings-privacy-1100.png)
 *Settings → Privacy and updates.*
 
 ## Contents

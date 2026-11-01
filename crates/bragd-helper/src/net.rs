@@ -44,7 +44,7 @@ impl Default for Web {
 
 impl Web {
     fn refuse(&self) -> io::Result<()> {
-        if self.offline { Err(io::Error::other("BRAGD_OFFLINE is set: nothing is fetched")) } else { Ok(()) }
+        if self.offline { Err(io::Error::other(bragd_core::t!("common.offline"))) } else { Ok(()) }
     }
 }
 
@@ -277,7 +277,7 @@ pub(crate) mod tests {
         let web = Web { offline: true, ..Web::default() };
         assert!(web.offline() && !Recorded::default().offline());
         let e = web.get("https://example.org/twic.zip", 0).err().expect("refused");
-        assert!(e.to_string().contains("BRAGD_OFFLINE"), "{e}");
+        assert_eq!(e.to_string(), bragd_core::t!("common.offline"), "said in words, not by the variable's name");
         assert!(web.exists("https://example.org/twic.zip").is_err());
     }
 
