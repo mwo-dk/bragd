@@ -206,17 +206,28 @@ impl Store {
         let conn = Connection::open(path)?;
         conn.busy_timeout(std::time::Duration::from_secs(10))?;
         conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
-        let v: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+        let version = |c: &Connection| c.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0));
+        let mut v = version(&conn)?;
+        if v < VERSION {
+            // Another process (a window, the Helper) may be making it at the same moment: the
+            // schema is made under the write lock, by whichever gets it first.
+            let mut conn = conn;
+            let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+            v = version(&tx)?;
+            if v > VERSION {
+                return Err(Error::Newer(v));
+            }
+            if v < VERSION {
+                if v < 1 {
+                    tx.execute_batch(SCHEMA_1)?;
+                }
+                tx.execute_batch(&format!("{SCHEMA_2} PRAGMA user_version = {VERSION};"))?;
+            }
+            tx.commit()?;
+            return Ok(Store { conn });
+        }
         if v > VERSION {
             return Err(Error::Newer(v));
-        }
-        if v < VERSION {
-            let mut ddl = String::new();
-            if v < 1 {
-                ddl.push_str(SCHEMA_1);
-            }
-            ddl.push_str(SCHEMA_2);
-            conn.execute_batch(&format!("BEGIN; {ddl} PRAGMA user_version = {VERSION}; COMMIT;"))?;
         }
         Ok(Store { conn })
     }
@@ -518,6 +529,17 @@ pub(crate) mod tests {
         // Opened again at the same version, nothing is made twice.
         Connection::open(&p).unwrap().execute_batch(&format!("PRAGMA user_version = {VERSION}")).unwrap();
         Store::open(&p).unwrap();
+    }
+
+    /// Windows and the Helper open the store at once: each gets it whole, made once.
+    #[test]
+    fn a_new_store_opened_at_once_from_many_threads_is_made_once() {
+        let d = dir("at-once");
+        let p = d.join("positions.sqlite");
+        let all: Vec<_> = (0..8).map(|_| { let p = p.clone(); std::thread::spawn(move || Store::open(&p).map(|_| ())) }).collect();
+        for t in all {
+            t.join().unwrap().unwrap();
+        }
     }
 
     #[test]
