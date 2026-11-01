@@ -20,7 +20,7 @@ use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
-use cozy_chess::{Board, Color, Move, Piece, Rank, Square};
+use rules_chess::{Color, Piece, Position, Role, Side, Square};
 
 use super::pgn;
 
@@ -610,62 +610,71 @@ struct Lists {
     pawns: [[Option<u8>; 8]; 2],
 }
 
+/// A move as the bytes name it, before it is matched against the legal moves.
+#[derive(Clone, Copy)]
+struct Want {
+    from: Square,
+    to: Square,
+    promotion: Option<Role>,
+}
+
 /// ChessBase's square number: a file at a time, a1 = 0, a2 = 1 … h8 = 63.
 fn cb(s: Square) -> u8 {
-    s.file() as u8 * 8 + s.rank() as u8
+    s.file() * 8 + s.rank()
 }
 
 fn square(n: u8) -> Square {
-    Square::new(cozy_chess::File::index((n / 8 % 8) as usize), Rank::index((n % 8) as usize))
+    Square::from_file_rank(n / 8 % 8, n % 8)
 }
 
-fn kind(p: Piece) -> Option<usize> {
+fn kind(p: Role) -> Option<usize> {
     match p {
-        Piece::Queen => Some(0),
-        Piece::Rook => Some(1),
-        Piece::Bishop => Some(2),
-        Piece::Knight => Some(3),
+        Role::Queen => Some(0),
+        Role::Rook => Some(1),
+        Role::Bishop => Some(2),
+        Role::Knight => Some(3),
         _ => None,
     }
 }
 
 impl Lists {
-    fn scan(b: &Board) -> Result<Lists, ()> {
+    fn scan(b: &Position) -> Result<Lists, ()> {
         let mut l = Lists::default();
         let mut pawns = [0usize; 2];
         for n in 0..64 {
             let s = square(n);
-            let (Some(p), Some(c)) = (b.piece_on(s), b.color_on(s)) else { continue };
-            if p == Piece::Pawn {
-                *l.pawns[c as usize].get_mut(pawns[c as usize]).ok_or(())? = Some(n);
-                pawns[c as usize] += 1;
+            let Some(Piece { color: c, role: p }) = b.piece_at(s) else { continue };
+            let c = c.index();
+            if p == Role::Pawn {
+                *l.pawns[c].get_mut(pawns[c]).ok_or(())? = Some(n);
+                pawns[c] += 1;
             } else if let Some(k) = kind(p) {
-                l.kinds[c as usize][k].push(n);
+                l.kinds[c][k].push(n);
             }
         }
         Ok(l)
     }
 
     /// Follows `mv` (legal on `b`, not yet played) through the lists.
-    fn update(&mut self, b: &Board, mv: Move) -> Result<(), ()> {
+    fn update(&mut self, b: &Position, mv: rules_chess::Move) -> Result<(), ()> {
         let us = b.side_to_move();
-        let (me, them) = (us as usize, !us as usize);
-        let (from, to) = (cb(mv.from), cb(mv.to));
-        let moving = b.piece_on(mv.from).ok_or(())?;
-        let target = b.piece_on(mv.to).zip(b.color_on(mv.to));
-        if moving == Piece::King
-            && let Some((Piece::Rook, c)) = target
+        let (me, them) = (us.index(), us.opponent().index());
+        let (from, to) = (cb(mv.from()), cb(mv.to()));
+        let moving = b.piece_at(mv.from()).ok_or(())?.role;
+        let target = b.piece_at(mv.to()).map(|p| (p.role, p.color));
+        if moving == Role::King
+            && let Some((Role::Rook, c)) = target
             && c == us
         {
             // Castling: the king onto its own rook; the rook ends beside the king.
-            let file = if mv.to.file() > mv.from.file() { 5 } else { 3 };
+            let file = if mv.to().file() > mv.from().file() { 5 } else { 3 };
             let rook = self.kinds[me][1].iter_mut().find(|s| **s == to).ok_or(())?;
-            *rook = file * 8 + mv.to.rank() as u8;
+            *rook = file * 8 + mv.to().rank();
             return Ok(());
         }
         let taken = match target {
             Some((p, c)) if c != us => Some((p, to)),
-            _ if moving == Piece::Pawn && mv.from.file() != mv.to.file() => Some((Piece::Pawn, mv.to.file() as u8 * 8 + mv.from.rank() as u8)),
+            _ if moving == Role::Pawn && mv.from().file() != mv.to().file() => Some((Role::Pawn, mv.to().file() * 8 + mv.from().rank())),
             _ => None,
         };
         if let Some((p, at)) = taken {
@@ -680,9 +689,9 @@ impl Lists {
         }
         match kind(moving) {
             Some(k) => *self.kinds[me][k].iter_mut().find(|s| **s == from).ok_or(())? = to,
-            None if moving == Piece::Pawn => {
+            None if moving == Role::Pawn => {
                 let slot = self.pawns[me].iter_mut().find(|s| **s == Some(from)).ok_or(())?;
-                match mv.promotion.and_then(kind) {
+                match mv.promotion_role().and_then(kind) {
                     Some(k) => {
                         *slot = None;
                         self.kinds[me][k].push(to);
@@ -819,7 +828,7 @@ struct Decoder {
     /// The move the next one follows; None at the start.
     cur: Option<u32>,
     /// Where each open variation starts: the move before it, the board and the lists there.
-    stack: Vec<(Option<u32>, Board, Lists)>,
+    stack: Vec<(Option<u32>, Position, Lists)>,
     branch_next: bool,
     /// Moves read, which the byte tables are keyed by.
     plies: u32,
@@ -843,7 +852,7 @@ impl Decoder {
         // bytes after the position.
         let chess960 = matches!(mode, 10 | 11);
         let mut at = 4;
-        let mut board = Board::default();
+        let mut board = Position::starting();
         if flags & 0x40 != 0 {
             let start = rec.get(4..32).ok_or(())?;
             let named = if chess960 { Some(rec.get(32..40).ok_or(())?) } else { None };
@@ -918,7 +927,7 @@ impl Decoder {
         Ok(())
     }
 
-    fn end_line(&mut self, board: &mut Board, lists: &mut Lists) -> Result<(), ()> {
+    fn end_line(&mut self, board: &mut Position, lists: &mut Lists) -> Result<(), ()> {
         if self.branch_next {
             return Err(());
         }
@@ -930,25 +939,28 @@ impl Decoder {
     }
 
     /// Plays `mv` (None: a null move) and adds it to the tree.
-    fn play(&mut self, board: &mut Board, lists: &mut Lists, mv: Option<Move>) -> Result<(), ()> {
+    fn play(&mut self, board: &mut Position, lists: &mut Lists, mv: Option<Want>) -> Result<(), ()> {
         if self.tree.nodes.len() >= pgn::MAX_MOVES {
             return Err(());
         }
-        let saved = self.branch_next.then(|| (self.cur, board.clone(), lists.clone()));
+        let saved = self.branch_next.then(|| (self.cur, *board, lists.clone()));
         self.branch_next = false;
-        let (white, number) = (board.side_to_move() == Color::White, board.fullmove_number() as u32);
+        let (white, number) = (board.side_to_move() == Color::White, board.fullmove_number());
         let san = match mv {
-            Some(mv) => {
-                if !board.is_legal(mv) {
-                    return Err(());
-                }
+            Some(w) => {
+                let mv = *board
+                    .legal_moves()
+                    .as_slice()
+                    .iter()
+                    .find(|m| m.from() == w.from && m.to() == w.to && m.promotion_role() == w.promotion)
+                    .ok_or(())?;
                 let san = pgn::san(board, mv);
                 lists.update(board, mv)?;
-                board.play_unchecked(mv);
+                *board = board.make_move(mv);
                 san
             }
             None => {
-                *board = board.null_move().ok_or(())?;
+                *board = board.pass().ok_or(())?;
                 "--".into()
             }
 
@@ -975,47 +987,47 @@ fn step(from: u8, (dx, dy): (i8, i8)) -> Square {
     square(x as u8 * 8 + y as u8)
 }
 
-/// Castling for the side to move, as cozy-chess writes it: the king onto its rook. Without
+/// Castling for the side to move, as a move is written here: the king onto its rook. Without
 /// the right, its bit as `setup_fen` counts them (1 White's long, 2 White's short, 4 and 8
 /// Black's).
-fn castle(b: &Board, short: bool) -> Result<Option<Move>, u8> {
+fn castle(b: &Position, short: bool) -> Result<Option<Want>, u8> {
     let us = b.side_to_move();
-    let rights = b.castle_rights(us);
+    let rights = b.castling_rights();
     let bit = (if short { 2 } else { 1 }) << if us == Color::White { 0 } else { 2 };
-    let file = if short { rights.short } else { rights.long }.ok_or(bit)?;
-    let king = b.king(us);
-    Ok(Some(Move { from: king, to: Square::new(file, king.rank()), promotion: None }))
+    let file = rights.rook_file(us, if short { Side::Kingside } else { Side::Queenside }).ok_or(bit)?;
+    let king = b.king_square(us);
+    Ok(Some(Want { from: king, to: Square::from_file_rank(file, king.rank()), promotion: None }))
 }
 
 /// A move given by its squares (the two-byte form): from, to, and the promotion piece. In a
 /// Chess960 game castling is the king's square named twice, the g or c square of its rank.
-fn by_squares(b: &Board, w: u16, chess960: bool) -> Result<Option<Move>, u8> {
+fn by_squares(b: &Position, w: u16, chess960: bool) -> Result<Option<Want>, u8> {
     let (from, to) = ((w & 63) as u8, (w >> 6 & 63) as u8);
     let (f, t) = (square(from), square(to));
     let us = b.side_to_move();
-    let back = if us == Color::White { Rank::First } else { Rank::Eighth };
+    let back = if us == Color::White { 0 } else { 7 };
     if from == to {
         return match t.file() {
             _ if w & 0x0fff == 0 => Ok(None),
-            cozy_chess::File::G if chess960 && t.rank() == back => castle(b, true),
-            cozy_chess::File::C if chess960 && t.rank() == back => castle(b, false),
+            6 if chess960 && t.rank() == back => castle(b, true),
+            2 if chess960 && t.rank() == back => castle(b, false),
             _ => Err(0),
         };
     }
-    if !chess960 && b.piece_on(f) == Some(Piece::King) && f == Square::new(cozy_chess::File::E, back) && t.rank() == back {
+    if !chess960 && b.piece_at(f).map(|p| p.role) == Some(Role::King) && f == Square::from_file_rank(4, back) && t.rank() == back {
         match t.file() {
-            cozy_chess::File::G => return castle(b, true),
-            cozy_chess::File::C => return castle(b, false),
+            6 => return castle(b, true),
+            2 => return castle(b, false),
             _ => {}
         }
     }
-    let promotion = (b.piece_on(f) == Some(Piece::Pawn) && matches!(t.rank(), Rank::First | Rank::Eighth))
-        .then(|| [Piece::Queen, Piece::Rook, Piece::Bishop, Piece::Knight][(w >> 12 & 3) as usize]);
-    Ok(Some(Move { from: f, to: t, promotion }))
+    let promotion = (b.piece_at(f).map(|p| p.role) == Some(Role::Pawn) && matches!(t.rank(), 0 | 7))
+        .then(|| [Role::Queen, Role::Rook, Role::Bishop, Role::Knight][(w >> 12 & 3) as usize]);
+    Ok(Some(Want { from: f, to: t, promotion }))
 }
 
 /// A one-byte move: a piece by its kind and number, and how it moves.
-fn by_code(b: &Board, l: &Lists, code: u8) -> Result<Option<Move>, u8> {
+fn by_code(b: &Position, l: &Lists, code: u8) -> Result<Option<Want>, u8> {
     let us = b.side_to_move();
     let line = |k: u8, dirs: &[(i8, i8)]| {
         let (d, s) = (dirs[(k / 7) as usize], (k % 7 + 1) as i8);
@@ -1024,8 +1036,8 @@ fn by_code(b: &Board, l: &Lists, code: u8) -> Result<Option<Move>, u8> {
     let (kind, index, delta) = match code {
         0 => return Ok(None),
         1..=8 => {
-            let from = cb(b.king(us));
-            return Ok(Some(Move { from: square(from), to: step(from, KING[(code - 1) as usize]), promotion: None }));
+            let from = cb(b.king_square(us));
+            return Ok(Some(Want { from: square(from), to: step(from, KING[(code - 1) as usize]), promotion: None }));
         }
         9 => return castle(b, true),
         10 => return castle(b, false),
@@ -1040,12 +1052,12 @@ fn by_code(b: &Board, l: &Lists, code: u8) -> Result<Option<Move>, u8> {
             let (pawn, how) = ((code - 111) / 4, (code - 111) % 4);
             let f: i8 = if us == Color::White { 1 } else { -1 };
             let delta = [(0, f), (0, 2 * f), (f, f), (-f, f)][how as usize];
-            let from = l.pawns[us as usize][pawn as usize].ok_or(0)?;
+            let from = l.pawns[us.index()][pawn as usize].ok_or(0)?;
             let to = step(from, delta);
-            if matches!(to.rank(), Rank::First | Rank::Eighth) {
+            if matches!(to.rank(), 0 | 7) {
                 return Err(0);
             }
-            return Ok(Some(Move { from: square(from), to, promotion: None }));
+            return Ok(Some(Want { from: square(from), to, promotion: None }));
         }
         143..=170 => (0, 1, line(code - 143, &QUEEN)),
         171..=198 => (0, 2, line(code - 171, &QUEEN)),
@@ -1054,8 +1066,8 @@ fn by_code(b: &Board, l: &Lists, code: u8) -> Result<Option<Move>, u8> {
         227..=234 => (3, 2, KNIGHT[(code - 227) as usize]),
         _ => return Err(0),
     };
-    let from = *l.kinds[us as usize][kind].get(index).ok_or(0)?;
-    Ok(Some(Move { from: square(from), to: step(from, delta), promotion: None }))
+    let from = *l.kinds[us.index()][kind].get(index).ok_or(0)?;
+    Ok(Some(Want { from: square(from), to: step(from, delta), promotion: None }))
 }
 
 /// The FEN of a set-up start: a marker byte, the side to move and en passant file, the castling
@@ -1563,7 +1575,7 @@ pub(crate) mod tests {
         let mut bits = vec![];
         for n in 0..64u8 {
             let sq = square(n);
-            let at = sq.rank() as u8 * 8 + sq.file() as u8;
+            let at = sq.rank() * 8 + sq.file();
             match pieces.iter().find(|p| p.0 == at) {
                 Some(&(_, c)) => {
                     let code = b" kqnbrp".iter().position(|&x| x == c.to_ascii_lowercase() as u8).unwrap() as u8;

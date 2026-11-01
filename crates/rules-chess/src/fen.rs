@@ -117,7 +117,7 @@ impl Position {
     /// castling rights the board cannot back. Refused, beyond what
     /// [`Position::from_fen`] refuses: pieces other than chess's, more than
     /// sixteen men or eight pawns a side, three checkers, the side not to
-    /// move in check, a halfmove clock over 100 and a move number of 0. That
+    /// move in check and a move number of 0. That
     /// is a position a game could be in, so a file's start reads as it did
     /// before this crate read files.
     pub fn from_fen_lenient(fen: &str) -> Option<Position> {
@@ -131,7 +131,7 @@ impl Position {
             5 => vec![fields[0], fields[1], fields[2], fields[3], fields[4], "1"],
             _ => fields[..6].to_vec(),
         };
-        let counters_ok = full[4].parse::<u32>().is_ok_and(|n| n <= 100) && full[5].parse::<u32>().is_ok_and(|n| n > 0);
+        let counters_ok = full[4].parse::<u32>().is_ok() && full[5].parse::<u32>().is_ok_and(|n| n > 0);
         if !counters_ok {
             return None;
         }
@@ -543,13 +543,16 @@ mod tests {
         // Counters missing.
         assert_eq!(read("4k3/8/8/3pP3/8/8/8/4K3 w - d6").as_deref(), Some("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"));
         assert_eq!(read("4k3/8/8/8/8/8/8/4K3").as_deref(), Some("4k3/8/8/8/8/8/8/4K3 w - - 0 1"));
+        // A clock past the fifty moves: games go on past it until someone claims.
+        assert!(read("4k3/8/8/8/8/8/8/4K3 w - - 140 90").is_some());
         // An en passant square with no pawn past it goes; then rights with no rook.
         assert_eq!(read("r3k3/8/8/8/8/8/8/4K2R w Kq e6 0 1").as_deref(), Some("r3k3/8/8/8/8/8/8/4K2R w Kq - 0 1"));
         assert_eq!(read("r3k3/8/8/8/8/8/8/4K2R w KQkq e6 0 1").as_deref(), Some("r3k3/8/8/8/8/8/8/4K2R w - - 0 1"));
+        // X-FEN's `KQkq` for a Chess960 array names its outermost rooks, wherever they stand.
+        assert_eq!(read("rkrbbnnq/pppppppp/8/8/8/8/PPPPPPPP/RKRBBNNQ w KQkq - 0 1").map(|f| f.contains(" w KQkq ")), Some(true));
         // Positions no game could be in.
         for fen in [
             "4k3/8/8/8/8/8/8/r3K3 b - - 0 1",
-            "4k3/8/8/8/8/8/8/4K3 w - - 101 1",
             "4k3/8/8/8/8/8/8/4K3 w - - 0 0",
             "4k3/8/8/8/8/8/8/4KF2 w - - 0 1",
             "4k3/PPPPPPPP/P7/8/8/8/8/4K3 w - - 0 1",

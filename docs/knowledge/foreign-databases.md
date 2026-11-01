@@ -81,6 +81,10 @@ The evaluation profile, when the file carries one (ChessBase's `[%evp]` comment)
 
 The file has a move that cannot be played from the position before it. Bragd shows the moves up to that one and names it.
 
+#### How does Bragd read a chess game's FEN tag?
+
+It is forgiving, as files need. Missing move counters are filled in. An en passant square that no pawn can take on is dropped, and then castling rights that no rook backs. Chess960 castling may be written either way: `KQkq` names the outermost rooks, and `HAha` names each rook's file. A FEN that is no position a game could reach, for example one where the side not to move is in check, is not read: the Game starts from the usual position.
+
 #### Why does a packed file stop, saying it unpacks too far?
 
 Opening a packed file keeps the same rule as importing one ([Sources](sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)). Once the file has unpacked to more than *Largest unpacking ratio* times its packed size, 50 unless you change it, reading stops and the Games read so far stay listed. The first 64 MB unpacked always pass. A real file stays far below: a Lichess month unpacks to about 7 times its size. If a file you trust stops, raise the ratio in *Settings → Knowledge* and open it again.

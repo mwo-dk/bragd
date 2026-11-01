@@ -3,7 +3,7 @@
 //! all are read without a panic: a move that cannot be played ends the positions of its line
 //! (the moves after it are still listed), and what is not PGN is skipped.
 
-use rules_chess::{Chess as Rules960, Color, Move, MoveKind, Position, Square};
+use rules_chess::{Color, Move, MoveKind, Position, Square};
 use serde::Serialize;
 use super::lex::{Movetext, Tok};
 
@@ -411,7 +411,7 @@ pub fn san_move(b: &Position, san: &str) -> Option<Move> {
 
 /// A legal move on `b` in English SAN, as a book writes it: `Nbd2`, `exd5`, `O-O`, `e8=Q+`.
 pub fn san(b: &Position, mv: Move) -> String {
-    rules_chess::to_san(&Rules960, b, mv)
+    rules_chess::to_san_chess(b, mv)
 }
 
 /// The squares a move goes from and to as the eye sees it: castling goes to the king's square,

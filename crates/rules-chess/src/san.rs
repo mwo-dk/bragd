@@ -232,13 +232,12 @@ pub fn from_san<V: Variant + ?Sized>(variant: &V, position: &Position, text: &st
 /// moves every way, and a move this reads must still be the only legal one
 /// that fits. A promotion without its piece is a queen's.
 pub fn from_san_loose(position: &Position, text: &str) -> Option<Move> {
-    let legal = position.legal_moves();
     let castle = text.trim_end_matches(['+', '#', '!', '?']);
     let short = matches!(castle, "O-O" | "0-0" | "o-o");
     let long = matches!(castle, "O-O-O" | "0-0-0" | "o-o-o");
     if short || long {
         let wanted = if short { MoveKind::KingsideCastle } else { MoveKind::QueensideCastle };
-        let mut fits = legal.into_iter().filter(|mv| mv.kind() == wanted);
+        let mut fits = legal_where(position, |mv| mv.kind() == wanted).into_iter();
         return match (fits.next(), fits.next()) {
             (Some(mv), None) => Some(mv),
             _ => None,
@@ -281,27 +280,35 @@ pub fn from_san_loose(position: &Position, text: &str) -> Option<Move> {
             return None;
         }
     }
-    let mut found = None;
-    let mut count = 0;
-    for mv in legal {
-        // A castle is named only as one, above.
-        if mv.kind().is_castle() || mv.to() != to || position.piece_at(mv.from()).map(|p| p.role) != Some(role) {
-            continue;
-        }
-        if from_file.is_some_and(|f| mv.from().file() != f) || from_rank.is_some_and(|r| mv.from().rank() != r) {
-            continue;
-        }
+    let fits = legal_where(position, |mv| {
         let promo = mv.promotion_role();
-        if promo.is_some() && promo != promotion.or(Some(Role::Queen)) {
-            continue;
-        }
-        if promotion.is_some() && promo != promotion {
-            continue;
-        }
-        found = Some(mv);
-        count += 1;
-    }
-    (count == 1).then_some(found).flatten()
+        // A castle is named only as one, above.
+        !mv.kind().is_castle()
+            && mv.to() == to
+            && position.piece_at(mv.from()).map(|p| p.role) == Some(role)
+            && !from_file.is_some_and(|f| mv.from().file() != f)
+            && !from_rank.is_some_and(|r| mv.from().rank() != r)
+            && !(promo.is_some() && promo != promotion.or(Some(Role::Queen)))
+            && !(promotion.is_some() && promo != promotion)
+    });
+    (fits.len() == 1).then(|| fits.as_slice()[0])
+}
+
+/// [`to_san`] under chess's rules (Chess960's alike), for a reader that
+/// writes every move of a file again: legality is asked only of the moves to
+/// the same square, the only ones the notation compares against. Asking it
+/// of every move, every ply, made reading files twice as slow.
+pub fn to_san_chess(position: &Position, mv: Move) -> String {
+    let rivals = legal_where(position, |other| other.to() == mv.to());
+    san_given(position, mv, &rivals, |after| after.legal_moves().is_empty())
+}
+
+/// Chess's legal moves that `keep` picks, legality asked only of those.
+fn legal_where(position: &Position, keep: impl Fn(Move) -> bool) -> MoveList {
+    let us = position.side_to_move();
+    let mut moves = crate::movegen::pseudo_legal_moves(position);
+    moves.retain(|mv| keep(mv) && !position.make_move(mv).is_check_against(us));
+    moves
 }
 
 /// Strips what does not change which move is meant.
@@ -810,6 +817,7 @@ mod tests {
         ] {
             let p = position(fen);
             for mv in Chess.legal_moves(&p) {
+                assert_eq!(to_san_chess(&p, mv), to_san(&Chess, &p, mv), "{fen}");
                 assert_eq!(from_san_loose(&p, &to_san(&Chess, &p, mv)), Some(mv), "{fen}");
             }
         }
