@@ -18,7 +18,7 @@ type Res<T> = Result<T, String>;
 
 /// The Club open on the Clubs page; it holds its lock while open.
 #[derive(Default)]
-pub struct Held(Mutex<Option<Club>>);
+pub struct Held(pub(crate) Mutex<Option<Club>>);
 
 /// A Club file known here.
 #[derive(Serialize)]

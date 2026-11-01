@@ -4,6 +4,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod clubs;
+mod tournaments;
 mod help;
 mod databases;
 mod helper_link;
@@ -376,6 +377,22 @@ fn main() {
             clubs::club_system,
             clubs::club_take_over,
             clubs::rating_search,
+            tournaments::tournament_new,
+            tournaments::tournament_view,
+            tournaments::tournament_remove,
+            tournaments::tournament_register,
+            tournaments::tournament_status,
+            tournaments::tournament_check_in_all,
+            tournaments::tournament_pair,
+            tournaments::tournament_pair_again,
+            tournaments::tournament_check,
+            tournaments::tournament_set_pairing,
+            tournaments::tournament_result,
+            tournaments::tournament_tiebreaks,
+            tournaments::tournament_rate,
+            tournaments::tournament_export,
+            tournaments::tournament_import,
+            tournaments::tournament_show,
             wizard::guide_due,
             wizard::wizard_open,
             wizard::wizard_chosen,
