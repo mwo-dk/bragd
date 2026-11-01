@@ -1013,5 +1013,21 @@
  "tournaments.tb.tpr": "表現等級分",
  "tournaments.tb.rtng": "等級分",
  "tournaments.error.damaged": "俱樂部檔案中的該賽事已損毀：某盤對局或輪空中提到了不存在的選手。",
- "tournaments.error.rated": "俱樂部等級分已計入本賽事的對局。"
+ "tournaments.error.rated": "俱樂部等級分已計入本賽事的對局。",
+ "tournaments.error.bundle": "這不是 Bragd 賽事包，或檔案已損壞。",
+ "tournaments.system.dutch": "瑞士制 (FIDE Dutch)",
+ "tournaments.system.round_robin": "循環賽",
+ "tournaments.system.double_round_robin": "雙循環賽",
+ "tournaments.standings": "排名",
+ "tournaments.crosstable": "交叉表",
+ "tournaments.rank": "名次",
+ "tournaments.number": "編號",
+ "tournaments.player": "選手",
+ "tournaments.points": "積分",
+ "tournaments.round_n": "第 {n} 輪",
+ "tournaments.board": "棋盤",
+ "tournaments.white": "白方",
+ "tournaments.black": "黑方",
+ "tournaments.result": "結果",
+ "tournaments.print": "列印"
 }

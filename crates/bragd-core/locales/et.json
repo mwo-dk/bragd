@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Sooritusreiting",
  "tournaments.tb.rtng": "Reiting",
  "tournaments.error.damaged": "See turniir klubi failis on rikkis: partii või bye nimetab mängijat, keda pole.",
- "tournaments.error.rated": "Klubi reitingud arvestavad juba selle turniiri partiisid."
+ "tournaments.error.rated": "Klubi reitingud arvestavad juba selle turniiri partiisid.",
+ "tournaments.error.bundle": "See ei ole Bragdi turniirifail, või on see rikutud.",
+ "tournaments.system.dutch": "Šveitsi süsteem (FIDE, hollandi)",
+ "tournaments.system.round_robin": "Ringturniir",
+ "tournaments.system.double_round_robin": "Topeltringturniir",
+ "tournaments.standings": "Edetabel",
+ "tournaments.crosstable": "Ristlaud",
+ "tournaments.rank": "Koht",
+ "tournaments.number": "Nr",
+ "tournaments.player": "Mängija",
+ "tournaments.points": "Punktid",
+ "tournaments.round_n": "Voor {n}",
+ "tournaments.board": "Laud",
+ "tournaments.white": "Valged",
+ "tournaments.black": "Mustad",
+ "tournaments.result": "Tulemus",
+ "tournaments.print": "Prindi"
 }

@@ -5,6 +5,7 @@
 //! kept in its file (`tournament`), ranked by the FIDE tiebreaks (`tiebreak`).
 
 pub mod club;
+pub mod export;
 pub mod lists;
 pub mod rating;
 pub mod tiebreak;

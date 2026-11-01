@@ -1019,5 +1019,21 @@
  "tournaments.tb.tpr": "Rating di performance",
  "tournaments.tb.rtng": "Rating",
  "tournaments.error.damaged": "Questo torneo nel file del Club è danneggiato: una partita o un riposo cita un giocatore che non c'è.",
- "tournaments.error.rated": "I rating del Club contano già le partite di questo torneo."
+ "tournaments.error.rated": "I rating del Club contano già le partite di questo torneo.",
+ "tournaments.error.bundle": "Questo non è un pacchetto di Torneo Bragd, oppure è danneggiato.",
+ "tournaments.system.dutch": "Svizzero (FIDE olandese)",
+ "tournaments.system.round_robin": "Round robin",
+ "tournaments.system.double_round_robin": "Round robin doppio",
+ "tournaments.standings": "Classifica",
+ "tournaments.crosstable": "Tabellone incrociato",
+ "tournaments.rank": "Posto",
+ "tournaments.number": "N.",
+ "tournaments.player": "Giocatore",
+ "tournaments.points": "Punti",
+ "tournaments.round_n": "Turno {n}",
+ "tournaments.board": "Scacchiera",
+ "tournaments.white": "Bianco",
+ "tournaments.black": "Nero",
+ "tournaments.result": "Risultato",
+ "tournaments.print": "Stampa"
 }

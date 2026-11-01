@@ -1019,5 +1019,21 @@
  "tournaments.tb.tpr": "Snieguma reitings",
  "tournaments.tb.rtng": "Reitings",
  "tournaments.error.damaged": "Šis turnīrs kluba failā ir bojāts: partijā vai brīvajā kārtā minēts spēlētājs, kura nav.",
- "tournaments.error.rated": "Kluba reitingos šī turnīra partijas jau ir ieskaitītas."
+ "tournaments.error.rated": "Kluba reitingos šī turnīra partijas jau ir ieskaitītas.",
+ "tournaments.error.bundle": "Šis nav Bragd turnīra pakete, vai arī tā ir bojāta.",
+ "tournaments.system.dutch": "Šveices sistēma (FIDE Dutch)",
+ "tournaments.system.round_robin": "Apļa turnīrs",
+ "tournaments.system.double_round_robin": "Dubultais apļa turnīrs",
+ "tournaments.standings": "Tabula",
+ "tournaments.crosstable": "Krustu tabula",
+ "tournaments.rank": "Vieta",
+ "tournaments.number": "Nr.",
+ "tournaments.player": "Spēlētājs",
+ "tournaments.points": "Punkti",
+ "tournaments.round_n": "Kārta {n}",
+ "tournaments.board": "Galds",
+ "tournaments.white": "Baltie",
+ "tournaments.black": "Melnie",
+ "tournaments.result": "Rezultāts",
+ "tournaments.print": "Drukāt"
 }

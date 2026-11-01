@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Leistungswertung",
  "tournaments.tb.rtng": "Wertung",
  "tournaments.error.damaged": "Dieses Turnier in der Club-Datei ist beschädigt: Eine Partie oder ein Freilos nennt einen Spieler, der nicht vorhanden ist.",
- "tournaments.error.rated": "Die Wertungen des Clubs zählen die Partien dieses Turniers bereits."
+ "tournaments.error.rated": "Die Wertungen des Clubs zählen die Partien dieses Turniers bereits.",
+ "tournaments.error.bundle": "Dies ist kein Bragd-Turnierpaket, oder es ist beschädigt.",
+ "tournaments.system.dutch": "Schweizer System (FIDE, holländisch)",
+ "tournaments.system.round_robin": "Rundenturnier",
+ "tournaments.system.double_round_robin": "Doppeltes Rundenturnier",
+ "tournaments.standings": "Rangliste",
+ "tournaments.crosstable": "Kreuztabelle",
+ "tournaments.rank": "Platz",
+ "tournaments.number": "Nr.",
+ "tournaments.player": "Spieler",
+ "tournaments.points": "Punkte",
+ "tournaments.round_n": "Runde {n}",
+ "tournaments.board": "Brett",
+ "tournaments.white": "Weiß",
+ "tournaments.black": "Schwarz",
+ "tournaments.result": "Ergebnis",
+ "tournaments.print": "Drucken"
 }

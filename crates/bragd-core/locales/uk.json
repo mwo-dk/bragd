@@ -1022,5 +1022,21 @@
  "tournaments.tb.tpr": "Рейтинг результативності",
  "tournaments.tb.rtng": "Рейтинг",
  "tournaments.error.damaged": "Цей турнір у файлі клубу пошкоджено: партія або бай називає гравця, якого немає.",
- "tournaments.error.rated": "Рейтинги клубу вже враховують партії цього турніру."
+ "tournaments.error.rated": "Рейтинги клубу вже враховують партії цього турніру.",
+ "tournaments.error.bundle": "Це не пакет турніру Bragd або він пошкоджений.",
+ "tournaments.system.dutch": "Швейцарська система (FIDE Dutch)",
+ "tournaments.system.round_robin": "Круговий",
+ "tournaments.system.double_round_robin": "Дворазовий круговий",
+ "tournaments.standings": "Таблиця",
+ "tournaments.crosstable": "Перехресна таблиця",
+ "tournaments.rank": "Місце",
+ "tournaments.number": "№",
+ "tournaments.player": "Гравець",
+ "tournaments.points": "Очки",
+ "tournaments.round_n": "Тур {n}",
+ "tournaments.board": "Дошка",
+ "tournaments.white": "Білі",
+ "tournaments.black": "Чорні",
+ "tournaments.result": "Результат",
+ "tournaments.print": "Друкувати"
 }

@@ -1019,5 +1019,21 @@
  "tournaments.tb.tpr": "דירוג ביצועים",
  "tournaments.tb.rtng": "דירוג",
  "tournaments.error.damaged": "הטורניר הזה בקובץ המועדון פגום: משחק או פטור מזכיר שחקן שאינו שם.",
- "tournaments.error.rated": "הדירוגים של המועדון כבר סופרים את המשחקים של הטורניר הזה."
+ "tournaments.error.rated": "הדירוגים של המועדון כבר סופרים את המשחקים של הטורניר הזה.",
+ "tournaments.error.bundle": "זה אינו חבילת טורניר של Bragd, או שהיא פגומה.",
+ "tournaments.system.dutch": "שוויצרי (FIDE הולנדי)",
+ "tournaments.system.round_robin": "טורניר מעגלי",
+ "tournaments.system.double_round_robin": "טורניר מעגלי כפול",
+ "tournaments.standings": "טבלה",
+ "tournaments.crosstable": "טבלה צולבת",
+ "tournaments.rank": "מקום",
+ "tournaments.number": "מס׳",
+ "tournaments.player": "שחקן",
+ "tournaments.points": "נקודות",
+ "tournaments.round_n": "סבב {n}",
+ "tournaments.board": "לוח",
+ "tournaments.white": "לבן",
+ "tournaments.black": "שחור",
+ "tournaments.result": "תוצאה",
+ "tournaments.print": "הדפסה"
 }

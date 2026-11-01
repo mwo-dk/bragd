@@ -1019,5 +1019,21 @@
  "tournaments.tb.tpr": "Puntuación de rendimiento",
  "tournaments.tb.rtng": "Puntuación",
  "tournaments.error.damaged": "Este torneo del archivo del club está dañado: una partida o un bye nombra a un jugador que no está.",
- "tournaments.error.rated": "Las puntuaciones del club ya cuentan las partidas de este torneo."
+ "tournaments.error.rated": "Las puntuaciones del club ya cuentan las partidas de este torneo.",
+ "tournaments.error.bundle": "Esto no es un paquete de torneo de Bragd, o está dañado.",
+ "tournaments.system.dutch": "Suizo (FIDE holandés)",
+ "tournaments.system.round_robin": "Todos contra todos",
+ "tournaments.system.double_round_robin": "Doble todos contra todos",
+ "tournaments.standings": "Clasificación",
+ "tournaments.crosstable": "Tabla cruzada",
+ "tournaments.rank": "Puesto",
+ "tournaments.number": "N.º",
+ "tournaments.player": "Jugador",
+ "tournaments.points": "Puntos",
+ "tournaments.round_n": "Ronda {n}",
+ "tournaments.board": "Tablero",
+ "tournaments.white": "Blancas",
+ "tournaments.black": "Negras",
+ "tournaments.result": "Resultado",
+ "tournaments.print": "Imprimir"
 }

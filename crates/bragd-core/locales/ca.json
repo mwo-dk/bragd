@@ -1019,5 +1019,21 @@
  "tournaments.tb.tpr": "Puntuació de rendiment",
  "tournaments.tb.rtng": "Puntuació",
  "tournaments.error.damaged": "Aquest torneig del fitxer del Club està malmès: una partida o un bye té un jugador que no hi és.",
- "tournaments.error.rated": "Les puntuacions del Club ja compten les partides d'aquest torneig."
+ "tournaments.error.rated": "Les puntuacions del Club ja compten les partides d'aquest torneig.",
+ "tournaments.error.bundle": "Això no és un paquet de torneig de Bragd, o està malmès.",
+ "tournaments.system.dutch": "Suís (FIDE, holandès)",
+ "tournaments.system.round_robin": "Tots contra tots",
+ "tournaments.system.double_round_robin": "Doble tots contra tots",
+ "tournaments.standings": "Classificació",
+ "tournaments.crosstable": "Taula creuada",
+ "tournaments.rank": "Lloc",
+ "tournaments.number": "Núm.",
+ "tournaments.player": "Jugador",
+ "tournaments.points": "Punts",
+ "tournaments.round_n": "Ronda {n}",
+ "tournaments.board": "Tauler",
+ "tournaments.white": "Blanques",
+ "tournaments.black": "Negres",
+ "tournaments.result": "Resultat",
+ "tournaments.print": "Imprimeix"
 }

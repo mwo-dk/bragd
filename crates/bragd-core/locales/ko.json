@@ -1013,5 +1013,21 @@
  "tournaments.tb.tpr": "퍼포먼스 레이팅",
  "tournaments.tb.rtng": "레이팅",
  "tournaments.error.damaged": "클럽 파일의 이 대회가 손상되었습니다. 대국 또는 부전승에 없는 선수가 적혀 있습니다.",
- "tournaments.error.rated": "클럽 레이팅에 이 대회의 대국이 이미 반영되어 있습니다."
+ "tournaments.error.rated": "클럽 레이팅에 이 대회의 대국이 이미 반영되어 있습니다.",
+ "tournaments.error.bundle": "Bragd 대회 묶음 파일이 아니거나 손상되었습니다.",
+ "tournaments.system.dutch": "스위스 리그 (FIDE 네덜란드식)",
+ "tournaments.system.round_robin": "리그전",
+ "tournaments.system.double_round_robin": "더블 리그전",
+ "tournaments.standings": "순위표",
+ "tournaments.crosstable": "크로스테이블",
+ "tournaments.rank": "순위",
+ "tournaments.number": "번호",
+ "tournaments.player": "선수",
+ "tournaments.points": "점수",
+ "tournaments.round_n": "라운드 {n}",
+ "tournaments.board": "보드",
+ "tournaments.white": "백",
+ "tournaments.black": "흑",
+ "tournaments.result": "결과",
+ "tournaments.print": "인쇄"
 }

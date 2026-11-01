@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Prestasjonsrating",
  "tournaments.tb.rtng": "Rating",
  "tournaments.error.damaged": "Denne turneringen i klubbfilen er skadet: en parti eller en fribye nevner en spiller som ikke finnes.",
- "tournaments.error.rated": "Klubbens ratinger teller allerede partiene i denne turneringen."
+ "tournaments.error.rated": "Klubbens ratinger teller allerede partiene i denne turneringen.",
+ "tournaments.error.bundle": "Dette er ikke en Bragd-turneringspakke, eller den er skadet.",
+ "tournaments.system.dutch": "Sveitsisk (FIDE Dutch)",
+ "tournaments.system.round_robin": "Rundturnering",
+ "tournaments.system.double_round_robin": "Dobbel rundturnering",
+ "tournaments.standings": "Stilling",
+ "tournaments.crosstable": "Krysstabell",
+ "tournaments.rank": "Plass",
+ "tournaments.number": "Nr.",
+ "tournaments.player": "Spiller",
+ "tournaments.points": "Poeng",
+ "tournaments.round_n": "Runde {n}",
+ "tournaments.board": "Bord",
+ "tournaments.white": "Hvit",
+ "tournaments.black": "Svart",
+ "tournaments.result": "Resultat",
+ "tournaments.print": "Skriv ut"
 }

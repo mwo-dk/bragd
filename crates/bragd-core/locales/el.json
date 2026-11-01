@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Βαθμολογία απόδοσης",
  "tournaments.tb.rtng": "Βαθμολογία",
  "tournaments.error.damaged": "Αυτό το τουρνουά στο αρχείο της λέσχης είναι κατεστραμμένο: μια παρτίδα ή ένα bye αναφέρει παίκτη που δεν υπάρχει.",
- "tournaments.error.rated": "Οι βαθμολογίες της λέσχης μετρούν ήδη τις παρτίδες αυτού του τουρνουά."
+ "tournaments.error.rated": "Οι βαθμολογίες της λέσχης μετρούν ήδη τις παρτίδες αυτού του τουρνουά.",
+ "tournaments.error.bundle": "Αυτό δεν είναι πακέτο τουρνουά του Bragd, ή είναι κατεστραμμένο.",
+ "tournaments.system.dutch": "Ελβετικό (FIDE, ολλανδικό)",
+ "tournaments.system.round_robin": "Όλοι με όλους",
+ "tournaments.system.double_round_robin": "Διπλό όλοι με όλους",
+ "tournaments.standings": "Κατάταξη",
+ "tournaments.crosstable": "Πίνακας διασταύρωσης",
+ "tournaments.rank": "Θέση",
+ "tournaments.number": "Αρ.",
+ "tournaments.player": "Παίκτης",
+ "tournaments.points": "Βαθμοί",
+ "tournaments.round_n": "Γύρος {n}",
+ "tournaments.board": "Ταμπλό",
+ "tournaments.white": "Λευκά",
+ "tournaments.black": "Μαύρα",
+ "tournaments.result": "Αποτέλεσμα",
+ "tournaments.print": "Εκτύπωση"
 }

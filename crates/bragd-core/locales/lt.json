@@ -1019,5 +1019,21 @@
  "tournaments.tb.tpr": "Pasirodymo reitingas",
  "tournaments.tb.rtng": "Reitingas",
  "tournaments.error.damaged": "Šis turnyras Klubo faile sugadintas: partijoje arba laisvame rate nurodytas žaidėjas, kurio nėra.",
- "tournaments.error.rated": "Klubo reitingai jau skaičiuoja šio turnyro partijas."
+ "tournaments.error.rated": "Klubo reitingai jau skaičiuoja šio turnyro partijas.",
+ "tournaments.error.bundle": "Tai nėra Bragd turnyro paketas arba jis sugadintas.",
+ "tournaments.system.dutch": "Šveicariška (FIDE olandiška)",
+ "tournaments.system.round_robin": "Visi su visais",
+ "tournaments.system.double_round_robin": "Dvigubai visi su visais",
+ "tournaments.standings": "Rezultatai",
+ "tournaments.crosstable": "Kryžminė lentelė",
+ "tournaments.rank": "Vieta",
+ "tournaments.number": "Nr.",
+ "tournaments.player": "Žaidėjas",
+ "tournaments.points": "Taškai",
+ "tournaments.round_n": "Ratas {n}",
+ "tournaments.board": "Lenta",
+ "tournaments.white": "Baltieji",
+ "tournaments.black": "Juodieji",
+ "tournaments.result": "Rezultatas",
+ "tournaments.print": "Spausdinti"
 }

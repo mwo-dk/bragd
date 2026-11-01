@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Կատարողական վարկանիշ",
  "tournaments.tb.rtng": "Վարկանիշ",
  "tournaments.error.damaged": "Այս մրցաշարը Ակումբի ֆայլում վնասված է. մի խաղ կամ ազատում նշում է խաղացող, որը չկա։",
- "tournaments.error.rated": "Ակումբի վարկանիշները արդեն հաշվում են այս մրցաշարի խաղերը։"
+ "tournaments.error.rated": "Ակումբի վարկանիշները արդեն հաշվում են այս մրցաշարի խաղերը։",
+ "tournaments.error.bundle": "Սա Bragd մրցաշարի փաթեթ չէ, կամ այն վնասված է։",
+ "tournaments.system.dutch": "Շվեյցարական (FIDE՝ հոլանդական)",
+ "tournaments.system.round_robin": "Շրջանային մրցաշար",
+ "tournaments.system.double_round_robin": "Կրկնակի շրջանային մրցաշար",
+ "tournaments.standings": "Աղյուսակ",
+ "tournaments.crosstable": "Խաչաձև աղյուսակ",
+ "tournaments.rank": "Տեղ",
+ "tournaments.number": "Համար",
+ "tournaments.player": "Խաղացող",
+ "tournaments.points": "Միավորներ",
+ "tournaments.round_n": "Փուլ {n}",
+ "tournaments.board": "Տախտակ",
+ "tournaments.white": "Սպիտակ",
+ "tournaments.black": "Սև",
+ "tournaments.result": "Արդյունք",
+ "tournaments.print": "Տպել"
 }

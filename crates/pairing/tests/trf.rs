@@ -103,3 +103,49 @@ fn a_bad_colour_names_its_line() {
     let e = parse(&bad).unwrap_err();
     assert_eq!(e.line, 5);
 }
+
+/// TRF-2026's own example lines (C.02 Appendix A), checked column by column.
+const WRITTEN: &str = "012 Club Championship
+022 Copenhagen
+032 DEN
+042 2026/11/05
+052 2026/12/17
+102 Mette Hansen
+192 FIDE_DUTCH_2025
+202 BH/C2,BH/C1,BH
+XXR 7
+XXC white1
+001    1 m GM Krause, Christian                 2500 GER     4600000 1960/01/01  3.5    1     2 w 1     3 b =     0 - U
+001    2 wWIM Doe, Jane                         2300 DEN     1400000 1990/05/17  2.0    2     1 b 0     0 - H     3 w +
+001    3 m    Hansen, Lars                      1850 DEN             1975/03/02  1.0    3     0 - Z     1 w =     2 b -
+";
+
+#[test]
+fn reads_every_column_of_the_trf_2026_example() {
+    let t = parse(WRITTEN).unwrap();
+    assert_eq!(
+        (t.city.as_str(), t.federation.as_str(), t.start.as_str(), t.end.as_str(), t.arbiter.as_str(), t.kind.as_str(), t.tiebreaks.as_str()),
+        ("Copenhagen", "DEN", "2026/11/05", "2026/12/17", "Mette Hansen", "FIDE_DUTCH_2025", "BH/C2,BH/C1,BH")
+    );
+    let p = &t.players[1];
+    assert_eq!((p.sex, p.title.as_str(), p.name.as_str(), p.rating, p.federation.as_str(), p.fide_id.as_str(), p.born.as_str(), p.points, p.rank), ('w', "WIM", "Doe, Jane", 2300, "DEN", "1400000", "1990/05/17", 4, 2));
+    assert_eq!(t.players[2].fide_id, "");
+    assert_eq!(t.players[0].points, 7);
+}
+
+#[test]
+fn writes_what_it_reads_column_for_column() {
+    assert_eq!(pairing::trf::write(&parse(WRITTEN).unwrap()), WRITTEN);
+}
+
+#[test]
+fn every_published_report_reads_back_the_same_after_writing() {
+    for f in std::fs::read_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures")).unwrap() {
+        let path = f.unwrap().path();
+        if path.extension().is_none_or(|e| e != "trf") {
+            continue;
+        }
+        let t = parse(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(parse(&pairing::trf::write(&t)).unwrap(), t, "{}", path.display());
+    }
+}

@@ -1019,5 +1019,21 @@
  "tournaments.tb.tpr": "Cote de performance",
  "tournaments.tb.rtng": "Cote",
  "tournaments.error.damaged": "Ce tournoi du fichier du Club est endommagé : une partie ou un exempt cite un joueur absent.",
- "tournaments.error.rated": "Les cotes du Club comptent déjà les parties de ce Tournoi."
+ "tournaments.error.rated": "Les cotes du Club comptent déjà les parties de ce Tournoi.",
+ "tournaments.error.bundle": "Ce n’est pas un paquet de Tournoi Bragd, ou il est endommagé.",
+ "tournaments.system.dutch": "Suisse (FIDE, système néerlandais)",
+ "tournaments.system.round_robin": "Toutes rondes",
+ "tournaments.system.double_round_robin": "Toutes rondes à deux tours",
+ "tournaments.standings": "Classement",
+ "tournaments.crosstable": "Tableau croisé",
+ "tournaments.rank": "Rang",
+ "tournaments.number": "N°",
+ "tournaments.player": "Joueur",
+ "tournaments.points": "Points",
+ "tournaments.round_n": "Ronde {n}",
+ "tournaments.board": "Échiquier",
+ "tournaments.white": "Blancs",
+ "tournaments.black": "Noirs",
+ "tournaments.result": "Résultat",
+ "tournaments.print": "Imprimer"
 }

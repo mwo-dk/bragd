@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Suoritusluokitus",
  "tournaments.tb.rtng": "Luokitus",
  "tournaments.error.damaged": "Tämä turnaus klubitiedostossa on vioittunut: peli tai vapaa kierros viittaa pelaajaan, jota ei ole.",
- "tournaments.error.rated": "Klubin luokitukset laskevat jo tämän turnauksen pelit."
+ "tournaments.error.rated": "Klubin luokitukset laskevat jo tämän turnauksen pelit.",
+ "tournaments.error.bundle": "Tämä ei ole Bragd-turnauspaketti tai se on vioittunut.",
+ "tournaments.system.dutch": "Sveitsiläinen (FIDE:n hollantilainen)",
+ "tournaments.system.round_robin": "Kaikki vastaan kaikki",
+ "tournaments.system.double_round_robin": "Kaksinkertainen kaikki vastaan kaikki",
+ "tournaments.standings": "Sijoitukset",
+ "tournaments.crosstable": "Ristitaulukko",
+ "tournaments.rank": "Sija",
+ "tournaments.number": "Nro",
+ "tournaments.player": "Pelaaja",
+ "tournaments.points": "Pisteet",
+ "tournaments.round_n": "Kierros {n}",
+ "tournaments.board": "Lauta",
+ "tournaments.white": "Valkoinen",
+ "tournaments.black": "Musta",
+ "tournaments.result": "Tulos",
+ "tournaments.print": "Tulosta"
 }

@@ -1019,5 +1019,21 @@
  "tournaments.tb.tpr": "Výkonnostní hodnocení",
  "tournaments.tb.rtng": "Hodnocení",
  "tournaments.error.damaged": "Tento turnaj v souboru klubu je poškozen: partie nebo bye odkazuje na hráče, který tam není.",
- "tournaments.error.rated": "Hodnocení klubu už počítá partie tohoto turnaje."
+ "tournaments.error.rated": "Hodnocení klubu už počítá partie tohoto turnaje.",
+ "tournaments.error.bundle": "Toto není balíček turnaje Bragd, nebo je poškozený.",
+ "tournaments.system.dutch": "Švýcarský systém (FIDE, holandský)",
+ "tournaments.system.round_robin": "Každý s každým",
+ "tournaments.system.double_round_robin": "Dvojitý každý s každým",
+ "tournaments.standings": "Pořadí",
+ "tournaments.crosstable": "Křížová tabulka",
+ "tournaments.rank": "Místo",
+ "tournaments.number": "Č.",
+ "tournaments.player": "Hráč",
+ "tournaments.points": "Body",
+ "tournaments.round_n": "Kolo {n}",
+ "tournaments.board": "Stůl",
+ "tournaments.white": "Bílí",
+ "tournaments.black": "Černí",
+ "tournaments.result": "Výsledek",
+ "tournaments.print": "Tisknout"
 }
