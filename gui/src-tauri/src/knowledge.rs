@@ -738,6 +738,8 @@ mod tests {
         assert_eq!(import_from(&mut b, &out).unwrap(), "Rows read: 1. New or deeper: 1.");
         assert_eq!(import_from(&mut b, &out).unwrap(), "Rows read: 1. New or deeper: 0.");
         assert!(import_from(&mut b, &d.join("missing.parquet")).is_err());
+        // Closed first: Windows does not remove a file that is open.
+        drop((a, b));
         std::fs::remove_dir_all(&d).unwrap();
     }
 }
