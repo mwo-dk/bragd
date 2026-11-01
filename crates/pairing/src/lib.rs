@@ -35,7 +35,11 @@ impl Colour {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Round {
     /// A game was played.
-    Played { opponent: u32, colour: Colour, points: u32 },
+    Played {
+        opponent: u32,
+        colour: Colour,
+        points: u32,
+    },
     /// The pair was made but the game was not played (a forfeit).
     Forfeit { opponent: u32, points: u32 },
     /// The pairing-allocated bye.
@@ -97,6 +101,8 @@ pub enum Error {
     /// No pairing satisfies the absolute criteria (C.04.3 1.9.3): the Chief
     /// Arbiter decides.
     NoLegalPairing,
+    /// A bracket mixes more score levels than the pairing weights can hold.
+    TooComplex,
 }
 
 impl std::fmt::Display for Error {
@@ -107,6 +113,7 @@ impl std::fmt::Display for Error {
             Error::UnevenHistory(t) => write!(f, "player {t} has a different number of rounds"),
             Error::TournamentOver => write!(f, "every round has been played"),
             Error::NoLegalPairing => write!(f, "no pairing meets the absolute criteria"),
+            Error::TooComplex => write!(f, "a bracket mixes too many scores to pair"),
         }
     }
 }

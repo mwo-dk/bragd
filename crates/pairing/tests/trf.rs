@@ -4,7 +4,11 @@ use pairing::trf::{TrfGame, parse};
 const SAMPLE: &str = include_str!("fixtures/sample.trf");
 
 fn game(opponent: Option<u32>, colour: Option<Colour>, result: char) -> TrfGame {
-    TrfGame { opponent, colour, result }
+    TrfGame {
+        opponent,
+        colour,
+        result,
+    }
 }
 
 #[test]
@@ -31,17 +35,29 @@ fn reads_round_cells() {
     use Colour::*;
     assert_eq!(
         t.players[0].rounds,
-        vec![game(Some(3), Some(White), '1'), game(Some(2), Some(Black), '='), game(None, None, 'H')]
+        vec![
+            game(Some(3), Some(White), '1'),
+            game(Some(2), Some(Black), '='),
+            game(None, None, 'H')
+        ]
     );
     assert_eq!(
         t.players[1].rounds,
-        vec![game(Some(4), Some(Black), '+'), game(Some(1), Some(White), '='), game(Some(3), Some(Black), '0')]
+        vec![
+            game(Some(4), Some(Black), '+'),
+            game(Some(1), Some(White), '='),
+            game(Some(3), Some(Black), '0')
+        ]
     );
     assert_eq!(t.players[2].rounds[1], game(None, None, 'U'));
     // A blank cell in the middle of a line is a round with nothing in it.
     assert_eq!(
         t.players[3].rounds,
-        vec![game(Some(2), Some(White), '-'), game(None, None, ' '), game(None, None, 'Z')]
+        vec![
+            game(Some(2), Some(White), '-'),
+            game(None, None, ' '),
+            game(None, None, 'Z')
+        ]
     );
 }
 
@@ -53,7 +69,11 @@ fn black1_gives_black() {
 
 #[test]
 fn missing_optional_headers_are_none() {
-    let text: String = SAMPLE.lines().filter(|l| !l.starts_with("XX")).map(|l| format!("{l}\n")).collect();
+    let text: String = SAMPLE
+        .lines()
+        .filter(|l| !l.starts_with("XX"))
+        .map(|l| format!("{l}\n"))
+        .collect();
     let t = parse(&text).unwrap();
     assert_eq!(t.rounds, None);
     assert_eq!(t.initial_colour, None);
@@ -61,7 +81,10 @@ fn missing_optional_headers_are_none() {
 
 #[test]
 fn unknown_lines_are_ignored_and_crlf_is_accepted() {
-    let text = format!("### a comment\r\n132                                                                                        26/03/01\r\n{}", SAMPLE.replace('\n', "\r\n"));
+    let text = format!(
+        "### a comment\r\n132                                                                                        26/03/01\r\n{}",
+        SAMPLE.replace('\n', "\r\n")
+    );
     let t = parse(&text).unwrap();
     assert_eq!(t.players.len(), 4);
     assert_eq!(t.players[0].rounds.len(), 3);

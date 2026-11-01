@@ -14,3 +14,7 @@ publish = false
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# The pairing replays run whole tournaments; unoptimised they take minutes.
+[profile.dev.package.pairing]
+opt-level = 3

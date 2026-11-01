@@ -61,6 +61,84 @@ impl std::error::Error for TrfError {}
 
 /// Parses a TRF-16 file.
 pub fn parse(text: &str) -> Result<Trf, TrfError> {
-    let _ = text;
-    todo!("TRF-16 reader")
+    let mut t = Trf {
+        name: String::new(),
+        rounds: None,
+        initial_colour: None,
+        players: Vec::new(),
+    };
+    for (k, raw) in text.lines().enumerate() {
+        let line = raw.strip_suffix('\r').unwrap_or(raw);
+        let err = |message: String| TrfError {
+            line: k + 1,
+            message,
+        };
+        if let Some(rest) = line.strip_prefix("012 ") {
+            t.name = rest.trim().to_string();
+        } else if let Some(rest) = line.strip_prefix("XXR ") {
+            t.rounds = Some(
+                rest.trim()
+                    .parse()
+                    .map_err(|_| err(format!("bad round count {:?}", rest.trim())))?,
+            );
+        } else if let Some(rest) = line.strip_prefix("XXC ") {
+            t.initial_colour = match rest.trim() {
+                "white1" => Some(Colour::White),
+                "black1" => Some(Colour::Black),
+                other => return Err(err(format!("bad initial colour {other:?}"))),
+            };
+        } else if line.starts_with("001") {
+            t.players.push(player(line).map_err(err)?);
+        }
+    }
+    Ok(t)
+}
+
+/// Columns `from..=to` (1-based), clipped to the line; empty when the line is shorter.
+fn cols(line: &str, from: usize, to: usize) -> &str {
+    line.get(from - 1..to.min(line.len())).unwrap_or("")
+}
+
+fn player(line: &str) -> Result<TrfPlayer, String> {
+    let rank = cols(line, 5, 8).trim();
+    let start_rank = rank
+        .parse()
+        .map_err(|_| format!("bad start rank {rank:?}"))?;
+    let rating = cols(line, 49, 52).trim();
+    let rating = if rating.is_empty() {
+        0
+    } else {
+        rating
+            .parse()
+            .map_err(|_| format!("bad rating {rating:?}"))?
+    };
+    let mut rounds = Vec::new();
+    let mut at = 92;
+    while line.len() >= at + 3 {
+        let opp = cols(line, at, at + 3).trim();
+        let opponent = match opp {
+            "" | "0000" => None,
+            o => Some(o.parse().map_err(|_| format!("bad opponent {o:?}"))?)
+                .filter(|&n: &u32| n != 0),
+        };
+        let colour = match cols(line, at + 5, at + 5) {
+            "w" => Some(Colour::White),
+            "b" => Some(Colour::Black),
+            "" | " " | "-" => None,
+            c => return Err(format!("bad colour {c:?}")),
+        };
+        let result = cols(line, at + 7, at + 7).chars().next().unwrap_or(' ');
+        rounds.push(TrfGame {
+            opponent,
+            colour,
+            result,
+        });
+        at += 10;
+    }
+    Ok(TrfPlayer {
+        start_rank,
+        name: cols(line, 15, 47).trim().to_string(),
+        rating,
+        rounds,
+    })
 }

@@ -192,4 +192,4 @@ Once a month, once you tick the list in the wizard or turn it on under Sources. 
 Not yet. Bragd reads only the three lists above. Members a list does not have can be added to a Club by hand, with their IDs ([Clubs](../clubs/clubs.md)).
 
 ---
-[← Previous: Privacy](privacy.md) · [Next: Rules →](../rules/README.md)
+[← Previous: Privacy](privacy.md) · [Next: Swiss pairing →](swiss-pairing.md)

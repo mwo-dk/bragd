@@ -2,7 +2,7 @@
 
 # Reference
 
-The facts to look up: every `config.toml` key, every item in Settings, the command-line flags, where Bragd keeps its files, and what can leave your machine.
+The facts to look up: every `config.toml` key, every item in Settings, the command-line flags, where Bragd keeps its files, what can leave your machine, and how Swiss rounds are paired.
 
 | Page | What it covers |
 |---|---|
@@ -12,6 +12,7 @@ The facts to look up: every `config.toml` key, every item in Settings, the comma
 | [Files on disk](files.md) | Where config, data, Libraries, the Helper, tablebases and the cache are kept |
 | [Privacy](privacy.md) | What leaves the machine, when, and how to stop it |
 | [Rating lists](rating-lists.md) | FIDE's and each federation's list: where, format, terms, rhythm, and which Bragd fetches |
+| [Swiss pairing](swiss-pairing.md) | How Bragd pairs a Swiss round under the FIDE Dutch rules, and how that was tested |
 
 ---
 [← Previous: Playing online](../online/playing-online.md) · [Next: config.toml →](config-toml.md)
