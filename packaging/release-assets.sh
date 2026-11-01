@@ -17,13 +17,14 @@ with_sum() { for f in "$@"; do echo "$f" "$f.sha256"; done; }
 
 expected() {
   # desktop: tauri-action, one line per matrix entry, each installer with its .sha256 (verify
-  # writes those). The .msi is in British English (WiX culture en-GB).
+  # writes those). The .msi carries WiX culture en-US: Tauri's
+  # WiX bundler knows no en-GB. Bragd itself still speaks British English.
   with_sum "Bragd_${v}_amd64.deb" "Bragd_${v}_amd64.AppImage" "Bragd-${v}-1.x86_64.rpm"      # ubuntu-22.04
   with_sum "Bragd_${v}_arm64.deb" "Bragd_${v}_aarch64.AppImage" "Bragd-${v}-1.aarch64.rpm"   # ubuntu-22.04-arm
   with_sum "Bragd_${v}_aarch64.dmg" "Bragd_${v}_aarch64.app.tar.gz"                          # macOS, aarch64
   with_sum "Bragd_${v}_x64.dmg" "Bragd_${v}_x64.app.tar.gz"                                  # macOS, x86_64
-  with_sum "Bragd_${v}_x64-setup.exe" "Bragd_${v}_x64_en-GB.msi"                             # windows-latest
-  with_sum "Bragd_${v}_arm64-setup.exe" "Bragd_${v}_arm64_en-GB.msi"                         # windows-11-arm
+  with_sum "Bragd_${v}_x64-setup.exe" "Bragd_${v}_x64_en-US.msi"                             # windows-latest
+  with_sum "Bragd_${v}_arm64-setup.exe" "Bragd_${v}_arm64_en-US.msi"                         # windows-11-arm
   # flatpak: the bundle the Flatpak workflow built in the same run
   with_sum "Bragd_${v}_x86_64.flatpak"
   # boms

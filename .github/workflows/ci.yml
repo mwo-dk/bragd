@@ -119,6 +119,8 @@ jobs:
             entry="$(dpkg-deb --fsys-tarfile ../target/debug/bundle/deb/*.deb | tar -xO --wildcards '*.desktop')"
             echo "$entry"
             grep -qx 'Exec=bragd-gui %F' <<<"$entry"
+          else
+            ls ../target/debug/bundle/msi/*_arm64_en-US.msi # the name packaging/release-assets.sh expects
           fi
 
       # Intel Macs: releases build for x86_64-apple-darwin too, so this target has to build
