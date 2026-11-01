@@ -5,13 +5,24 @@ name: Flatpak
 # started on a display of its own. Its bundle is a release file (release.yml). Nightly when
 # master changed, and in every release; pull requests only when what goes into it changes.
 on:
-  workflow_call: # from release.yml (a release or rehearsal; a master push touching the paths below) and nightly.yml
-  pull_request:
-    # Pull requests run this system only when its own packaging or workflow changes; every
-    # other change is tested on it nightly and in every Release run.
+  push:
+    branches: [master] # dependency or packaging changes; the rest is tested nightly
     paths:
       - "packaging/flatpak/**"
       - ".github/workflows/flatpak.yml"
+      - "Cargo.lock"
+      - "gui/package.json"
+      - "gui/package-lock.json"
+  workflow_call: # from release.yml (a release or rehearsal) and nightly.yml
+  pull_request:
+    # Pull requests run this system only when its packaging, its workflow or the dependencies
+    # change; every other change is tested on it nightly and in every Release run.
+    paths:
+      - "packaging/flatpak/**"
+      - ".github/workflows/flatpak.yml"
+      - "Cargo.lock"
+      - "gui/package.json"
+      - "gui/package-lock.json"
   workflow_dispatch:
 
 permissions:
