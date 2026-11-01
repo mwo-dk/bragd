@@ -416,11 +416,11 @@ pub fn libraries(cfg: &Config) -> Vec<LibraryView> {
     files
         .iter()
         .map(|p| {
-            let mut v = LibraryView { path: p.display().to_string(), name: file_name(p), games: 0, size: disk::bytes(disk::size(p)), duplicates: 0, near_duplicates: 0, slices: vec![], error: String::new() };
+            let mut v = LibraryView { path: p.display().to_string(), name: file_name(p), games: 0, size: bragd_core::i18n::bytes(disk::size(p)), duplicates: 0, near_duplicates: 0, slices: vec![], error: String::new() };
             match Library::open(p) {
                 Ok(lib) => {
                     v.games = lib.count().unwrap_or(0);
-                    v.size = disk::bytes(lib.size());
+                    v.size = bragd_core::i18n::bytes(lib.size());
                     v.duplicates = lib.merged_count().map_or(0, |n| n as usize);
                     v.near_duplicates = lib.near_duplicate_count().map_or(0, |n| n as usize);
                     v.slices = lib.slices().unwrap_or_default().into_iter().map(|s| slice_view(p, s)).collect();

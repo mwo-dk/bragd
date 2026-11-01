@@ -104,11 +104,16 @@ pub fn engine_choices(variant: String, ctx: Managed<'_, Ctx>) -> Choices {
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments, reason = "one argument per thing the page sends")]
 pub fn engine_move(variant: String, initial: Option<String>, entries: Vec<String>, engine: Option<String>, ms: u32, skill: Option<u8>, ctx: Managed<'_, Ctx>, held: Managed<'_, engines::Held>) -> Res<engines::Moved> {
+    // Counted once a Game, at the Engine's first move, not at every move.
+    if entries.len() < 2 {
+        bragd_core::tips::used("engines");
+    }
     engines::engine_move(&ctx.cfg(), &held, &variant, initial.as_deref(), &entries, engine.as_deref(), ms, skill)
 }
 
 #[tauri::command(async)]
 pub fn analysis_start(variant: String, initial: Option<String>, entries: Vec<String>, engine: Option<String>, lines: Option<u32>, ctx: Managed<'_, Ctx>, held: Managed<'_, analyse::Held>) -> Res<()> {
+    bragd_core::tips::used("analyse");
     analyse::start(&ctx.cfg(), &held, &variant, initial, entries, engine, lines)
 }
 
@@ -154,6 +159,7 @@ pub fn position_setup(variant: String, text: String) -> Res<State> {
 
 #[tauri::command(async)]
 pub fn tablebases_page(ctx: Managed<'_, Ctx>, held: Managed<'_, tablebases::Held>) -> tablebases::Page {
+    bragd_core::tips::used("tablebases");
     tablebases::page(&ctx.cfg(), &held)
 }
 

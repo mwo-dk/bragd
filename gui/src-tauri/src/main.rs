@@ -142,6 +142,7 @@ fn choices(name: &str, cfg: &Config) -> Vec<Choice> {
             choice("coxswain", "Coxswain".into(), ""),
             choice("system", i18n::tr("settings.file_picker_system", &[]), ""),
         ],
+        "tips" => bragd_core::tips::FREQUENCIES.iter().map(|f| choice(f, i18n::tr(&format!("tips.{f}"), &[]), "")).collect(),
         "engines_runtime" => vec![
             choice("auto", i18n::tr("settings.runtime_auto", &[]), ""),
             choice("podman", "podman".into(), ""),
@@ -184,7 +185,7 @@ fn snapshot(cfg: &Config) -> Snapshot {
             .map(|o| OptView {
                 name: o.name,
                 area: o.area,
-                listed: o.listed(),
+                listed: o.listed_for(cfg),
                 label: o.label(),
                 hint: o.hint(),
                 value: values.get(o.name).cloned().unwrap_or(Value::Null),
@@ -203,6 +204,9 @@ fn get_snapshot(ctx: tauri::State<'_, Ctx>) -> Snapshot {
 #[tauri::command]
 fn save_setting(name: String, value: Value, ctx: tauri::State<'_, Ctx>) -> Result<Snapshot, String> {
     let cfg = save_with(&name, &value, register_helper)?;
+    if let Some(f) = bragd_core::tips::of_setting(&name) {
+        bragd_core::tips::used(f);
+    }
     let snap = snapshot(&cfg);
     *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = cfg;
     Ok(snap)
@@ -233,6 +237,16 @@ fn family_turn_on(family: String, ctx: tauri::State<'_, Ctx>) -> Result<Snapshot
     Ok(snapshot(&ctx.cfg()))
 }
 
+/// Only the Family `family` shows: the wizard's *Only chess*. Each switch is kept at once.
+#[tauri::command]
+fn families_only(family: String, ctx: tauri::State<'_, Ctx>) -> Result<Snapshot, String> {
+    for (name, value) in settings::only(&ctx.cfg(), &family) {
+        *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = settings::save(&name, &value)?;
+    }
+    bragd_core::tips::used("families");
+    Ok(snapshot(&ctx.cfg()))
+}
+
 /// The Game after `entries`, from `initial` or the Variant's start.
 #[tauri::command]
 fn game_replay(variant: String, initial: Option<String>, entries: Vec<String>) -> Result<State, GameError> {
@@ -251,6 +265,7 @@ struct Started {
 /// A new Game of `variant`: Chess960 starts from an array picked at random.
 #[tauri::command]
 fn game_new(variant: String) -> Result<Started, GameError> {
+    bragd_core::tips::used("play");
     let array = (bragd_games::variant(&variant)? == Variant::Chess960).then(throw::chess960_array);
     let initial = array.map(bragd_games::chess960_start);
     let state = bragd_games::replay::<&str>(&variant, initial.as_deref(), &[])?;
@@ -333,6 +348,7 @@ fn main() {
             save_setting,
             game_new,
             family_turn_on,
+            families_only,
             game_replay,
             game_play,
             game_throw,
@@ -352,6 +368,8 @@ fn main() {
             wizard::wizard_seen,
             wizard::tour_seen,
             wizard::whats_new,
+            wizard::tip_next,
+            wizard::tip_silence,
             knowledge::helper_status,
             knowledge::helper_retry,
             knowledge::job_cancel,

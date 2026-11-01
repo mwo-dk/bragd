@@ -455,6 +455,6 @@ mod tests {
         assert!(st.guide_due());
         seen(&mut st);
         assert!(!st.guide_due() && st.guide_seen);
-        assert!(crate::tour::cards_since(&st.seen_version).is_empty());
+        assert!(crate::tour::cards_since(&st.seen_version, &Config::default()).is_empty());
     }
 }

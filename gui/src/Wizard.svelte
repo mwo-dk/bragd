@@ -9,8 +9,8 @@
   import { guide } from "./guide.svelte.js";
   import FamilyToggles from "./FamilyToggles.svelte";
 
-  /** @type {{ snap: any, save: (name: string, value: any) => Promise<any>, go: (page: any) => void }} */
-  let { snap, save, go } = $props();
+  /** @type {{ snap: any, save: (name: string, value: any) => Promise<any>, only: (family: string) => Promise<any>, go: (page: any) => void }} */
+  let { snap, save, only, go } = $props();
 
   const tour = !guide.wizard;
   /** @type {any} */
@@ -21,6 +21,11 @@
   /** @type {any} */
   let info = $state(null);
   let busy = $state(false);
+  // Step 2: the full list of switches instead of one button per Family.
+  let several = $state(false);
+  const shownIds = $derived(snap.families.filter((/** @type {any} */ f) => f.shown).map((/** @type {any} */ f) => f.id));
+  // One click: that Family alone, then the next step (whose Engines and downloads follow it).
+  const pickOnly = (/** @type {string} */ id) => only(id).then(open).then(() => step++);
 
   const open = () =>
     api.wizardOpen().then((d) => {
@@ -127,7 +132,17 @@
         </div>
       {:else if current?.id === "families"}
         <p class="lead">{t("wizard.families")}</p>
-        <FamilyToggles {snap} {save} />
+        {#if several}
+          <p>{t("wizard.several_lead")}</p>
+          <FamilyToggles {snap} save={(n, v) => save(n, v).then(open)} />
+        {:else}
+          <div class="only">
+            {#each snap.families as f (f.id)}
+              <button aria-pressed={shownIds.length === 1 && shownIds[0] === f.id} onclick={() => pickOnly(f.id)}>{t("wizard.only", { family: f.name })}</button>
+            {/each}
+            <button aria-pressed={shownIds.length > 1} onclick={() => (several = true)}>{t("wizard.several")}</button>
+          </div>
+        {/if}
       {:else if current?.id === "engines"}
         <p class="lead">{t("wizard.engines")}</p>
         {#each data.engines as f}
@@ -294,6 +309,20 @@
     color: var(--accent);
     text-decoration: underline;
     text-align: start;
+  }
+  .only {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 0.5rem;
+    margin-block-end: 0.6rem;
+  }
+  .only button {
+    padding: 0.6rem 0.8rem;
+    text-align: start;
+  }
+  .only button[aria-pressed="true"] {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
   }
   .welcome {
     display: grid;

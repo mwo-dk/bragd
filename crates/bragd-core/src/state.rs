@@ -27,6 +27,16 @@ pub struct AppState {
     pub hints_shown: BTreeMap<String, u32>,
     /// Notices dismissed (`notices`).
     pub notices_dismissed: Vec<String>,
+    /// How often each Feature was used: its usage signal (`tips`). Never leaves the machine.
+    pub feature_uses: BTreeMap<String, u32>,
+    /// Unix time the last Tip showed, and its Feature.
+    pub tip_shown: u64,
+    pub tip_last: String,
+    /// Features whose Tip was answered *Don't suggest this again*.
+    pub tips_silenced: Vec<String>,
+    /// Unix time of the last upgrade (its tour cards seen), and the version it came from.
+    pub upgraded: u64,
+    pub upgraded_from: String,
     /// What a newer Bragd keeps here that this one does not know: saved as it was, so going
     /// back to an older version and forward again loses none of it.
     #[serde(flatten)]

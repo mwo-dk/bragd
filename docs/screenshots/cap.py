@@ -20,7 +20,7 @@ ffmpeg with palettegen/paletteuse.
 
 The window takes the display's size, which the app reads from BRAGD_WINDOW_SIZE (`WxH`). The
 app runs with BRAGD_OFFLINE=1, so it checks for no update. A demo home without a state.json gets
-one that has seen the install wizard, the tour cards and the hints (SEEN), so they do not cover
+one that has seen the install wizard, the tour cards, the hints and a Tip (SEEN), so they do not cover
 the screen; `Desktop(state={...})` writes the state given instead, `{}` for a first start.
 BRAGD_OFFLINE=1 also means no tablebase download or lookup is made.
 
@@ -93,8 +93,10 @@ NAMED = {"Enter": ("Enter", "Enter", 13), "Esc": ("Escape", "Escape", 27), "Tab"
 NAMED.update({f"F{i}": (f"F{i}", f"F{i}", 111 + i) for i in range(1, 13)})
 MODS = {"Alt": 1, "Ctrl": 2, "Meta": 4, "Shift": 8}
 
-# What a demo home has seen: the install wizard, every tour card, and the hints.
-SEEN = {"guide_seen": True, "seen_version": "999.0.0", "hints_shown": {h: 99 for h in ("sidebar", "features", "wizard")}}
+# What a demo home has seen: the install wizard, every tour card, and the hints; and a Tip shown
+# in 2100, so no Tip covers a picture.
+SEEN = {"guide_seen": True, "seen_version": "999.0.0", "hints_shown": {h: 99 for h in ("sidebar", "features", "wizard")},
+        "tip_shown": 4102444800}
 
 
 # Broadway has no screen resolution (-1), which WebKitGTK turns into a page zoom of -1/96: the

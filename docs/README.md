@@ -17,6 +17,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [The sidebar](getting-started/sidebar.md) | Families and their items, collapsing, the Helper line, Settings, Help and What's new |
 | [Help (F1) and notices](getting-started/help.md) | F1 → Features, the filter, *Show me*, notices and hints |
 | [What's new](getting-started/whats-new.md) | Tour cards after an upgrade, the list of every version |
+| [Tips](getting-started/tips.md) | One-line suggestions of features you have not used, and how often they come |
 
 ## [Play](play/README.md)
 

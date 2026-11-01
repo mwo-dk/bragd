@@ -57,6 +57,9 @@ pub async fn update_check(ctx: tauri::State<'_, Ctx>) -> Result<Vec<Notice>, Str
     let housekept = cfg.clone();
     std::thread::spawn(move || crate::engines::housekeeping(&housekept));
     tauri::async_runtime::spawn_blocking(move || {
+        if cfg.updates.check {
+            bragd_core::tips::used("update");
+        }
         update::check(&cfg);
         list(&cfg, false)
     })

@@ -394,7 +394,7 @@ def code_names() -> dict[str, list[str]]:
     theme_names = re.findall(r'^\s*\("([\w-]+)", "theme\.group', themes, re.M)
     theme_names += re.findall(r'"(\w+)"', looks)
     theme_names += re.findall(r'"(\w+)"', re.search(r"pub const BOARD_THEMES: \[&str; \d+\] = \[(.*?)\];", themes).group(1))
-    features = re.findall(r'^\s*f\("(\w+)", "([^"]+)"\)', rust("bragd-core/src/features.rs"), re.M)
+    features = re.findall(r'^\s*(?:f|only)\("(\w+)", "([^"]+)"', rust("bragd-core/src/features.rs"), re.M)
     flags = re.findall(r'"(--?[\w-]+)"', rust("bragd-helper/src/main.rs") + rust("bragd-helper/src/service.rs").split("fn ")[0])
     flags += re.findall(r'Some\("(--?[\w-]+)"(?: \| "(--?[\w-]+)")?\)', read(ROOT / "gui/src-tauri/src/main.rs"))[0]
     # The environment variables the shipped programs read (the readers' test switches are not).

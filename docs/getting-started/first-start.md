@@ -7,10 +7,13 @@ On the first start Bragd opens the install wizard: six short steps in a frame ov
 ![The install wizard's Welcome step: the languages by their own names on the left, Theme and Board theme swatches in the middle, a preview on the right](../screenshots/wizard-welcome-1100.png)
 *Step 1, Welcome: language, Theme and Board theme, with a preview.*
 
+![Step 2, Your games: the question Which games do you play? and one button per Family, Only Chess to Only Senet, then Several…](../screenshots/wizard-games-1100.png)
+*Step 2, Your games: one click picks a single Family.*
+
 | Step | What you choose | Settings area |
 |---|---|---|
 | 1 Welcome | Language (each by its own name), Theme and Board theme, with a preview | Look |
-| 2 Game families | Which Game families and Variants are on | Game families |
+| 2 Your games | *Which games do you play?* One click on *Only Chess* (or any other Family) keeps that one and turns the rest off. *Several…* shows a switch for every Family and Variant | Game families |
 | 3 Engines | Nothing: it shows the Engines found on this machine for each Family that is on | Engines |
 | 4 Knowledge | Downloads: TWIC every week and Syzygy 3–5 pieces (about 1 GB) are ticked; the others are listed with their sizes | Knowledge |
 | 5 Online | Nothing yet: signing in to servers comes in a later version | Online |
@@ -70,6 +73,10 @@ Six as swatches: Racing green, Racing green (dark), Light, Dark, Paper white and
 #### Why does the Engines step show "No sealed image is published yet"?
 
 Igel and YaneuraOu have no image of Bragd's: install them on the machine. Every other Engine shows *A sealed image can be pulled with podman or docker* ([Engine container images](../engines/container-images.md)).
+
+#### I picked Only Chess. How do I add go?
+
+Tick it in *Settings → Game families*, or run the wizard again and choose *Several…*. Nothing of go was deleted while it was off.
 
 #### Where did the Syzygy download go?
 

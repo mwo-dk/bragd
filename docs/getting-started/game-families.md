@@ -2,7 +2,7 @@
 
 # Game families and Variants
 
-Bragd knows nine Game families with 25 Variants between them, and all are on at first. Turn off what you do not play, and it leaves the sidebar, New game, the install wizard and engine setup. Nothing is deleted: turn it on again and everything is where it was. In F1 this is the `families` entry.
+Bragd knows nine Game families with 25 Variants between them, and all are on at first. Turn off what you do not play, and it leaves the sidebar, New game, the install wizard, engine setup, the Settings items that concern it, What's new and [Tips](tips.md). Someone who plays only chess sees only chess. Nothing is deleted: turn it on again and everything is where it was. In F1 this is the `families` entry.
 
 ![Settings at Game families: one box per Family with its own switch, and a switch for each of its Variants inside](../screenshots/settings-families-1100.png)
 *Settings → Game families: a switch per Family, and one per Variant.*
@@ -24,7 +24,7 @@ The rules of each are in [Rules](../rules/README.md).
 ## How to reach it
 
 - *Settings → Game families*: tick or untick a Family, or a Variant inside it. A Variant's switch is greyed out while its Family is off.
-- Step 2 of the [install wizard](first-start.md) shows the same switches.
+- Step 2 of the [install wizard](first-start.md), *Which games do you play?*: one click on *Only Chess* (or any other Family) turns every other Family off. *Several…* shows the same switches as Settings.
 
 Each change is saved at once, and the sidebar follows it straight away. A page of a Family you just turned off goes back to Settings.
 
@@ -69,6 +69,10 @@ The sidebar keeps only Settings, Help and What's new, and Bragd opens on Setting
 #### Why does the sidebar look different with one Family on?
 
 With two or more Families on, each Family is an outer item that folds open. With one, its items (Play, Analyse, Databases …) stand at the top on their own. See [The sidebar](sidebar.md).
+
+#### Which news and Tips do I see with only one Family on?
+
+Those of your Families, and those that concern everyone. A tour card, a Tip and a changelog row each name the Families they concern, or none when they concern everyone: the Tablebases card and Tip name chess, so a go player never sees them. The update notice names no Family, so it shows to everyone.
 
 #### Does turning a Variant off stop its Sources?
 

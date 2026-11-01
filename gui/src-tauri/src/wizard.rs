@@ -5,7 +5,7 @@
 
 use bragd_core::config::Config;
 use bragd_core::state::AppState;
-use bragd_core::{t, tour, wizard};
+use bragd_core::{t, tips, tour, wizard};
 use bragd_engines::known::{self, KNOWN};
 use bragd_games::Family;
 use bragd_helper::helper::{self as line, Reply, Request};
@@ -23,9 +23,9 @@ pub struct Due {
 }
 
 #[tauri::command]
-pub fn guide_due() -> Due {
+pub fn guide_due(ctx: tauri::State<'_, Ctx>) -> Due {
     let st = AppState::load();
-    Due { wizard: st.guide_due(), cards: tour::cards_since(&st.seen_version).iter().map(tour::view).collect() }
+    Due { wizard: st.guide_due(), cards: tour::cards_since(&st.seen_version, &ctx.cfg()).iter().map(tour::view).collect() }
 }
 
 /// Changes the state as `f` says and saves it, after taking what another window wrote.
@@ -51,8 +51,25 @@ pub fn tour_seen() {
 
 /// What's new in the sidebar: every version, newest first, with its cards.
 #[tauri::command]
-pub fn whats_new() -> Vec<(&'static str, Vec<tour::View>)> {
-    tour::by_version()
+pub fn whats_new(ctx: tauri::State<'_, Ctx>) -> Vec<(&'static str, Vec<tour::View>)> {
+    tour::by_version(&ctx.cfg())
+}
+
+/// The Tip due now, if any, counted as shown. `busy`: a live Game or the wizard is on screen.
+#[tauri::command]
+pub fn tip_next(busy: bool, ctx: tauri::State<'_, Ctx>) -> Option<tips::Tip> {
+    let cfg = ctx.cfg();
+    let mut st = AppState::load();
+    let f = tips::next(&cfg, &st, bragd_core::fs::now(), busy)?;
+    tips::shown(&mut st, f, bragd_core::fs::now());
+    let _ = st.save();
+    Some(tips::tip(f))
+}
+
+/// *Don't suggest this again* for the Tip `id`.
+#[tauri::command]
+pub fn tip_silence(id: String) {
+    with_state(|st| tips::silence(st, &id));
 }
 
 /// An engine as the Engines step lists it.
@@ -124,7 +141,7 @@ fn engines(cfg: &Config) -> Vec<FamilyEngines> {
 #[tauri::command(async)]
 pub fn wizard_open(ctx: tauri::State<'_, Ctx>) -> Open {
     let cfg = ctx.cfg();
-    let offers = wizard::offers(&helper_sources(), &cfg, disk::bytes);
+    let offers = wizard::offers(&helper_sources(), &cfg, bragd_core::i18n::bytes);
     Open {
         steps: wizard::steps(),
         themes: wizard::theme_swatches(),
@@ -149,8 +166,8 @@ pub fn wizard_chosen(chosen: Vec<String>, ctx: tauri::State<'_, Ctx>) -> Chosen 
     let srcs = helper_sources();
     let free = bragd_core::dirs::app_data().and_then(|d| disk::free_space(&d));
     Chosen {
-        totals: wizard::totals(&srcs, &chosen, free, disk::bytes),
-        summary: wizard::summary(&wizard::plan(&srcs, &chosen, &cfg), &srcs, disk::bytes),
+        totals: wizard::totals(&srcs, &chosen, free, bragd_core::i18n::bytes),
+        summary: wizard::summary(&wizard::plan(&srcs, &chosen, &cfg), &srcs, bragd_core::i18n::bytes),
     }
 }
 
@@ -159,7 +176,10 @@ pub fn wizard_chosen(chosen: Vec<String>, ctx: tauri::State<'_, Ctx>) -> Chosen 
 #[tauri::command]
 pub async fn wizard_done(chosen: Vec<String>, ctx: tauri::State<'_, Ctx>) -> Result<Vec<String>, String> {
     let cfg = ctx.cfg();
-    with_state(wizard::seen);
+    with_state(|st| {
+        wizard::seen(st);
+        tips::count(st, "wizard");
+    });
     tauri::async_runtime::spawn_blocking(move || done(&cfg, &chosen)).await.map_err(|e| e.to_string())
 }
 

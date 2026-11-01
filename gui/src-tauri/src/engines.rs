@@ -151,7 +151,7 @@ pub fn availability(cfg: &Config, key: &str) -> Availability {
         (Some(image), _) => Availability::Built { image },
         (None, None) => Availability::NoImage,
         (None, Some(image)) if has(&image) => Availability::Pulled { image },
-        (None, Some(image)) => Availability::Pull { image, size: bragd_helper::disk::bytes(k.image_size) },
+        (None, Some(image)) => Availability::Pull { image, size: bragd_core::i18n::bytes(k.image_size) },
     }
 }
 
@@ -170,7 +170,7 @@ pub fn resolve(cfg: &Config, key: &str, variant: &str) -> Result<Chosen, String>
 
 fn missing(cfg: &Config, k: &Known, m: &Missing) -> String {
     match m {
-        Missing::NotPulled { .. } => i18n::tr("engines.state.get", &[("size", &bragd_helper::disk::bytes(k.image_size))]),
+        Missing::NotPulled { .. } => i18n::tr("engines.state.get", &[("size", &bragd_core::i18n::bytes(k.image_size))]),
         Missing::NoRuntime if !cfg.engines.containers => i18n::tr("engines.state.containers_off", &[]),
         Missing::NoRuntime => i18n::tr("engines.state.no_runtime", &[]),
         Missing::NoNetwork => i18n::tr("engines.network.missing", &[("name", k.name)]),
@@ -354,7 +354,7 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             // that cannot be had yet needs none.
             let network = network::for_engine(&key).filter(|_| matches!(state, Availability::Pull { .. } | Availability::Pulled { .. } | Availability::Built { .. })).map(|n| NetworkView {
                 present: networks_folder().is_ok_and(|f| n.path(&f).is_file()),
-                size: bragd_helper::disk::bytes(n.archive_size),
+                size: bragd_core::i18n::bytes(n.archive_size),
                 from: n.archive.to_string(),
                 licence: n.licence.to_string(),
                 job: downloads.get(&key).cloned(),

@@ -69,6 +69,7 @@ const GAME_FILES: [&str; 13] = ["pgn", "gz", "zst", "bz2", "si4", "si5", "cbh", 
 pub fn db_pick(app: AppHandle, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Option<FileView>> {
     let ask = files::Ask { title: t!("files.pick_database"), filters: vec![(t!("db.game_files"), GAME_FILES.iter().map(|e| e.to_string()).collect())], ..Default::default() };
     let Some(f) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
+    bragd_core::tips::used("databases");
     db_open(&f, &k, &ctx.cfg()).map(Some)
 }
 
@@ -194,6 +195,7 @@ pub fn library_dedupe(path: String, k: State<'_, Knowledge>) -> Res<u64> {
 /// job: its id; None when the dialog was closed.
 #[tauri::command(async)]
 pub fn library_export(app: AppHandle, path: String, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Option<u64>> {
+    bragd_core::tips::used("parquet");
     let library = PathBuf::from(path);
     let name = format!("{}.parquet", library.file_stem().unwrap_or_default().to_string_lossy());
     let ask = files::Ask { title: t!("lib.export_title"), save: Some(name), filters: vec![("Parquet".into(), vec!["parquet".into()])], start: library.parent().map(Path::to_path_buf), ..Default::default() };
@@ -324,7 +326,7 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
         .into_iter()
         .map(|(a, o, m)| SourceView {
             family_name: if a.family.is_empty() { t!("source.any_family") } else { t!(&format!("family.{}", a.family)) },
-            size: if a.size == 0 { t!("source.size_unknown") } else { t!("source.size", "size" => disk::bytes(a.size)) },
+            size: if a.size == 0 { t!("source.size_unknown") } else { t!("source.size", "size" => bragd_core::i18n::bytes(a.size)) },
             notice: a.notice.as_deref().map(|n| t!(n, "source" => a.name)).unwrap_or_default(),
             custom: a.id.starts_with(sources::CUSTOM),
             last: ago(m.last_fetch, now),
@@ -332,8 +334,8 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
             paused: m.paused,
             disk_cap: o.disk_cap.map(limit_text).unwrap_or_default(),
             max_download: o.max_download.map(limit_text).unwrap_or_default(),
-            max_download_default: disk::bytes(sources::MAX_DOWNLOAD),
-            too_big: m.too_big.map(|size| t!("source.too_big", "size" => disk::bytes(size), "cap" => disk::bytes(sources::cap(&o, &m)))).unwrap_or_default(),
+            max_download_default: bragd_core::i18n::bytes(sources::MAX_DOWNLOAD),
+            too_big: m.too_big.map(|size| t!("source.too_big", "size" => bragd_core::i18n::bytes(size), "cap" => bragd_core::i18n::bytes(sources::cap(&o, &m)))).unwrap_or_default(),
             id: a.id,
             name: a.name,
             family: a.family,
@@ -369,6 +371,7 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
 /// typed when they were in sight; a Route's Strip rule that keeps everything is none.
 #[tauri::command(async)]
 pub fn source_set(id: String, mut options: Options, disk_cap: Option<String>, max_download: Option<String>, k: State<'_, Knowledge>) -> Res<()> {
+    bragd_core::tips::used("helper");
     for r in &mut options.routes {
         r.strip = r.strip.take().filter(|s| !s.is_empty());
         r.library = r.library.trim().to_string();
@@ -418,10 +421,20 @@ pub fn source_strip(id: String, dry_run: bool, k: State<'_, Knowledge>) -> Res<u
 
 // ---------------------------------------------------------------- Disk use
 
-/// `5 GB`, `500MB`, `1.5 TB`, `1200000` (bytes): bytes, in powers of 1000 as `disk::bytes`
+/// `5 GB`, `500MB`, `1.5 TB`, `1200000` (bytes): bytes, in powers of 1000 as `bragd_core::i18n::bytes`
 /// writes them. Empty or 0 is no limit.
 pub fn parse_size(text: &str) -> Res<u64> {
-    let s = text.trim().to_ascii_lowercase().replace(',', ".");
+    // As `i18n::bytes` writes it in any language: a decimal comma, or Persian digits and mark.
+    let s: String = text
+        .trim()
+        .to_ascii_lowercase()
+        .chars()
+        .map(|c| match c {
+            ',' | '\u{066B}' => '.',
+            '۰'..='۹' => char::from_digit(c as u32 - '۰' as u32, 10).unwrap_or(c),
+            c => c,
+        })
+        .collect();
     if s.is_empty() {
         return Ok(0);
     }
@@ -441,7 +454,7 @@ pub fn parse_size(text: &str) -> Res<u64> {
 
 /// A limit as the page shows it in its field: empty for none.
 fn limit_text(n: u64) -> String {
-    if n == 0 { String::new() } else { disk::bytes(n) }
+    if n == 0 { String::new() } else { bragd_core::i18n::bytes(n) }
 }
 
 #[derive(Serialize)]
@@ -472,6 +485,7 @@ pub struct DiskView {
 
 #[tauri::command(async)]
 pub fn disk_report(k: State<'_, Knowledge>) -> Res<DiskView> {
+    bragd_core::tips::used("disk");
     let r = match k.link.ask(&Request::DiskReport)? {
         Reply::Disk { report } => report,
         _ => return Err(t!("helper.odd_reply")),
@@ -483,7 +497,7 @@ pub fn disk_report(k: State<'_, Knowledge>) -> Res<DiskView> {
             .iter()
             .map(|i| ItemView {
                 label: i.label(),
-                size: disk::bytes(i.bytes),
+                size: bragd_core::i18n::bytes(i.bytes),
                 path: i.path.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| t!("disk.runtime")),
                 external: i.external,
                 limit: i.limit.map(limit_text).unwrap_or_default(),
@@ -491,10 +505,10 @@ pub fn disk_report(k: State<'_, Knowledge>) -> Res<DiskView> {
                 id: i.id.clone(),
             })
             .collect(),
-        total: disk::bytes(r.total),
+        total: bragd_core::i18n::bytes(r.total),
         total_limit: limit_text(r.limits.total),
         free_below: limit_text(r.limits.free_below),
-        free: r.free.iter().map(|f| (f.path.display().to_string(), f.bytes.map(disk::bytes).unwrap_or_else(|| t!("disk.unknown")))).collect(),
+        free: r.free.iter().map(|f| (f.path.display().to_string(), f.bytes.map(bragd_core::i18n::bytes).unwrap_or_else(|| t!("disk.unknown")))).collect(),
         notices: r.crossed.iter().map(disk::Crossed::text).collect(),
         sources,
     })
@@ -527,6 +541,7 @@ mod tests {
         assert_eq!(parse_size("1.5tb").unwrap(), 1_500_000_000_000);
         assert_eq!(parse_size("1,5 GB").unwrap(), 1_500_000_000);
         assert_eq!(parse_size("1200").unwrap(), 1200);
+        assert_eq!(parse_size("۱٫۵ GB").unwrap(), 1_500_000_000, "as Persian writes it");
         assert_eq!(parse_size(" ").unwrap(), 0);
         assert!(parse_size("lots").is_err());
         assert!(parse_size("5 parsecs").is_err());

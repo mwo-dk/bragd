@@ -25,6 +25,7 @@ pub struct Config {
     pub helper: HelperConfig,
     pub updates: UpdatesConfig,
     pub disk: DiskConfig,
+    pub tips: TipsConfig,
     /// The user's own Themes, `[themes.<name>]`: each colour not given is Racing green's. One
     /// named like a built-in Theme replaces it.
     pub themes: BTreeMap<String, Theme>,
@@ -188,6 +189,20 @@ impl Default for UpdatesConfig {
     }
 }
 
+/// How often a Tip may show (`tips`).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct TipsConfig {
+    /// "often" (once a day at most), "sometimes" (once a week at most) or "off".
+    pub frequency: String,
+}
+
+impl Default for TipsConfig {
+    fn default() -> Self {
+        TipsConfig { frequency: "sometimes".into() }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
@@ -200,6 +215,7 @@ impl Default for Config {
             helper: HelperConfig::default(),
             updates: UpdatesConfig::default(),
             disk: DiskConfig::default(),
+            tips: TipsConfig::default(),
             themes: BTreeMap::new(),
             refused: vec![],
         }
@@ -281,6 +297,7 @@ impl Config {
         take(&table, "helper", &mut c.helper, &mut refused);
         take(&table, "updates", &mut c.updates, &mut refused);
         take(&table, "disk", &mut c.disk, &mut refused);
+        take(&table, "tips", &mut c.tips, &mut refused);
         take(&table, "themes", &mut c.themes, &mut refused);
         c.refused = refused;
         c

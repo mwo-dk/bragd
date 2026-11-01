@@ -55,8 +55,20 @@
     api.noticeList(true).then((n) => {
       guide.notices = n;
       api.updateCheck().then((all) => (guide.notices = [...all, ...guide.notices.filter((x) => /^(hint|local):/.test(x.id))]));
+      askTip();
     });
   });
+
+  // A Tip at start and after a while without input; Rust decides whether one is due.
+  const IDLE = 2 * 60 * 1000;
+  const askTip = () => {
+    if (!guide.tip) api.tipNext(guide.wizard || guide.cards.length > 0 || guide.live).then((tip) => (guide.tip = tip));
+  };
+  let idle = setTimeout(askTip, IDLE);
+  const active = () => {
+    clearTimeout(idle);
+    idle = setTimeout(askTip, IDLE);
+  };
 
   /** Slices by Game family, for the sidebar. @type {Record<string, any[]>} */
   let slices = $state({});
@@ -73,7 +85,7 @@
   const family = $derived(page.kind === "item" ? snap?.families.find((/** @type {any} */ f) => f.id === page.family) : null);
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "F1" && (e.preventDefault(), go({ kind: "help" }))} />
+<svelte:window onkeydown={(e) => (active(), e.key === "F1" && (e.preventDefault(), go({ kind: "help" })))} onpointerdown={active} />
 
 <Sprites />
 
@@ -129,7 +141,7 @@
     </main>
   </div>
   {#if guide.wizard || guide.cards.length}
-    <Wizard {snap} {save} {go} />
+    <Wizard {snap} {save} only={(id) => api.familiesOnly(id).then(apply)} {go} />
   {/if}
   <Notices {snap} {go} />
 {/if}

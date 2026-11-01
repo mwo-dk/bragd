@@ -21,6 +21,9 @@ The cards of the coming version:
 | `engines` | Engines and Analyse |
 | `helper` | The Helper and Sources |
 | `disk` | Disk watch |
+| `tips` | Tips |
+
+A card shows only to someone who plays a Game family it concerns. Most concern everyone; one about tablebases, say, would name chess and skip a user with chess turned off, both after the upgrade and in the list.
 
 ## How to reach it
 
@@ -55,4 +58,4 @@ Every card newer than the version you last saw, from all the versions in between
 Yes, like every text in Bragd. A card that is not translated yet shows in English.
 
 ---
-[← Previous: Help (F1) and notices](help.md) · [Next: Play →](../play/README.md)
+[← Previous: Help (F1) and notices](help.md) · [Next: Tips →](tips.md)
