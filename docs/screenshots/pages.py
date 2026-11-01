@@ -609,10 +609,13 @@ def sharing():
             d.wait(0.4)
             click(d, "Settings", "nav")
             click(d, "Peers", "main")
-            d.wait(3)
+            # The other machine asks for work once a minute: time for it to take the job.
+            d.wait(70)
             click(d, "Sync now", "main")
             d.wait(8)
             js(d, "const s = document.querySelector('main .peers .state'); if (s) s.textContent = s.textContent.replace(/listening on .*$/, 'listening on 192.168.1.20:47247.');")
+            # The other machine's address too.
+            js(d, "document.querySelectorAll('main .peers .peer small').forEach(s => { if (/^[0-9.:]+$/.test(s.textContent.trim())) s.textContent = '192.168.1.30:47247'; });")
             js(d, "const h = [...document.querySelectorAll('main h3')].find(h => h.textContent.trim() === 'Paired machines'); h && h.scrollIntoView()")
             d.wait(0.5)
 

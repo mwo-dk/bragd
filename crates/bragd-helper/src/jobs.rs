@@ -670,7 +670,8 @@ impl Jobs {
             Ok(crate::analysis::Started { session: Box::new(e), notation, edition })
         };
         let gate = || self.analysis_gate(id);
-        let renewed = Mutex::new(std::time::Instant::now());
+        // The first progress tells the owner at once, then every `RENEW`.
+        let renewed: Mutex<Option<std::time::Instant>> = Mutex::new(None);
         let progress = |p: crate::analysis::Progress| {
             if let Some(j) = self.lock().jobs.iter_mut().find(|j| j.id == id) {
                 j.done = p.done;
@@ -680,8 +681,8 @@ impl Jobs {
             // A borrowed job tells its owner how far, and stops when the owner wants it back.
             if let (Some(owner), Some(peers)) = (from, self.peers.get()) {
                 let mut at = renewed.lock().unwrap_or_else(|e| e.into_inner());
-                if at.elapsed() >= RENEW {
-                    *at = std::time::Instant::now();
+                if at.is_none_or(|t| t.elapsed() >= RENEW) {
+                    *at = Some(std::time::Instant::now());
                     if !peers.renew(owner, p.done, Some(p.total)) {
                         self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).insert(id);
                     }
@@ -737,6 +738,9 @@ impl Jobs {
         let j = &mut st.jobs[i];
         j.status = Status::Running;
         j.lent = Some(Lease { peer: peer.into(), name: name.into(), until: now + LEASE });
+        if let Work::Analyse { job } = &j.work {
+            (j.done, j.total) = (0, Some(job.spots.len() as u64));
+        }
         let lent = (j.id, j.work.clone());
         self.save(&st);
         Some(lent)

@@ -147,10 +147,10 @@
                 ? t("peers.sync.failed", { when: when(p.sync.at), why: p.sync.error })
                 : t("peers.sync.at", { when: when(p.sync.at), got: p.sync.got, rows: p.sync.rows })}
             </p>
-            <p class="hint">
+            {#if !p.sync.error}<p class="hint">
               {v.working[p.key]?.length ? t("peers.working", { what: v.working[p.key].join("; ") }) : t("peers.idle")}
               {#if p.sync.model}{t("peers.has_model")}{/if}
-            </p>
+            </p>{/if}
           {:else if v.on}<p class="hint">{t("peers.sync.never")}</p>{/if}
         </div>
         <button onclick={() => unpair(p.key)}>{t("peers.unpair")}</button>
