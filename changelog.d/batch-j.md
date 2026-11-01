@@ -1,0 +1,1 @@
+| **Build Bragd from source on FreeBSD.** `install/install.sh` now builds and installs the window and the Helper there too: it builds the app with cargo instead of the Tauri command-line tool, which has no FreeBSD build. | [Docs](getting-started/install.md#any-system) |
