@@ -23,6 +23,20 @@
   let busy = $state(false);
   // Step 2: the full list of switches instead of one button per Family.
   let several = $state(false);
+  // The Online step's Lichess sign-in (bragd-online): the browser opens Lichess's own page.
+  let signedIn = $state("");
+  let signingIn = $state(false);
+  let signInError = $state("");
+  async function signIn() {
+    signingIn = true;
+    try {
+      signedIn = (await api.onlineSignIn()).signedIn ?? "";
+      signInError = "";
+    } catch (e) {
+      signInError = String(e);
+    }
+    signingIn = false;
+  }
   const shownIds = $derived(snap.families.filter((/** @type {any} */ f) => f.shown).map((/** @type {any} */ f) => f.id));
   // One click: that Family alone, then the next step (whose Engines and downloads follow it).
   const pickOnly = (/** @type {string} */ id) => only(id).then(() => open(true)).then(() => step++);
@@ -200,7 +214,15 @@
           {#if info.totals.warning}<p class="warn" role="alert">{info.totals.warning}</p>{/if}
         {/if}
       {:else if current?.id === "online"}
-        <p class="lead">{t("wizard.online")}</p>
+        <p class="lead">{data.lichess ? t("wizard.online") : t("wizard.online_later")}</p>
+        {#if data.lichess}
+          {#if signedIn}
+            <p>{t("online.signed_in_as", { name: signedIn })}</p>
+          {:else}
+            <button onclick={signIn} disabled={signingIn}>{signingIn ? t("online.signing_in") : t("online.sign_in")}</button>
+          {/if}
+          {#if signInError}<p class="warn" role="alert">{signInError}</p>{/if}
+        {/if}
         {#if data.servers.length}<p>{t("wizard.online_sites")}</p>{/if}
         <ul>
           {#each data.servers as url}<li><button class="link" onclick={() => api.openUrl(url)}>{url.replace(/^https:\/\/(www\.)?|\/$/g, "")}</button></li>{/each}

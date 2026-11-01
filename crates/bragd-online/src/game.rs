@@ -17,13 +17,13 @@ pub const VARIANTS: [(&str, &str); 5] = [
 /// Bragd's Variant key for Lichess's `key`; none where Bragd has no rules for it (crazyhouse,
 /// atomic, antichess, horde, three-check).
 pub fn variant(key: &str) -> Option<&'static str> {
-    todo!("{key}")
+    VARIANTS.iter().find(|(lichess, _)| *lichess == key).map(|&(_, bragd)| bragd)
 }
 
 /// Lichess's Variant key for Bragd's `key`, for a seek or a challenge; `fromPosition` is never
 /// asked for.
 pub fn lichess_variant(key: &str) -> Option<&'static str> {
-    todo!("{key}")
+    VARIANTS.iter().find(|(lichess, bragd)| *bragd == key && *lichess != "fromPosition").map(|&(lichess, _)| lichess)
 }
 
 /// A Player as Lichess names them: an account, or Lichess's own engine (`aiLevel`).
@@ -109,55 +109,82 @@ pub struct Live {
 impl Live {
     /// The Game of `full`, for the user whose Lichess id is `me` (any case).
     pub fn from_full(full: GameFull, me: &str) -> Live {
-        todo!("{full:?} {me}")
+        let is_me = |id: &str| !me.is_empty() && id.eq_ignore_ascii_case(me);
+        let seat = if is_me(&full.white.id) { Some(0) } else if is_me(&full.black.id) { Some(1) } else { None };
+        let initial = Some(full.initial_fen).filter(|fen| !fen.is_empty() && fen != "startpos");
+        Live {
+            id: full.id,
+            variant_name: full.variant.name,
+            variant: variant(&full.variant.key),
+            initial,
+            rated: full.rated,
+            speed: full.speed,
+            white: full.white,
+            black: full.black,
+            seat,
+            state: full.state,
+        }
     }
 
     /// The state after a `gameState` line.
     pub fn update(&mut self, state: GameState) {
-        todo!("{state:?}")
+        self.state = state;
     }
 
     /// The moves so far, as Bragd's entries (UCI, which Bragd's chess entries are).
     pub fn entries(&self) -> Vec<String> {
-        todo!()
+        self.state.moves.split_whitespace().map(str::to_owned).collect()
     }
 
     /// Over: any status but `created` and `started`.
     pub fn over(&self) -> bool {
-        todo!()
+        !matches!(self.state.status.as_str(), "created" | "started")
     }
 
     /// The other Player: Black when the user plays White, else White.
     pub fn opponent(&self) -> &Player {
-        todo!()
+        if self.seat == Some(0) { &self.black } else { &self.white }
     }
 
     /// The other Player is a person: not Lichess's engine (`aiLevel`) and not a `BOT` account.
     pub fn against_person(&self) -> bool {
-        todo!()
+        let other = self.opponent();
+        other.ai_level.is_none() && other.title.as_deref() != Some("BOT")
     }
 
     /// The seat whose clock runs: the side to move, once both Sides have made their first move
     /// (Lichess starts the clocks then), while the Game is on. White moves when the number of
     /// moves is even.
     pub fn running(&self) -> Option<u8> {
-        todo!()
+        let moves = self.entries().len();
+        if self.over() || moves < 2 { None } else { Some((moves % 2) as u8) }
     }
 
     /// White's and Black's time left in milliseconds, `elapsed` ms after the last state came:
     /// the running clock is that much lower, never below 0.
     pub fn clocks(&self, elapsed: u64) -> [u64; 2] {
-        todo!("{elapsed}")
+        let mut clocks = [self.state.wtime, self.state.btime];
+        if let Some(seat) = self.running() {
+            let clock = &mut clocks[seat as usize];
+            *clock = clock.saturating_sub(elapsed);
+        }
+        clocks
     }
 
     /// The opponent offers a draw, and asks to take back a move.
     pub fn offered(&self) -> (bool, bool) {
-        todo!()
+        let s = &self.state;
+        if self.seat == Some(0) { (s.bdraw, s.btakeback) } else { (s.wdraw, s.wtakeback) }
     }
 
     /// The user has offered a draw, and asked to take back a move.
     pub fn offering(&self) -> (bool, bool) {
-        todo!()
+        let s = &self.state;
+        match self.seat {
+            Some(0) => (s.wdraw, s.wtakeback),
+            Some(_) => (s.bdraw, s.btakeback),
+            None => (false, false),
+        }
     }
 }
 
@@ -219,7 +246,7 @@ mod tests {
         assert_eq!(g.variant, Some("chess960"));
         assert_eq!(g.initial.as_deref(), Some("bqnrkrnb/pppppppp/8/8/8/8/PPPPPPPP/BQNRKRNB w KQkq - 0 1"));
         assert!(g.entries().is_empty(), "no moves: no entries, not one empty entry");
-        let odd = Live::from_full(full(&RATED.replace(r#""key":"standard""#, r#""key":"crazyhouse","name":"Crazyhouse""#)), "anna");
+        let odd = Live::from_full(full(&RATED.replace(r#""key":"standard","name":"Standard""#, r#""key":"crazyhouse","name":"Crazyhouse""#)), "anna");
         assert_eq!((odd.variant, odd.variant_name.as_str()), (None, "Crazyhouse"));
     }
 

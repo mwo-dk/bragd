@@ -256,3 +256,27 @@ export const pairWith = (/** @type {string} */ addr, /** @type {string} */ code)
 export const peerUnpair = (/** @type {string} */ id) => invoke("peer_unpair", { id });
 /** Other Helpers on the home network. @returns {Promise<any[]>} */
 export const peersLook = () => invoke("peers_look");
+
+// Play online (bragd-online, gui/src-tauri/src/online.rs).
+/** The page: the account, the challenges, the Game and its chat. @returns {Promise<any>} */
+export const onlineView = () => invoke("online_view");
+/** Signs in in the browser; resolves once it came back. @returns {Promise<any>} */
+export const onlineSignIn = () => invoke("online_sign_in");
+export const onlineCancelSignIn = () => invoke("online_cancel_sign_in");
+/** @returns {Promise<any>} */
+export const onlineSignOut = () => invoke("online_sign_out");
+/** @returns {Promise<any>} */
+export const onlineReconnect = () => invoke("online_reconnect");
+/** @returns {Promise<any>} */
+export const onlineSeek = (/** @type {string} */ variant, /** @type {number} */ minutes, /** @type {number} */ increment, /** @type {boolean} */ rated) =>
+  invoke("online_seek", { variant, minutes, increment, rated });
+export const onlineSeekCancel = () => invoke("online_seek_cancel");
+/** @returns {Promise<any>} */
+export const onlineChallenge = (/** @type {string} */ user, /** @type {string} */ variant, /** @type {number} */ minutes, /** @type {number} */ increment, /** @type {boolean} */ rated, /** @type {string} */ color) =>
+  invoke("online_challenge", { user, variant, minutes, increment, rated, color });
+/** Accepts, declines or cancels a challenge. @returns {Promise<any>} */
+export const onlineAnswer = (/** @type {string} */ id, /** @type {string} */ what) => invoke("online_answer", { id, what });
+export const onlineMove = (/** @type {string} */ entry) => invoke("online_move", { entry });
+/** draw, no_draw, takeback, no_takeback, resign, abort or leave. */
+export const onlineAction = (/** @type {string} */ what) => invoke("online_action", { what });
+export const onlineSay = (/** @type {string} */ text) => invoke("online_say", { text });

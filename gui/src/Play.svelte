@@ -258,6 +258,9 @@
         <label class="skill">{t("play.strength")} <input type="range" min="0" max="20" bind:value={skill} /></label>
       {/if}
     {/if}
+    {#if !analyse && family.id === "chess"}
+      <button onclick={() => go({ kind: "online" })}>{t("online.play_online")}</button>
+    {/if}
     {#if !analyse && choices.more}
       <button class="link" onclick={moreEngines}>{t("engines.get_more")}</button>
     {/if}

@@ -442,6 +442,7 @@ dependencies = [
  "bragd-helper",
  "bragd-library",
  "bragd-model",
+ "bragd-online",
  "bragd-peers",
  "bragd-positions",
  "pulldown-cmark",

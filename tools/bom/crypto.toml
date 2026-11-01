@@ -110,7 +110,7 @@ cipher_suites = [
   { name = "TLS_CHACHA20_POLY1305_SHA256", algorithms = ["chacha20-poly1305", "sha-256"] },
 ]
 uses = ["x25519", "ecdh-p256", "ecdh-p384", "ecdsa-p256", "ecdsa-p384", "ed25519", "rsa-pss", "rsa-pkcs1"]
-purpose = "The update check, Source downloads, Syzygy tablebase downloads and the Lichess tablebase API over HTTPS; between Peers, TLS 1.3 alone with Ed25519 raw public keys (RFC 7250) pinned at pairing"
+purpose = "The update check, Source downloads, Syzygy tablebase downloads, the Lichess tablebase API and playing on Lichess over HTTPS; between Peers, TLS 1.3 alone with Ed25519 raw public keys (RFC 7250) pinned at pairing"
 found = [
   { file = "crates/bragd-core/src/update.rs", pattern = "RootCerts::PlatformVerifier" },
   { file = "crates/bragd-engines/src/fetch.rs", pattern = "RootCerts::PlatformVerifier" },
@@ -178,8 +178,11 @@ primitive = "hash"
 oid = "2.16.840.1.101.3.4.2.1"
 param_set = "256"
 functions = ["digest"]
-purpose = "TLS handshake transcript and key schedule; the Content-Security-Policy's script hashes; checking a downloaded engine network against its digest; HKDF in the Secret Service session"
-found = [{ file = "crates/bragd-engines/src/network.rs", pattern = "hash: Sha256::new()" }]
+purpose = "TLS handshake transcript and key schedule; the Content-Security-Policy's script hashes; checking a downloaded engine network against its digest; HKDF in the Secret Service session; the PKCE challenge of a Lichess sign-in (RFC 7636 S256)"
+found = [
+  { file = "crates/bragd-engines/src/network.rs", pattern = "hash: Sha256::new()" },
+  { file = "crates/bragd-online/src/oauth.rs", pattern = "Sha256::digest(verifier.as_bytes())" },
+]
 
 [[asset]]
 ref = "blake3"
@@ -280,11 +283,12 @@ name = "OS random source"
 type = "algorithm"
 primitive = "drbg"
 functions = ["generate"]
-purpose = "The pairing code a machine shows for Peers, the token that lets only this user's Bragd windows talk to the Helper, the throws of dice and sticks in the race games, and the seed an engine match chooses its openings by"
+purpose = "The PKCE verifier and state of a Lichess sign-in, the pairing code a machine shows for Peers, the token that lets only this user's Bragd windows talk to the Helper, the throws of dice and sticks in the race games, and the seed an engine match chooses its openings by"
 found = [
   { file = "crates/bragd-helper/src/helper.rs", pattern = "getrandom::fill(&mut bytes)" },
   { file = "crates/bragd-core/src/throw.rs", pattern = "getrandom::fill(&mut b)" },
   { file = "crates/bragd-peers/src/node.rs", pattern = "getrandom::fill(&mut b)" },
+  { file = "crates/bragd-online/src/oauth.rs", pattern = "getrandom::fill(&mut b)" },
 ]
 
 [[asset]]
@@ -296,7 +300,7 @@ oid = "2.16.840.1.101.3.4.1.2"
 param_set = "128"
 mode = "cbc"
 functions = ["encrypt", "decrypt"]
-purpose = "The language model's key, sent to and read from the Secret Service (Linux, BSD) in an encrypted session"
+purpose = "The language model's key and the Lichess token, sent to and read from the Secret Service (Linux, BSD) in an encrypted session"
 found = [{ file = "crates/bragd-model/src/key.rs", pattern = "dbus_secret_service_keyring_store::Store::new()" }]
 
 [[asset]]

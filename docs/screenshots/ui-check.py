@@ -156,6 +156,8 @@ def screens():
         out.append((f"engines-{f}", lambda d, f=f: item(d, f, "Engines")))
     out += [
         ("analyse-chess", lambda d: item(d, "chess", "Analyse")),
+        # Signed out: no server is asked (the sandbox has no keychain and no token).
+        ("online-chess", lambda d: (item(d, "chess", "Play"), tab(d, "Play online"))),
         ("databases", lambda d: item(d, "chess", "Databases")),
         ("libraries", lambda d: (item(d, "chess", "Databases"), tab(d, "Libraries"))),
         ("sources", lambda d: (item(d, "chess", "Databases"), tab(d, "Sources"))),

@@ -6,3 +6,8 @@
 #[cfg(any(test, feature = "fake"))]
 pub mod fake;
 pub mod game;
+pub mod lichess;
+pub mod oauth;
+pub mod session;
+
+pub use session::{ChallengeView, ChatLine, GameView, Online, View};

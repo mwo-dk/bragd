@@ -53,7 +53,7 @@ No. The books are for you: their moves show under the board. An Engine plays fro
 
 #### Why are there no book moves during an online Game?
 
-Book moves, like Analyse, are locked while a rated online Game against a person is live. Online play is not available yet.
+Book moves, like Analyse, are locked while a rated Game on Lichess against a person is live ([Playing online](../online/playing-online.md#fair-play)).
 
 #### What if I move or delete a book file?
 

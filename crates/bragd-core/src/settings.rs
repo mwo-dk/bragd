@@ -94,7 +94,8 @@ impl Opt {
     /// The Game family it concerns, if only one: it leaves its area while that Family is off.
     pub fn family(&self) -> Option<&'static str> {
         // Background analysis queues chess positions only, for now.
-        (self.name.starts_with("tablebases_") || self.name.starts_with("analysis_")).then_some("chess")
+        // Online play is on Lichess, for chess, for now.
+        (self.name.starts_with("tablebases_") || self.name.starts_with("analysis_") || self.name.starts_with("online_")).then_some("chess")
     }
 
     /// Listed in its area for the user of `cfg`: [`Opt::listed`], and its Family shows.
@@ -144,7 +145,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 28] = [
+const OTHER_OPTS: [Opt; 29] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -209,6 +210,7 @@ const OTHER_OPTS: [Opt; 28] = [
         Online,
         "setting.tablebases_online",
     ),
+    opt("online_chat", &["online", "chat"], Online, "setting.online_chat"),
     opt("tips", &["tips", "frequency"], Tips, "setting.tips"),
     opt(
         "check_updates",

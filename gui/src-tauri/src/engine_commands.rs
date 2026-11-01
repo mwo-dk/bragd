@@ -104,6 +104,8 @@ pub fn engine_choices(variant: String, ctx: Managed<'_, Ctx>) -> Choices {
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments, reason = "one argument per thing the page sends")]
 pub fn engine_move(variant: String, initial: Option<String>, entries: Vec<String>, engine: Option<String>, ms: u32, skill: Option<u8>, ctx: Managed<'_, Ctx>, held: Managed<'_, engines::Held>) -> Res<engines::Moved> {
+    // No Engine plays for anyone while a rated online Game against a person is on.
+    analyse::guard()?;
     // Counted once a Game, at the Engine's first move, not at every move.
     if entries.len() < 2 {
         bragd_core::tips::used("engines");

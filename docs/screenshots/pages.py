@@ -587,7 +587,50 @@ def peers():
         (folder / "peers.json").unlink(missing_ok=True)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background, "peers": peers}
+def online():
+    """online-sign-in, online-lobby and online-game, each -390.png and -1100.png: Play online
+    against the fake Lichess (`fake-lichess`, built by `cargo build --release -p bragd-online
+    --features fake --example fake-lichess`), never lichess.org. The fake runs on this machine,
+    started and stopped here by its own PID; the app is pointed at it by BRAGD_LICHESS_URL, and
+    BRAGD_LICHESS_TOKEN stands in for the keychain the sandbox does not have."""
+    import subprocess
+    fake = HERE.parent.parent / "target/release/examples/fake-lichess"
+
+    def open_page(d):
+        js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+        d.wait(0.4)
+        nav(d, "chess", "Play")
+        click(d, "Play online", "main")
+        d.wait(2)
+
+    for w, h in WIDTHS.items():
+        p = subprocess.Popen([str(fake)], stdout=subprocess.PIPE, text=True)
+        try:
+            url = p.stdout.readline().strip()
+            with Desktop(size=(w, h), env={"BRAGD_LICHESS_URL": url}) as d:
+                open_page(d)
+                d.shot(HERE / f"online-sign-in-{w}.png")
+            config("[online]\nchat = true\n")
+            with Desktop(size=(w, h), env={"BRAGD_LICHESS_URL": url, "BRAGD_LICHESS_TOKEN": "lip_fake"}) as d:
+                open_page(d)
+                d.shot(HERE / f"online-lobby-{w}.png")
+                click(d, "Accept", "main")
+                d.wait(2)
+                for a, b in [("e2", "e4"), ("g1", "f3")]:
+                    move(d, a, b)
+                    d.wait(1.5)
+                js(d, "const i = document.querySelector('main .say input'); i.value = 'Hello, have a good game!'; i.dispatchEvent(new Event('input', {bubbles: true}));")
+                d.wait(0.3)
+                click(d, "Send", "main")
+                d.wait(1.5)
+                d.shot(HERE / f"online-game-{w}.png")
+        finally:
+            config("")
+            p.terminate()
+            p.wait(5)
+
+
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background, "peers": peers, "online": online}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

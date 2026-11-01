@@ -38,12 +38,13 @@ pub fn locked(live: &[LiveGame]) -> bool {
     live.iter().any(|g| g.rated && g.against_person && !g.over)
 }
 
-/// The online Games under way. Online play comes later, so there are none yet.
+/// The online Games under way.
 fn live_games() -> Vec<LiveGame> {
-    vec![]
+    crate::online::live()
 }
 
-fn guard() -> Result<(), String> {
+/// Refuses engine help while [`locked`].
+pub fn guard() -> Result<(), String> {
     if locked(&live_games()) { Err(tr("analyse.locked", &[])) } else { Ok(()) }
 }
 
@@ -570,7 +571,7 @@ mod tests {
         assert!(!locked(&[LiveGame { rated: false, ..rated }]), "a casual Game");
         assert!(!locked(&[LiveGame { against_person: false, ..rated }]), "against an Engine");
         assert!(locked(&[LiveGame::default(), rated]), "any window's Game");
-        assert!(guard().is_ok(), "no online play yet");
+        assert!(guard().is_ok(), "no online Game in this window");
     }
 
     #[test]
