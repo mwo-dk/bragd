@@ -17,6 +17,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use crate::rating::{self, Game, Rating, System};
+use crate::league::League;
 use crate::tournament::{self, Tournament};
 
 /// A Club file's extension.
@@ -253,6 +254,19 @@ pub struct View {
     /// Newest first.
     pub log: Vec<Entry>,
     pub tournaments: Vec<Listed>,
+    pub leagues: Vec<LeagueListed>,
+}
+
+/// A League as the Club's list shows it.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct LeagueListed {
+    pub id: i64,
+    pub name: String,
+    pub date: String,
+    pub teams: u32,
+    pub rounds: u32,
+    /// Rounds paired so far.
+    pub paired: u32,
 }
 
 /// A Tournament as the Club's list shows it.
@@ -293,6 +307,7 @@ CREATE TABLE IF NOT EXISTS log (
     why TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS tournaments (id INTEGER PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS leagues (id INTEGER PRIMARY KEY, data TEXT NOT NULL);
 ";
 
 fn valid(d: &Details) -> Result<()> {
@@ -416,7 +431,7 @@ impl Club {
     }
 
     pub fn view(&self) -> Result<View> {
-        Ok(View { path: self.path.clone(), name: self.name()?, system: self.system()?, held_by: self.held_by.clone(), members: self.members()?, log: self.log()?, tournaments: self.tournaments()? })
+        Ok(View { path: self.path.clone(), name: self.name()?, system: self.system()?, held_by: self.held_by.clone(), members: self.members()?, log: self.log()?, tournaments: self.tournaments()?, leagues: self.leagues()? })
     }
 
     /// The Club's Tournaments, newest first.
@@ -490,6 +505,52 @@ impl Club {
     }
 
     /// Deletes a Tournament; only a director may.
+    /// The Club's Leagues, newest first.
+    pub fn leagues(&self) -> Result<Vec<LeagueListed>> {
+        // A Club from before Leagues, open read-only, has no table for them.
+        let has: bool = self.db.query_row("SELECT count(*) > 0 FROM sqlite_master WHERE name = 'leagues'", [], |r| r.get(0))?;
+        if !has {
+            return Ok(vec![]);
+        }
+        let mut q = self.db.prepare("SELECT id, data FROM leagues ORDER BY id DESC")?;
+        let rows = q.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+        let mut out = vec![];
+        for row in rows {
+            let (id, data) = row?;
+            let l = parse_league(&data)?;
+            out.push(LeagueListed { id, rounds: l.rounds(), name: l.name, date: l.date, teams: l.teams.len() as u32, paired: l.played.len() as u32 });
+        }
+        Ok(out)
+    }
+
+    pub fn league(&self, id: i64) -> Result<League> {
+        let data: String = self.db.query_row("SELECT data FROM leagues WHERE id = ?1", [id], |r| r.get(0)).optional()?.ok_or(Error::Invalid("leagues.error.missing"))?;
+        parse_league(&data)
+    }
+
+    /// A new League, set up by a director or an arbiter.
+    pub fn add_league(&self, by: i64, l: &League) -> Result<i64> {
+        self.official(by)?;
+        self.db.execute("INSERT INTO leagues (data) VALUES (?1)", [json(l)?])?;
+        Ok(self.db.last_insert_rowid())
+    }
+
+    /// Changes a League as `f` says, by a director or an arbiter (named to `f` for the log);
+    /// nothing is kept when `f` fails.
+    pub fn change_league<R>(&self, by: i64, id: i64, f: impl FnOnce(&mut League, &str) -> Result<R>) -> Result<R> {
+        let who = self.official(by)?;
+        let mut l = self.league(id)?;
+        let r = f(&mut l, &who)?;
+        self.db.execute("UPDATE leagues SET data = ?2 WHERE id = ?1", params![id, json(&l)?])?;
+        Ok(r)
+    }
+
+    pub fn remove_league(&self, by: i64, id: i64) -> Result<()> {
+        self.director(by)?;
+        self.db.execute("DELETE FROM leagues WHERE id = ?1", [id])?;
+        Ok(())
+    }
+
     pub fn remove_tournament(&self, by: i64, id: i64) -> Result<()> {
         self.director(by)?;
         self.db.execute("DELETE FROM tournaments WHERE id = ?1", [id])?;
@@ -680,7 +741,12 @@ fn parse(data: &str) -> Result<Tournament> {
     if t.sound() { Ok(t) } else { Err(Error::Invalid("tournaments.error.damaged")) }
 }
 
-fn json(t: &Tournament) -> Result<String> {
+fn parse_league(data: &str) -> Result<League> {
+    let l: League = serde_json::from_str(data).map_err(|e| Error::Db(e.to_string()))?;
+    if l.sound() { Ok(l) } else { Err(Error::Invalid("leagues.error.damaged")) }
+}
+
+fn json(t: &impl Serialize) -> Result<String> {
     serde_json::to_string(t).map_err(|e| Error::Db(e.to_string()))
 }
 
@@ -824,6 +890,36 @@ mod tests {
         assert!(matches!(c.set_rating(me, me, 1700.0, "x"), Err(Error::ReadOnly(_))));
         drop(c);
         assert!(lock_path(&path).exists(), "another's lock is left alone");
+    }
+
+    #[test]
+    fn leagues_are_kept_in_the_club_file_and_run_by_directors_and_arbiters() {
+        use crate::league::Team;
+        let d = Tmp::new("leagues");
+        let c = Club::create(&d.club(), "K", System::Glicko2, "Mette").unwrap();
+        let me = c.members().unwrap()[0].id;
+        let arb = c.add(me, &Details { name: "Arne".into(), role: Some(Role::Arbiter), ..Details::default() }, None).unwrap();
+        let bo = c.add(me, &Details { name: "Bo".into(), ..Details::default() }, None).unwrap();
+        let l = League::new("Division 1", 1, false, "2026-11-05").unwrap();
+        assert_eq!(c.add_league(bo, &l), Err(Error::NotDirector));
+        let id = c.add_league(arb, &l).unwrap();
+        c.change_league(arb, id, |l, _| {
+            for n in ["K1", "K2"] {
+                l.add_team(Team { name: n.into(), players: vec![tournament::Player { name: format!("{n} a"), ..tournament::Player::default() }] })?;
+            }
+            l.pair_next()
+        })
+        .unwrap();
+        assert!(c.change_league(arb, id, |l, _| l.pair_next()).is_err(), "nothing kept from a failed step");
+        c.change_league(arb, id, |l, who| l.set_result(who, 0, 0, 0, Some(tournament::Outcome::White), "")).unwrap();
+        assert_eq!(c.remove_league(arb, id), Err(Error::NotDirector));
+        drop(c);
+        let c = Club::open(&d.club()).unwrap();
+        let listed = c.view().unwrap().leagues;
+        assert_eq!((listed.len(), listed[0].name.as_str(), listed[0].teams, listed[0].rounds, listed[0].paired), (1, "Division 1", 2, 1, 1));
+        assert_eq!(c.league(id).unwrap().standings()[0].match_points, 4);
+        c.remove_league(me, id).unwrap();
+        assert_eq!(c.league(id), Err(Error::Invalid("leagues.error.missing")));
     }
 
     #[test]
