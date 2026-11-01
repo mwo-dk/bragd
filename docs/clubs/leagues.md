@@ -7,7 +7,7 @@ A Club runs team Leagues. Its Teams meet each other in a round-robin, once or tw
 ![A League open on its Rounds tab: Round 1 with each match, its score and its boards](../screenshots/leagues-1100.png)
 *A League open on its Rounds tab.*
 
-![The League standings at 390 px: place, Team, played, won–drawn–lost, match points and board points](../screenshots/leagues-390.png)
+![The League standings at 390 px, a block a Team: place, Team, played, won–drawn–lost, match points and board points](../screenshots/leagues-390.png)
 *The standings at 390 px.*
 
 ## Contents
@@ -22,7 +22,7 @@ A Club runs team Leagues. Its Teams meet each other in a round-robin, once or tw
 
 ## How to reach it
 
-**Clubs** in the sidebar, open a Club, then **Team Leagues** below its Tournaments. Choose who you are under **Acting as**: a director or an arbiter runs a League, and only a director deletes one.
+**Clubs** in the sidebar, open a Club, then **Team Leagues** below its Tournaments. Choose who you are under **Acting as**: a director or an arbiter runs a League, and only a director deletes one. An open League takes the Clubs page until **Back to** *the Club*.
 
 | Action | What it does |
 |---|---|
@@ -50,7 +50,7 @@ On the **Teams** tab, **New Team** takes the Team's name and its players in boar
 | Line-up | Each match shows its boards. A Team plays its first players by default. Pick another player for a board, or – to leave it empty, before the match has a result. Players stay in board order |
 | Colours | The home Team has White on boards 1, 3, 5 and so on, the away Team on boards 2, 4, 6. Each board says which |
 | Results | Choose each board's result: 1-0, ½-½, 0-1 or a forfeit. A board with one player missing can only be won by forfeit by the player who is there. A board with both missing is a double forfeit |
-| Corrections | Changing a result already entered asks why. The **Log** tab keeps the old and the new result with the reason |
+| Corrections | Changing a result already entered asks why, in a box over the page. The **Log** tab keeps the old and the new result with the reason |
 
 The match's score shows beside its Teams as board points, home first.
 

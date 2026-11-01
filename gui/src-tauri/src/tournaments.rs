@@ -85,9 +85,25 @@ pub fn tournament_variants(ctx: State<'_, Ctx>) -> Vec<VariantChoice> {
     bragd_games::VARIANTS.iter().filter(|v| cfg.variant_on(v.key)).map(|v| VariantChoice { key: v.key, name: t!(&format!("variant.{}", v.key)), family: v.family.key() }).collect()
 }
 
+/// A tiebreak written as points are: quarters and halves as fractions (`1½`, `¼`), anything
+/// else, such as an average rating, to two decimals at most.
 fn value(v: f64) -> String {
+    let q = v * 4.0;
+    if q.fract() == 0.0 && v >= 0.0 {
+        let (n, f) = ((q as u64) / 4, ["", "¼", "½", "¾"][(q as u64 % 4) as usize]);
+        return if n == 0 && !f.is_empty() { f.into() } else { format!("{n}{f}") };
+    }
     let s = format!("{v:.2}");
     s.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn a_tiebreak_reads_like_the_points_beside_it() {
+        let v: Vec<String> = [0.0, 0.25, 0.5, 1.75, 12.0, 1234.567, -0.5].map(super::value).into();
+        assert_eq!(v, ["0", "¼", "½", "1¾", "12", "1234.57", "-0.5"]);
+    }
 }
 
 fn view(id: i64, t: Tournament) -> View {
@@ -163,6 +179,26 @@ pub fn tournament_register(by: i64, id: i64, player: Player, here: bool, held: S
     change(&held, by, id, |t, who| {
         let p = t.register(player)?;
         if here { t.set_status(who, p, Status::Here) } else { Ok(()) }
+    })
+}
+
+/// The tiebreaks a new Tournament of `system` starts with, by name.
+#[tauri::command]
+pub fn tournament_defaults(system: tournament::System) -> Vec<Named> {
+    bragd_clubs::tiebreak::defaults(system).into_iter().map(named).collect()
+}
+
+/// Registers the guests of a pasted list, a line each (`Player::list`): all of them or none.
+#[tauri::command(async)]
+pub fn tournament_register_list(by: i64, id: i64, text: String, here: bool, held: State<'_, Held>) -> Res<View> {
+    change(&held, by, id, |t, who| {
+        for player in Player::list(&text) {
+            let p = t.register(player)?;
+            if here {
+                t.set_status(who, p, Status::Here)?;
+            }
+        }
+        Ok(())
     })
 }
 

@@ -253,7 +253,7 @@ pub(crate) mod tests {
         let r = report(&p, &limits, &images, &|_| Some(1 << 40));
         let ids: Vec<&str> = r.crossed.iter().map(|c| c.id.as_str()).collect();
         assert_eq!(ids, ["disk:item:library:main.bragd", "disk:total", &format!("disk:free:{}", p.data.display())]);
-        assert_eq!(r.crossed[0].text(), "Library main.bragd takes 6.0 kB, over your limit of 4.0 kB.");
+        assert_eq!(r.crossed[0].text(), "Library main.bragd takes 6 kB, over your limit of 4 kB.");
         assert!(r.crossed[2].text().starts_with("Only 1.1 TB is free"), "{}", r.crossed[2].text());
         // Tablebases inside Bragd's data folder are Bragd's own.
         let inside = Places { tablebases: p.data.join("tablebases"), ..p.clone() };

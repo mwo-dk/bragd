@@ -27,9 +27,14 @@ h1 {
   padding: 0.8rem 1rem;
 }
 
+/* Every field the same height and frame: text, search, number and date alike. */
 button,
 select,
-input[type="text"] {
+textarea,
+input[type="text"],
+input[type="search"],
+input[type="number"],
+input[type="date"] {
   font: inherit;
   color: var(--fg);
   background: var(--raised);
@@ -72,4 +77,50 @@ button.link {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* A date field draws its parts inside; the frame shows the focus whatever moved it there. */
+input[type="date"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* On a phone-wide window a wide table becomes one block a row: its cells flow and wrap, each
+   number under the name of its column, so nothing hides behind a sideways scroll. */
+@media (max-width: 30rem) {
+  table.stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  table.stack,
+  table.stack tbody,
+  table.stack tr {
+    display: block;
+  }
+  table.stack tr {
+    border-bottom: 1px solid var(--border);
+    padding: 0.3rem 0;
+  }
+  table.stack td {
+    display: inline-block;
+    border: none;
+    padding: 0.1rem 0.6rem 0.1rem 0;
+  }
+  /* Doubled class: a page's own narrow limit on selects in cells (two classes) gives way. */
+  table.stack.stack td select {
+    max-width: none;
+  }
+  table.stack td:empty {
+    display: none;
+  }
+  table.stack td[data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--dim);
+  }
+  table.stack td:first-child {
+    font-weight: 600;
+  }
 }

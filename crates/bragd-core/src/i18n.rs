@@ -306,7 +306,9 @@ fn bytes_in(lang: &str, n: u64) -> String {
     if u == 0 {
         return digits_in(lang, format!("{n} B"));
     }
-    digits_in(lang, format!("{v:.1} {}", units[u]).replacen('.', mark(lang), 1))
+    let v = format!("{v:.1}");
+    let v = v.strip_suffix(".0").unwrap_or(&v);
+    digits_in(lang, format!("{v} {}", units[u]).replacen('.', mark(lang), 1))
 }
 
 /// The decimal mark of `lang`.
@@ -856,6 +858,8 @@ mod tests {
     #[test]
     fn i18n_sizes_in_each_languages_numbers() {
         assert_eq!(bytes_in("en-GB", 999), "999 B");
+        assert_eq!(bytes_in("en-GB", 939_000_000), "939 MB", "no trailing .0");
+        assert_eq!(bytes_in("da", 550_000), "550 kB");
         assert_eq!(bytes_in("en-GB", 1_500_000_000), "1.5 GB");
         assert_eq!(bytes_in("da", 1_500_000_000), "1,5 GB");
         assert_eq!(bytes_in("de-AT", 2_260_000), "2,3 MB");
@@ -864,7 +868,7 @@ mod tests {
         assert_eq!(bytes_in("es-AR", 1_500_000_000), "1,5 GB");
         assert_eq!(bytes_in("ja", 1_500_000_000), "1.5 GB");
         assert_eq!(bytes_in("fa", 1_500_000_000), "۱٫۵ GB");
-        assert_eq!(bytes_in("fr", 3_000_000_000_000), "3,0 TB");
+        assert_eq!(bytes_in("fr", 3_000_000_000_000), "3 TB");
     }
 
     #[test]

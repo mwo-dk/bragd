@@ -193,7 +193,9 @@
           </details>
         {/if}
         {#if data.coming}<p class="dim">{data.coming}</p>{/if}
-        {#if info}
+        {#if data.offers.length === 0}
+          <p><b>{t("wizard.no_offers")}</b></p>
+        {:else if info}
           <p><b>{info.totals.text}</b></p>
           {#if info.totals.warning}<p class="warn" role="alert">{info.totals.warning}</p>{/if}
         {/if}

@@ -168,6 +168,10 @@ export const tournamentView = (/** @type {number} */ id) => invoke("tournament_v
 export const tournamentRemove = (/** @type {By} */ by, /** @type {number} */ id) => invoke("tournament_remove", { by, id });
 /** @returns {Promise<any>} */
 export const tournamentRegister = (/** @type {By} */ by, /** @type {number} */ id, /** @type {any} */ player, /** @type {boolean} */ here) => invoke("tournament_register", { by, id, player, here });
+/** @returns {Promise<any[]>} */
+export const tournamentDefaults = (/** @type {any} */ system) => invoke("tournament_defaults", { system });
+/** @returns {Promise<any>} */
+export const tournamentRegisterList = (/** @type {By} */ by, /** @type {number} */ id, /** @type {string} */ text, /** @type {boolean} */ here) => invoke("tournament_register_list", { by, id, text, here });
 /** @returns {Promise<any>} */
 export const tournamentStatus = (/** @type {By} */ by, /** @type {number} */ id, /** @type {number} */ player, /** @type {string} */ status) => invoke("tournament_status", { by, id, player, status });
 /** @returns {Promise<any>} */

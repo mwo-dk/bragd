@@ -4,9 +4,10 @@
   // standings (bragd_clubs::league); this page draws them.
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
+  import Why from "./Why.svelte";
 
-  /** @type {{ club: any, by: number|null, role: string|null, onclub: (v: any) => void }} */
-  let { club, by, role, onclub } = $props();
+  /** @type {{ club: any, by: number|null, role: string|null, onclub: (v: any) => void, onopen: (open: boolean) => void }} */
+  let { club, by, role, onclub, onopen } = $props();
 
   /** The open League's view. @type {any} */
   let lv = $state(null);
@@ -19,6 +20,10 @@
   let team = $state({ name: "", players: [] });
   let member = $state(/** @type {number|null} */ (null));
   let guest = $state("");
+  /** @type {any} */
+  let whyBox;
+  // An open League takes the page (Clubs folds the rest away).
+  $effect(() => onopen(lv !== null));
 
   const official = $derived(by !== null && (role === "director" || role === "arbiter") && !club.held_by);
   const director = $derived(by !== null && role === "director" && !club.held_by);
@@ -91,8 +96,8 @@
   async function setResult(/** @type {number} */ r, /** @type {number} */ m, /** @type {number} */ b, /** @type {string} */ value) {
     let why = "";
     if (L.played[r].matches[m].boards[b].result) {
-      why = prompt(t("tournaments.why_correction")) ?? "";
-      if (!why.trim()) return change(() => api.leagueView(lv.id));
+      why = (await whyBox.ask(t("tournaments.why_correction"))) ?? "";
+      if (!why) return change(() => api.leagueView(lv.id));
     }
     const v = await change(() => api.leagueResult(by, lv.id, r, m, b, value || null, why));
     if (!v) await change(() => api.leagueView(lv.id));
@@ -115,6 +120,7 @@
 {/snippet}
 
 <div class="panel">
+  <Why bind:this={whyBox} />
   <h3>{t("leagues.title")}</h3>
   {#if !lv}
     {#if club.leagues.length === 0}<p class="dim">{t("leagues.none_yet")}</p>{/if}
@@ -143,13 +149,13 @@
         <p class="dim">{[L.date, t("leagues.boards_of", { boards: num(L.boards) }), t("leagues.progress", { paired: num(L.played.length), rounds: num(lv.rounds), teams: num(L.teams.length) })].filter(Boolean).join(" · ")}</p>
       </div>
       <div class="row">
-        <button onclick={() => (lv = null)}>{t("clubs.close")}</button>
+        <button onclick={() => (lv = null)}>{t("clubs.back", { name: club.name })}</button>
         <button disabled={!director} onclick={remove}>{t("leagues.remove")}</button>
       </div>
     </div>
     <div class="tabs" role="tablist">
       {#each TABS as id}
-        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => (tab = id)}>{t(`leagues.tab.${id}`)}</button>
+        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => ((tab = id), (error = ""))}>{t(`leagues.tab.${id}`)}</button>
       {/each}
     </div>
 
@@ -202,7 +208,7 @@
             <span class="num">{lv.scores[r][m][0]} – {lv.scores[r][m][1]}</span>
           </p>
           <div class="scroll">
-            <table>
+            <table class="stack">
               <thead>
                 <tr><th>{t("tournaments.board")}</th><th>{L.teams[match.home].name}</th><th>{t("tournaments.result")}</th><th>{L.teams[match.away].name}</th></tr>
               </thead>
@@ -210,8 +216,8 @@
                 {#each match.boards as x, b (b)}
                   <tr>
                     <td class="num">{b + 1} <span class="dim">{homeWhite(b) ? t("leagues.home_white") : t("leagues.home_black")}</span></td>
-                    <td>{@render side(r, m, match, x, b, false)}</td>
-                    <td>
+                    <td data-label={L.teams[match.home].name}>{@render side(r, m, match, x, b, false)}</td>
+                    <td data-label={t("tournaments.result")}>
                       <select
                         aria-label={t("tournaments.result_of", { white: player(homeWhite(b) ? match.home : match.away, homeWhite(b) ? x.home : x.away), black: player(homeWhite(b) ? match.away : match.home, homeWhite(b) ? x.away : x.home) })}
                         value={x.result ?? ""}
@@ -222,7 +228,7 @@
                         {#each OUTCOMES as o}<option value={o}>{t(`tournaments.outcome.${o}`)}</option>{/each}
                       </select>
                     </td>
-                    <td>{@render side(r, m, match, x, b, true)}</td>
+                    <td data-label={L.teams[match.away].name}>{@render side(r, m, match, x, b, true)}</td>
                   </tr>
                 {/each}
               </tbody>
@@ -233,7 +239,7 @@
       {/each}
     {:else if tab === "standings"}
       <div class="scroll">
-        <table>
+        <table class="stack">
           <thead>
             <tr>
               <th>{t("leagues.th.rank")}</th><th>{t("leagues.th.team")}</th><th>{t("leagues.th.played")}</th><th>{t("leagues.th.wdl")}</th><th>{t("leagues.th.match_points")}</th><th>{t("leagues.th.board_points")}</th>
@@ -244,10 +250,10 @@
               <tr>
                 <td class="num">{s.rank}</td>
                 <td>{L.teams[s.team].name}</td>
-                <td class="num">{num(s.played)}</td>
-                <td class="num">{num(s.won)}–{num(s.drawn)}–{num(s.lost)}</td>
-                <td class="num">{s.match_points}</td>
-                <td class="num">{s.board_points}</td>
+                <td class="num" data-label={t("leagues.th.played")}>{num(s.played)}</td>
+                <td class="num" data-label={t("leagues.th.wdl")}>{num(s.won)}–{num(s.drawn)}–{num(s.lost)}</td>
+                <td class="num" data-label={t("leagues.th.match_points")}>{s.match_points}</td>
+                <td class="num" data-label={t("leagues.th.board_points")}>{s.board_points}</td>
               </tr>
             {/each}
           </tbody>
