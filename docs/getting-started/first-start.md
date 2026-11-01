@@ -21,7 +21,7 @@ On the first start Bragd opens the install wizard: six short steps in a frame ov
 
 Choices in steps 1, 2 and 6 are saved at once, as in Settings. Nothing is downloaded until you press **Done** on the last step, which lists what will happen. Then Bragd turns the chosen Sources on in the Helper, starting the Helper if none runs, and starts the Syzygy download. **Skip** on step 4 unticks every download. The wizard adds up the sizes and warns when the downloads would leave less than 5 GB free on the disk that holds Bragd's data. A single Source of 10 GB or more carries its own warning.
 
-![The Knowledge step: TWIC and Syzygy 3–5 ticked and marked Recommended, the Sources not yet fetchable greyed out, and the total under the list](../screenshots/wizard-knowledge-1100.png)
+![The Knowledge step: TWIC and Syzygy 3–5 ticked and marked Recommended, the FIDE, DSU and ECF rating lists unticked, the Sources not yet fetchable greyed out, and the total under the list](../screenshots/wizard-knowledge-1100.png)
 *Step 4, Knowledge: each download with its size, and the total.*
 
 ![The Helper step: the Start with my session switch, and the list of what Done will do](../screenshots/wizard-helper-1100.png)
