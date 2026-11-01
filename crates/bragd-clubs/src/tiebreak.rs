@@ -485,7 +485,7 @@ mod tests {
                             ("-", true) => Outcome::BlackForfeit,
                             _ => panic!("{c}"),
                         };
-                        round.games.push(Game { white: p, black: opp, result: Some(result) });
+                        round.games.push(Game { white: p, black: opp, result: Some(result), handicap: 0 });
                     }
                 }
             }

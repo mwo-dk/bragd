@@ -132,6 +132,13 @@ pub fn pgn(t: &Tournament) -> String {
                     tags.push((tag, p.fide_id.clone()));
                 }
             }
+            // Any Family's Tournament: what was played, and go's handicap.
+            if t.variant != "chess" {
+                tags.push(("Variant", t.variant.clone()));
+            }
+            if g.handicap > 0 {
+                tags.push(("Handicap", g.handicap.to_string()));
+            }
             for (tag, v) in tags {
                 out.push_str(&format!("[{tag} \"{}\"]\n", pgn_text(&v)));
             }
@@ -373,6 +380,21 @@ mod tests {
         assert!(p.contains("[White \"Anna \\\"A\\\"\"]"), "{p}");
         assert!(p.contains("[Result \"1/2-1/2\"]\n") && p.contains("\n\n1/2-1/2\n"));
         assert!(p.contains("[Date \"2026.11.05\"]") && p.contains("[WhiteFideId \"1401234\"]"));
+        assert!(!p.contains("[Variant ") && !p.contains("[Handicap "), "chess, even: {p}");
+    }
+
+    #[test]
+    fn a_go_tournament_names_its_variant_and_each_handicap() {
+        let mut t = Tournament::new("Go evening", System::Dutch, 3, "2026-11-05").unwrap();
+        t.set_game("go-19", Some(crate::tournament::Handicap::default()), None).unwrap();
+        for (n, r) in [("Anna", 2100), ("Bo", 1800)] {
+            let p = t.register(Player { name: n.into(), rating: r, ..Player::default() }).unwrap();
+            t.set_status("Mette", p, Status::Here).unwrap();
+        }
+        t.pair_next().unwrap();
+        t.set_result("Mette", 0, 0, Some(Outcome::White), "").unwrap();
+        let p = pgn(&t);
+        assert!(p.contains("[Variant \"go-19\"]") && p.contains("[Handicap \"3\"]") && p.contains("[Black \"Bo\"]"), "{p}");
     }
 
     #[test]
