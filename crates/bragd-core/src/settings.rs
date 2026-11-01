@@ -28,10 +28,12 @@ pub enum Area {
     Privacy,
     /// The language model: its address, its model, its key and consent.
     Model,
+    /// Peers: the user's own machines, paired with a code.
+    Peers,
 }
 
 impl Area {
-    pub const ALL: [Area; 9] = [
+    pub const ALL: [Area; 10] = [
         Area::Overview,
         Area::Families,
         Area::Look,
@@ -41,6 +43,7 @@ impl Area {
         Area::Tips,
         Area::Privacy,
         Area::Model,
+        Area::Peers,
     ];
 
     /// Its name in the `settings.area.<id>` text.
@@ -55,6 +58,7 @@ impl Area {
             Area::Tips => "tips",
             Area::Privacy => "privacy",
             Area::Model => "model",
+            Area::Peers => "peers",
         }
     }
 
@@ -84,7 +88,7 @@ impl Opt {
     /// own options; the Source priority is set on Databases → Libraries, where Sources are
     /// picked by name.
     pub fn listed(&self) -> bool {
-        !matches!(self.area, Families | Model) && !self.name.starts_with("disk_") && self.name != "source_priority"
+        !matches!(self.area, Families | Model | Peers) && !self.name.starts_with("disk_") && self.name != "source_priority"
     }
 
     /// The Game family it concerns, if only one: it leaves its area while that Family is off.
@@ -140,7 +144,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 26] = [
+const OTHER_OPTS: [Opt; 28] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -216,6 +220,9 @@ const OTHER_OPTS: [Opt; 26] = [
     opt("model_url", &["model", "url"], Model, "setting.model_url"),
     opt("model_name", &["model", "name"], Model, "setting.model_name"),
     opt("model_consent", &["model", "consent"], Model, "setting.model_consent"),
+    // Drawn by Settings → Peers, which tells the Helper to listen or stop.
+    opt("peers_on", &["peers", "on"], Peers, "setting.peers_on"),
+    opt("peers_interface", &["peers", "interface"], Peers, "setting.peers_interface"),
     // Disk watch's limits in bytes, drawn with each item's own by Disk watch in Knowledge.
     opt("disk_total", &["disk", "total"], Knowledge, "setting.disk_total"),
     opt("disk_free_below", &["disk", "free_below"], Knowledge, "setting.disk_free_below"),
@@ -226,7 +233,7 @@ const OTHER_OPTS: [Opt; 26] = [
 pub fn areas(cfg: &Config) -> Vec<Area> {
     Area::ALL
         .into_iter()
-        .filter(|a| matches!(a, Overview | Families | Model) || options().any(|o| o.area == *a && o.listed_for(cfg)))
+        .filter(|a| matches!(a, Overview | Families | Model | Peers) || options().any(|o| o.area == *a && o.listed_for(cfg)))
         .collect()
 }
 
@@ -402,7 +409,7 @@ mod tests {
         assert!(!find("model_url").unwrap().listed(), "Settings → Language model draws it");
         assert!(find("theme").unwrap().listed());
         let listed = options().filter(|o| o.listed()).count();
-        assert_eq!(listed, OTHER_OPTS.len() - 6);
+        assert_eq!(listed, OTHER_OPTS.len() - 8);
     }
 
     #[test]

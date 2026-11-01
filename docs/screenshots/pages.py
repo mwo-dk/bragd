@@ -560,7 +560,34 @@ def background():
             p.unlink(missing_ok=True)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background}
+def peers():
+    """peers-390.png and peers-1100.png: Settings → Peers on, a code shown, and one paired
+    machine that is not reachable now (at 192.0.2.10, an address kept for documentation). The
+    sandbox's Helper listens on the host's home network while it runs, under the name demo."""
+    home = Path(_env()["DEMO_HOME"])
+    folder = home / ".local/share/bragd/helper/peers"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "peers.json").write_text(json.dumps([{"key": "5e" * 32, "name": "laptop", "addr": "192.0.2.10:47247", "paired": 1793000000, "seen": 1793400000, "version": "0.5.0"}]))
+    config("[peers]\non = true\n")
+    try:
+        def page(d):
+            js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+            d.wait(0.4)
+            click(d, "Settings", "nav")
+            click(d, "Peers", "main")
+            d.wait(4)
+            click(d, "Show a code", "main")
+            d.wait(1)
+            # The host's own addresses stay out of the docs: an example address in their place.
+            js(d, "const s = document.querySelector('main .peers .state'); if (s) s.textContent = s.textContent.replace(/listening on .*$/, 'listening on 192.168.1.20:47247.');")
+
+        widths("peers", page)
+    finally:
+        config("")
+        (folder / "peers.json").unlink(missing_ok=True)
+
+
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background, "peers": peers}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

@@ -28,6 +28,7 @@ pub struct Config {
     pub tips: TipsConfig,
     pub model: ModelConfig,
     pub analysis: AnalysisConfig,
+    pub peers: PeersConfig,
     /// The user's own Themes, `[themes.<name>]`: each colour not given is Racing green's. One
     /// named like a built-in Theme replaces it.
     pub themes: BTreeMap<String, Theme>,
@@ -262,6 +263,16 @@ pub struct ModelConfig {
     pub consent: String,
 }
 
+/// Peers (`bragd-peers`): the user's own machines, paired with a code. Off by default: the
+/// Helper listens for them only while `on`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PeersConfig {
+    pub on: bool,
+    /// The interface listened on, by its name; empty: the home network's addresses.
+    pub interface: String,
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
@@ -277,6 +288,7 @@ impl Default for Config {
             tips: TipsConfig::default(),
             model: ModelConfig::default(),
             analysis: AnalysisConfig::default(),
+            peers: PeersConfig::default(),
             themes: BTreeMap::new(),
             refused: vec![],
         }
@@ -360,6 +372,7 @@ impl Config {
         take(&table, "disk", &mut c.disk, &mut refused);
         take(&table, "tips", &mut c.tips, &mut refused);
         take(&table, "model", &mut c.model, &mut refused);
+        take(&table, "peers", &mut c.peers, &mut refused);
         take(&table, "themes", &mut c.themes, &mut refused);
         c.refused = refused;
         c

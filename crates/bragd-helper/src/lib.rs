@@ -12,6 +12,7 @@ pub mod helper;
 pub mod jobs;
 pub mod matches;
 pub mod net;
+pub mod peers;
 pub mod service;
 pub mod sources;
 

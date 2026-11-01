@@ -73,6 +73,19 @@ pub enum Request {
     PruneLibrary { library: Option<PathBuf>, dry_run: bool },
     /// Leave, so a Helper with the settings as they are now comes.
     Restart,
+    /// Peers as they stand; with `hello`, each is asked whether it is there.
+    Peers { hello: bool },
+    /// Listen for Peers, or stop, as `[peers]` in config.toml says now.
+    PeersApply,
+    /// Show a pairing code, or take it away.
+    PairShow,
+    PairHide,
+    /// Pair with the machine at `addr` that shows `code`.
+    PairWith { addr: String, code: String },
+    /// Forget the Peer with key `id`, and tell it.
+    Unpair { id: String },
+    /// Other Helpers announcing themselves on the home network.
+    PeersLook,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -86,6 +99,8 @@ pub enum Reply {
     Started { id: u64 },
     Sources { sources: Vec<(About, Options, Memo)> },
     Disk { report: crate::disk::Report },
+    Peers { peers: crate::peers::View },
+    Found { found: Vec<bragd_peers::find::Found> },
     Done,
     Error { error: String },
 }
@@ -265,6 +280,8 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     let addr_file = dir.join("helper.addr");
     write_private(&addr_file, &format!("{addr}\n{token}\n"))?;
 
+    // Peers listen only from the Helper that holds the lock.
+    crate::peers::apply();
     let jobs = jobs();
     let worker = {
         let jobs = jobs.clone();
@@ -299,7 +316,8 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
         let idle = last.lock().unwrap_or_else(|e| e.into_inner()).elapsed();
         // *Start with my session* turned on since this Helper started: it stays, as the one
         // the session would start does.
-        if idle_exit(clients.load(Ordering::SeqCst), idle, jobs.busy(), stays, linger) && !bragd_core::config::Config::load().unwrap_or_default().helper.start_with_session {
+        // So does one that listens for Peers.
+        if idle_exit(clients.load(Ordering::SeqCst), idle, jobs.busy(), stays || crate::peers::keeps_helper(), linger) && !bragd_core::config::Config::load().unwrap_or_default().helper.start_with_session {
             break;
         }
         std::thread::sleep(linger.min(Duration::from_millis(200)));
@@ -461,8 +479,28 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, mut
                 quit.store(true, Ordering::SeqCst);
                 Reply::Done
             }
+            Request::PeersApply => {
+                crate::peers::apply();
+                peers(crate::peers::view(false))
+            }
+            Request::Peers { hello } => peers(crate::peers::view(hello)),
+            Request::PairShow => peers(crate::peers::show_code()),
+            Request::PairHide => peers(crate::peers::hide_code()),
+            Request::PairWith { addr, code } => peers(crate::peers::pair(&addr, &code)),
+            Request::Unpair { id } => peers(crate::peers::unpair(&id)),
+            Request::PeersLook => match crate::peers::look() {
+                Ok(found) => Reply::Found { found },
+                Err(error) => Reply::Error { error },
+            },
         };
         send(&mut out, &reply)?;
+    }
+}
+
+fn peers(view: Result<crate::peers::View, String>) -> Reply {
+    match view {
+        Ok(peers) => Reply::Peers { peers },
+        Err(error) => Reply::Error { error },
     }
 }
 

@@ -242,3 +242,17 @@ export const modelKey = (/** @type {string} */ key) => invoke("model_key", { key
 export const commentView = (/** @type {string} */ text) => invoke("comment_view", { text });
 /** A Comment translated into the reader's language. @returns {Promise<any>} */
 export const commentTranslate = (/** @type {string} */ text) => invoke("comment_translate", { text });
+/** Peers as Settings shows them; with `hello`, each is asked whether it is there. @returns {Promise<any>} */
+export const peersView = (/** @type {boolean} */ hello) => invoke("peers_view", { hello });
+/** The Helper listens for Peers, or stops, as Settings say now. @returns {Promise<any>} */
+export const peersApply = () => invoke("peers_apply");
+/** Shows a pairing code. @returns {Promise<any>} */
+export const pairShow = () => invoke("pair_show");
+/** Takes the pairing code away. @returns {Promise<any>} */
+export const pairHide = () => invoke("pair_hide");
+/** Pairs with the machine at `addr` that shows `code`. @returns {Promise<any>} */
+export const pairWith = (/** @type {string} */ addr, /** @type {string} */ code) => invoke("pair_with", { addr, code });
+/** Forgets a Peer, and tells it. @returns {Promise<any>} */
+export const peerUnpair = (/** @type {string} */ id) => invoke("peer_unpair", { id });
+/** Other Helpers on the home network. @returns {Promise<any[]>} */
+export const peersLook = () => invoke("peers_look");

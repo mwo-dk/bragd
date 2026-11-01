@@ -13,6 +13,7 @@ mod helper_link;
 mod knowledge;
 mod matches;
 mod model;
+mod peers;
 mod analyse;
 mod engine_commands;
 mod engines;
@@ -373,6 +374,13 @@ fn main() {
             model::model_key,
             model::comment_view,
             model::comment_translate,
+            peers::peers_view,
+            peers::peers_apply,
+            peers::pair_show,
+            peers::pair_hide,
+            peers::pair_with,
+            peers::peer_unpair,
+            peers::peers_look,
             help::feature_list,
             help::notice_list,
             help::notice_dismiss,

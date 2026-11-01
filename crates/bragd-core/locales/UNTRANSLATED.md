@@ -9,7 +9,7 @@ Names that a language writes the same as English (Bragd, Windows 95, Go, Senet, 
 
 ## In every language of its own
 
-55 keys:
+56 keys:
 
 - `board_theme.racing`
 - `look.aqua`
@@ -66,6 +66,7 @@ Names that a language writes the same as English (Bragd, Windows 95, Go, Senet, 
 - `tournaments.outcome.white`
 - `tournaments.outcome.draw`
 - `tournaments.outcome.black`
+- `peers.version`
 
 ## Also in English, by locale
 

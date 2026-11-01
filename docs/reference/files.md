@@ -40,6 +40,8 @@ In the Flatpak, the XDG folders are the app's own: `~/.var/app/io.github.mwo_dk.
 | data/`helper/helper.sock` | Where windows reach the Helper (Unix). On Windows it listens on a loopback port instead |
 | data/`helper/helper.addr` | The Helper's address and a token, readable by you only |
 | data/`helper/helper.log` | What the Helper did, with times in UTC |
+| data/`helper/peers/key.pk8` | This machine's key for [Peers](../peers/protocol.md#keys), readable by you only. Made when Peers are first used |
+| data/`helper/peers/peers.json` | The machines paired with this one: each one's key, name and last address |
 | data/`helper/state.json` | Sources, their options and Routes with their Strip rules, what each fetch remembered, and the jobs |
 | data/`helper/sources/<source>/` | Each Source's downloads, kept as they came, one folder per Source id (`custom:club.a` is `custom_3aclub_2ea`) |
 

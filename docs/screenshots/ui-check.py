@@ -143,7 +143,7 @@ def tab(d, name):
     d.wait(1)
 
 
-AREAS = ["Overview", "Game families", "Look", "Engines", "Knowledge", "Online", "Privacy and updates", "Language model"]
+AREAS = ["Overview", "Game families", "Look", "Engines", "Knowledge", "Online", "Privacy and updates", "Language model", "Peers"]
 
 
 def screens():

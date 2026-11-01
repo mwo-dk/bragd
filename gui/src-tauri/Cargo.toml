@@ -34,6 +34,8 @@ serde_json = "1"
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
 # The Helper: its connection, its requests, Sources and Disk watch (bragd-helper).
 bragd-helper = { path = "../../crates/bragd-helper" }
+# What Settings → Peers shows of a Helper found on the home network.
+bragd-peers = { path = "../../crates/bragd-peers" }
 # Foreign databases read in place, Libraries and Slices.
 # The file dialog for opening and saving Foreign databases, called from Rust only.
 tauri-plugin-dialog = "2"

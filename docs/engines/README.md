@@ -33,4 +33,4 @@ An Engine plays a Side in Play, analyses a position in Analyse and reviews a who
 A Family with no Engine shows only Play, Databases and Rules in the sidebar. You can also add any other program that speaks the Family's protocol ([The Engines page](engines.md#how-do-i-add-an-engine-bragd-does-not-know)).
 
 ---
-[← Previous: The Helper](../knowledge/helper.md) · [Next: The Engines page →](engines.md)
+[← Previous: How Peers talk](../peers/protocol.md) · [Next: The Engines page →](engines.md)
