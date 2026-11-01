@@ -106,6 +106,10 @@ pub enum Limit {
     Depth(u32),
     /// So many positions searched (visits for KataGo).
     Nodes(u64),
+    /// A game clock (`matches::clock`): the mover's time left and the other Side's, in
+    /// milliseconds, the increment per move, the moves to the next period, and whether the
+    /// mover is the first Side.
+    Clock { own: u32, other: u32, inc: u32, to_go: Option<u32>, first: bool },
 }
 
 /// How long a depth or node count may take before the engine is told to stop.
@@ -115,7 +119,7 @@ impl Limit {
     /// When the engine is told to stop if it has not answered by itself.
     pub fn cap(self) -> std::time::Duration {
         match self {
-            Limit::Time(ms) => std::time::Duration::from_millis(ms as u64 + 5_000),
+            Limit::Time(ms) | Limit::Clock { own: ms, .. } => std::time::Duration::from_millis(ms as u64 + 5_000),
             _ => CAP,
         }
     }

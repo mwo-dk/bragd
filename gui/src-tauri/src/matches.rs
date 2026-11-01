@@ -205,6 +205,11 @@ pub fn checked(cfg: &Config, mut setup: Setup) -> Res<Setup> {
     if let Limit::Time(ms) = setup.limit {
         setup.limit = Limit::Time(ms.clamp(10, 600_000));
     }
+    if let Some(c) = &mut setup.clock {
+        c.base_ms = c.base_ms.clamp(1_000, 24 * 3_600_000);
+        c.inc_ms = c.inc_ms.min(600_000);
+        c.moves = c.moves.filter(|m| *m > 0).map(|m| m.min(1_000));
+    }
     setup.rounds = setup.rounds.clamp(1, 100_000);
     setup.parallel = setup.parallel.clamp(1, std::thread::available_parallelism().map_or(1, |n| n.get()) as u32);
     if setup.library.as_os_str().is_empty() {
@@ -243,7 +248,7 @@ mod tests {
     use bragd_helper::jobs::{Report, Status};
 
     fn setup(kind: Kind) -> Setup {
-        Setup { variant: "chess".into(), engines: vec!["stockfish".into(), "fruit".into()], kind, rounds: 10, limit: Limit::Time(100), parallel: 1, book: None, book_depth: 8, adjudication: Default::default(), library: "/x/matches.bragd".into(), seed: 0 }
+        Setup { variant: "chess".into(), engines: vec!["stockfish".into(), "fruit".into()], kind, rounds: 10, limit: Limit::Time(100), clock: None, parallel: 1, book: None, book_depth: 8, adjudication: Default::default(), library: "/x/matches.bragd".into(), seed: 0 }
     }
 
     #[test]
@@ -274,6 +279,9 @@ mod tests {
         let ok = checked(&cfg, Setup { parallel: 10_000, rounds: 0, limit: Limit::Time(1), ..setup(Kind::Gauntlet) }).unwrap();
         assert!(ok.parallel >= 1 && ok.parallel as usize <= std::thread::available_parallelism().unwrap().get());
         assert_eq!((ok.rounds, ok.limit), (1, Limit::Time(10)));
+        let clock = Some(matches::TimeControl { base_ms: 0, inc_ms: u32::MAX, moves: Some(0) });
+        let ok = checked(&cfg, Setup { clock, ..setup(Kind::Gauntlet) }).unwrap();
+        assert_eq!(ok.clock, Some(matches::TimeControl { base_ms: 1_000, inc_ms: 600_000, moves: None }));
         let book = Setup { book: Some("/nowhere/book.txt".into()), ..setup(Kind::Gauntlet) };
         assert!(checked(&cfg, book).is_err());
     }

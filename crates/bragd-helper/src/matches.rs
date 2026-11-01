@@ -208,7 +208,7 @@ mod tests {
         let d = crate::tests::Dir::new("book");
         let p = d.0.join("openings.txt");
         std::fs::write(&p, "# mine\ne4 e5\n\nd4 d5\n").unwrap();
-        let mut s = Setup { variant: "chess".into(), engines: vec![], kind: matches::Kind::RoundRobin, rounds: 1, limit: bragd_engines::Limit::Depth(1), parallel: 1, book: Some(p.clone()), book_depth: 8, adjudication: Default::default(), library: "x".into(), seed: 1 };
+        let mut s = Setup { variant: "chess".into(), engines: vec![], kind: matches::Kind::RoundRobin, rounds: 1, limit: bragd_engines::Limit::Depth(1), clock: None, parallel: 1, book: Some(p.clone()), book_depth: 8, adjudication: Default::default(), library: "x".into(), seed: 1 };
         let o = openings(&s).unwrap();
         assert_eq!([o(0).moves[0].as_str(), o(1).moves[0].as_str(), o(2).moves[0].as_str()], ["d2d4", "e2e4", "d2d4"]);
         std::fs::write(&p, "e4 e5\nnot a move\n").unwrap();

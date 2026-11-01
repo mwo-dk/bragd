@@ -112,6 +112,16 @@ impl Dialect for Gtp {
             _ => {}
         }
         let colour = if self.colour_next.is_empty() { "B" } else { self.colour_next };
+        // Moves per period are Canadian byo-yomi: so many stones in the time left.
+        if let Limit::Clock { own, to_go, .. } = limit {
+            let s = own / 1000;
+            let settings = match to_go {
+                Some(m) => format!("time_settings 0 {s} {m}"),
+                None => format!("time_settings {s} 0 0"),
+            };
+            self.send(&mut out, &settings, Wait::Ack);
+            self.send(&mut out, &format!("time_left {colour} {s} {}", to_go.unwrap_or(0)), Wait::Ack);
+        }
         if self.katago {
             self.send(&mut out, &format!("kata-genmove_analyze {colour} 50"), Wait::Analyse);
         } else {
@@ -191,6 +201,20 @@ mod tests {
         // A refusal is said, not taken for the move.
         d.position(&about, &Position::new("go-9", &["Z99"]));
         assert_eq!(run(&mut *d, "=\n\n=\n\n=\n\n? illegal move\n\n"), [Event::Refused("illegal move".into())]);
+    }
+
+    #[test]
+    fn a_clock_is_told_as_time_settings_and_time_left() {
+        let mut d = Protocol::Gtp.dialect();
+        let mut about = About::default();
+        d.greeted("= GNU Go", &mut about);
+        d.greeted("", &mut about);
+        d.greeted("= 3.8", &mut about);
+        d.position(&about, &Position::new("go-9", &["E5"]));
+        let canadian = Limit::Clock { own: 90_400, other: 1, inc: 0, to_go: Some(10), first: false };
+        assert_eq!(d.go(&about, canadian, 1), "time_settings 0 90 10\ntime_left W 90 10\ngenmove W\n");
+        let sudden = Limit::Clock { own: 30_000, other: 1, inc: 0, to_go: None, first: false };
+        assert_eq!(d.go(&about, sudden, 1), "time_settings 30 0 0\ntime_left W 30 0\ngenmove W\n");
     }
 
     #[test]

@@ -20,6 +20,11 @@
   let kind = $state("round_robin");
   let rounds = $state(2);
   let ms = $state(1000);
+  // A clock for each engine instead of a fixed time per move: seconds, as a tournament sets it.
+  let clock = $state(false);
+  let base = $state(60);
+  let inc = $state(1);
+  let period = $state(0);
   let parallel = $state(1);
   /** @type {string|null} */
   let book = $state(null);
@@ -83,6 +88,7 @@
       kind: kind === "sprt" ? { kind, elo0: +elo0, elo1: +elo1, alpha: +alpha, beta: +beta } : { kind },
       rounds: +rounds,
       limit: { Time: +ms },
+      clock: clock ? { base_ms: Math.round(+base * 1000), inc_ms: Math.round(+inc * 1000), moves: +period || null } : null,
       parallel: +parallel,
       book,
       book_depth: +bookDepth,
@@ -145,9 +151,22 @@
       </fieldset>
       <div class="grid">
         <label>{kind === "sprt" ? t("matches.rounds_sprt") : t("matches.rounds")} <input type="number" min="1" bind:value={rounds} /></label>
-        <label>{t("matches.ms")} <input type="number" min="10" step="any" bind:value={ms} /></label>
         <label>{t("matches.parallel")} <input type="number" min="1" max={page.cpus} bind:value={parallel} /></label>
       </div>
+      <fieldset>
+        <legend>{t("matches.time")}</legend>
+        <label class="check"><input type="radio" name="m-time" value={false} bind:group={clock} /> {t("matches.time.move")}</label>
+        <label class="check"><input type="radio" name="m-time" value={true} bind:group={clock} /> {t("matches.time.clock")}</label>
+        <div class="grid">
+          {#if clock}
+            <label>{t("matches.base")} <input type="number" min="1" step="any" bind:value={base} /></label>
+            <label>{t("matches.inc")} <input type="number" min="0" step="any" bind:value={inc} /></label>
+            <label>{t("matches.period")} <input type="number" min="0" bind:value={period} /></label>
+          {:else}
+            <label>{t("matches.ms")} <input type="number" min="10" step="any" bind:value={ms} /></label>
+          {/if}
+        </div>
+      </fieldset>
       <fieldset>
         <legend>{t("matches.book")}</legend>
         <p class="path">{book ?? t("matches.book_none")}</p>

@@ -830,7 +830,7 @@ pub(crate) mod tests {
             keys.push(k.to_string());
         }
         let library = d.0.join("lib/matches.bragd");
-        let setup = Setup { variant: "chess".into(), engines: keys, kind: Kind::Gauntlet, rounds: 1, limit: bragd_engines::Limit::Time(100), parallel: 2, book: None, book_depth: 8, adjudication: Default::default(), library: library.clone(), seed: 7 };
+        let setup = Setup { variant: "chess".into(), engines: keys, kind: Kind::Gauntlet, rounds: 1, limit: bragd_engines::Limit::Time(100), clock: None, parallel: 2, book: None, book_depth: 8, adjudication: Default::default(), library: library.clone(), seed: 7 };
         let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
         let id = jobs.add(Work::Match { setup });
         assert!(!jobs.run_next(), "the other jobs' worker leaves a match alone");

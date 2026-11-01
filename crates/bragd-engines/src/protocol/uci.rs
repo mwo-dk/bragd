@@ -123,6 +123,23 @@ impl Dialect for Uci {
             (_, Limit::Time(ms)) => format!("go movetime {ms}"),
             (_, Limit::Depth(d)) => format!("go depth {d}"),
             (_, Limit::Nodes(n)) => format!("go nodes {n}"),
+            // USI's black (`b`) is sente, who moves first; UCI's white is.
+            (Protocol::Usi, Limit::Clock { own, other, inc, first, .. }) => {
+                let (b, w) = if first { (own, other) } else { (other, own) };
+                format!("go btime {b} wtime {w} binc {inc} winc {inc}")
+            }
+            (Protocol::Ucci, Limit::Clock { own, other, inc, to_go, .. }) => {
+                let t = |ms: u32| if self.millis { ms } else { ms / 1000 };
+                match to_go {
+                    Some(m) => format!("go time {} movestogo {m} opptime {}", t(own), t(other)),
+                    None => format!("go time {} increment {} opptime {}", t(own), t(inc), t(other)),
+                }
+            }
+            (_, Limit::Clock { own, other, inc, to_go, first }) => {
+                let (w, b) = if first { (own, other) } else { (other, own) };
+                let to_go = to_go.map(|m| format!(" movestogo {m}")).unwrap_or_default();
+                format!("go wtime {w} btime {b} winc {inc} binc {inc}{to_go}")
+            }
         });
         out.push('\n');
         out
@@ -225,6 +242,8 @@ mod tests {
         let (about, _) = greet(&mut *d, "id name Pikafish 2025-06-23\noption name Hash type spin default 16 min 1 max 33554432\nuciok");
         assert_eq!(d.position(&about, &Position::new("xiangqi", &["h2e2"])), "isready\nposition startpos moves h2e2\n");
         assert_eq!(d.go(&about, Limit::Depth(12), 3), "go depth 12\n");
+        let clock = |first| Limit::Clock { own: 50_000, other: 60_000, inc: 1_000, to_go: Some(7), first };
+        assert_eq!(d.go(&about, clock(false), 1), "go wtime 60000 btime 50000 winc 1000 binc 1000 movestogo 7\n", "Black to move");
     }
 
     #[test]
@@ -235,6 +254,8 @@ mod tests {
         assert_eq!((about.name.as_str(), ready), ("YaneuraOu NNUE 8.30 64AVX2", Step::Ready(String::new())));
         assert_eq!(d.position(&about, &Position::new("shogi", &["7g7f"])), "isready\nusinewgame\nposition startpos moves 7g7f\n");
         assert_eq!(d.go(&about, Limit::Time(1000), 1), "setoption name MultiPV value 1\ngo btime 0 wtime 0 byoyomi 1000\n");
+        let clock = Limit::Clock { own: 30_000, other: 40_000, inc: 500, to_go: None, first: true };
+        assert_eq!(d.go(&about, clock, 1), "setoption name MultiPV value 1\ngo btime 30000 wtime 40000 binc 500 winc 500\n", "sente to move");
         let mut s = Position::new("shogi", &[]);
         s.start = Start::Setup("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2".into());
         assert!(d.position(&about, &s).ends_with("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2\n"));
@@ -258,6 +279,8 @@ mod tests {
         assert_eq!(d.set_option("hashsize", "64"), "setoption hashsize 64\n");
         assert_eq!(d.position(&about, &Position::new("xiangqi", &["h2e2"])), "position fen rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves h2e2\n");
         assert_eq!(d.go(&about, Limit::Time(1500), 1), "go time 1500\n");
+        let clock = Limit::Clock { own: 90_500, other: 80_000, inc: 2_000, to_go: None, first: false };
+        assert_eq!(d.go(&about, clock, 1), "go time 90500 increment 2000 opptime 80000\n");
         let got = events(&mut *d, "info depth 8 score 21 pv h9g7 h0g2\nnobestmove");
         assert!(matches!(&got[0], Event::Info(i) if i.score == Some(Score::Cp(21)) && i.depth == Some(8)));
         assert_eq!(got[1], Event::Best(Best::default()));
@@ -267,6 +290,8 @@ mod tests {
         let (about, ready) = greet(&mut *s, "id name Old\nucciok");
         assert_eq!(ready, Step::Ready(String::new()));
         assert_eq!(s.go(&about, Limit::Time(1500), 1), "go time 2\n");
+        let clock = Limit::Clock { own: 90_500, other: 80_000, inc: 0, to_go: Some(12), first: true };
+        assert_eq!(s.go(&about, clock, 1), "go time 90 movestogo 12 opptime 80\n");
     }
 
     /// What ElephantEye 3.31 itself printed (`tools/dev/images.sh elephanteye`): its name and

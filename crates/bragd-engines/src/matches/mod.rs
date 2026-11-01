@@ -11,6 +11,7 @@
 //! Helper was stopped in goes on where it was.
 
 pub mod berger;
+pub mod clock;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -21,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use crate::seam::{self, Notation};
 use crate::session::{Session, think};
 use crate::{Limit, sprt};
+pub use clock::{Clocks, TimeControl};
 
 /// What kind of match.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -71,8 +73,12 @@ pub struct Setup {
     pub kind: Kind,
     /// Game pairs per pairing; for an SPRT, the most game pairs it plays.
     pub rounds: u32,
-    /// How long each move may take.
+    /// How long each move may take, when the match has no clock.
     pub limit: Limit,
+    /// Each engine's own time for the Game: then `limit` is not used, and an engine whose time
+    /// runs out loses.
+    #[serde(default)]
+    pub clock: Option<TimeControl>,
     /// Games played at once.
     pub parallel: u32,
     /// Openings: a Polyglot book (chess), or a file of opening lines, one per line, each a set-up
@@ -194,7 +200,7 @@ pub struct Played {
     /// The result as the record writes it: the rules' own (`W+7.5`) or `Ended::result`.
     pub result: String,
     /// Why it ended: the rules' reason (`checkmate`), `resignation`, `adjudication`,
-    /// `tablebase`, `length`, `illegal move`, `no move` or `engine failed`.
+    /// `tablebase`, `length`, `illegal move`, `no move`, `time forfeit` or `engine failed`.
     pub reason: String,
 }
 
@@ -214,14 +220,17 @@ fn talk(wire: &str) -> bool {
 pub type Table<'a> = &'a (dyn Fn(&State, Option<i32>) -> Option<Ended> + Sync);
 
 /// Plays one Game of `variant` from `opening`, `players[0]` on the first Side. Err only when the
-/// opening cannot be played or `stop` turned true.
-pub fn play(variant: &str, opening: &Opening, players: &mut [Player; 2], limit: Limit, adj: &Adjudication, table: Table, stop: &dyn Fn() -> bool) -> Result<Played, String> {
+/// opening cannot be played or `stop` turned true. With a `clock`, each move is timed against it
+/// and `limit` is not used.
+#[allow(clippy::too_many_arguments, reason = "a clock or a limit per move, and each thing a Game ends by")]
+pub fn play(variant: &str, opening: &Opening, players: &mut [Player; 2], limit: Limit, clock: Option<TimeControl>, adj: &Adjudication, table: Table, stop: &dyn Fn() -> bool) -> Result<Played, String> {
     let family = bragd_games::variant(variant).map_err(|e| e.to_string())?.family();
     let initial = opening.initial.as_deref();
     let mut entries = opening.moves.clone();
     // Each engine move's score, centipawns from the first Side's view, with whose move it was.
     let mut scores: Vec<(usize, Option<i32>)> = vec![];
     let mut moves = 0u32;
+    let mut clocks = clock.map(Clocks::new);
     let end = |entries: Vec<String>, ended: Ended, reason: &str| -> Result<Played, String> {
         let state = bragd_games::replay(variant, initial, &entries).map_err(|e| e.to_string())?;
         Ok(Played { initial: opening.initial.clone(), history: state.history, entries, ended, result: ended.result().into(), reason: reason.into() })
@@ -263,11 +272,18 @@ pub fn play(variant: &str, opening: &Opening, players: &mut [Player; 2], limit: 
         }
         let p = &mut players[me];
         let (asked, _) = seam::position(variant, initial, &entries, p.notation)?;
+        let limit = clocks.as_ref().map_or(limit, |c| c.limit(me));
+        let started = std::time::Instant::now();
         let a = match think(p.session.as_mut(), &asked, limit, 1, stop, &mut |_| {}) {
             Ok(a) => a,
             Err(_) if stop() => return Err("stopped".into()),
             Err(_) => return end(entries, lose, "engine failed"),
         };
+        if let Some(c) = &mut clocks
+            && !c.spend(me, started.elapsed().as_millis() as u64)
+        {
+            return end(entries, lose, "time forfeit");
+        }
         let Some(best) = a.best else { return end(entries, lose, "no move") };
         if best.eq_ignore_ascii_case("resign") {
             return end(entries, lose, "resignation");
@@ -423,7 +439,7 @@ pub fn run(r: &Run, results: String) -> Result<String, String> {
                 }
             };
             let opening = (r.opening)(g.opening);
-            let played = play(&r.setup.variant, &opening, &mut players, r.setup.limit, &r.setup.adjudication, r.table, r.stop);
+            let played = play(&r.setup.variant, &opening, &mut players, r.setup.limit, r.setup.clock, &r.setup.adjudication, r.table, r.stop);
             drop(players);
             let mut s = lock();
             match played {
