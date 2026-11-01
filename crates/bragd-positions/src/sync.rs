@@ -68,7 +68,9 @@ fn weight_a(a: &Annotation) -> usize {
 impl Store {
     /// This store's id, made the first time it is asked.
     pub fn id(&mut self) -> Result<String> {
-        let tx = self.conn.transaction()?;
+        // Writing from the start: two Peers asking at once must not both read "none" and then
+        // race to write, which SQLite refuses at once rather than waiting.
+        let tx = self.conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         let id = match tx.query_row("SELECT id FROM store", [], |r| r.get::<_, String>(0)).optional()? {
             Some(id) => id,
             None => {
@@ -121,7 +123,7 @@ impl Store {
     /// Merges a batch from `peer` by the merge rule, and keeps how far it is taken, in one
     /// transaction: nothing when a row is refused.
     pub fn merge_changes(&mut self, peer: &str, c: &Changes) -> Result<Merged> {
-        let tx = self.conn.transaction()?;
+        let tx = self.conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         let m = crate::merge(&tx, &c.evaluations, &c.annotations)?;
         tx.execute(
             "INSERT INTO pulled (peer, store, seq, time, rows) VALUES (?1, ?2, ?3, ?4, ?5) \
@@ -190,6 +192,34 @@ mod tests {
         assert_eq!(pull(&mut b, &mut a, "a", 100), (1, 1));
         assert_eq!(b.evaluations("chess", "chess", 2).unwrap()[0].depth, 30);
         assert_eq!(b.pulled("a").unwrap().unwrap().rows, 7);
+    }
+
+    /// Peers ask a store for the first time at once, and merge into one at once: each waits its
+    /// turn, none is refused.
+    #[test]
+    fn peers_asking_at_once_each_get_an_answer() {
+        let d = dir("at-once");
+        let p = d.join("positions.sqlite");
+        let mut a = Store::open(&p).unwrap();
+        a.put(&eval(1, sf("Stockfish 17"), 20, 1, Score::Cp(0))).unwrap();
+        // Not asked yet: its id is made by the first of the Peers below.
+        let rows = Changes { store: "other".into(), evaluations: a.all().unwrap(), last: 1, ..Changes::default() };
+        drop(a);
+        let start = std::sync::Arc::new(std::sync::Barrier::new(16));
+        let all: Vec<_> = (0..16)
+            .map(|i| {
+                let (p, rows, start) = (p.clone(), rows.clone(), start.clone());
+                std::thread::spawn(move || {
+                    let mut s = Store::open(&p).unwrap();
+                    start.wait();
+                    let id = s.changes("", 0, 10, 1 << 20).map(|c| c.store);
+                    let merged = s.merge_changes(&format!("peer{}", i % 2), &rows).map(|_| ());
+                    (id, merged)
+                })
+            })
+            .collect();
+        let ids: Vec<String> = all.into_iter().map(|t| { let (id, m) = t.join().unwrap(); m.unwrap(); id.unwrap() }).collect();
+        assert!(ids.iter().all(|i| *i == ids[0]), "one id, made once");
     }
 
     #[test]
