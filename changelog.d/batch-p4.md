@@ -1,0 +1,1 @@
+| **A player's summary over a Library.** Click a player's name in a Library's Games list, or use **Find a player**, to see their Games, results with each side, score, rating over time, most played openings, best wins, worst losses, and first and last Game, for each Family they play. | [Player summary](knowledge/players.md#how-to-reach-it) | <!-- feature --> <!-- tour: players -->

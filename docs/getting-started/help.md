@@ -24,6 +24,7 @@ The F1 entries and the pages *Show me* opens:
 | `families` | Game families | [Game families and Variants](game-families.md) |
 | `play` | Play | [Playing against yourself](../play/against-yourself.md) |
 | `databases` | Databases | [Foreign databases](../knowledge/foreign-databases.md) |
+| `players` | Player summary | [Player summary](../knowledge/players.md) |
 | `parquet` | Export to Parquet | [Export to Parquet](../knowledge/parquet-export.md) |
 | `disk` | Disk watch | [Disk watch](../knowledge/disk-watch.md) |
 | `helper` | The Helper | [The Helper](../knowledge/helper.md) |

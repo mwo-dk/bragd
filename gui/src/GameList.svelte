@@ -1,11 +1,12 @@
 <script>
   // A list of Games of any length: only the rows in sight (and a few around them) are asked of
-  // Rust, as the list scrolls. A header click sorts by that column, when the list can sort.
+  // Rust, as the list scrolls. A header click sorts by that column, when the list can sort. With
+  // `onplayer`, a player's name is a button of its own.
   import { untrack } from "svelte";
   import { t, num } from "./i18n.svelte.js";
 
-  /** @type {{ fetch: (from: number, count: number) => Promise<{total: number, rows: any[]}>, version: any, sort?: string, desc?: boolean, onsort?: (col: string) => void, onopen: (row: any) => void, selected?: number | null }} */
-  let { fetch, version, sort = "", desc = false, onsort, onopen, selected = null } = $props();
+  /** @type {{ fetch: (from: number, count: number) => Promise<{total: number, rows: any[]}>, version: any, sort?: string, desc?: boolean, onsort?: (col: string) => void, onopen: (row: any) => void, onplayer?: (name: string) => void, selected?: number | null }} */
+  let { fetch, version, sort = "", desc = false, onsort, onopen, onplayer, selected = null } = $props();
 
   const ROW = 28;
   const COLS = ["number", "white", "white_elo", "black", "black_elo", "result", "date", "event", "eco", "moves"];
@@ -75,7 +76,13 @@
           onkeydown={(e) => key(e, r)}
         >
           {#each COLS as c}
-            <span class="c {c}" role="cell">{c === "number" ? num(r.n) : r[c === "white_elo" ? "whiteElo" : c === "black_elo" ? "blackElo" : c]}</span>
+            {#if onplayer && (c === "white" || c === "black") && r[c]}
+              <span class="c {c}" role="cell"
+                ><button class="name" title={t("player.open", { name: r[c] })} onclick={(e) => (e.stopPropagation(), onplayer(r[c]))} onkeydown={(e) => e.stopPropagation()}>{r[c]}</button
+                ></span>
+            {:else}
+              <span class="c {c}" role="cell">{c === "number" ? num(r.n) : r[c === "white_elo" ? "whiteElo" : c === "black_elo" ? "blackElo" : c]}</span>
+            {/if}
           {/each}
         </div>
       {/each}
@@ -85,6 +92,19 @@
 </div>
 
 <style>
+  .name {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: underline dotted;
+    cursor: pointer;
+  }
   .list {
     display: flex;
     flex-direction: column;

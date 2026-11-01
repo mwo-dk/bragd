@@ -14,6 +14,7 @@ use bragd_helper::helper::{Reply, Request};
 use bragd_helper::sources::{self, Auto, Options, Route, Schedule};
 use bragd_library::chess::Query;
 use bragd_library::library::Library;
+use bragd_library::player::FamilySummary;
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
@@ -178,6 +179,52 @@ pub fn library_rows(path: String, query: Value, from: usize, count: usize, k: St
 pub fn library_game(path: String, id: i64) -> Res<Replay> {
     let lib = Library::open(Path::new(&path)).map_err(|e| e.to_string())?;
     Ok(databases::stored_replay(&lib.stored(id).map_err(|e| e.to_string())?))
+}
+
+/// A player's summary over the Library at `path`, for the Families Settings show, each with
+/// its name and the names of its two sides.
+#[tauri::command(async)]
+pub fn library_player(path: String, name: String, ctx: State<'_, Ctx>) -> Res<PlayerView> {
+    bragd_core::tips::used("players");
+    let cfg = ctx.cfg();
+    let s = Library::open(Path::new(&path)).and_then(|l| l.player(&name)).map_err(|e| e.to_string())?;
+    let families = s
+        .families
+        .into_iter()
+        .filter(|f| cfg.family_shown(&f.family))
+        .map(|f| FamilyView { title: t!(&format!("family.{}", f.family)), sides: sides(&f.family), summary: f })
+        .collect();
+    Ok(PlayerView { name: s.name, families })
+}
+
+/// The players of the Library at `path` whose name starts with `text`, with their Games.
+#[tauri::command(async)]
+pub fn library_players(path: String, text: String) -> Res<Vec<(String, u32)>> {
+    Library::open(Path::new(&path)).and_then(|l| l.players(&text, 20)).map_err(|e| e.to_string())
+}
+
+#[derive(Serialize)]
+pub struct PlayerView {
+    name: String,
+    families: Vec<FamilyView>,
+}
+
+#[derive(Serialize)]
+pub struct FamilyView {
+    #[serde(flatten)]
+    summary: FamilySummary,
+    title: String,
+    sides: [String; 2],
+}
+
+/// The names of the sides of a Library's `white` and `black` columns in `family`.
+fn sides(family: &str) -> [String; 2] {
+    let keys = match family {
+        "xiangqi" => ["red", "black"],
+        "shogi" => ["sente", "gote"],
+        _ => ["white", "black"],
+    };
+    keys.map(|k| t!(&format!("side.{k}")))
 }
 
 #[tauri::command(async)]

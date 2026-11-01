@@ -1248,5 +1248,37 @@
  "settings.variants_on": {
   "other": "{n} 种变体"
  },
- "wizard.coming": "稍后推出：{names}。"
+ "wizard.coming": "稍后推出：{names}。",
+ "player.close": "返回",
+ "player.none": "此棋手在你所玩的棋类中没有对局。",
+ "player.games": {
+  "other": "{n} 盘对局"
+ },
+ "player.score": "得分 {p}%",
+ "player.record": "胜 {wins}，和 {draws}，负 {losses}",
+ "player.as": "作为{side}",
+ "player.unfinished": "{n} 盘未完",
+ "player.rating": "等级分",
+ "player.rating_from": "从 {from} 到 {to}；最低 {low}，最高 {high}。",
+ "player.openings": "{side}的开局",
+ "player.best_wins": "最佳胜局",
+ "player.worst_losses": "最差败局",
+ "player.first": "第一盘对局",
+ "player.last": "最后一盘对局",
+ "player.open": "{name}：本库中的成绩、等级分和开局",
+ "player.find": "查找棋手",
+ "player.find_hint": "姓名开头，例如 Carlsen",
+ "player.found": "找到的棋手",
+ "player.none_found": "没有棋手的姓名以 {text} 开头。",
+ "feature.players.title": "棋手摘要",
+ "feature.players.what": "一览某位棋手在库中的对局：按执子方的成绩、得分、随时间变化的等级分、开局、最佳胜局和最差败局。",
+ "feature.players.q1": "如何打开棋手摘要？",
+ "feature.players.a1": "点击库的对局列表中的棋手姓名，或在“库”标签页的“查找棋手”中输入姓名开头。",
+ "feature.players.q2": "为什么没有开局或等级分？",
+ "feature.players.a2": "开局来自 ECO 编码，只有国际象棋对局才有。只有对局信息头给出等级分时才会显示。",
+ "feature.players.q3": "它涵盖我所有的库吗？",
+ "feature.players.a3": "不。摘要只涵盖打开它时所在的库，以及你所玩的棋类。",
+ "feature.players.tip": "点击库的对局列表中的棋手姓名，即可查看其成绩、等级分和开局。",
+ "tour.players.title": "棋手摘要",
+ "tour.players.text": "点击库的对局列表中的姓名，或使用“查找棋手”，查看该棋手的成绩、随时间变化的等级分、开局和最佳胜局。"
 }

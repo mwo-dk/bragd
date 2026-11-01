@@ -1253,5 +1253,38 @@
  "settings.variants_on": {
   "one": "{n} Variant",
   "other": "{n} Variants"
- }
+ },
+ "player.close": "Back",
+ "player.none": "This player has no Game here in the Families you play.",
+ "player.games": {
+  "one": "{n} Game",
+  "other": "{n} Games"
+ },
+ "player.score": "Score {p}%",
+ "player.record": "{wins} won, {draws} drawn, {losses} lost",
+ "player.as": "As {side}",
+ "player.unfinished": "{n} unfinished",
+ "player.rating": "Rating",
+ "player.rating_from": "From {from} to {to}; lowest {low}, highest {high}.",
+ "player.openings": "Openings as {side}",
+ "player.best_wins": "Best wins",
+ "player.worst_losses": "Worst losses",
+ "player.first": "First Game",
+ "player.last": "Last Game",
+ "player.open": "{name}: results, rating and openings in this Library",
+ "player.find": "Find a player",
+ "player.find_hint": "Start of a name, such as Carlsen",
+ "player.found": "Players found",
+ "player.none_found": "No player's name starts with {text}.",
+ "feature.players.title": "Player summary",
+ "feature.players.what": "One player's Games in a Library at a glance: results by side, score, rating over time, openings, best wins and worst losses.",
+ "feature.players.q1": "How do I open a player's summary?",
+ "feature.players.a1": "Click their name in a Library's Games list, or type the start of it in Find a player on the Libraries tab.",
+ "feature.players.q2": "Why are there no openings or ratings?",
+ "feature.players.a2": "Openings come from ECO codes, which only chess Games have. A rating shows only where the Games' headers give one.",
+ "feature.players.q3": "Does it cover all my Libraries?",
+ "feature.players.a3": "No. A summary covers the Library it was opened from, in the Families you play.",
+ "feature.players.tip": "Click a player's name in a Library's Games list to see their results, rating and openings.",
+ "tour.players.title": "Player summary",
+ "tour.players.text": "Click a name in a Library's Games list, or use Find a player, to see that player's results, rating over time, openings and best wins."
 }

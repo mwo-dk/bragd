@@ -1,14 +1,16 @@
 <script>
   // Libraries: each with its Games, size, Duplicates and Near-duplicates; browse one, review
   // what was merged and what looks cut short (never merged on its own), "Dedupe now", its
-  // Slices, and the Source priority that decides whose headers win.
+  // Slices, a player's summary (from the search box or a name in a Games list), and the Source
+  // priority that decides whose headers win.
   import * as k from "./knowledge.js";
-  import { t, num } from "./i18n.svelte.js";
+  import { t, tn, num } from "./i18n.svelte.js";
   import GameList from "./GameList.svelte";
   import Replay from "./Replay.svelte";
   import JobLine from "./JobLine.svelte";
   import SliceEditor from "./SliceEditor.svelte";
   import Picker from "./Picker.svelte";
+  import Player from "./Player.svelte";
 
   /** @type {{ family: string, variants: any[], slice: any, position: any, onstep: (family: string, step: any) => void, onslices: () => void }} */
   let { family, variants, slice = null, position, onstep, onslices } = $props();
@@ -18,6 +20,13 @@
   let lib = $state(null);
   let view = $state("games");
   let player = $state("");
+  /** The player whose summary shows, and the view to go back to. */
+  let who = $state("");
+  let back = $state("games");
+  let find = $state("");
+  let notFound = $state("");
+  /** @type {[string, number][]} */
+  let found = $state([]);
   /** @type {any} */
   let game = $state(null);
   /** @type {any} */
@@ -62,8 +71,29 @@
 
   const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(lib.path, { players: player.trim() ? [player] : [], family }, from, count);
 
+  function showPlayer(/** @type {string} */ name) {
+    if (view !== "player") back = view;
+    who = name;
+    view = "player";
+    game = null;
+    found = [];
+  }
+
+  async function search(/** @type {SubmitEvent} */ e) {
+    e.preventDefault();
+    error = notFound = "";
+    try {
+      found = await k.libraryPlayers(lib.path, find);
+      if (found.length === 1) showPlayer(found[0][0]);
+      else if (!found.length) notFound = t("player.none_found", { text: find });
+    } catch (e) {
+      error = k.why(e);
+    }
+  }
+
   function choose(/** @type {any} */ l) {
     lib = l;
+    found = [];
     view = "games";
     game = null;
     review = null;
@@ -137,6 +167,17 @@
         <button class:current={view === "slice" && editing?.name === s.name} onclick={() => ((view = "slice"), (editing = s))}>{s.name}{s.materialised ? " ⧉" : ""}</button>
       {/each}
     </nav>
+    <form class="bar" role="search" onsubmit={search}>
+      <input type="search" bind:value={find} oninput={() => (notFound = "")} placeholder={t("player.find_hint")} aria-label={t("player.find")} />
+      <button type="submit" disabled={!find.trim()}>{t("player.find")}</button>
+    </form>
+    {#if found.length > 1}
+      <ul class="found" aria-label={t("player.found")}>
+        {#each found as [name, n] (name)}
+          <li><button class="link" onclick={() => showPlayer(name)}>{name}</button> <span class="dim">{tn("player.games", n)}</span></li>
+        {/each}
+      </ul>
+    {:else if notFound}<p role="status" class="dim">{notFound}</p>{/if}
     <div class="bar">
       <button onclick={exportLib} title={t("lib.export_hint")}>{t("lib.export")}</button>
       {#if exporting !== null}<JobLine id={exporting} />{/if}
@@ -147,7 +188,7 @@
         <Replay replay={game} onclose={() => (game = null)} onstep={(s) => onstep(game.family, s)} />
       {:else}
         <input type="text" bind:value={player} placeholder={t("db.filter_player")} aria-label={t("db.filter_player")} />
-        <GameList {fetch} version={[lib.path, player, lib.games, family]} onopen={async (r) => (game = await k.libraryGame(lib.path, r.id))} />
+        <GameList {fetch} version={[lib.path, player, lib.games, family]} onplayer={showPlayer} onopen={async (r) => (game = await k.libraryGame(lib.path, r.id))} />
       {/if}
     {:else if view === "review"}
       <div class="bar">
@@ -179,8 +220,14 @@
       {/if}
     {:else if view === "slice"}
       {#key `${lib.path}/${editing?.name ?? ""}`}
-        <SliceEditor library={lib.path} slice={editing} {family} {variants} {position} {onstep} onsaved={() => (load(), onslices())} />
+        <SliceEditor library={lib.path} slice={editing} {family} {variants} {position} {onstep} onsaved={() => (load(), onslices())} onplayer={showPlayer} />
       {/key}
+    {:else if view === "player"}
+      {#if game}
+        <Replay replay={game} onclose={() => (game = null)} onstep={(s) => onstep(game.family, s)} />
+      {:else}
+        <Player library={lib.path} name={who} onopen={async (id) => (game = await k.libraryGame(lib.path, id).catch((e) => ((error = k.why(e)), null)))} onclose={() => (view = back)} />
+      {/if}
     {/if}
   {/if}
 
@@ -256,6 +303,16 @@
   .tabs button.current {
     background: var(--sel-bg);
     color: var(--sel-fg);
+  }
+  input[type="search"] {
+    flex: 1 1 14rem;
+    max-width: 22rem;
+  }
+  .found {
+    margin: 0;
+    padding-inline-start: 1.2rem;
+    max-height: 12rem;
+    overflow-y: auto;
   }
   .review {
     margin: 0;
