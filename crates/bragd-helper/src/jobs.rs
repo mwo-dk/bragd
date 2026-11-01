@@ -634,6 +634,14 @@ impl Jobs {
                     too_big = crate::net::TooBig::of(&e).and_then(|t| t.size);
                     e.to_string()
                 })?;
+            if let Some(list) = bragd_clubs::lists::LISTS.iter().find(|l| l.id == source) {
+                let db = bragd_clubs::lists::path().ok_or("no data folder")?;
+                let mut n = 0;
+                for f in &files {
+                    n += bragd_clubs::lists::import_with(&db, list.id, |each| bragd_clubs::lists::read(list, f, each)).map_err(|e| format!("{}: {e}", f.display()))?;
+                }
+                return Ok(n);
+            }
             let mut libraries = options.routes.iter().map(|r| self.open_library(&self.library_of(&r.library))).collect::<Result<Vec<_>, _>>()?;
             let mut read = 0;
             for f in &files {
@@ -783,6 +791,24 @@ pub(crate) mod tests {
         assert_eq!(jobs.list().into_iter().find(|j| j.id == id).unwrap().status, Status::Failed);
         assert!(!jobs.lock().sources.contains_key("custom:typo"));
         assert!(!jobs.sources().iter().any(|(a, _, _)| a.id == "custom:typo"));
+    }
+
+    #[test]
+    fn a_rating_list_goes_into_the_rating_lists_not_a_library() {
+        let d = crate::tests::Dir::new("ratings");
+        let list = &bragd_clubs::lists::LISTS[1];
+        let csv = b"\"\"\r\n\"Nr\";\"F\xf8dt\";\"Alder\";\"Navn\";\"Klub\";\"Titel\";\"Rat.\";\"Hur.\";\"Lyn\";\"Fide\";\"Nr\";\"K\"\r\n\"190000001\";\"1980\";\"46\";\"Helper Testesen\";\"K\";\"\";\"1777\";\"\";\"\";\"\";\"\";\"\"\r\n";
+        let net = Recorded { files: [(list.url.to_string(), csv.to_vec())].into(), ..Default::default() };
+        let jobs = jobs_in(&d.0, net, Arc::default());
+        let id = jobs.add(Work::Fetch { source: list.id.into() });
+        assert!(jobs.run_next());
+        let job = jobs.list().into_iter().find(|j| j.id == id).unwrap();
+        assert_eq!((job.status, job.error.as_deref()), (Status::Done, None));
+        let db = bragd_clubs::lists::path().unwrap();
+        let found = bragd_clubs::lists::search(&db, "190000001").unwrap();
+        assert_eq!((found[0].player.name.as_str(), found[0].player.rating), ("Helper Testesen", Some(1777)));
+        assert!(!d.0.join("lib/main.bragd").exists(), "no Library is made for it");
+        assert!(d.0.join(format!("sources/{}/{}", list.id, list.file)).exists());
     }
 
     #[test]

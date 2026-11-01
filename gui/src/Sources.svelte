@@ -146,14 +146,19 @@
           <label class="check"><input type="checkbox" bind:checked={draft.only_unmetered} /> {t("source.only_unmetered")}</label>
           <label>{t("source.disk_cap")} <input type="text" bind:value={cap} placeholder={t("disk.no_limit")} size="10" /></label>
           <label>{t("source.max_download")} <input type="text" bind:value={maxDownload} placeholder={s.maxDownloadDefault} size="10" /></label>
-          <label
-            >{t("source.after_import_label")}
-            <Picker value={draft.after_import} choices={page.afterImport} label={t("source.after_import_label")} onchange={(v) => draft && (draft.after_import = v)} />
-          </label>
+          {#if !s.ratingList}
+            <label
+              >{t("source.after_import_label")}
+              <Picker value={draft.after_import} choices={page.afterImport} label={t("source.after_import_label")} onchange={(v) => draft && (draft.after_import = v)} />
+            </label>
+          {/if}
           {#if s.custom}
             <label class="wide">{t("source.url")} <input type="text" bind:value={draft.url} /></label>
           {/if}
         </div>
+        {#if s.ratingList}
+          <p class="hint">{t("source.rating_list_hint")}</p>
+        {:else}
         <section class="routes">
           <h4>{t("source.routes")}</h4>
           <p class="hint">{t("source.routes_hint")}</p>
@@ -180,10 +185,13 @@
           {/each}
           <button onclick={() => draft.routes.push({ library: "", strip: emptyRule() })}>{t("source.route_add")}</button>
         </section>
+        {/if}
         <div class="bar">
           <button class="primary" onclick={() => save(s.id, draft, cap, maxDownload)}>{t("source.save")}</button>
+          {#if !s.ratingList}
           <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, true)))} title={t("strip.preview_hint")}>{t("strip.preview")}</button>
           <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, false)))} title={t("strip.apply_hint")}>{t("strip.apply")}</button>
+          {/if}
         </div>
       {/if}
       {#if jobs[s.id] !== undefined}<JobLine id={jobs[s.id]} ondone={load} />{/if}

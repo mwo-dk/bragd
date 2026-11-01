@@ -3,6 +3,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod clubs;
 mod help;
 mod databases;
 mod helper_link;
@@ -325,6 +326,7 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .manage(Ctx { cfg: RwLock::new(cfg) })
         .manage(knowledge::Knowledge::default())
+        .manage(clubs::Held::default())
         .plugin(tauri_plugin_dialog::init())
         .manage(engines::Held::default())
         .manage(analyse::Held::default())
@@ -361,6 +363,19 @@ fn main() {
             help::suggest_translation,
             help::open_url,
             files::pick_path,
+            clubs::clubs_page,
+            clubs::club_open,
+            clubs::club_pick,
+            clubs::club_create,
+            clubs::club_close,
+            clubs::club_forget,
+            clubs::club_add,
+            clubs::club_update,
+            clubs::club_remove,
+            clubs::club_rating,
+            clubs::club_system,
+            clubs::club_take_over,
+            clubs::rating_search,
             wizard::guide_due,
             wizard::wizard_open,
             wizard::wizard_chosen,

@@ -19,6 +19,7 @@
   import Engines from "./Engines.svelte";
   import Tablebases from "./Tablebases.svelte";
   import Books from "./Books.svelte";
+  import Clubs from "./Clubs.svelte";
   import splash from "../../assets/brand/splash.svg";
 
   /** @type {any} */
@@ -108,6 +109,8 @@
         <Help />
       {:else if page.kind === "whats_new"}
         <WhatsNew />
+      {:else if page.kind === "clubs"}
+        <Clubs {snap} {go} />
       {:else if family && page.item === "play"}
         {#key family.id}
           <Play {family} {go} />

@@ -11,6 +11,7 @@ The facts to look up: every `config.toml` key, every item in Settings, the comma
 | [Command line](command-line.md) | `bragd-gui` and `bragd-helper`, their flags and environment variables |
 | [Files on disk](files.md) | Where config, data, Libraries, the Helper, tablebases and the cache are kept |
 | [Privacy](privacy.md) | What leaves the machine, when, and how to stop it |
+| [Rating lists](rating-lists.md) | FIDE's and each federation's list: where, format, terms, rhythm, and which Bragd fetches |
 
 ---
 [← Previous: Playing online](../online/playing-online.md) · [Next: config.toml →](config-toml.md)

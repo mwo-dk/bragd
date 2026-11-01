@@ -18,7 +18,7 @@
     guide.area = n.settings;
     go({ kind: "settings" });
   }
-  /** *Show me*: the Settings area, or the sidebar item of the first Family shown that has it. */
+  /** *Show me*: the Settings area, a page of its own (`page:clubs`), or the sidebar item of the first Family shown that has it. */
   function showMe(/** @type {any} */ tip) {
     guide.tip = null;
     const [kind, what] = tip.open.split(":");
@@ -26,6 +26,7 @@
       guide.area = what;
       return go({ kind: "settings" });
     }
+    if (kind === "page") return go({ kind: what });
     const sb = snap.sidebar;
     const families = sb.kind === "families" ? sb.families : sb.kind === "one" ? [sb.family] : [];
     const f = families.find((/** @type {any} */ f) => f.items.includes(what));

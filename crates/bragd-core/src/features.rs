@@ -9,7 +9,8 @@ use serde::Serialize;
 pub struct Feature {
     pub id: &'static str,
     pub docs: &'static str,
-    /// `settings:<area>` or `item:<sidebar item>` (of the first Family shown that has it).
+    /// `settings:<area>`, `item:<sidebar item>` (of the first Family shown that has it), or
+    /// `page:<page>` for a page of its own in the sidebar (`page:clubs`).
     pub open: &'static str,
     /// The Families it concerns; none: every user. Its tour card and Tip show only to someone
     /// with one of them on.
@@ -40,6 +41,7 @@ pub const FEATURES: &[Feature] = &[
     f("engines", "engines/engines.md", "item:engines"),
     f("analyse", "engines/analyse.md", "item:analyse"),
     only("tablebases", "engines/tablebases.md", "item:tablebases", &["chess"]),
+    f("clubs", "clubs/clubs.md", "page:clubs"),
     f("themes", "look/themes.md", "settings:look"),
     f("update", "reference/privacy.md", "settings:privacy"),
 ];
@@ -180,7 +182,7 @@ mod tests {
         let known = |f: &str| bragd_games::Family::from_key(f).is_some();
         for f in FEATURES {
             assert!(f.families.iter().all(|x| known(x)), "{}: {:?}", f.id, f.families);
-            assert!(f.open.starts_with("settings:") || f.open.starts_with("item:"), "{}", f.id);
+            assert!(["settings:", "item:", "page:clubs"].iter().any(|p| f.open.starts_with(p)), "{}", f.id);
         }
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../changelog.d");
         // After a release changelog.d/ may be gone: no rows, nothing to check.

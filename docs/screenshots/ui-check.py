@@ -161,6 +161,7 @@ def screens():
         ("sources", lambda d: (item(d, "chess", "Databases"), tab(d, "Sources"))),
         ("tablebases", lambda d: item(d, "chess", "Tablebases")),
         ("books", lambda d: item(d, "chess", "Opening books")),
+        ("clubs", lambda d: bottom(d, "Clubs")),
         ("help", lambda d: bottom(d, "Help")),
         ("whats-new", lambda d: bottom(d, "What's new")),
     ]
