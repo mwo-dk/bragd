@@ -187,12 +187,12 @@ impl NewGame {
     /// A chess game, its moves written again as Bragd writes SAN so that two files' spellings
     /// of a move (`Ng1f3`, `Nf3`) are one. The main line stops at a move that cannot be played.
     pub fn from_chess(g: &pgn::Game) -> NewGame {
-        let first = pgn::board(&g.start).unwrap_or_default();
-        let (mut b, mut moves, mut keys) = (first.clone(), vec![], vec![]);
+        let first = pgn::board(&g.start).unwrap_or_else(rules_chess::Position::starting);
+        let (mut b, mut moves, mut keys) = (first, vec![], vec![]);
         for i in g.main_line() {
             let Some(mv) = pgn::san_move(&b, &g.nodes[i as usize].san) else { break };
             moves.push(pgn::san(&b, mv));
-            b.play_unchecked(mv);
+            b = b.make_move(mv);
             keys.push(polyglot::key(&b));
         }
         NewGame {
@@ -200,7 +200,7 @@ impl NewGame {
             variant: chess_variant(g.tag("Variant").unwrap_or("")),
             headers: g.tags.clone(),
             moves,
-            start: (pgn::fen(&first) != pgn::fen(&cozy_chess::Board::default())).then(|| pgn::fen(&first)),
+            start: (pgn::fen(&first) != pgn::START).then(|| pgn::fen(&first)),
             result: g.result.clone(),
             start_key: polyglot::key(&first),
             keys,

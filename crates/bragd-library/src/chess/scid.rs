@@ -16,7 +16,7 @@ use std::fs::File;
 use std::io::{self, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
-use cozy_chess::{Board, Color, Move, Piece, Square};
+use rules_chess::{Color, Position, Role, Square};
 
 const MAGIC_INDEX: &[u8] = b"Scid.si\0";
 const MAGIC_NAMES: &[u8] = b"Scid.sn\0";
@@ -384,28 +384,28 @@ const COMMON: [&str; 10] = ["WhiteCountry", "BlackCountry", "Annotator", "PlyCou
 /// (from a8 on), the king put first and the piece it displaces put where the king came.
 #[derive(Clone)]
 struct Pos {
-    board: Board,
+    board: Position,
     list: [Vec<Square>; 2],
 }
 
 impl Pos {
-    fn new(board: Board, standard: bool) -> Option<Pos> {
+    fn new(board: Position, standard: bool) -> Option<Pos> {
         let mut list: [Vec<Square>; 2] = Default::default();
         for (c, color) in [Color::White, Color::Black].into_iter().enumerate() {
             let l = &mut list[c];
             if standard {
                 let (back, pawns) = if c == 0 { (0, 1) } else { (7, 6) };
-                l.push(Square::index(back * 8 + 4));
-                l.extend([0, 1, 2, 3, 5, 6, 7].map(|f| Square::index(back * 8 + f)));
-                l.extend((0..8).map(|f| Square::index(pawns * 8 + f)));
+                l.push(Square::new(back * 8 + 4));
+                l.extend([0, 1, 2, 3, 5, 6, 7].map(|f| Square::new(back * 8 + f)));
+                l.extend((0..8).map(|f| Square::new(pawns * 8 + f)));
                 continue;
             }
             for rank in (0..8).rev() {
                 for file in 0..8 {
-                    let sq = Square::index(rank * 8 + file);
-                    if board.color_on(sq) == Some(color) {
+                    let sq = Square::new(rank * 8 + file);
+                    if board.piece_at(sq).map(|p| p.color) == Some(color) {
                         l.push(sq);
-                        if board.piece_on(sq) == Some(Piece::King) {
+                        if board.piece_at(sq).map(|p| p.role) == Some(Role::King) {
                             let k = l.len() - 1;
                             l.swap(0, k);
                         }
@@ -423,89 +423,91 @@ impl Pos {
     /// `next`): its SAN, or None when it is no move here.
     fn play(&mut self, b: u8, next: &mut impl Iterator<Item = u8>) -> Option<String> {
         let side = self.board.side_to_move();
-        let c = side as usize;
+        let c = side.index();
         let from = *self.list[c].get((b >> 4) as usize)?;
         let v = (b & 15) as i32;
         let (f, r) = (from.file() as i32, from.rank() as i32);
-        let sq = |f: i32, r: i32| ((0..8).contains(&f) && (0..8).contains(&r)).then(|| Square::index((r * 8 + f) as usize));
-        let piece = self.board.piece_on(from)?;
+        let sq = |f: i32, r: i32| ((0..8).contains(&f) && (0..8).contains(&r)).then(|| Square::new((r * 8 + f) as u8));
+        let piece = self.board.piece_at(from)?.role;
+        let legal = self.board.legal_moves();
         let mut promo = None;
         let to = match piece {
-            Piece::King if v == 0 => {
-                let nb = self.board.null_move()?;
+            Role::King if v == 0 => {
+                let nb = self.board.pass()?;
                 self.board = nb;
                 return Some("--".into());
             }
-            Piece::King if v <= 8 => {
+            Role::King if v <= 8 => {
                 let (df, dr) = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)][v as usize - 1];
                 sq(f + df, r + dr)?
             }
-            // Castling: cozy-chess moves the king onto its rook.
-            Piece::King => {
+            // Castling: the king moves onto its rook.
+            Role::King => {
                 if v > 10 {
                     return None;
                 }
                 let mut rook = None;
-                self.board.generate_moves_for(from.bitboard(), |ms| {
-                    for m in ms {
-                        if self.board.color_on(m.to) == Some(side) && (m.to.file() > from.file()) == (v == 10) {
-                            rook = Some(m.to);
-                        }
+                for m in legal.as_slice().iter().filter(|m| m.from() == from) {
+                    if self.board.piece_at(m.to()).map(|p| p.color) == Some(side) && (m.to().file() > from.file()) == (v == 10) {
+                        rook = Some(m.to());
                     }
-                    false
-                });
+                }
                 rook?
             }
-            Piece::Knight => {
+            Role::Knight => {
                 let (df, dr) = *[(-1, -2), (1, -2), (-2, -1), (2, -1), (-2, 1), (2, 1), (-1, 2), (1, 2)].get((v as usize).checked_sub(1)?)?;
                 sq(f + df, r + dr)?
             }
-            Piece::Rook | Piece::Queen => {
+            Role::Rook | Role::Queen => {
                 let t = if v < 8 { sq(v, r)? } else { sq(f, v - 8)? };
                 if t == from {
                     // A queen's diagonal move: the square in the next byte, plus 64.
-                    if piece != Piece::Queen {
+                    if piece != Role::Queen {
                         return None;
                     }
-                    Square::try_index(next.next()?.checked_sub(64)? as usize)?
+                    {
+                        let n = next.next()?.checked_sub(64)?;
+                        if n >= 64 {
+                            return None;
+                        }
+                        Square::new(n)
+                    }
                 } else {
                     t
                 }
             }
-            Piece::Bishop => {
+            Role::Bishop => {
                 let d = (v & 7) - f;
                 if v < 8 { sq(f + d, r + d)? } else { sq(f + d, r - d)? }
             }
-            Piece::Pawn => {
+            Role::Pawn => {
                 let fwd = if side == Color::White { 1 } else { -1 };
                 if v == 15 {
                     sq(f, r + 2 * fwd)?
                 } else {
-                    promo = [None, Some(Piece::Queen), Some(Piece::Rook), Some(Piece::Bishop), Some(Piece::Knight)][(v / 3) as usize];
+                    promo = [None, Some(Role::Queen), Some(Role::Rook), Some(Role::Bishop), Some(Role::Knight)][(v / 3) as usize];
                     // 7, 8 or 9 squares on for White, back for Black.
                     sq(f + (v % 3 - 1) * fwd, r + fwd)?
                 }
             }
+            _ => return None,
         };
         let mut found = None;
-        self.board.generate_moves_for(from.bitboard(), |ms| {
-            for m in ms {
-                if m.to == to && m.promotion == promo {
-                    found = Some(m);
-                }
+        for m in legal.as_slice().iter().filter(|m| m.from() == from) {
+            if m.to() == to && m.promotion_role() == promo {
+                found = Some(*m);
             }
-            found.is_some()
-        });
-        let mv: Move = found?;
+        }
+        let mv = found?;
         let san = super::pgn::san(&self.board, mv);
         // The pieces' squares after it: a taken piece leaves its side's list, the last one
         // taking its place.
         let other = 1 - c;
-        let castle = self.board.color_on(mv.to) == Some(side);
-        let taken = if self.board.color_on(mv.to) == Some(!side) {
-            Some(mv.to)
-        } else if piece == Piece::Pawn && mv.from.file() != mv.to.file() {
-            sq(mv.to.file() as i32, r)
+        let castle = self.board.piece_at(mv.to()).map(|p| p.color) == Some(side);
+        let taken = if self.board.piece_at(mv.to()).map(|p| p.color) == Some(side.opponent()) {
+            Some(mv.to())
+        } else if piece == Role::Pawn && mv.from().file() != mv.to().file() {
+            sq(mv.to().file() as i32, r)
         } else {
             None
         };
@@ -516,16 +518,16 @@ impl Pos {
         }
         let idx = (b >> 4) as usize;
         if castle {
-            let king_side = mv.to.file() > mv.from.file();
+            let king_side = mv.to().file() > mv.from().file();
             let (kf, rf) = if king_side { (6, 5) } else { (2, 3) };
-            if let Some(i) = self.list[c].iter().position(|&s| s == mv.to) {
+            if let Some(i) = self.list[c].iter().position(|&s| s == mv.to()) {
                 self.list[c][i] = sq(rf, r)?;
             }
             self.list[c][idx] = sq(kf, r)?;
         } else {
-            self.list[c][idx] = mv.to;
+            self.list[c][idx] = mv.to();
         }
-        self.board.play_unchecked(mv);
+        self.board = self.board.make_move(mv);
         Some(san)
     }
 }
@@ -566,7 +568,7 @@ fn decode(bytes: &[u8]) -> Decoded {
         out.fen = Some(fen.clone());
         super::pgn::board(&fen)
     } else {
-        Some(Board::default())
+        Some(Position::starting())
     };
     let Some(mut cur) = start.and_then(|b| Pos::new(b, flags & 1 == 0)) else { return out };
     // The words of the movetext; `None` where a comment goes, its text read after the moves.

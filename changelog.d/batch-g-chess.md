@@ -1,0 +1,1 @@
+| **Chess960 games keep their castling.** A Chess960 game whose FEN tag writes castling as `KQkq` now keeps its castling rights instead of losing them, so its castles play. Such Games get new position keys: Libraries that hold them deduplicate them again on the next import. | [Docs](knowledge/foreign-databases.md#how-does-bragd-read-a-chess-games-fen-tag) |
