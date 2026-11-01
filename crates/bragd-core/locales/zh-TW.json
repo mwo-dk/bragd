@@ -1402,7 +1402,7 @@
  "jobs.analysis_waits": "背景分析在等待：目前不在其執行時段內，或機器正在使用電池。",
  "background.no_engine": "請先選擇一個引擎。",
  "background.no_limit": "請設定每個局面的深度或時間。",
- "background.no_positions": "此切片中沒有可分析的西洋棋局面。",
+ "background.no_positions": "此切片中沒有已勾選引擎可以分析的局面。",
  "background.positions": {
   "other": "{n} 個局面"
  },
@@ -1411,7 +1411,7 @@
  },
  "background.title": "在背景分析 {name}",
  "background.intro": "輔助程式會把這些對局最常出現的局面交給你選擇的引擎，並將每個結果儲存到局面儲存庫中。已有足夠深度的局面會被略過。",
- "background.no_engines": "沒有可執行的西洋棋引擎。請先在引擎中設定一個。",
+ "background.no_engines": "此遊戲類別沒有可執行的引擎。請先在引擎中設定一個。",
  "background.engines": "引擎",
  "background.min": "可應答的 {engine} 最舊版本",
  "background.min_hint": "任意版本",
@@ -1435,7 +1435,7 @@
  "store.prune_removed": "刪除已移除的引擎（{positions}）",
  "disk.item.positions": "局面儲存庫",
  "setting.analysis_open_games": "在背景分析我開啟的對局",
- "setting.analysis_open_games.hint": "你從收藏庫或外部資料庫開啟的每盤西洋棋對局，都會在你排隊的切片之後加入局面儲存庫的佇列。",
+ "setting.analysis_open_games.hint": "你從收藏庫或外部資料庫開啟的每盤對局，都會在你排隊的切片之後加入局面儲存庫的佇列。",
  "setting.analysis_depth": "所開啟對局的深度",
  "setting.analysis_threads": "背景分析時同時執行的引擎數",
  "setting.analysis_threads.hint": "每個引擎使用一個執行緒。",

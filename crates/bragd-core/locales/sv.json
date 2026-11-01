@@ -1410,7 +1410,7 @@
  "jobs.analysis_waits": "Analysen i bakgrunden väntar: den är utanför sina timmar, eller datorn går på batteri.",
  "background.no_engine": "Välj först en motor.",
  "background.no_limit": "Ange ett djup eller en tid per ställning.",
- "background.no_positions": "Det här urvalet har inga schackställningar att analysera.",
+ "background.no_positions": "Det här urvalet har inga ställningar som de ikryssade motorerna kan analysera.",
  "background.positions": {
   "one": "{n} ställning",
   "other": "{n} ställningar"
@@ -1421,7 +1421,7 @@
  },
  "background.title": "Analysera {name} i bakgrunden",
  "background.intro": "Hjälparen skickar de ställningar som de här partierna oftast når till de motorer du väljer, och sparar varje resultat i Ställningslagret. Ställningar som redan är tillräckligt djupa hoppas över.",
- "background.no_engines": "Ingen schackmotor är redo att köras. Ställ in en under Motorer.",
+ "background.no_engines": "Ingen motor för den här spelfamiljen är redo att köras. Ställ in en under Motorer.",
  "background.engines": "Motorer",
  "background.min": "Äldsta version av {engine} som får svara",
  "background.min_hint": "Vilken version som helst",
@@ -1445,7 +1445,7 @@
  "store.prune_removed": "Radera borttagna motorer ({positions})",
  "disk.item.positions": "Ställningslagret",
  "setting.analysis_open_games": "Analysera parti jag öppnar i bakgrunden",
- "setting.analysis_open_games.hint": "Varje schackparti du öppnar från ett bibliotek eller en främmande databas köas för Ställningslagret, efter de urval du köat.",
+ "setting.analysis_open_games.hint": "Varje parti du öppnar från ett bibliotek eller en främmande databas köas för Ställningslagret, efter de urval du köat.",
  "setting.analysis_depth": "Djup för parti jag öppnar",
  "setting.analysis_threads": "Motorer samtidigt i analysen i bakgrunden",
  "setting.analysis_threads.hint": "Varje motor använder en tråd.",

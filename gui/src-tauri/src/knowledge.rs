@@ -103,7 +103,7 @@ pub fn db_rows(query: Query, from: usize, count: usize, k: State<'_, Knowledge>)
 #[tauri::command(async)]
 pub fn db_game(id: u32, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Replay> {
     let r = crate::lock(&k.dbs.file).as_ref().ok_or_else(|| t!("db.none_open"))?.game(id)?;
-    crate::background::queue_opened(&k, &ctx.cfg(), &r);
+    crate::background::queue_opened(&k, &ctx.cfg(), &crate::background::Opened::of_file(&r));
     Ok(r)
 }
 
@@ -180,7 +180,12 @@ pub fn library_rows(path: String, query: Value, from: usize, count: usize, k: St
 pub fn library_game(path: String, id: i64, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Replay> {
     let lib = Library::open(Path::new(&path)).map_err(|e| e.to_string())?;
     let r = databases::stored_replay(&lib.stored(id).map_err(|e| e.to_string())?);
-    crate::background::queue_opened(&k, &ctx.cfg(), &r);
+    let cfg = ctx.cfg();
+    if cfg.analysis.open_games
+        && let Ok(o) = crate::background::Opened::of_stored(&lib, id, &r.title)
+    {
+        crate::background::queue_opened(&k, &cfg, &o);
+    }
     Ok(r)
 }
 

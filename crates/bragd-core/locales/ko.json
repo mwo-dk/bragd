@@ -1402,7 +1402,7 @@
  "jobs.analysis_waits": "백그라운드 분석이 대기 중입니다: 허용 시간 밖이거나 기기가 배터리로 작동 중입니다.",
  "background.no_engine": "먼저 엔진을 고르세요.",
  "background.no_limit": "국면마다 깊이 또는 시간을 지정하세요.",
- "background.no_positions": "이 슬라이스에는 분석할 체스 국면이 없습니다.",
+ "background.no_positions": "이 슬라이스에는 선택한 엔진이 분석할 수 있는 국면이 없습니다.",
  "background.positions": {
   "other": "국면 {n}개"
  },
@@ -1411,7 +1411,7 @@
  },
  "background.title": "{name} 백그라운드에서 분석",
  "background.intro": "헬퍼는 이 대국들에서 가장 자주 나오는 국면을 선택한 엔진에 보내고, 각 결과를 국면 저장소에 보관합니다. 이미 충분히 깊게 분석된 국면은 건너뜁니다.",
- "background.no_engines": "실행할 수 있는 체스 엔진이 없습니다. 엔진에서 설정하세요.",
+ "background.no_engines": "이 게임 계열에서 실행할 수 있는 엔진이 없습니다. 엔진에서 설정하세요.",
  "background.engines": "엔진",
  "background.min": "응답해도 되는 {engine}의 가장 오래된 버전",
  "background.min_hint": "모든 버전",
@@ -1435,7 +1435,7 @@
  "store.prune_removed": "제거된 엔진 삭제 ({positions})",
  "disk.item.positions": "국면 저장소",
  "setting.analysis_open_games": "내가 여는 대국을 백그라운드에서 분석",
- "setting.analysis_open_games.hint": "라이브러리나 외부 데이터베이스에서 여는 체스 대국마다, 대기열에 넣은 슬라이스 뒤에 국면 저장소용으로 대기열에 들어갑니다.",
+ "setting.analysis_open_games.hint": "라이브러리나 외부 데이터베이스에서 여는 게임마다, 대기열에 넣은 슬라이스 뒤에 국면 저장소용으로 대기열에 들어갑니다.",
  "setting.analysis_depth": "내가 여는 대국의 깊이",
  "setting.analysis_threads": "백그라운드 분석에서 동시에 실행할 엔진 수",
  "setting.analysis_threads.hint": "엔진마다 스레드 하나를 씁니다.",

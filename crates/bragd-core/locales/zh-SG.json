@@ -1402,7 +1402,7 @@
  "jobs.analysis_waits": "后台分析在等待：当前不在其运行时段内，或机器正在使用电池。",
  "background.no_engine": "请先选择一个引擎。",
  "background.no_limit": "请设置每个局面的深度或时间。",
- "background.no_positions": "此切片中没有可分析的国际象棋局面。",
+ "background.no_positions": "此切片中没有已勾选引擎可以分析的局面。",
  "background.positions": {
   "other": "{n} 个局面"
  },
@@ -1411,7 +1411,7 @@
  },
  "background.title": "在后台分析 {name}",
  "background.intro": "辅助程序会把这些对局最常出现的局面交给你选择的引擎，并将每个结果保存到局面存储中。已有足够深度的局面会被跳过。",
- "background.no_engines": "没有可运行的国际象棋引擎。请先在引擎中设置一个。",
+ "background.no_engines": "此游戏类别没有可运行的引擎。请先在引擎中设置一个。",
  "background.engines": "引擎",
  "background.min": "可应答的 {engine} 最旧版本",
  "background.min_hint": "任意版本",
@@ -1435,7 +1435,7 @@
  "store.prune_removed": "删除已移除的引擎（{positions}）",
  "disk.item.positions": "局面存储",
  "setting.analysis_open_games": "在后台分析我打开的对局",
- "setting.analysis_open_games.hint": "你从库或外部数据库中打开的每盘国际象棋对局，都会在你排队的切片之后加入局面存储的队列。",
+ "setting.analysis_open_games.hint": "你从库或外部数据库中打开的每盘对局，都会在你排队的切片之后加入局面存储的队列。",
  "setting.analysis_depth": "所打开对局的深度",
  "setting.analysis_threads": "后台分析时同时运行的引擎数",
  "setting.analysis_threads.hint": "每个引擎使用一个线程。",

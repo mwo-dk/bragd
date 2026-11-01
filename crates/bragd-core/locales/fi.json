@@ -1410,7 +1410,7 @@
  "jobs.analysis_waits": "Taustaanalyysi odottaa: se on aikaikkunansa ulkopuolella, tai kone käy akulla.",
  "background.no_engine": "Valitse ensin Engine.",
  "background.no_limit": "Anna syvyys tai aika asemaa kohden.",
- "background.no_positions": "Tässä leikkauksessa ei ole shakkiasemia analysoitavaksi.",
+ "background.no_positions": "Tässä leikkauksessa ei ole asemia, joita valitut Enginet voivat analysoida.",
  "background.positions": {
   "one": "{n} asema",
   "other": "{n} asemaa"
@@ -1421,7 +1421,7 @@
  },
  "background.title": "Analysoi {name} taustalla",
  "background.intro": "Apuri ajaa asemat, joihin nämä pelit useimmin päätyvät, valitsemillesi Engineille ja tallentaa jokaisen tuloksen asemavarastoon. Asemat, joilla on jo riittävä syvyys, ohitetaan.",
- "background.no_engines": "Yksikään shakki-Engine ei ole valmis. Ota sellainen käyttöön kohdassa Engines.",
+ "background.no_engines": "Yksikään tämän pelilajin Engine ei ole valmis. Ota sellainen käyttöön kohdassa Engines.",
  "background.engines": "Engines",
  "background.min": "Vanhin {engine}-versio, joka saa vastata",
  "background.min_hint": "Mikä tahansa versio",
@@ -1445,7 +1445,7 @@
  "store.prune_removed": "Poista poistetut Enginet ({positions})",
  "disk.item.positions": "Asemavarasto",
  "setting.analysis_open_games": "Analysoi taustalla avaamani pelit",
- "setting.analysis_open_games.hint": "Jokainen shakkipeli, jonka avaat kirjastosta tai ulkoisesta tietokannasta, menee asemavarastoon jonossa, jonottamiesi leikkausten jälkeen.",
+ "setting.analysis_open_games.hint": "Jokainen peli, jonka avaat kirjastosta tai ulkoisesta tietokannasta, menee asemavarastoon jonossa, jonottamiesi leikkausten jälkeen.",
  "setting.analysis_depth": "Avaamieni pelien syvyys",
  "setting.analysis_threads": "Enginejä yhtä aikaa taustaanalyysissä",
  "setting.analysis_threads.hint": "Jokainen Engine käyttää yhtä säiettä.",

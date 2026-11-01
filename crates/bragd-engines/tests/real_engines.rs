@@ -130,6 +130,24 @@ fn gnubg_hints_for_either_side() {
     best("gnubg", "backgammon", &["3-1", first.as_str(), "6-4"], Limit::Depth(0), None);
 }
 
+/// Before the roll GNU Backgammon gives the position's cube-less equity and no move: at the
+/// start, a little more than nothing for the player on roll.
+#[test]
+fn gnubg_evaluates_before_the_roll() {
+    let Some((rt, image)) = dev("gnubg") else { return };
+    let program = Program::Container { rt, image, args: vec![], syzygy: None, network: None };
+    let mut e = Engine::start(&program, known("gnubg").unwrap().protocol("backgammon"), Duration::from_secs(120), &|| false).unwrap();
+    let (p, _) = seam::position("backgammon", None, &[], seam::Notation::Gnubg).unwrap();
+    assert_eq!(p.dice, None);
+    let a = think(&mut e, &p, Limit::Depth(0), 1, &|| false, &mut |_| {}).unwrap();
+    eprintln!("{} before the roll: {:?}", a.engine, a.lines);
+    match a.lines.first().and_then(|l| l.score) {
+        Some(bragd_engines::Score::Equity(q)) => assert!((-0.2..0.2).contains(&q), "{q}"),
+        other => panic!("no equity: {other:?}"),
+    }
+    assert!(a.best.is_none());
+}
+
 /// GNU Backgammon's own Position ID after it plays a turn itself is the one Bragd writes for
 /// the same Game: so the order of the two players in the ID is the one GNU Backgammon reads.
 #[test]

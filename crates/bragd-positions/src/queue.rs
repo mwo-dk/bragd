@@ -72,14 +72,15 @@ impl Job {
     }
 
     /// Whether `e` already answers `spot` well enough: an accepted Edition, and as deep as asked
-    /// (any depth for a time limit).
+    /// (any depth for a time limit, and for a backgammon equity: GNU Backgammon is not asked
+    /// for a depth, and its answer is as deep as it goes).
     pub fn answered(&self, spot: &Spot, e: &Evaluation) -> bool {
         e.family == self.family
             && e.variant == self.variant
             && e.key == spot.key
             && self.accepts(&e.edition)
             && match self.per {
-                Per::Depth(d) => e.depth >= d,
+                Per::Depth(d) => e.depth >= d || matches!(e.score, crate::Score::Equity(_)),
                 Per::Millis(_) => true,
             }
     }
@@ -115,5 +116,7 @@ mod tests {
         assert!(!j.answered(s, &eval(8, sf("Stockfish 18"), 30, 1, Score::Cp(0))), "another position");
         let timed = Job { per: Per::Millis(500), min_version: None, ..j };
         assert!(timed.answered(s, &eval(7, sf("Stockfish 9"), 1, 1, Score::Cp(0))));
+        let bg = Job::new("backgammon", "backgammon", "stockfish", None, Per::Depth(20), vec![spot(7, 1)], false, "");
+        assert!(bg.answered(s, &Evaluation { family: "backgammon".into(), variant: "backgammon".into(), ..eval(7, sf("Stockfish 9"), 0, 1, Score::Equity(0.08)) }), "an equity at no depth");
     }
 }

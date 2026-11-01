@@ -185,11 +185,11 @@ pub struct Frequent {
 }
 
 impl Library {
-    /// The positions the Games `ids` reach most often, at most `top`, the most frequent first,
+    /// The positions the Games `ids` of `family` (empty: any) reach most often, at most `top`, the most frequent first,
     /// counted in the `positions` table; the start position is not among them, nor a position of
     /// a Variant Bragd does not play. Each is played again from one Game that reaches it
     /// (`replay`), the first time it is there: a backgammon position before its roll.
-    pub fn frequent(&self, ids: &[i64], top: usize) -> Result<Vec<Frequent>> {
+    pub fn frequent(&self, ids: &[i64], family: &str, top: usize) -> Result<Vec<Frequent>> {
         let c = self.conn();
         c.execute_batch("CREATE TEMP TABLE IF NOT EXISTS picked (id INTEGER PRIMARY KEY); DELETE FROM temp.picked;")?;
         {
@@ -202,10 +202,10 @@ impl Library {
         let known: Vec<String> = bragd_games::VARIANTS.iter().map(|v| format!("'{}'", v.key)).collect();
         let mut st = c.prepare(&format!(
             "SELECT p.hash, g.family, g.variant, count(*) AS n, min(p.game_id) FROM positions p JOIN temp.picked k ON k.id = p.game_id JOIN games g ON g.id = p.game_id \
-             WHERE g.variant IN ({}) GROUP BY p.hash, g.family, g.variant ORDER BY n DESC, p.hash LIMIT ?1",
+             WHERE g.variant IN ({}) AND (?2 = '' OR g.family = ?2) GROUP BY p.hash, g.family, g.variant ORDER BY n DESC, p.hash LIMIT ?1",
             known.join(", ")
         ))?;
-        let rows: Vec<(i64, String, String, u32, i64)> = st.query_map([top as i64], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))?.collect::<rusqlite::Result<_>>()?;
+        let rows: Vec<(i64, String, String, u32, i64)> = st.query_map(params![top as i64, family], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))?.collect::<rusqlite::Result<_>>()?;
         c.execute_batch("DELETE FROM temp.picked;")?;
         let mut ply = c.prepare_cached("SELECT min(ply) FROM positions WHERE hash = ?1 AND game_id = ?2")?;
         let mut plies = Vec::with_capacity(rows.len());
@@ -265,7 +265,7 @@ mod tests {
         let d = Dir::new("frequent");
         let lib = library(&d);
         let all = lib.find(&Query::default()).unwrap();
-        let f = lib.frequent(&all, 3).unwrap();
+        let f = lib.frequent(&all, "chess", 3).unwrap();
         assert_eq!(f.len(), 3);
         // 1. e4 is in two Games; nothing else is in more than one.
         assert_eq!(f.iter().map(|p| p.count).collect::<Vec<_>>(), [2, 1, 1]);
@@ -275,9 +275,9 @@ mod tests {
         }
         assert!(f[0].setup.starts_with("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b"), "{}", f[0].setup);
         // Only the Games asked about.
-        let one = lib.frequent(&all[3..], 10).unwrap();
+        let one = lib.frequent(&all[3..], "", 10).unwrap();
         assert_eq!((one.len(), one[0].count), (2, 1));
-        assert!(lib.frequent(&[], 10).unwrap().is_empty());
+        assert!(lib.frequent(&[], "", 10).unwrap().is_empty());
     }
 
     /// Every Family with an Engine has its frequent positions: go's as moves from the empty
@@ -307,7 +307,9 @@ mod tests {
         let history = bragd_games::replay("backgammon", None, &entries).unwrap().history;
         lib.add(&NewGame::played("backgammon", "backgammon", None, history, &positions, vec![], "*"), "match", "1").unwrap();
         let all: Vec<i64> = (1..=lib.count().unwrap() as i64).collect();
-        let f = lib.frequent(&all, 100).unwrap();
+        let f = lib.frequent(&all, "", 100).unwrap();
+        let go_only = lib.frequent(&all, "go", 100).unwrap();
+        assert!(!go_only.is_empty() && go_only.iter().all(|p| p.family == "go"));
         let of = |v: &str| f.iter().filter(|p| p.variant == v).collect::<Vec<_>>();
         // Go: 1. e5 and 1. e5 c7 in both Games.
         let go = of("go-9");
@@ -317,7 +319,7 @@ mod tests {
         assert_eq!(draughts.iter().map(|p| p.count).collect::<Vec<_>>(), [2, 1, 1]);
         for p in go.iter().chain(&draughts).chain(&of("backgammon")) {
             let st = bragd_games::replay(&p.variant, Some(p.setup.as_str()).filter(|s| !s.is_empty()), &p.moves).unwrap();
-            assert_eq!(crate::library::position_keys(&p.family, &[st.position.clone()])[0], p.key, "{p:?}");
+            assert_eq!(crate::library::position_keys(&p.family, std::slice::from_ref(&st.position))[0], p.key, "{p:?}");
         }
         // Backgammon: each board before its roll, which leaves the board as it was (the start's
         // key is the first roll's).

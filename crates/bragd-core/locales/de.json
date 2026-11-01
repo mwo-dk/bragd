@@ -1410,7 +1410,7 @@
  "jobs.analysis_waits": "Die Analyse im Hintergrund wartet: Sie ist außerhalb ihrer Zeiten, oder der Rechner läuft mit Akku.",
  "background.no_engine": "Wählen Sie zuerst eine Engine.",
  "background.no_limit": "Geben Sie eine Tiefe oder eine Zeit pro Stellung an.",
- "background.no_positions": "Dieser Ausschnitt hat keine Schachstellungen zum Analysieren.",
+ "background.no_positions": "Dieser Ausschnitt hat keine Stellungen, die die angehakten Engines analysieren können.",
  "background.positions": {
   "one": "{n} Stellung",
   "other": "{n} Stellungen"
@@ -1421,7 +1421,7 @@
  },
  "background.title": "{name} im Hintergrund analysieren",
  "background.intro": "Der Helfer schickt die Stellungen, die diese Partien am häufigsten erreichen, an die Engines, die Sie wählen, und hält jedes Ergebnis im Positionsspeicher fest. Stellungen, die schon tief genug sind, werden übersprungen.",
- "background.no_engines": "Keine Schach-Engine ist bereit. Richten Sie eine unter Engines ein.",
+ "background.no_engines": "Keine Engine für diese Spielfamilie ist bereit. Richten Sie eine unter Engines ein.",
  "background.engines": "Engines",
  "background.min": "Älteste Version von {engine}, die antworten darf",
  "background.min_hint": "Jede Version",
@@ -1445,7 +1445,7 @@
  "store.prune_removed": "Entfernte Engines löschen ({positions})",
  "disk.item.positions": "Positionsspeicher",
  "setting.analysis_open_games": "Partien, die ich öffne, im Hintergrund analysieren",
- "setting.analysis_open_games.hint": "Jede Schachpartie, die Sie aus einer Bibliothek oder einer fremden Datenbank öffnen, wird nach den Ausschnitten, die Sie einreihen, für den Positionsspeicher eingereiht.",
+ "setting.analysis_open_games.hint": "Jede Partie, die Sie aus einer Bibliothek oder einer fremden Datenbank öffnen, wird nach den Ausschnitten, die Sie einreihen, für den Positionsspeicher eingereiht.",
  "setting.analysis_depth": "Tiefe für Partien, die ich öffne",
  "setting.analysis_threads": "Engines gleichzeitig bei der Analyse im Hintergrund",
  "setting.analysis_threads.hint": "Jede Engine verwendet einen Thread.",

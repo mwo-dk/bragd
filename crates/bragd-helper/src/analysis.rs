@@ -89,9 +89,8 @@ pub fn run(r: &Run) -> Result<u64, String> {
             let Some(&i) = todo.get(next.fetch_add(1, Ordering::SeqCst)) else { return };
             let spot = &job.spots[i];
             let initial = Some(spot.setup.as_str()).filter(|s| !s.trim().is_empty());
-            // shortcut: a position its engine refuses (a set-up go position for GTP) counts as
-            // done unanalysed; say how many in the job's report if Families other than chess
-            // ever queue such positions.
+            // A position the seam cannot put to this engine (a Game already over) has nothing
+            // to analyse: it counts as done.
             if let Ok((p, _)) = seam::position(&job.variant, initial, &spot.moves, engine.notation) {
                 // Two lines: the second choice is what tells an only move (`Annotation`'s !!).
                 match think(&mut *engine.session, &p, limit, 2, r.stop, &mut |_| {}) {

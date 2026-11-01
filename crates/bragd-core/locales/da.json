@@ -1410,7 +1410,7 @@
  "jobs.analysis_waits": "Analyse i baggrunden venter: den er uden for sine timer, eller maskinen kører på batteri.",
  "background.no_engine": "Vælg først en Motor.",
  "background.no_limit": "Angiv en dybde eller en tid pr. stilling.",
- "background.no_positions": "Dette udsnit har ingen skakstillinger at analysere.",
+ "background.no_positions": "Dette udsnit har ingen stillinger, som de afkrydsede motorer kan analysere.",
  "background.positions": {
   "one": "{n} stilling",
   "other": "{n} stillinger"
@@ -1421,7 +1421,7 @@
  },
  "background.title": "Analyse i baggrunden: {name}",
  "background.intro": "Hjælperen sender de stillinger, som disse partier oftest når, til de Motorer du vælger, og gemmer hvert resultat i Stillingslageret. Stillinger den allerede har dybt nok, springes over.",
- "background.no_engines": "Ingen skakmotor er klar til at køre. Opsæt en under Motorer.",
+ "background.no_engines": "Ingen motor til denne spilfamilie er klar til at køre. Opsæt en under Motorer.",
  "background.engines": "Motorer",
  "background.min": "Ældste version af {engine} der må svare",
  "background.min_hint": "Enhver version",
@@ -1445,7 +1445,7 @@
  "store.prune_removed": "Slet fjernede Motorer ({positions})",
  "disk.item.positions": "Stillingslager",
  "setting.analysis_open_games": "Analysér de partier, jeg åbner, i baggrunden",
- "setting.analysis_open_games.hint": "Hvert skakparti du åbner fra et bibliotek eller en fremmed database sættes i kø til Stillingslageret, efter de udsnit du sætter i kø.",
+ "setting.analysis_open_games.hint": "Hvert parti du åbner fra et bibliotek eller en fremmed database sættes i kø til Stillingslageret, efter de udsnit du sætter i kø.",
  "setting.analysis_depth": "Dybde for partier, jeg åbner",
  "setting.analysis_threads": "Motorer ad gangen i analyse i baggrunden",
  "setting.analysis_threads.hint": "Hver Motor bruger én tråd.",

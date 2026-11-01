@@ -1410,7 +1410,7 @@
  "jobs.analysis_waits": "Background analysis waits: it is outside its hours, or the machine runs on its battery.",
  "background.no_engine": "Choose an Engine first.",
  "background.no_limit": "Give a depth or a time per position.",
- "background.no_positions": "This Slice has no chess positions to analyse.",
+ "background.no_positions": "This Slice has no positions the Engines you ticked can analyse.",
  "background.positions": {
   "one": "{n} position",
   "other": "{n} positions"
@@ -1421,7 +1421,7 @@
  },
  "background.title": "Analyse {name} in background",
  "background.intro": "The Helper puts the positions these Games reach most often to the Engines you choose, and keeps each result in the Position store. Positions it already has deep enough are skipped.",
- "background.no_engines": "No chess Engine is ready to run. Set one up under Engines.",
+ "background.no_engines": "No Engine for this Game family is ready to run. Set one up under Engines.",
  "background.engines": "Engines",
  "background.min": "Oldest version of {engine} that may answer",
  "background.min_hint": "Any version",
@@ -1445,7 +1445,7 @@
  "store.prune_removed": "Delete removed Engines ({positions})",
  "disk.item.positions": "Position store",
  "setting.analysis_open_games": "Analyse Games I open in the background",
- "setting.analysis_open_games.hint": "Each chess Game you open from a Library or a Foreign database is queued for the Position store, after the Slices you queue.",
+ "setting.analysis_open_games.hint": "Each Game you open from a Library or a Foreign database is queued for the Position store, after the Slices you queue.",
  "setting.analysis_depth": "Depth for Games I open",
  "setting.analysis_threads": "Engines at once in background analysis",
  "setting.analysis_threads.hint": "Each Engine uses one thread.",

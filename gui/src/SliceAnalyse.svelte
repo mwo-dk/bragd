@@ -1,14 +1,14 @@
 <script>
-  // *Analyse in background* for a saved Slice: the Engines to ask, each with the oldest version
-  // that may answer, a depth or a time per position, and how many of its most frequent positions.
+  // *Analyse in background* for a saved Slice: its Games of the Family shown, the Engines to ask
+  // (those that play one of the Family's Variants), each with the oldest version that may answer,
+  // a depth or a time per position, and how many of its most frequent positions.
   // Rust builds the jobs and the Helper runs them; their progress shows here and under Jobs.
   import * as k from "./knowledge.js";
-  import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import JobLine from "./JobLine.svelte";
 
-  /** @type {{ library: string, name: string, onclose: () => void }} */
-  let { library, name, onclose } = $props();
+  /** @type {{ library: string, name: string, family: string, variants: {key: string}[], onclose: () => void }} */
+  let { library, name, family, variants, onclose } = $props();
   /** @type {{key: string, name: string}[]} */
   let engines = $state([]);
   let more = $state(false);
@@ -25,10 +25,10 @@
   let error = $state("");
 
   $effect(() => {
-    api.engineChoices("chess").then((c) => {
+    k.backgroundEngines(variants.map((v) => v.key)).then((c) => {
       engines = c.engines;
       more = c.more;
-      if (c.default) picked[c.default] = true;
+      for (const d of c.defaults) picked[d] = true;
     }, (e) => (error = k.why(e)));
   });
 
@@ -36,7 +36,7 @@
     error = "";
     try {
       const chosen = engines.filter((e) => picked[e.key]).map((e) => ({ engine: e.key, minVersion: min[e.key] ?? "" }));
-      jobs = await k.sliceAnalyse(library, name, chosen, by === "depth" ? Number(depth) : null, by === "time" ? Number(seconds) : null, Number(top));
+      jobs = await k.sliceAnalyse(library, name, family, chosen, by === "depth" ? Number(depth) : null, by === "time" ? Number(seconds) : null, Number(top));
     } catch (e) {
       error = k.why(e);
     }
