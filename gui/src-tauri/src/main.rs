@@ -405,6 +405,8 @@ fn main() {
             tournaments::tournament_check,
             tournaments::tournament_set_pairing,
             tournaments::tournament_result,
+            tournaments::tournament_playoff,
+            tournaments::tournament_team,
             tournaments::tournament_tiebreaks,
             tournaments::tournament_rate,
             tournaments::tournament_export,

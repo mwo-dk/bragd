@@ -42,6 +42,8 @@ pub struct Row {
 pub struct View {
     id: i64,
     tournament: Tournament,
+    /// The pairing system's name.
+    system: String,
     /// Each player's points so far, written out.
     points: Vec<String>,
     standings: Vec<Row>,
@@ -77,10 +79,11 @@ fn view(id: i64, t: Tournament) -> View {
     let standings = t
         .standings()
         .into_iter()
-        .map(|s| Row { rank: s.rank, player: s.player, points: tournament::half_text(s.points), tiebreaks: s.tiebreaks.iter().map(|&v| value(v)).collect() })
+        .map(|s| Row { rank: s.rank, player: s.player, points: s.points_text(t.system), tiebreaks: s.tiebreaks.iter().map(|&v| value(v)).collect() })
         .collect();
     View {
         id,
+        system: t!(t.system.key()),
         points: (0..t.players.len()).map(|p| tournament::half_text(t.points(p))).collect(),
         standings,
         tiebreaks: t.tiebreaks.iter().map(|&tb| named(tb)).collect(),
@@ -188,6 +191,18 @@ pub fn tournament_set_pairing(by: i64, id: i64, pairs: Vec<(usize, usize)>, bye:
 #[tauri::command(async)]
 pub fn tournament_result(by: i64, id: i64, round: usize, board: usize, result: Option<Outcome>, why: String, held: State<'_, Held>) -> Res<View> {
     change(&held, by, id, |t, who| t.set_result(who, round, board, result, &why))
+}
+
+/// Enters who won the play-off of a drawn knockout match.
+#[tauri::command(async)]
+pub fn tournament_playoff(by: i64, id: i64, round: usize, board: usize, winner: Option<usize>, why: String, held: State<'_, Held>) -> Res<View> {
+    change(&held, by, id, |t, who| t.set_playoff(who, round, board, winner, &why))
+}
+
+/// Puts a player in a Scheveningen's team 1 or 2, or none.
+#[tauri::command(async)]
+pub fn tournament_team(by: i64, id: i64, player: usize, team: u8, held: State<'_, Held>) -> Res<View> {
+    change(&held, by, id, |t, _| t.set_team(player, team))
 }
 
 /// Sets the tiebreaks, in order, by their codes.

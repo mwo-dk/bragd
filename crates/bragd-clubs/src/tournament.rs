@@ -10,21 +10,88 @@
 //! Points are kept in halves: a win is 2, a draw 1.
 
 use bragd_core::t;
-use pairing::{Board, Colour, Criterion, dutch, round_robin};
+use pairing::{Board, Colour, Criterion, drop_in, dutch, knockout, monrad, nordic, round_robin, scheveningen};
 use serde::{Deserialize, Serialize};
 
 use crate::club::{Entry, Error, Result};
 use crate::tiebreak::{self, Tiebreak};
 
-/// How the Rounds are paired. Other pairing systems join as variants with one arm in
-/// [`Tournament::propose`].
+/// How the Rounds are paired. Each system has one arm in [`Tournament::propose`] and one in
+/// [`Tournament::check`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum System {
-    /// Swiss, FIDE Dutch (C.04.3).
-    Dutch,
+    /// Swiss, FIDE Dutch (C.04.3); `baku` adds Baku acceleration (C.04.7).
+    Dutch {
+        #[serde(default)]
+        baku: bool,
+    },
     /// Round-robin by FIDE's Berger tables; `double` plays every pair twice.
     RoundRobin { double: bool },
+    /// DSU's Monrad: numbers drawn by lot, each player meets the nearest one below not yet met.
+    Monrad,
+    /// DSU's Nordic Swiss (Dansk Schweizer): the strong half of a score group meets the weak half.
+    Nordic,
+    /// Knockout by FIDE's World Cup bracket; a drawn match needs its play-off winner.
+    Knockout,
+    /// Team 1 against team 2, every player meeting every player of the other team.
+    Scheveningen { double: bool },
+    /// Whoever is here is paired; an absence counts half a point for the pairing only.
+    DropIn {
+        #[serde(default)]
+        standings: DropIn,
+    },
+}
+
+/// How a Drop-in tournament ranks its players.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DropIn {
+    /// Points as a share of the most that could have been scored in the Rounds played.
+    #[default]
+    Percentage,
+    /// All points.
+    Total,
+    /// The best `n` results.
+    Best(u32),
+}
+
+impl System {
+    /// Paired by score from whoever is here, over a declared number of Rounds, with a bye worth a
+    /// point. The others fix their field and numbers when Round 1 is paired.
+    pub fn swiss(self) -> bool {
+        matches!(self, System::Dutch { .. } | System::Monrad | System::Nordic | System::DropIn { .. })
+    }
+
+    /// The text key of its name.
+    pub fn key(self) -> &'static str {
+        match self {
+            System::Dutch { baku: false } => "tournaments.system.dutch",
+            System::Dutch { baku: true } => "tournaments.system.dutch_baku",
+            System::RoundRobin { double: false } => "tournaments.system.round_robin",
+            System::RoundRobin { double: true } => "tournaments.system.double_round_robin",
+            System::Monrad => "tournaments.system.monrad",
+            System::Nordic => "tournaments.system.nordic",
+            System::Knockout => "tournaments.system.knockout",
+            System::Scheveningen { double: false } => "tournaments.system.scheveningen",
+            System::Scheveningen { double: true } => "tournaments.system.double_scheveningen",
+            System::DropIn { .. } => "tournaments.system.drop_in",
+        }
+    }
+
+    /// The tournament type of a FIDE report (TRF line 192), from FIDE's code table. Systems
+    /// FIDE does not define are `CUSTOM_`: Bragd's Scheveningen rotation is its own.
+    pub fn trf(self) -> &'static str {
+        match self {
+            System::Dutch { baku: false } => "FIDE_DUTCH",
+            System::Dutch { baku: true } => "FIDE_DUTCH_BAKU",
+            System::RoundRobin { double: false } => "FIDE_ROUNDROBIN",
+            System::RoundRobin { double: true } => "FIDE_DOUBLEROUNDROBIN",
+            System::Monrad | System::Nordic | System::DropIn { .. } => "CUSTOM_SWISS",
+            System::Knockout => "CUSTOM_KNOCKOUT",
+            System::Scheveningen { .. } => "CUSTOM_SCHEVENINGEN",
+        }
+    }
 }
 
 /// Where a player stands for the next Round.
@@ -59,6 +126,8 @@ pub struct Player {
     pub status: Status,
     /// Rounds paired before the player entered.
     pub joined: u32,
+    /// A Scheveningen's team: 1 or 2; 0 for none.
+    pub team: u8,
 }
 
 /// The result of a game.
@@ -114,6 +183,20 @@ pub struct Game {
     /// stones, 2 to 9 that many stones with komi 0.5. Black is the weaker player.
     #[serde(default)]
     pub handicap: u32,
+    /// A knockout only: who won the play-off of a match without a winner on the board.
+    #[serde(default)]
+    pub playoff: Option<usize>,
+}
+
+impl Game {
+    /// Who goes through: the winner on the board, or else the play-off's.
+    pub fn winner(&self) -> Option<usize> {
+        match self.result? {
+            Outcome::White | Outcome::WhiteForfeit => Some(self.white),
+            Outcome::Black | Outcome::BlackForfeit => Some(self.black),
+            Outcome::Draw | Outcome::DoubleForfeit => self.playoff,
+        }
+    }
 }
 
 /// Go's handicap pairing: each 100 rating points between two players is one stone, as on the
@@ -207,6 +290,15 @@ pub enum Warning {
     Colours { boards: Vec<(String, String)> },
     /// Not the pairing of the Berger table.
     NotTable,
+    /// Not the pairing of the knockout bracket.
+    NotBracket,
+    /// Not the pairing of the Scheveningen schedule.
+    NotSchedule,
+    /// These pairs have met before: never allowed in Monrad and the Nordic Swiss, put off in a
+    /// Drop-in.
+    Rematch { boards: Vec<(String, String)> },
+    /// The bye goes to a player who had one already.
+    SecondBye { player: String },
     /// A player who is here is not paired.
     Unpaired { player: String },
 }
@@ -225,6 +317,12 @@ impl Warning {
                 t!("tournaments.warn.colours", "boards" => boards.iter().map(|(w, b)| format!("{w} – {b}")).collect::<Vec<_>>().join(", "))
             }
             Warning::NotTable => t!("tournaments.warn.not_table"),
+            Warning::NotBracket => t!("tournaments.warn.not_bracket"),
+            Warning::NotSchedule => t!("tournaments.warn.not_schedule"),
+            Warning::Rematch { boards } => {
+                t!("tournaments.warn.rematch", "boards" => boards.iter().map(|(w, b)| format!("{w} – {b}")).collect::<Vec<_>>().join(", "))
+            }
+            Warning::SecondBye { player } => t!("tournaments.warn.second_bye", "player" => player),
             Warning::Unpaired { player } => t!("tournaments.warn.unpaired", "player" => player),
         }
     }
@@ -268,6 +366,7 @@ fn pairing_error(e: pairing::Error) -> Error {
         pairing::Error::TournamentOver => "tournaments.error.over",
         pairing::Error::NoLegalPairing => "tournaments.error.no_legal_pairing",
         pairing::Error::TooComplex => "tournaments.error.too_complex",
+        pairing::Error::NoWinner { .. } => "tournaments.error.playoff",
         _ => "tournaments.error.pairing",
     })
 }
@@ -281,10 +380,25 @@ pub struct Standing {
     pub player: usize,
     /// 1 for the leader; players level on points and every tiebreak share a place.
     pub rank: u32,
-    /// In halves.
+    /// In halves: all of them, or in a Drop-in the ones that count.
     pub points: u32,
+    /// A Drop-in's Rounds that count, for its percentage; otherwise the Rounds with results.
+    pub rounds: u32,
     /// One value per tiebreak, in the Tournament's order.
     pub tiebreaks: Vec<f64>,
+}
+
+impl Standing {
+    /// The points as the standings write them; under a Drop-in's percentage, out of the Rounds
+    /// that count.
+    pub fn points_text(&self, system: System) -> String {
+        if system != (System::DropIn { standings: DropIn::Percentage }) {
+            return half_text(self.points);
+        }
+        // Points are in halves and a Round is worth 2.
+        let percent = if self.rounds == 0 { 0 } else { (self.points * 100 + self.rounds) / (2 * self.rounds) };
+        t!("tournaments.percentage", "points" => half_text(self.points), "rounds" => self.rounds.to_string(), "percent" => percent.to_string())
+    }
 }
 
 /// A Tournament.
@@ -298,14 +412,17 @@ pub struct Tournament {
     /// The chief arbiter, as reports name them: whoever set the Tournament up.
     pub arbiter: String,
     pub system: System,
-    /// Rounds declared. A round-robin sets it when its first Round is paired.
+    /// Rounds declared. A round-robin, knockout or Scheveningen sets it when its first Round is
+    /// paired.
     pub rounds: u32,
     /// The colour of the top seed on board 1 in Round 1, drawn by lot.
     pub white_first: bool,
     pub tiebreaks: Vec<Tiebreak>,
     pub players: Vec<Player>,
     pub played: Vec<Round>,
-    /// Round-robin numbers, fixed when Round 1 is paired: `seeds[k]` has number `k + 1`.
+    /// Numbers fixed when Round 1 is paired, `seeds[k]` having number `k + 1`: a round-robin's
+    /// or a knockout's seeds; a Scheveningen's team 1 by board, then team 2; Monrad's draw by lot,
+    /// late entries numbered on; with Baku acceleration, group GA in seeding order.
     pub seeds: Vec<usize>,
     /// Changes made by hand, oldest first.
     pub log: Vec<Entry>,
@@ -327,10 +444,10 @@ impl Default for Tournament {
             date: String::new(),
             place: String::new(),
             arbiter: String::new(),
-            system: System::Dutch,
+            system: System::Dutch { baku: false },
             rounds: 7,
             white_first: true,
-            tiebreaks: tiebreak::defaults(System::Dutch),
+            tiebreaks: tiebreak::defaults(System::Dutch { baku: false }),
             players: vec![],
             played: vec![],
             seeds: vec![],
@@ -349,11 +466,14 @@ impl Tournament {
         if name.trim().is_empty() || name.chars().count() > 100 {
             return Err(Error::Invalid("tournaments.error.name"));
         }
-        if matches!(system, System::Dutch) && !(1..=99).contains(&rounds) {
+        if system.swiss() && !(1..=99).contains(&rounds) {
             return Err(Error::Invalid("tournaments.error.rounds"));
         }
-        // A round-robin's Rounds follow from its players, when Round 1 is paired.
-        let rounds = if matches!(system, System::Dutch) { rounds } else { 0 };
+        if matches!(system, System::DropIn { standings: DropIn::Best(n) } if !(1..=99).contains(&n)) {
+            return Err(Error::Invalid("tournaments.error.best"));
+        }
+        // The other systems' Rounds follow from their players, when Round 1 is paired.
+        let rounds = if system.swiss() { rounds } else { 0 };
         Ok(Tournament { name: name.trim().into(), date: date.into(), system, rounds, tiebreaks: tiebreak::defaults(system), ..Tournament::default() })
     }
 
@@ -378,11 +498,11 @@ impl Tournament {
 
     /// The board of `white` and `black` as played: with handicaps, the weaker player is Black.
     fn board(&self, white: usize, black: usize) -> Game {
-        let Some(h) = self.handicap else { return Game { white, black, result: None, handicap: 0 } };
+        let Some(h) = self.handicap else { return Game { white, black, result: None, handicap: 0, playoff: None } };
         let (rw, rb) = (self.players[white].rating, self.players[black].rating);
         let handicap = h.of(rw, rb);
         let (white, black) = if handicap > 0 && rb > rw { (black, white) } else { (white, black) };
-        Game { white, black, result: None, handicap }
+        Game { white, black, result: None, handicap, playoff: None }
     }
 
     fn note(&mut self, who: &str, player: &str, what: &str, old: String, new: String, why: &str) {
@@ -398,15 +518,36 @@ impl Tournament {
         if p.name.trim().is_empty() || p.name.chars().count() > 100 {
             return Err(Error::Invalid("clubs.error.name"));
         }
-        if !self.seeds.is_empty() {
+        if !self.seeds.is_empty() && !self.system.swiss() {
             return Err(Error::Invalid("tournaments.error.round_robin_started"));
+        }
+        if p.team > 2 {
+            return Err(Error::Invalid("tournaments.error.teams"));
         }
         if p.member.is_some() && self.players.iter().any(|q| q.member == p.member) {
             return Err(Error::Invalid("tournaments.error.registered"));
         }
         let joined = self.played.len() as u32;
         self.players.push(Player { name: p.name.trim().into(), status: Status::Away, joined, ..p });
-        Ok(self.players.len() - 1)
+        let p = self.players.len() - 1;
+        if self.system == System::Monrad && !self.seeds.is_empty() {
+            // A late entry takes the next number.
+            self.seeds.push(p);
+        }
+        Ok(p)
+    }
+
+    /// Puts a player in a Scheveningen's team 1 or 2, or none (0), before Round 1.
+    pub fn set_team(&mut self, p: usize, team: u8) -> Result<()> {
+        self.player(p)?;
+        if !self.played.is_empty() {
+            return Err(Error::Invalid("tournaments.error.started"));
+        }
+        if team > 2 {
+            return Err(Error::Invalid("tournaments.error.teams"));
+        }
+        self.players[p].team = team;
+        Ok(())
     }
 
     /// Checks a player in or out, gives a half-point bye, or withdraws them. A withdrawal and
@@ -415,6 +556,9 @@ impl Tournament {
         let old = self.player(p)?.status;
         if old == status {
             return Ok(());
+        }
+        if status == Status::HalfBye && matches!(self.system, System::DropIn { .. }) {
+            return Err(Error::Invalid("tournaments.error.drop_in_half_bye"));
         }
         if old == Status::Withdrawn || status == Status::Withdrawn {
             let name = self.players[p].name.clone();
@@ -429,7 +573,7 @@ impl Tournament {
         let Some(round) = self.played.get(r) else { return Slot::Absent };
         if round.bye == Some(p) {
             // A round-robin's bye is a free round with no points.
-            return if matches!(self.system, System::Dutch) { Slot::PairingBye } else { Slot::Absent };
+            return if self.system.swiss() { Slot::PairingBye } else { Slot::Absent };
         }
         if round.half.contains(&p) {
             return Slot::HalfBye;
@@ -471,45 +615,85 @@ impl Tournament {
         if self.played.last().is_some_and(|r| !r.complete()) {
             return Err(Error::Invalid("tournaments.error.results_missing"));
         }
-        if (!self.seeds.is_empty() || matches!(self.system, System::Dutch)) && self.played.len() as u32 >= self.rounds {
+        if self.system == System::Knockout && self.played.last().is_some_and(|r| r.games.iter().any(|g| g.winner().is_none())) {
+            return Err(Error::Invalid("tournaments.error.playoff"));
+        }
+        if (!self.played.is_empty() || self.system.swiss()) && self.played.len() as u32 >= self.rounds {
             return Err(Error::Invalid("tournaments.error.over"));
         }
         Ok(())
     }
 
-    /// The pairing system's boards and bye for the next Round, by player index, given who is
-    /// here now. A round-robin fixes its numbers on its first Round.
-    pub fn propose(&self) -> Result<Proposal> {
-        self.can_pair()?;
-        let r = self.played.len();
-        match self.system {
-            System::Dutch => {
-                let (order, players) = self.dutch_players();
-                let tpn = |p: usize| order.iter().position(|&q| q == p).unwrap() as u32 + 1;
-                let present: Vec<u32> = order.iter().filter(|&&p| self.players[p].status == Status::Here).map(|&p| tpn(p)).collect();
-                if present.len() < 2 {
-                    return Err(Error::Invalid("tournaments.error.too_few"));
-                }
-                let pr = dutch::pair(&self.settings(), &players, &present).map_err(pairing_error)?;
-                let at = |t: u32| order[t as usize - 1];
-                Ok((pr.boards.iter().map(|b| (at(b.white), at(b.black))).collect(), pr.bye.map(at)))
+    /// The numbers a system fixes when Round 1 is paired (see [`Tournament::seeds`]).
+    fn first_seeds(&self) -> Result<Vec<usize>> {
+        let field = || self.seeding().into_iter().filter(|&p| self.players[p].status != Status::Withdrawn);
+        Ok(match self.system {
+            System::Dutch { baku: true } => {
+                let f: Vec<usize> = field().collect();
+                let ga = (pairing::baku_group(f.len() as u32) as usize).min(f.len());
+                f[..ga].to_vec()
             }
-            System::RoundRobin { double } => {
-                let seeds = if self.seeds.is_empty() { self.round_robin_seeds() } else { self.seeds.clone() };
-                if seeds.len() < 2 {
-                    return Err(Error::Invalid("tournaments.error.too_few"));
+            System::Dutch { baku: false } | System::Nordic | System::DropIn { .. } => vec![],
+            System::Monrad => draw(self.players.len()),
+            System::RoundRobin { .. } | System::Knockout => field().collect(),
+            System::Scheveningen { .. } => {
+                let team = |n: u8| field().filter(move |&p| self.players[p].team == n);
+                let (a, b): (Vec<usize>, Vec<usize>) = (team(1).collect(), team(2).collect());
+                if a.is_empty() || a.len() != b.len() {
+                    return Err(Error::Invalid("tournaments.error.teams"));
                 }
-                let pr = round_robin::pair(seeds.len() as u32, if double { 2 } else { 1 }, double, r as u32 + 1).map_err(pairing_error)?;
-                let at = |n: u32| seeds[n as usize - 1];
-                Ok((pr.boards.iter().map(|b| (at(b.white), at(b.black))).collect(), pr.bye.map(at)))
+                a.into_iter().chain(b).collect()
             }
-        }
+        })
     }
 
-    /// Players in seeding order, and each one's history as the Dutch system reads it, by
-    /// Tournament Pairing Number: the place in that order.
-    fn dutch_players(&self) -> (Vec<usize>, Vec<pairing::Player>) {
-        let order = self.seeding();
+    /// The pairing system's boards and bye for the next Round, by player index, given who is
+    /// here now.
+    pub fn propose(&self) -> Result<Proposal> {
+        self.can_pair()?;
+        let r = self.played.len() as u32;
+        let seeds = if self.seeds.is_empty() { self.first_seeds()? } else { self.seeds.clone() };
+        let too_few = || Error::Invalid("tournaments.error.too_few");
+        let (order, pr) = match self.system {
+            System::Dutch { .. } | System::Monrad | System::Nordic | System::DropIn { .. } => {
+                // Monrad numbers by the draw, the others by strength.
+                let order = if self.system == System::Monrad { seeds.clone() } else { self.seeding() };
+                let players = self.histories(&order);
+                let present: Vec<u32> = (0..order.len()).filter(|&k| self.players[order[k]].status == Status::Here).map(|k| k as u32 + 1).collect();
+                if present.len() < 2 {
+                    return Err(too_few());
+                }
+                let s = self.settings(&order, &seeds);
+                let pr = match self.system {
+                    System::Dutch { .. } => dutch::pair(&s, &players, &present),
+                    System::Monrad => monrad::pair(&s, &players, &present),
+                    System::Nordic => nordic::pair(&s, &players, &present),
+                    _ => drop_in::pair(&s, &players, &present),
+                };
+                (order, pr.map_err(pairing_error)?)
+            }
+            _ if seeds.len() < 2 => return Err(too_few()),
+            System::RoundRobin { double } => {
+                let pr = round_robin::pair(seeds.len() as u32, if double { 2 } else { 1 }, double, r + 1).map_err(pairing_error)?;
+                (seeds, pr)
+            }
+            System::Knockout => {
+                let number = |p: usize| seeds.iter().position(|&q| q == p).map_or(0, |k| k as u32 + 1);
+                let winners: Vec<Vec<u32>> = self.played.iter().map(|round| round.games.iter().filter_map(Game::winner).map(number).collect()).collect();
+                let pr = knockout::pair(seeds.len() as u32, colour(self.white_first), &winners).map_err(pairing_error)?;
+                (seeds, pr)
+            }
+            System::Scheveningen { double } => {
+                let pr = scheveningen::pair(seeds.len() as u32 / 2, if double { 2 } else { 1 }, r + 1).map_err(pairing_error)?;
+                (seeds, pr)
+            }
+        };
+        let at = |t: u32| order[t as usize - 1];
+        Ok((pr.boards.iter().map(|b| (at(b.white), at(b.black))).collect(), pr.bye.map(at)))
+    }
+
+    /// Each player's history as the Swiss systems read it, numbered by their place in `order`.
+    fn histories(&self, order: &[usize]) -> Vec<pairing::Player> {
         let mut tpn = vec![0u32; self.players.len()];
         for (k, &p) in order.iter().enumerate() {
             tpn[p] = k as u32 + 1;
@@ -524,28 +708,43 @@ impl Tournament {
                 })
                 .collect()
         };
-        let players = order.iter().map(|&p| pairing::Player { tpn: tpn[p], history: history(p) }).collect();
-        (order, players)
+        order.iter().map(|&p| pairing::Player { tpn: tpn[p], history: history(p) }).collect()
     }
 
-    /// Everyone not withdrawn, in seeding order.
-    fn round_robin_seeds(&self) -> Vec<usize> {
-        self.seeding().into_iter().filter(|&p| self.players[p].status != Status::Withdrawn).collect()
-    }
-
-    fn settings(&self) -> pairing::Settings {
-        pairing::Settings { rounds: self.rounds, win: 2, loss: 0, initial_colour: colour(self.white_first), baku: None }
+    /// The settings for players numbered by `order`; `seeds` holds group GA under Baku
+    /// acceleration, whose last player marks the group as late entries are numbered in.
+    fn settings(&self, order: &[usize], seeds: &[usize]) -> pairing::Settings {
+        let baku = match self.system {
+            System::Dutch { baku: true } => seeds.last().and_then(|&p| order.iter().position(|&q| q == p)).map(|k| k as u32 + 1),
+            _ => None,
+        };
+        pairing::Settings { rounds: self.rounds, win: 2, loss: 0, initial_colour: colour(self.white_first), baku }
     }
 
     /// Pairs the next Round. Players with a half-point bye get it and are Here again after.
+    /// Round 1 fixes the system's numbers and, where they follow from the field, the Rounds.
     pub fn pair_next(&mut self) -> Result<()> {
-        let (pairs, bye) = self.propose()?;
-        if let System::RoundRobin { double } = self.system
-            && self.seeds.is_empty()
-        {
-            self.seeds = self.round_robin_seeds();
+        let first = self.played.is_empty() && self.seeds.is_empty();
+        if first {
+            self.seeds = self.first_seeds()?;
+        }
+        let (pairs, bye) = match self.propose() {
+            Ok(x) => x,
+            Err(e) => {
+                if first {
+                    self.seeds.clear();
+                }
+                return Err(e);
+            }
+        };
+        if first {
             let n = self.seeds.len() as u32;
-            self.rounds = (n + n % 2 - 1) * if double { 2 } else { 1 };
+            match self.system {
+                System::RoundRobin { double } => self.rounds = (n + n % 2 - 1) * if double { 2 } else { 1 },
+                System::Knockout => self.rounds = n.next_power_of_two().trailing_zeros(),
+                System::Scheveningen { double } => self.rounds = n / 2 * if double { 2 } else { 1 },
+                _ => {}
+            }
         }
         let half: Vec<usize> = (0..self.players.len()).filter(|&p| self.players[p].status == Status::HalfBye && !pairs.iter().any(|&(w, b)| w == p || b == p)).collect();
         for &p in &half {
@@ -565,31 +764,35 @@ impl Tournament {
             if std::mem::replace(&mut seen[p], true) {
                 return Err(Error::Invalid("tournaments.error.twice"));
             }
-            if pl.status == Status::Withdrawn && matches!(self.system, System::Dutch) {
+            if pl.status == Status::Withdrawn && self.system.swiss() {
                 return Err(Error::Invalid("tournaments.error.withdrawn"));
             }
         }
         let mut warnings = vec![];
-        match self.system {
-            System::Dutch => {
-                for (p, pl) in self.players.iter().enumerate() {
-                    if !seen[p] && !self.played[r].half.contains(&p) && pl.status == Status::Here {
-                        warnings.push(Warning::Unpaired { player: pl.name.clone() });
-                    }
+        if self.system.swiss() {
+            for (p, pl) in self.players.iter().enumerate() {
+                if !seen[p] && !self.played[r].half.contains(&p) && pl.status == Status::Here {
+                    warnings.push(Warning::Unpaired { player: pl.name.clone() });
                 }
-                // Judge it against the Round as it was before this pairing.
-                let before = Tournament { played: self.played[..r].to_vec(), ..self.clone() };
-                let (order, players) = before.dutch_players();
+            }
+        }
+        // Judge it against the Round as it was before this pairing.
+        let before = Tournament { played: self.played[..r].to_vec(), ..self.clone() };
+        let name = |p: usize| self.players[p].name.clone();
+        match self.system {
+            System::Dutch { .. } => {
+                let order = self.seeding();
+                let players = before.histories(&order);
                 let mut tpn = vec![0u32; self.players.len()];
                 for (k, &p) in order.iter().enumerate() {
                     tpn[p] = k as u32 + 1;
                 }
                 let present: Vec<u32> = order.iter().filter(|&&p| seen[p]).map(|&p| tpn[p]).collect();
                 let boards: Vec<Board> = pairs.iter().map(|&(w, b)| Board { white: tpn[w], black: tpn[b] }).collect();
-                let name = |t: u32| self.players[order[t as usize - 1]].name.clone();
-                match dutch::assess(&self.settings(), &players, &present, &boards) {
+                let at = |t: u32| name(order[t as usize - 1]);
+                match dutch::assess(&self.settings(&order, &self.seeds), &players, &present, &boards) {
                     Ok(dutch::Verdict::Same | dutch::Verdict::Better { .. }) => {}
-                    Ok(dutch::Verdict::Colours(bs)) => warnings.push(Warning::Colours { boards: bs.iter().map(|b| (name(b.white), name(b.black))).collect() }),
+                    Ok(dutch::Verdict::Colours(bs)) => warnings.push(Warning::Colours { boards: bs.iter().map(|b| (at(b.white), at(b.black))).collect() }),
                     Ok(dutch::Verdict::Illegal { bracket }) => warnings.push(Warning::Illegal { score: bracket }),
                     Ok(dutch::Verdict::Worse { bracket, criterion: c }) => warnings.push(Warning::Worse { score: bracket, criterion: criterion(c).into() }),
                     Ok(dutch::Verdict::GeneratedLater { bracket }) => warnings.push(Warning::Order { score: bracket }),
@@ -598,15 +801,30 @@ impl Tournament {
                     Err(e) => return Err(pairing_error(e)),
                 }
             }
-            System::RoundRobin { .. } => {
-                let before = Tournament { played: self.played[..r].to_vec(), ..self.clone() };
+            System::Monrad | System::Nordic | System::DropIn { .. } => {
+                let met = |a: usize, b: usize| (0..r).any(|k| matches!(self.slot(k, a), Slot::Played { opponent, .. } if opponent == b));
+                let again: Vec<(String, String)> = pairs.iter().filter(|&&(w, b)| met(w, b)).map(|&(w, b)| (name(w), name(b))).collect();
+                if !again.is_empty() {
+                    warnings.push(Warning::Rematch { boards: again });
+                }
+                if let Some(p) = bye
+                    && (0..r).any(|k| self.slot(k, p) == Slot::PairingBye)
+                {
+                    warnings.push(Warning::SecondBye { player: name(p) });
+                }
+            }
+            System::RoundRobin { .. } | System::Knockout | System::Scheveningen { .. } => {
                 let (ours, our_bye) = before.propose()?;
                 let mut a: Vec<_> = pairs.to_vec();
                 let mut b = ours;
                 a.sort_unstable();
                 b.sort_unstable();
                 if a != b || bye != our_bye {
-                    warnings.push(Warning::NotTable);
+                    warnings.push(match self.system {
+                        System::Knockout => Warning::NotBracket,
+                        System::Scheveningen { .. } => Warning::NotSchedule,
+                        _ => Warning::NotTable,
+                    });
                 }
             }
         }
@@ -685,6 +903,7 @@ impl Tournament {
         if self.match_to.is_some() && result == Some(Outcome::Draw) {
             return Err(Error::Invalid("tournaments.error.match_draw"));
         }
+        self.settled(round, g, Game { result, ..g })?;
         if let Some(old) = g.result {
             if why.trim().is_empty() {
                 return Err(Error::Invalid("clubs.error.why"));
@@ -696,9 +915,56 @@ impl Tournament {
         Ok(())
     }
 
+    /// A knockout's match winner cannot change once the next Round is paired from it.
+    fn settled(&self, round: usize, old: Game, new: Game) -> Result<()> {
+        if self.system == System::Knockout && round + 1 < self.played.len() && old.winner() != new.winner() {
+            return Err(Error::Invalid("tournaments.error.knockout_settled"));
+        }
+        Ok(())
+    }
+
+    /// Enters who won the play-off of a drawn knockout match on `board` of Round `round`, or
+    /// clears it. A change to a winner already entered needs a reason and is logged.
+    pub fn set_playoff(&mut self, who: &str, round: usize, board: usize, winner: Option<usize>, why: &str) -> Result<()> {
+        let g = *self.played.get(round).and_then(|r| r.games.get(board)).ok_or(Error::Invalid("tournaments.error.no_board"))?;
+        if self.system != System::Knockout || winner.is_some_and(|w| w != g.white && w != g.black) {
+            return Err(Error::Invalid("tournaments.error.playoff_player"));
+        }
+        if g.playoff == winner {
+            return Ok(());
+        }
+        self.settled(round, g, Game { playoff: winner, ..g })?;
+        if let Some(old) = g.playoff {
+            if why.trim().is_empty() {
+                return Err(Error::Invalid("clubs.error.why"));
+            }
+            let player = format!("{} – {}", self.players[g.white].name, self.players[g.black].name);
+            let new = winner.map_or(String::new(), |w| self.players[w].name.clone());
+            self.note(who, &player, "playoff", format!("{}: {}", round + 1, self.players[old].name), format!("{}: {new}", round + 1), why);
+        }
+        self.played[round].games[board].playoff = winner;
+        Ok(())
+    }
+
     /// The standings after the Rounds with every result in, by points then the tiebreaks.
     pub fn standings(&self) -> Vec<Standing> {
         tiebreak::standings(self)
+    }
+
+    /// Each player's Drop-in points and the Rounds they count, by `by`. An absence counts for
+    /// the pairing only.
+    pub(crate) fn drop_in_points(&self, by: DropIn) -> Vec<(u32, u32)> {
+        let by = match by {
+            DropIn::Percentage => drop_in::Standing::Percentage,
+            DropIn::Total => drop_in::Standing::Total,
+            DropIn::Best(n) => drop_in::Standing::Best(n),
+        };
+        let order: Vec<usize> = (0..self.players.len()).collect();
+        let mut out = vec![(0, 0); order.len()];
+        for row in drop_in::standings(&self.histories(&order), by) {
+            out[row.tpn as usize - 1] = (row.points, row.rounds);
+        }
+        out
     }
 
     /// Whether a Tournament read from a file holds together: every board, bye and seed names a
@@ -706,7 +972,7 @@ impl Tournament {
     pub fn sound(&self) -> bool {
         let n = self.players.len();
         let ok = |p: &usize| *p < n;
-        self.seeds.iter().all(ok) && self.played.iter().all(|r| r.games.iter().all(|g| ok(&g.white) && ok(&g.black) && g.white != g.black) && r.bye.iter().all(ok) && r.half.iter().all(ok))
+        self.seeds.iter().all(ok) && self.played.iter().all(|r| r.games.iter().all(|g| ok(&g.white) && ok(&g.black) && g.white != g.black && g.playoff.iter().all(|w| *w == g.white || *w == g.black)) && r.bye.iter().all(ok) && r.half.iter().all(ok))
     }
 
     /// Games between Club members with a result on the board, for the Club's rating:
@@ -721,6 +987,16 @@ impl Tournament {
             })
             .collect()
     }
+}
+
+/// The numbers `0..n` in an order drawn by lot.
+fn draw(n: usize) -> Vec<usize> {
+    use std::hash::BuildHasher;
+    // Each RandomState is keyed afresh from the system's random source.
+    let lot = std::hash::RandomState::new();
+    let mut v: Vec<usize> = (0..n).collect();
+    v.sort_by_cached_key(|&p| lot.hash_one(p));
+    v
 }
 
 fn colour(white: bool) -> Colour {
@@ -756,7 +1032,7 @@ mod tests {
     use super::*;
 
     fn named(names: &[(&str, u32)]) -> Tournament {
-        let mut t = Tournament::new("Club championship", System::Dutch, 5, "2026-11-05").unwrap();
+        let mut t = Tournament::new("Club championship", System::Dutch { baku: false }, 5, "2026-11-05").unwrap();
         for &(n, r) in names {
             let p = t.register(Player { name: n.into(), rating: r, ..Player::default() }).unwrap();
             t.set_status("Mette", p, Status::Here).unwrap();
@@ -947,7 +1223,7 @@ mod tests {
 
     #[test]
     fn member_games_leave_out_guests_and_forfeits() {
-        let mut t = Tournament::new("T", System::Dutch, 3, "").unwrap();
+        let mut t = Tournament::new("T", System::Dutch { baku: false }, 3, "").unwrap();
         for (n, m) in [("A", Some(1)), ("B", Some(2)), ("C", Some(3)), ("D", None)] {
             let p = t.register(Player { name: n.into(), member: m, ..Player::default() }).unwrap();
             t.set_status("x", p, Status::Here).unwrap();
@@ -973,5 +1249,169 @@ mod tests {
         assert!(!bad.sound());
         bad.played[0].games[0].black = 7;
         assert!(!bad.sound());
+    }
+
+    /// A Tournament of `system` with these players checked in, each with a team when given.
+    fn field(system: System, rounds: u32, names: &[(&str, u32, u8)]) -> Tournament {
+        let mut t = Tournament::new("Club evening", system, rounds, "2026-11-05").unwrap();
+        for &(n, r, team) in names {
+            let p = t.register(Player { name: n.into(), rating: r, team, ..Player::default() }).unwrap();
+            t.set_status("Mette", p, Status::Here).unwrap();
+        }
+        t
+    }
+
+    const FOUR: [(&str, u32, u8); 4] = [("Anna", 2100, 1), ("Bo", 1900, 2), ("Carl", 2000, 1), ("Dan", 1800, 2)];
+
+    fn all_white_win(t: &mut Tournament) {
+        let r = t.played.len() - 1;
+        for b in 0..t.played[r].games.len() {
+            t.set_result("Mette", r, b, Some(Outcome::White), "").unwrap();
+        }
+    }
+
+    #[test]
+    fn monrad_pairs_by_the_draw_and_numbers_a_late_entry_on() {
+        let mut t = field(System::Monrad, 3, &FOUR);
+        let [a, b, c, d] = ["Anna", "Bo", "Carl", "Dan"].map(|n| by_name(&t, n));
+        // The draw gave Dan 1, Carl 2, Bo 3, Anna 4: 1 meets 2, 3 meets 4, the lower placed White.
+        t.seeds = vec![d, c, b, a];
+        t.pair_next().unwrap();
+        assert_eq!(pairs(&t), [("Carl".into(), "Dan".into()), ("Anna".into(), "Bo".into())]);
+        let eva = t.register(Player { name: "Eva".into(), ..Player::default() }).unwrap();
+        assert_eq!(t.seeds, [d, c, b, a, eva]);
+        // With no draw made, Round 1 draws every player a number.
+        let mut t = field(System::Monrad, 3, &FOUR);
+        t.pair_next().unwrap();
+        let mut drawn = t.seeds.clone();
+        drawn.sort_unstable();
+        assert_eq!(drawn, [0, 1, 2, 3]);
+        assert_eq!(t.system.trf(), "CUSTOM_SWISS");
+    }
+
+    #[test]
+    fn a_hand_pairing_in_monrad_warns_of_a_rematch_a_second_bye_and_a_player_left_out() {
+        let mut t = field(System::Monrad, 3, &[("Anna", 0, 0), ("Bo", 0, 0), ("Carl", 0, 0)]);
+        let [a, b, c] = ["Anna", "Bo", "Carl"].map(|n| by_name(&t, n));
+        t.seeds = vec![a, b, c];
+        t.pair_next().unwrap();
+        // 1 meets 2 and 3 has the bye.
+        assert_eq!(t.played[0].bye, Some(c));
+        all_white_win(&mut t);
+        t.pair_next().unwrap();
+        let ours: Vec<_> = t.played[1].games.iter().map(|g| (g.white, g.black)).collect();
+        assert_eq!(t.check(&ours, t.played[1].bye).unwrap(), []);
+        let w = t.check(&[(a, b)], Some(c)).unwrap();
+        assert_eq!(w, [Warning::Rematch { boards: vec![("Anna".into(), "Bo".into())] }, Warning::SecondBye { player: "Carl".into() }]);
+        assert_eq!(t.check(&[(a, c)], None).unwrap(), [Warning::Unpaired { player: "Bo".into() }]);
+    }
+
+    #[test]
+    fn the_nordic_swiss_meets_the_strong_half_with_the_weak_half() {
+        let mut t = field(System::Nordic, 3, &FOUR);
+        t.pair_next().unwrap();
+        // By strength a = Anna, Carl and b = Bo, Dan; in Round 1 the weakest of b has White.
+        let mut met: Vec<(String, String)> = pairs(&t).into_iter().map(|(w, b)| if w < b { (w, b) } else { (b, w) }).collect();
+        met.sort();
+        assert_eq!(met, [("Anna".into(), "Bo".into()), ("Carl".into(), "Dan".into())]);
+        assert!(pairs(&t).iter().any(|(w, _)| w == "Dan"), "the weakest of b has White: {:?}", pairs(&t));
+        assert_eq!(t.tiebreaks, tiebreak::defaults(System::Dutch { baku: false }));
+    }
+
+    #[test]
+    fn baku_acceleration_pairs_group_ga_among_itself_in_round_one() {
+        let eight = [("A", 2400, 0), ("B", 2300, 0), ("C", 2200, 0), ("D", 2100, 0), ("E", 2000, 0), ("F", 1900, 0), ("G", 1800, 0), ("H", 1700, 0)];
+        let mut plain = field(System::Dutch { baku: false }, 7, &eight);
+        plain.pair_next().unwrap();
+        assert!(plain.seeds.is_empty());
+        let mut t = field(System::Dutch { baku: true }, 7, &eight);
+        t.pair_next().unwrap();
+        assert_eq!(t.seeds.len(), 4, "GA is the top half");
+        let foe = |t: &Tournament, n: &str| match t.slot(0, by_name(t, n)).opponent() {
+            Some(o) => t.players[o].name.clone(),
+            None => String::new(),
+        };
+        assert_eq!((foe(&plain, "A"), foe(&t, "A")), ("E".into(), "C".into()));
+        assert_eq!(t.system.trf(), "FIDE_DUTCH_BAKU");
+    }
+
+    #[test]
+    fn a_knockout_follows_its_bracket_and_a_drawn_match_needs_its_play_off_winner() {
+        let mut t = field(System::Knockout, 0, &[("Anna", 2400, 0), ("Bo", 2300, 0), ("Carl", 2200, 0), ("Dan", 2100, 0), ("Eva", 2000, 0)]);
+        t.pair_next().unwrap();
+        assert_eq!(t.rounds, 3);
+        // Eight places: seeds 1-3 have byes, 4 meets 5.
+        let mut met: Vec<String> = pairs(&t).into_iter().flat_map(|(w, b)| [w, b]).collect();
+        met.sort();
+        assert_eq!(met, ["Dan", "Eva"]);
+        let [a, b, c, d, e] = ["Anna", "Bo", "Carl", "Dan", "Eva"].map(|n| by_name(&t, n));
+        assert_eq!(t.check(&[(a, e)], None).unwrap(), [Warning::NotBracket]);
+        t.set_result("Mette", 0, 0, Some(Outcome::Draw), "").unwrap();
+        assert_eq!(t.can_pair(), Err(Error::Invalid("tournaments.error.playoff")));
+        assert_eq!(t.set_playoff("Mette", 0, 0, Some(a), ""), Err(Error::Invalid("tournaments.error.playoff_player")));
+        t.set_playoff("Mette", 0, 0, Some(e), "").unwrap();
+        t.pair_next().unwrap();
+        // Round 2: 1 meets the winner of 4-5, 2 meets 3.
+        let mut met: Vec<(usize, usize)> = t.played[1].games.iter().map(|g| (g.white.min(g.black), g.white.max(g.black))).collect();
+        met.sort_unstable();
+        assert_eq!(met, [(a, e), (b, c)]);
+        assert_eq!(t.set_playoff("Mette", 0, 0, Some(d), "wrong sheet"), Err(Error::Invalid("tournaments.error.knockout_settled")));
+        assert_eq!(t.set_result("Mette", 0, 0, Some(Outcome::White), "x").is_ok(), t.played[0].games[0].white == e, "only a result keeping Eva through stands");
+        assert_eq!(Tournament::new("K", System::Knockout, 0, "").unwrap().tiebreaks, []);
+    }
+
+    #[test]
+    fn a_scheveningen_needs_two_equal_teams_and_meets_each_with_the_other() {
+        let mut t = field(System::Scheveningen { double: false }, 0, &[("Anna", 2100, 1), ("Bo", 1900, 2), ("Carl", 2000, 1)]);
+        assert_eq!(t.pair_next(), Err(Error::Invalid("tournaments.error.teams")));
+        assert!(t.seeds.is_empty());
+        let mut t = field(System::Scheveningen { double: true }, 0, &FOUR);
+        t.pair_next().unwrap();
+        assert_eq!(t.rounds, 4);
+        let team = |p: usize| t.players[p].team;
+        assert!(t.played[0].games.iter().all(|g| team(g.white) != team(g.black)));
+        let [a, b, c, d] = ["Anna", "Bo", "Carl", "Dan"].map(|n| by_name(&t, n));
+        assert_eq!(t.check(&[(a, c), (b, d)], None).unwrap(), [Warning::NotSchedule]);
+        assert_eq!(t.set_team(a, 2), Err(Error::Invalid("tournaments.error.started")));
+        assert_eq!(t.register(Player { name: "Eva".into(), ..Player::default() }), Err(Error::Invalid("tournaments.error.round_robin_started")));
+    }
+
+    #[test]
+    fn a_drop_in_counts_an_absence_half_for_pairing_only_and_ranks_by_its_standings() {
+        let mut t = field(System::DropIn { standings: DropIn::Percentage }, 30, &[("Anna", 0, 0), ("Bo", 0, 0), ("Carl", 0, 0), ("Dan", 0, 0)]);
+        let [a, b, c, d] = ["Anna", "Bo", "Carl", "Dan"].map(|n| by_name(&t, n));
+        assert_eq!(t.set_status("Mette", a, Status::HalfBye), Err(Error::Invalid("tournaments.error.drop_in_half_bye")));
+        // Evening 1: Anna and Bo come; Anna wins.
+        t.set_status("Mette", c, Status::Away).unwrap();
+        t.set_status("Mette", d, Status::Away).unwrap();
+        t.pair_next().unwrap();
+        let g = t.played[0].games[0];
+        t.set_result("Mette", 0, 0, Some(if g.white == a { Outcome::White } else { Outcome::Black }), "").unwrap();
+        // Evening 2: everyone. Carl and Dan have half a point each for the pairing, so the
+        // order is Anna 1, Carl ½, Dan ½, Bo 0: Anna meets Carl.
+        for p in [c, d] {
+            t.set_status("Mette", p, Status::Here).unwrap();
+        }
+        t.pair_next().unwrap();
+        assert!(t.played[1].games.iter().any(|g| (g.white, g.black) == (a, c) || (g.white, g.black) == (c, a)), "{:?}", pairs(&t));
+        assert_eq!(t.points(c), 0, "the half point is for the pairing only");
+        // Carl beats Anna, Bo beats Dan: Carl 1/1, Anna 1/2, Bo 1/2, Dan 0/1.
+        for (k, g) in t.played[1].games.clone().iter().enumerate() {
+            let winner = if g.white == c || g.white == b { Outcome::White } else { Outcome::Black };
+            t.set_result("Mette", 1, k, Some(winner), "").unwrap();
+        }
+        let s = t.standings();
+        assert_eq!((s[0].player, s[0].points, s[0].rounds), (c, 2, 1));
+        assert_eq!((s[3].player, s[3].rank), (d, 4));
+        assert_eq!(s[1].rank, s[2].rank, "Anna and Bo level on 50 %");
+        t.system = System::DropIn { standings: DropIn::Total };
+        let s = t.standings();
+        assert_eq!(s[0].rank, s[2].rank, "on total points three have 1");
+        t.system = System::DropIn { standings: DropIn::Best(1) };
+        assert_eq!(t.standings().iter().filter(|r| r.points == 2).count(), 3);
+        let back: Tournament = serde_json::from_str(&serde_json::to_string(&t).unwrap()).unwrap();
+        assert_eq!(back.system, t.system);
+        assert_eq!(serde_json::from_str::<System>(r#"{"kind":"dutch"}"#).unwrap(), System::Dutch { baku: false });
+        assert_eq!(Tournament::new("D", System::DropIn { standings: DropIn::Best(0) }, 9, "").err(), Some(Error::Invalid("tournaments.error.best")));
     }
 }

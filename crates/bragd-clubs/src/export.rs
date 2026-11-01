@@ -14,7 +14,7 @@ use pairing::Colour;
 use pairing::trf::{self, Trf, TrfGame, TrfPlayer};
 
 use crate::club::{Error, Result};
-use crate::tournament::{Outcome, Slot, System, Tournament, half_text};
+use crate::tournament::{Outcome, Slot, Tournament, half_text};
 
 /// A bundle's extension.
 pub const EXT: &str = "bragd-tournament";
@@ -82,11 +82,7 @@ pub fn trf(t: &Tournament) -> String {
         start: t.date.replace('-', "/"),
         end: String::new(),
         arbiter: t.arbiter.clone(),
-        kind: match t.system {
-            System::Dutch => "FIDE_DUTCH".into(),
-            System::RoundRobin { double: false } => "FIDE_ROUNDROBIN".into(),
-            System::RoundRobin { double: true } => "FIDE_DOUBLEROUNDROBIN".into(),
-        },
+        kind: t.system.trf().into(),
         tiebreaks: t.tiebreaks.iter().map(|tb| tb.code().replace('-', "/")).collect::<Vec<_>>().join(","),
         rounds: Some(t.rounds),
         initial_colour: Some(if t.white_first { Colour::White } else { Colour::Black }),
@@ -175,11 +171,7 @@ fn page(t: &Tournament, class: &str, title: &str, body: &str) -> String {
     let lang = bragd_core::i18n::language();
     let dir = if bragd_core::i18n::is_rtl(lang) { "rtl" } else { "ltr" };
     let mut meta: Vec<String> = [&t.date, &t.place, &t.arbiter].iter().filter(|s| !s.is_empty()).map(|s| esc(s)).collect();
-    meta.push(esc(&t!(match t.system {
-        System::Dutch => "tournaments.system.dutch",
-        System::RoundRobin { double: false } => "tournaments.system.round_robin",
-        System::RoundRobin { double: true } => "tournaments.system.double_round_robin",
-    })));
+    meta.push(esc(&t!(t.system.key())));
     format!(
         "<!DOCTYPE html>\n<html lang=\"{lang}\" dir=\"{dir}\"><head><meta charset=\"utf-8\"><title>{}</title><style>{STYLE}</style></head>\n<body class=\"{class}\"><h1>{}</h1><p class=\"meta\">{}</p>\n{body}</body></html>\n",
         esc(title),
@@ -214,7 +206,7 @@ pub fn standings_html(t: &Tournament) -> String {
             if p.title.is_empty() { String::new() } else { format!("{} ", esc(&p.title)) },
             esc(&p.name),
             if p.rating > 0 { p.rating.to_string() } else { String::new() },
-            half_text(s.points)
+            s.points_text(t.system)
         ));
         for v in &s.tiebreaks {
             h.push_str(&format!("<td class=\"n\">{}</td>", trim(*v)));
@@ -249,7 +241,7 @@ pub fn standings_html(t: &Tournament) -> String {
             };
             h.push_str(&format!("<td>{cell}</td>"));
         }
-        h.push_str(&format!("<td class=\"n\">{}</td></tr>", half_text(s.points)));
+        h.push_str(&format!("<td class=\"n\">{}</td></tr>", s.points_text(t.system)));
     }
     h.push_str("</tbody></table>\n");
     h.push_str(&rounds_html(t, 0..t.played.len()));
@@ -342,10 +334,10 @@ pub fn read_bundle(path: &Path) -> Result<Tournament> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tournament::{Player, Status};
+    use crate::tournament::{Player, Status, System};
 
     fn played() -> Tournament {
-        let mut t = Tournament::new("Club <Championship>", System::Dutch, 3, "2026-11-05").unwrap();
+        let mut t = Tournament::new("Club <Championship>", System::Dutch { baku: false }, 3, "2026-11-05").unwrap();
         t.place = "Aarhus".into();
         for (n, r, id) in [("Anna \"A\"", 2100, "1401234"), ("Bo", 1900, ""), ("Carl", 2000, "")] {
             let p = t.register(Player { name: n.into(), rating: r, fide_id: id.into(), ..Player::default() }).unwrap();
@@ -385,7 +377,7 @@ mod tests {
 
     #[test]
     fn a_go_tournament_names_its_variant_and_each_handicap() {
-        let mut t = Tournament::new("Go evening", System::Dutch, 3, "2026-11-05").unwrap();
+        let mut t = Tournament::new("Go evening", System::Dutch { baku: false }, 3, "2026-11-05").unwrap();
         t.set_game("go-19", Some(crate::tournament::Handicap::default()), None).unwrap();
         for (n, r) in [("Anna", 2100), ("Bo", 1800)] {
             let p = t.register(Player { name: n.into(), rating: r, ..Player::default() }).unwrap();

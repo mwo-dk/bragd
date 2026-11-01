@@ -2,7 +2,7 @@
 
 # Swiss pairing (FIDE Dutch)
 
-Bragd pairs a Swiss round under the FIDE (Dutch) system: FIDE Handbook C.04.3, as applied from 1 February 2026, with the Basic Rules (C.04.1) and General Handling Rules (C.04.2) of the same date. The pairing is pure logic in the `pairing` crate. The tournament screens that call it come with the rest of 0.3.0; this page says what the pairing does and how it was checked.
+Bragd pairs a Swiss round under the FIDE (Dutch) system: FIDE Handbook C.04.3, as applied from 1 February 2026, with the Basic Rules (C.04.1) and General Handling Rules (C.04.2) of the same date. The pairing is pure logic in the `pairing` crate. A club's [Tournaments](../clubs/tournaments.md) call it, with or without Baku acceleration; this page says what the pairing does and how it was checked.
 
 ## Contents
 

@@ -14,7 +14,7 @@
   let error = $state("");
   let note = $state("");
   const today = () => new Date().toISOString().slice(0, 10);
-  const blank = () => ({ name: "", system: "dutch", rounds: 7, date: today(), place: "", variant: variants[0]?.key ?? "chess", handicap: false, reduction: 0, max: 9, matchTo: 7 });
+  const blank = () => ({ name: "", system: "dutch", baku: false, standings: "percentage", best: 10, rounds: 7, date: today(), place: "", variant: variants[0]?.key ?? "chess", handicap: false, reduction: 0, max: 9, matchTo: 7 });
   /** The Variants of the Families turned on. @type {any[]} */
   let variants = $state([]);
   let fresh = $state(blank());
@@ -45,9 +45,21 @@
   const name = (/** @type {number} */ p) => T.players[p]?.name ?? "";
   const registered = $derived(new Set(T ? T.players.map((/** @type {any} */ p) => p.member).filter((/** @type {any} */ m) => m !== null) : []));
   const free = $derived(club.members.filter((/** @type {any} */ m) => !registered.has(m.id)));
-  const systemKey = (/** @type {any} */ s) => (s.kind === "dutch" ? "tournaments.system.dutch" : s.double ? "tournaments.system.double_round_robin" : "tournaments.system.round_robin");
+  /** The pairing systems as the picker offers them; Rust names and pairs each one. */
+  const SYSTEMS = ["dutch", "monrad", "nordic", "drop_in", "round_robin", "double_round_robin", "knockout", "scheveningen", "double_scheveningen"];
+  /** Systems paired over a number of Rounds the director declares. */
+  const DECLARED = ["dutch", "monrad", "nordic", "drop_in"];
+  /** The picker's choice as the System Rust takes. */
+  function systemOf(/** @type {any} */ f) {
+    const double = f.system.startsWith("double_");
+    if (f.system === "dutch") return { kind: "dutch", baku: f.baku };
+    if (f.system === "drop_in") return { kind: "drop_in", standings: f.standings === "best" ? { best: Number(f.best) } : f.standings };
+    if (f.system.endsWith("round_robin")) return { kind: "round_robin", double };
+    if (f.system.endsWith("scheveningen")) return { kind: "scheveningen", double };
+    return { kind: f.system };
+  }
   const OUTCOMES = ["white", "draw", "black", "white_forfeit", "black_forfeit", "double_forfeit"];
-  const STATUS = ["here", "away", "half_bye", "withdrawn"];
+  const STATUS = $derived(T?.system.kind === "drop_in" ? ["here", "away", "withdrawn"] : ["here", "away", "half_bye", "withdrawn"]);
   const TABS = ["players", "round", "standings", "exports", "log"];
 
   async function run(/** @type {() => Promise<any>} */ f) {
@@ -72,10 +84,9 @@
   }
   async function create(/** @type {SubmitEvent} */ e) {
     e.preventDefault();
-    const system = fresh.system === "dutch" ? { kind: "dutch" } : { kind: "round_robin", double: fresh.system === "double" };
     const handicap = family === "go" && fresh.handicap ? { reduction: Number(fresh.reduction), max: Number(fresh.max) } : null;
     const matchTo = family === "backgammon" ? Number(fresh.matchTo) : null;
-    const v = await run(() => api.tournamentNew(by, fresh.name, system, Number(fresh.rounds), fresh.date, fresh.place, fresh.variant, handicap, matchTo));
+    const v = await run(() => api.tournamentNew(by, fresh.name, systemOf(fresh), Number(fresh.rounds), fresh.date, fresh.place, fresh.variant, handicap, matchTo));
     if (v) {
       onclub(v);
       fresh = blank();
@@ -127,6 +138,14 @@
       if (!why.trim()) return change(() => api.tournamentView(tv.id));
     }
     await change(() => api.tournamentResult(by, tv.id, r, b, value || null, why));
+  }
+  async function setPlayoff(/** @type {number} */ r, /** @type {number} */ b, /** @type {string} */ value) {
+    let why = "";
+    if (T.played[r].games[b].playoff !== null) {
+      why = prompt(t("tournaments.why_correction")) ?? "";
+      if (!why.trim()) return change(() => api.tournamentView(tv.id));
+    }
+    await change(() => api.tournamentPlayoff(by, tv.id, r, b, value === "" ? null : Number(value), why));
   }
   async function pairAgain() {
     const why = prompt(t("tournaments.why_pair_again"));
@@ -185,6 +204,12 @@
                 <option value="">–</option>
                 {#each OUTCOMES.filter((o) => !(T.match_to && o === "draw")) as o}<option value={o}>{t(`tournaments.outcome.${o}`)}</option>{/each}
               </select>
+              {#if T.system.kind === "knockout" && (g.result === "draw" || g.result === "double_forfeit")}
+                <select aria-label={t("tournaments.playoff_of", { white: name(g.white), black: name(g.black) })} value={g.playoff ?? ""} disabled={!official} onchange={(e) => setPlayoff(r, b, e.currentTarget.value)}>
+                  <option value="">{t("tournaments.playoff")}</option>
+                  {#each [g.white, g.black] as p}<option value={p}>{name(p)}</option>{/each}
+                </select>
+              {/if}
             </td>
             <td>{name(g.black)}</td>
           </tr>
@@ -204,7 +229,7 @@
       {#each club.tournaments as x (x.id)}
         <li>
           <button class="link" onclick={() => open(x.id)}>{x.name}</button>
-          <span class="dim">{[x.date, t(systemKey(x.system)), t("tournaments.progress", { paired: num(x.paired), rounds: num(x.rounds), players: num(x.players) })].filter(Boolean).join(" · ")}</span>
+          <span class="dim">{[x.date, x.system_name, t("tournaments.progress", { paired: num(x.paired), rounds: num(x.rounds), players: num(x.players) })].filter(Boolean).join(" · ")}</span>
         </li>
       {/each}
     </ul>
@@ -214,13 +239,21 @@
         <label>{t("tournaments.name")} <input type="text" required bind:value={fresh.name} /></label>
         <label
           >{t("tournaments.system")}
-          <select bind:value={fresh.system}>
-            <option value="dutch">{t("tournaments.system.dutch")}</option>
-            <option value="single">{t("tournaments.system.round_robin")}</option>
-            <option value="double">{t("tournaments.system.double_round_robin")}</option>
+          <select bind:value={fresh.system} aria-describedby="t-system-hint">
+            {#each SYSTEMS as id}<option value={id}>{t(`tournaments.system.${id}`)}</option>{/each}
           </select>
         </label>
-        {#if fresh.system === "dutch"}<label>{t("tournaments.rounds")} <input type="number" min="1" max="99" required bind:value={fresh.rounds} /></label>{/if}
+        <p class="dim wide" id="t-system-hint">{t(`tournaments.system.${fresh.system}.hint`)}</p>
+        {#if DECLARED.includes(fresh.system)}<label>{t("tournaments.rounds")} <input type="number" min="1" max="99" required bind:value={fresh.rounds} /></label>{/if}
+        {#if fresh.system === "drop_in"}
+          <label
+            >{t("tournaments.standings_by")}
+            <select bind:value={fresh.standings}>
+              {#each ["percentage", "total", "best"] as by}<option value={by}>{t(`tournaments.standings_by.${by}`)}</option>{/each}
+            </select>
+          </label>
+          {#if fresh.standings === "best"}<label>{t("tournaments.best_n")} <input type="number" min="1" max="99" required bind:value={fresh.best} /></label>{/if}
+        {/if}
         <label>{t("tournaments.date")} <input type="date" bind:value={fresh.date} /></label>
         <label>{t("tournaments.place")} <input type="text" bind:value={fresh.place} /></label>
         {#if variants.length > 1}
@@ -233,6 +266,7 @@
         {/if}
         {#if family === "backgammon"}<label>{t("tournaments.match_to")} <input type="number" min="1" max="99" required bind:value={fresh.matchTo} /></label>{/if}
       </div>
+      {#if fresh.system === "dutch"}<label class="check"><input type="checkbox" bind:checked={fresh.baku} /> {t("tournaments.baku")}</label>{/if}
       {#if family === "go"}
         <label class="check"><input type="checkbox" bind:checked={fresh.handicap} /> {t("tournaments.handicap")}</label>
         {#if fresh.handicap}
@@ -252,7 +286,7 @@
     <div class="head">
       <div>
         <h4>{T.name}</h4>
-        <p class="dim">{[T.date, T.place, T.variant === "chess" ? "" : tv.variant, T.match_to ? t("tournaments.match_of", { points: num(T.match_to) }) : "", t(systemKey(T.system)), t("tournaments.progress", { paired: num(T.played.length), rounds: num(T.rounds), players: num(T.players.length) })].filter(Boolean).join(" · ")}</p>
+        <p class="dim">{[T.date, T.place, T.variant === "chess" ? "" : tv.variant, T.match_to ? t("tournaments.match_of", { points: num(T.match_to) }) : "", tv.system, t("tournaments.progress", { paired: num(T.played.length), rounds: num(T.rounds), players: num(T.players.length) })].filter(Boolean).join(" · ")}</p>
       </div>
       <div class="row">
         <button onclick={() => (tv = null)}>{t("clubs.close")}</button>
@@ -274,13 +308,23 @@
         <div class="scroll">
           <table>
             <thead>
-              <tr><th>{t("tournaments.player")}</th><th>{t("clubs.rating")}</th><th>{t("tournaments.points")}</th><th>{t("tournaments.status")}</th></tr>
+              <tr>
+                <th>{t("tournaments.player")}</th><th>{t("clubs.rating")}</th>{#if T.system.kind === "scheveningen"}<th>{t("tournaments.team")}</th>{/if}<th>{t("tournaments.points")}</th><th>{t("tournaments.status")}</th>
+              </tr>
             </thead>
             <tbody>
               {#each T.players as p, i (i)}
                 <tr>
                   <td>{p.title ? `${p.title} ` : ""}{p.name}</td>
                   <td class="num">{p.rating ? num(p.rating) : ""}</td>
+                  {#if T.system.kind === "scheveningen"}
+                    <td>
+                      <select aria-label={t("tournaments.team_of", { name: p.name })} value={p.team} disabled={!official || T.played.length > 0} onchange={(e) => change(() => api.tournamentTeam(by, tv.id, i, Number(e.currentTarget.value)))}>
+                        <option value={0}>–</option>
+                        {#each [1, 2] as n}<option value={n}>{t("tournaments.team_n", { n })}</option>{/each}
+                      </select>
+                    </td>
+                  {/if}
                   <td class="num">{tv.points[i]}</td>
                   <td>
                     <select aria-label={t("tournaments.status_of", { name: p.name })} value={p.status} disabled={!official} onchange={(e) => change(() => api.tournamentStatus(by, tv.id, i, e.currentTarget.value))}>
@@ -586,6 +630,11 @@
   .edit {
     border-top: 1px solid var(--border);
     margin-top: 0.5rem;
+  }
+  /* The chosen system's explanation, on a line of its own right below the picker. */
+  .grid .wide {
+    grid-column: 1 / -1;
+    margin: -0.2rem 0 0;
   }
   .warnings li {
     color: var(--red);

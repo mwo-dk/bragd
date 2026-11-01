@@ -276,6 +276,8 @@ pub struct Listed {
     pub name: String,
     pub date: String,
     pub system: tournament::System,
+    /// The system's name, in the user's language.
+    pub system_name: String,
     pub rounds: u32,
     /// Rounds paired so far.
     pub paired: u32,
@@ -447,7 +449,7 @@ impl Club {
         for row in rows {
             let (id, data) = row?;
             let t = parse(&data)?;
-            out.push(Listed { id, name: t.name, date: t.date, system: t.system, rounds: t.rounds, paired: t.played.len() as u32, players: t.players.len() as u32 });
+            out.push(Listed { id, name: t.name, date: t.date, system: t.system, system_name: bragd_core::t!(t.system.key()), rounds: t.rounds, paired: t.played.len() as u32, players: t.players.len() as u32 });
         }
         Ok(out)
     }
@@ -930,7 +932,7 @@ mod tests {
         let me = c.members().unwrap()[0].id;
         let arb = c.add(me, &Details { name: "Arne".into(), role: Some(Role::Arbiter), ..Details::default() }, None).unwrap();
         let bo = c.add(me, &Details { name: "Bo".into(), ..Details::default() }, None).unwrap();
-        let t = Tournament::new("Autumn Swiss", tournament::System::Dutch, 5, "2026-11-05").unwrap();
+        let t = Tournament::new("Autumn Swiss", tournament::System::Dutch { baku: false }, 5, "2026-11-05").unwrap();
         assert_eq!(c.add_tournament(bo, &t), Err(Error::NotDirector));
         let id = c.add_tournament(arb, &t).unwrap();
         // An arbiter runs the night; nothing is kept when a step fails.
