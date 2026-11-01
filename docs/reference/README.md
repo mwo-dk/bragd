@@ -14,6 +14,7 @@ The facts to look up: every `config.toml` key, every item in Settings, the comma
 | [Rating lists](rating-lists.md) | FIDE's and each federation's list: where, format, terms, rhythm, and which Bragd fetches |
 | [Swiss pairing](swiss-pairing.md) | How Bragd pairs a Swiss round under the FIDE Dutch rules, and how that was tested |
 | [Round-robin, knockout and Scheveningen](round-robin-and-knockout.md) | Berger tables, knockout brackets with seeds and byes, and team-against-team matches |
+| [Monrad and Nordic Swiss](monrad.md) | The Danish Chess Union's Monrad system and its Dansk Schweizer, and how they were tested |
 
 ---
 [← Previous: Playing online](../online/playing-online.md) · [Next: config.toml →](config-toml.md)

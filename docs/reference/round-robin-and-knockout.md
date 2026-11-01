@@ -64,4 +64,4 @@ The top seeds. FIDE states it for the World Cup's 206 players; Bragd gives the s
 Yes. A winner takes the place of the player they beat, colours included, as the World Cup regulations say.
 
 ---
-[← Previous: Swiss pairing](swiss-pairing.md) · [Next: Rules →](../rules/README.md)
+[← Previous: Swiss pairing](swiss-pairing.md) · [Next: Monrad and Nordic Swiss →](monrad.md)
