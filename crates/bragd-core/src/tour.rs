@@ -37,6 +37,7 @@ pub const CARDS: &[Card] = &[
     card("1.0.0", "positions"),
     card("1.0.0", "annotations"),
     card("1.0.0", "model"),
+    card("1.0.0", "background"),
 ];
 
 /// Whether the card shows to the user of `cfg`: its feature concerns one of their Families.

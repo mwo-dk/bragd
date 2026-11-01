@@ -101,9 +101,10 @@ pub fn db_rows(query: Query, from: usize, count: usize, k: State<'_, Knowledge>)
 }
 
 #[tauri::command(async)]
-pub fn db_game(id: u32, k: State<'_, Knowledge>) -> Res<Replay> {
-    let f = crate::lock(&k.dbs.file);
-    f.as_ref().ok_or_else(|| t!("db.none_open"))?.game(id)
+pub fn db_game(id: u32, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Replay> {
+    let r = crate::lock(&k.dbs.file).as_ref().ok_or_else(|| t!("db.none_open"))?.game(id)?;
+    crate::background::queue_opened(&k, &ctx.cfg(), &r);
+    Ok(r)
 }
 
 fn open_path(k: &Knowledge) -> Res<PathBuf> {
@@ -176,25 +177,37 @@ pub fn library_rows(path: String, query: Value, from: usize, count: usize, k: St
 }
 
 #[tauri::command(async)]
-pub fn library_game(path: String, id: i64) -> Res<Replay> {
+pub fn library_game(path: String, id: i64, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Replay> {
     let lib = Library::open(Path::new(&path)).map_err(|e| e.to_string())?;
-    Ok(databases::stored_replay(&lib.stored(id).map_err(|e| e.to_string())?))
+    let r = databases::stored_replay(&lib.stored(id).map_err(|e| e.to_string())?);
+    crate::background::queue_opened(&k, &ctx.cfg(), &r);
+    Ok(r)
 }
 
 /// A player's summary over the Library at `path`, for the Families Settings show, each with
 /// its name and the names of its two sides.
 #[tauri::command(async)]
 pub fn library_player(path: String, name: String, ctx: State<'_, Ctx>) -> Res<PlayerView> {
-    bragd_core::tips::used("players");
-    let cfg = ctx.cfg();
     let s = Library::open(Path::new(&path)).and_then(|l| l.player(&name)).map_err(|e| e.to_string())?;
+    Ok(player_view(s, &ctx.cfg()))
+}
+
+/// A player's summary over the open Foreign database's Games read so far.
+#[tauri::command(async)]
+pub fn db_player(name: String, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<PlayerView> {
+    let s = crate::lock(&k.dbs.file).as_ref().ok_or_else(|| t!("db.none_open"))?.player(&name);
+    Ok(player_view(s, &ctx.cfg()))
+}
+
+fn player_view(s: bragd_library::player::PlayerSummary, cfg: &Config) -> PlayerView {
+    bragd_core::tips::used("players");
     let families = s
         .families
         .into_iter()
         .filter(|f| cfg.family_shown(&f.family))
         .map(|f| FamilyView { title: t!(&format!("family.{}", f.family)), sides: sides(&f.family), summary: f })
         .collect();
-    Ok(PlayerView { name: s.name, families })
+    PlayerView { name: s.name, families }
 }
 
 /// The players of the Library at `path` whose name starts with `text`, with their Games.

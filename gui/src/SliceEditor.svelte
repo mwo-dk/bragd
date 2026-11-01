@@ -6,6 +6,7 @@
   import Picker from "./Picker.svelte";
   import GameList from "./GameList.svelte";
   import Replay from "./Replay.svelte";
+  import SliceAnalyse from "./SliceAnalyse.svelte";
 
   /** @type {{ library: string, slice: any, family: string, variants: {key: string, name: string}[], position: {family: string, fen: string} | null, onstep: (family: string, step: any) => void, onsaved: () => void, onplayer: (name: string) => void }} */
   let { library, slice, family, variants, position, onstep, onsaved, onplayer } = $props();
@@ -21,6 +22,7 @@
   let error = $state("");
   /** @type {any} */
   let game = $state(null);
+  let analysing = $state(false);
 
   const query = $derived({ ...q, players: players.split(",").map((/** @type {string} */ p) => p.trim()).filter(Boolean), rating_min: q.rating_min || null, family: q.family || null });
   const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(library, query, from, count);
@@ -84,7 +86,11 @@
   <div class="bar">
     <button class="primary" onclick={save} disabled={!name.trim()}>{t("slice.save")}</button>
     <button onclick={keep} disabled={!name.trim()} title={t("slice.keep_hint")}>{t("slice.keep")}</button>
+    {#if family === "chess"}
+      <button onclick={() => (analysing = !analysing)} disabled={!slice?.name} title={slice?.name ? t("background.action_hint") : t("background.save_first")} aria-expanded={analysing}>{t("background.action")}</button>
+    {/if}
   </div>
+  {#if analysing && slice?.name}<SliceAnalyse {library} name={slice.name} onclose={() => (analysing = false)} />{/if}
   {#if !position}<p class="hint">{t("slice.position_hint")}</p>{/if}
   {#if message}<p role="status">{message}</p>{/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}

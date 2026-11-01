@@ -505,7 +505,62 @@ def model():
         picker.unlink(missing_ok=True)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model}
+def background():
+    """background-analysis-390.png and -1100.png: a saved Slice with Analyse in background open
+    (fake-uci as Stockfish); background-jobs-*.png: the job it queued on the Jobs page, and
+    store-*.png: Disk watch's Position store with what it kept."""
+    config('[engines.paths]\nstockfish = "/home/demo/fake-uci"\n[analysis]\nopen_games = false\n')
+    store = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/positions.sqlite"
+    # The Helper's jobs of an earlier run would show again on the Jobs page.
+    state = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/helper/state.json"
+
+    def slice_page(d):
+        js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+        d.wait(0.4)
+        nav(d, "chess", "Databases")
+        click(d, "Libraries", "main")
+        js(d, "document.querySelector('main td button.link').click()")
+        d.wait(1)
+        js(d, "const t = [...document.querySelectorAll('main nav.tabs button')]; t[t.length - 1].click()")
+        d.wait(1)
+        click(d, "Analyse in background", "main")
+        d.wait(1.5)
+        js(d, "document.querySelector('main .analyse').scrollIntoView()")
+        d.wait(0.5)
+
+    def jobs_page(d):
+        slice_page(d)
+        click(d, "Queue", "main .analyse")
+        d.wait(6)
+        js(d, "document.querySelector('button.helper').click()")
+        d.wait(1.5)
+        js(d, "const h = [...document.querySelectorAll('main h2')].find(h => h.textContent.trim() === 'Background analysis'); h && h.scrollIntoView()")
+        d.wait(0.5)
+
+    def store_page(d):
+        js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+        d.wait(0.4)
+        click(d, "Settings", "nav")
+        click(d, "Knowledge", "main")
+        d.wait(2)
+        js(d, "const h = [...document.querySelectorAll('main h3')].find(h => h.textContent.trim() === 'Position store'); h && h.scrollIntoView()")
+        d.wait(0.5)
+
+    try:
+        widths("background-analysis", slice_page)
+        for w, h in WIDTHS.items():
+            state.unlink(missing_ok=True)
+            with Desktop(size=(w, h)) as d:
+                jobs_page(d)
+                d.shot(HERE / f"background-jobs-{w}.png")
+        widths("store", store_page)
+    finally:
+        config("")
+        for p in (state, store, store.with_name(store.name + "-wal"), store.with_name(store.name + "-shm")):
+            p.unlink(missing_ok=True)
+
+
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

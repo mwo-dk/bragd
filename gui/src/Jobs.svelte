@@ -1,6 +1,7 @@
 <script>
   // The Helper's jobs: every job it keeps, newest first, with its progress, and Cancel for those
-  // queued or running. Also the disk limits crossed, and why the Helper is out of reach.
+  // queued or running; background analysis apart, with the time left and why it waits. Also the
+  // disk limits crossed, and why the Helper is out of reach.
   import * as k from "./knowledge.js";
   import { t } from "./i18n.svelte.js";
 
@@ -30,6 +31,22 @@
   }
 </script>
 
+{#snippet job(/** @type {any} */ j)}
+  <article class="panel job">
+    <div class="head">
+      <strong>{j.what}</strong>
+      <span class="status {j.status}">{j.statusText}</span>
+      {#if j.live}<button onclick={() => k.jobCancel(j.id).then(load)}>{t("common.cancel")}</button>{/if}
+    </div>
+    {#if j.live}
+      <progress max="1" value={j.progress ?? undefined}></progress>
+    {/if}
+    <small>{j.count}</small>
+    {#if j.report}<p>{j.report}</p>{/if}
+    {#if j.error}<p class="error">{j.error}</p>{/if}
+  </article>
+{/snippet}
+
 <section class="jobs">
   <h1>{t("jobs.title")}</h1>
   {#if s}
@@ -44,21 +61,17 @@
     {#if s.on && !s.jobs.length}
       <p class="dim">{t("jobs.none")}</p>
     {/if}
-    {#each s.jobs as j (j.id)}
-      <article class="panel job">
-        <div class="head">
-          <strong>{j.what}</strong>
-          <span class="status {j.status}">{j.statusText}</span>
-          {#if j.live}<button onclick={() => k.jobCancel(j.id).then(load)}>{t("common.cancel")}</button>{/if}
-        </div>
-        {#if j.live}
-          <progress max="1" value={j.progress ?? undefined}></progress>
-        {/if}
-        <small>{j.count}</small>
-        {#if j.report}<p>{j.report}</p>{/if}
-        {#if j.error}<p class="error">{j.error}</p>{/if}
-      </article>
+    {#each s.jobs.filter((/** @type {any} */ j) => !j.analysis) as j (j.id)}
+      {@render job(j)}
     {/each}
+    {#if s.jobs.some((/** @type {any} */ j) => j.analysis)}
+      <h2>{t("jobs.analysis")}</h2>
+      <p class="dim">{t("jobs.analysis_hint")}</p>
+      {#if s.analysisWaits}<p class="notice" role="status">{s.analysisWaits}</p>{/if}
+      {#each s.jobs.filter((/** @type {any} */ j) => j.analysis) as j (j.id)}
+        {@render job(j)}
+      {/each}
+    {/if}
   {:else}
     <p class="dim">{t("helper.connecting")}</p>
   {/if}
@@ -94,6 +107,10 @@
   }
   p {
     margin: 0;
+  }
+  h2 {
+    font-size: 1.1rem;
+    margin: 0.6rem 0 0;
   }
   small,
   .dim {

@@ -169,6 +169,53 @@ impl Library {
     }
 }
 
+/// A position the Games of a Slice reach, for background analysis.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Frequent {
+    /// Its Polyglot key, as the `positions` table has it.
+    pub key: u64,
+    pub variant: String,
+    pub fen: String,
+    /// How often the Games reach it.
+    pub count: u32,
+}
+
+impl Library {
+    /// The chess positions the Games `ids` reach most often, at most `top`, the most frequent
+    /// first, counted in the `positions` table; the start position is not among them.
+    // shortcut: chess only, as only chess Games are kept in moves Bragd can replay here; the
+    // other Families join when their stored moves can be replayed (`stored_replay`).
+    pub fn frequent(&self, ids: &[i64], top: usize) -> Result<Vec<Frequent>> {
+        let c = self.conn();
+        c.execute_batch("CREATE TEMP TABLE IF NOT EXISTS picked (id INTEGER PRIMARY KEY); DELETE FROM temp.picked;")?;
+        {
+            let mut put = c.prepare_cached("INSERT OR IGNORE INTO temp.picked (id) VALUES (?1)")?;
+            for id in ids {
+                put.execute([id])?;
+            }
+        }
+        let mut st = c.prepare(
+            "SELECT p.hash, g.variant, count(*) AS n, min(p.game_id) FROM positions p JOIN temp.picked k ON k.id = p.game_id JOIN games g ON g.id = p.game_id \
+             WHERE g.family = 'chess' GROUP BY p.hash, g.variant ORDER BY n DESC, p.hash LIMIT ?1",
+        )?;
+        let rows: Vec<(i64, String, u32, i64)> = st.query_map([top as i64], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?.collect::<rusqlite::Result<_>>()?;
+        let mut ply = c.prepare_cached("SELECT ply FROM positions WHERE hash = ?1 AND game_id = ?2 LIMIT 1")?;
+        let mut out = Vec::with_capacity(rows.len());
+        for (hash, variant, count, game) in rows {
+            let n: usize = ply.query_row(params![hash, game], |r| r.get::<_, i64>(0))? as usize;
+            let g = self.stored(game)?;
+            let mut b = g.start.as_deref().and_then(crate::chess::pgn::board).unwrap_or_else(rules_chess::Position::starting);
+            for san in g.moves.iter().take(n) {
+                let Some(mv) = crate::chess::pgn::san_move(&b, san) else { break };
+                b = b.make_move(mv);
+            }
+            out.push(Frequent { key: hash as u64, variant, fen: crate::chess::pgn::fen(&b), count });
+        }
+        c.execute_batch("DELETE FROM temp.picked;")?;
+        Ok(out)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,6 +240,28 @@ mod tests {
         add(&mut lib, &[("White", "Anand, Viswanathan"), ("Black", "Kasparov, Garry"), ("ECO", "B90"), ("Date", "1999.??.??"), ("WhiteElo", "2780"), ("BlackElo", "2810")], "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6", "1-0");
         add(&mut lib, &[("White", "Unknown"), ("Black", "Player")], "1. e4 e5", "*");
         lib
+    }
+
+    /// The positions a Slice's Games reach most often come first, each with its FEN, which is
+    /// the position its key names.
+    #[test]
+    fn a_slices_most_frequent_positions() {
+        let d = Dir::new("frequent");
+        let lib = library(&d);
+        let all = lib.find(&Query::default()).unwrap();
+        let f = lib.frequent(&all, 3).unwrap();
+        assert_eq!(f.len(), 3);
+        // 1. e4 is in two Games; nothing else is in more than one.
+        assert_eq!(f.iter().map(|p| p.count).collect::<Vec<_>>(), [2, 1, 1]);
+        for p in &f {
+            assert_eq!(polyglot::key(&pgn::board(&p.fen).unwrap()), p.key, "{}", p.fen);
+            assert_eq!(p.variant, "chess");
+        }
+        assert!(f[0].fen.starts_with("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b"), "{}", f[0].fen);
+        // Only the Games asked about.
+        let one = lib.frequent(&all[3..], 10).unwrap();
+        assert_eq!((one.len(), one[0].count), (2, 1));
+        assert!(lib.frequent(&[], 10).unwrap().is_empty());
     }
 
     /// A Library made before the Slice indexes gets them when it is opened, and a Slice's

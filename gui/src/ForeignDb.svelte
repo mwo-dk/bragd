@@ -8,6 +8,7 @@
   import GameList from "./GameList.svelte";
   import Replay from "./Replay.svelte";
   import JobLine from "./JobLine.svelte";
+  import Player from "./Player.svelte";
 
   /** @type {{ family: any, onstep: (family: string, step: any) => void, onsnap: (snap: any) => void }} */
   let { family, onstep, onsnap } = $props();
@@ -30,6 +31,8 @@
   let message = $state("");
   let error = $state("");
   let version = $state(0);
+  /** The player whose summary shows over the Games read so far. */
+  let who = $state("");
 
   let gone = false;
   let polling = false;
@@ -149,12 +152,14 @@
 
   {#if game}
     <Replay replay={game} onclose={() => (game = null)} onstep={(s) => onstep(game.family, s)} />
+  {:else if who}
+    <Player name={who} onopen={(id) => open({ id })} onclose={() => (who = "")} />
   {:else if file}
     <div class="filters">
       <input type="text" bind:value={player} placeholder={t("db.filter_player")} aria-label={t("db.filter_player")} />
       <input type="text" bind:value={opening} placeholder={t("db.filter_opening")} aria-label={t("db.filter_opening")} />
     </div>
-    <GameList {fetch} version={[version, player, opening, sort, desc]} {sort} {desc} onsort={sortBy} onopen={open} {selected} />
+    <GameList {fetch} version={[version, player, opening, sort, desc]} {sort} {desc} onsort={sortBy} onopen={open} onplayer={(n) => (who = n)} {selected} />
   {/if}
 </div>
 

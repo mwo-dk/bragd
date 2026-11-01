@@ -36,6 +36,7 @@ export const libraryRows = (/** @type {string} */ path, /** @type {Obj} */ query
 /** @returns {Promise<any>} */
 export const libraryGame = (/** @type {string} */ path, /** @type {number} */ id) => invoke("library_game", { path, id });
 /** @returns {Promise<any>} */
+export const dbPlayer = (/** @type {string} */ name) => invoke("db_player", { name });
 export const libraryPlayer = (/** @type {string} */ path, /** @type {string} */ name) => invoke("library_player", { path, name });
 /** @returns {Promise<[string, number][]>} */
 export const libraryPlayers = (/** @type {string} */ path, /** @type {string} */ text) => invoke("library_players", { path, text });
@@ -81,3 +82,7 @@ export const diskLimitsSet = (/** @type {string} */ total, /** @type {string} */
 
 /** An error from a command, as text. */
 export const why = (/** @type {any} */ e) => String(e?.reason ?? e);
+export const sliceAnalyse = (/** @type {string} */ library, /** @type {string} */ name, /** @type {{engine: string, minVersion: string}[]} */ engines, /** @type {number | null} */ depth, /** @type {number | null} */ seconds, /** @type {number} */ top) =>
+  invoke("slice_analyse", { library, name, engines, depth, seconds, top });
+export const storeReport = () => invoke("store_report");
+export const storePrune = (/** @type {string} */ what) => invoke("store_prune", { what });

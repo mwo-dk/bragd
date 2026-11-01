@@ -15,6 +15,7 @@ use bragd_helper::disk;
 use bragd_library::chess::{self, Format, Query, Table, games::Limits, pgn};
 use bragd_library::go::Collection;
 use bragd_library::library::{Library, Stored, position_keys};
+use bragd_library::player::{self, PlayerSummary, Seen};
 use bragd_library::slice;
 use serde::Serialize;
 use serde_json::Value;
@@ -256,6 +257,38 @@ impl OpenFile {
                 Rows { total: all.len(), rows: rows.collect() }
             }
         }
+    }
+
+    /// The summary of the player `name` over the Games read so far.
+    pub fn player(&self, name: &str) -> PlayerSummary {
+        let family = self.family();
+        let seen: Vec<Seen> = match &self.reader {
+            Reader::Table(t) => {
+                let q = Query { player: name.to_string(), ..Default::default() };
+                t.query(&q)
+                    .into_iter()
+                    .filter_map(|i| t.row(i))
+                    .map(|r| Seen {
+                        id: r.n as i64 - 1,
+                        family: family.into(),
+                        date: r.date,
+                        white: r.white,
+                        black: r.black,
+                        white_elo: r.white_elo.map(i64::from),
+                        black_elo: r.black_elo.map(i64::from),
+                        eco: r.eco,
+                        opening: r.opening,
+                        result: r.result,
+                    })
+                    .collect()
+            }
+            Reader::Go(c) => c
+                .games(0, usize::MAX)
+                .into_iter()
+                .map(|g| Seen { id: g.n as i64 - 1, family: "go".into(), date: g.date, white: g.white, black: g.black, result: g.result, ..Default::default() })
+                .collect(),
+        };
+        player::summary(name, seen)
     }
 
     /// Game `i` (from 0) for replay.
@@ -624,6 +657,26 @@ mod tests {
         let off = Config::parse("[families.family]\ngo = false\n").unwrap();
         let v = f.view(&off);
         assert_eq!((v.family.as_str(), v.family_off), ("go", true));
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// A name in a Foreign database's list has a summary too, over the Games read so far.
+    #[test]
+    fn a_foreign_databases_player_has_a_summary() {
+        let d = std::env::temp_dir().join(format!("bragd-fplayer-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("two.pgn");
+        let game = |w: &str, b: &str, r: &str| format!("[White \"{w}\"]\n[Black \"{b}\"]\n[WhiteElo \"2700\"]\n[Result \"{r}\"]\n\n1. e4 {r}\n\n");
+        std::fs::write(&p, game("Kasparov, Garry", "Karpov, Anatoly", "1-0") + &game("Karpov, Anatoly", "Kasparov, Garry", "1/2-1/2") + &game("Kasparov, Garry 2", "X", "0-1")).unwrap();
+        let f = OpenFile::open(&p, &Config::default()).unwrap();
+        while !f.view(&Config::default()).done {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        let s = f.player("Kasparov, Garry");
+        assert_eq!(s.families.len(), 1);
+        let c = &s.families[0];
+        assert_eq!((c.family.as_str(), c.games, c.first_side.wins, c.second_side.draws), ("chess", 2, 1, 1));
+        assert_eq!(c.openings_first[0].record.wins, 1);
         std::fs::remove_dir_all(&d).unwrap();
     }
 

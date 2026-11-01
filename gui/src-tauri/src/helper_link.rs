@@ -96,6 +96,8 @@ pub struct HelperView {
     pub jobs: Vec<JobView>,
     /// The disk limits crossed, as texts.
     pub notices: Vec<String>,
+    /// Why background analysis waits (its hours, the battery); empty when it does not.
+    pub analysis_waits: String,
 }
 
 #[derive(Serialize)]
@@ -113,6 +115,8 @@ pub struct JobView {
     pub report: String,
     /// Queued or running: it can be cancelled.
     pub live: bool,
+    /// Background analysis (`Work::Analyse`): the Jobs page lists it apart.
+    pub analysis: bool,
 }
 
 fn file_name(p: &std::path::Path) -> String {
@@ -130,8 +134,19 @@ pub fn what(work: &Work) -> String {
         Work::Strip { source, .. } => t!("job.strip", "source" => source),
         Work::Prune { library, dry_run: true } => t!("job.prune_preview", "library" => file_name(library)),
         Work::Prune { library, .. } => t!("job.prune", "library" => file_name(library)),
+        Work::Analyse { job } => t!(if job.low { "job.analyse_game" } else { "job.analyse" }, "about" => job.about, "engine" => engine_name(&job.engine)),
         Work::Match { setup } => t!("job.match", "engines" => setup.engines.iter().map(|k| bragd_engines::known::known(k).map_or(k.as_str(), |k| k.name)).collect::<Vec<_>>().join(" – ")),
     }
+}
+
+fn engine_name(key: &str) -> String {
+    bragd_engines::known::known(key).map_or_else(|| key.to_string(), |k| k.name.to_string())
+}
+
+/// An estimate of the time left, in words: minutes, or hours from two hours on.
+pub fn left(secs: u64) -> String {
+    let minutes = secs.div_ceil(60).max(1);
+    if minutes < 120 { bragd_core::tn!("job.left_minutes", minutes) } else { bragd_core::tn!("job.left_hours", minutes.div_ceil(60)) }
 }
 
 /// What a Strip or Prune job did, or would do, in words.
@@ -173,9 +188,15 @@ pub fn job_view(j: &Job) -> JobView {
             None => t!("job.count", "done" => j.done),
         },
         error: j.error.clone().unwrap_or_default(),
-        // A match's standings are on its Engine matches page.
-        report: j.report.as_ref().filter(|_| !matches!(j.work, Work::Match { .. })).map(report).unwrap_or_default(),
+        report: match (&j.work, &j.report) {
+            // A match's standings are on its Engine matches page.
+            (Work::Match { .. }, _) => String::new(),
+            (Work::Analyse { .. }, Some(Report { left: Some(secs), .. })) if j.status == Status::Running => left(*secs),
+            (Work::Analyse { .. }, _) => String::new(),
+            (_, r) => r.as_ref().map(report).unwrap_or_default(),
+        },
         live: matches!(j.status, Status::Queued | Status::Running),
+        analysis: matches!(j.work, Work::Analyse { .. }),
     }
 }
 
@@ -185,7 +206,7 @@ pub fn view(link: &Link) -> HelperView {
         Ok(Reply::Status(s)) => s,
         Ok(_) => helper::Status::default(),
         Err(error) => {
-            return HelperView { on: false, line: t!("helper.off"), error, paused: false, active: 0, progress: None, jobs: vec![], notices: vec![] };
+            return HelperView { on: false, line: t!("helper.off"), error, paused: false, active: 0, progress: None, jobs: vec![], notices: vec![], analysis_waits: String::new() };
         }
     };
     let jobs = link.jobs().unwrap_or_default();
@@ -206,6 +227,7 @@ pub fn view(link: &Link) -> HelperView {
         progress,
         jobs: jobs.iter().rev().map(job_view).collect(),
         notices: status.disk.iter().map(disk::Crossed::text).collect(),
+        analysis_waits: if status.analysis_waits { t!("jobs.analysis_waits") } else { String::new() },
     }
 }
 
@@ -221,7 +243,7 @@ mod tests {
             files: vec![Rewritten { kept: 3, stripped: 7, bytes_before: 10_000, bytes_after: 3_000, ..Default::default() }],
             removed: vec![],
             library: Some(Pruned { games: 7, of: 10, bytes: 2_000_000, ..Default::default() }),
-            results: None,
+            ..Default::default()
         };
         let text = report(&r);
         assert!(text.contains('7') && text.contains("10") && text.contains("2 MB") && text.contains("3 kB"), "{text}");
@@ -235,5 +257,18 @@ mod tests {
         assert_eq!(v.progress, Some(0.25));
         assert!(v.live && v.what.contains("twic"));
         assert!(!job_view(&Job { status: Status::Done, ..j }).live);
+    }
+
+    #[test]
+    fn background_analysis_says_the_time_left() {
+        use bragd_positions::queue::{Job as Analyse, Per};
+        let job = Analyse::new("chess", "chess", "stockfish", None, Per::Depth(20), vec![], false, "Grünfeld");
+        let j = Job { id: 2, work: Work::Analyse { job }, status: Status::Running, done: 10, total: Some(40), error: None, resumed: 0, report: Some(Report { left: Some(7_300), ..Default::default() }) };
+        let v = job_view(&j);
+        assert!(v.analysis && v.what.contains("Grünfeld") && v.what.contains("Stockfish"), "{}", v.what);
+        assert_eq!(v.report, left(7_300));
+        assert_ne!(left(7_300), left(61));
+        assert_eq!(left(1), left(59), "under a minute is a minute");
+        assert!(job_view(&Job { status: Status::Done, ..j }).report.is_empty());
     }
 }

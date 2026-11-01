@@ -5,6 +5,7 @@
 //! leaves ten minutes after the last window, unless it starts with the session (`service`),
 //! and pauses heavy work while the machine runs on its battery (`battery`).
 
+pub mod analysis;
 pub mod battery;
 pub mod disk;
 pub mod helper;

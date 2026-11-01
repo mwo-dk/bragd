@@ -4,7 +4,7 @@
 
 The Position store keeps what Engines have found, by position: each Evaluation and each Annotation. It is one file per machine, shared by every Library, Foreign database and Game played. A position judged once shows at once in [Analyse](../engines/analyse.md) and in every [Game review](../engines/review.md) of a Game that reaches it, whichever move order got there. In F1 this is the `positions` entry.
 
-![Settings at Knowledge, scrolled to Position store under Disk watch: a line on what it keeps, and the buttons Export Position store and Import Position store](../screenshots/position-store-1100.png)
+![Settings at Knowledge, scrolled to Position store under Disk watch: a line on what it keeps, the buttons Export Position store and Import Position store, and below them what each Engine and Edition takes](../screenshots/position-store-1100.png)
 *Settings → Knowledge → Disk watch → Position store.*
 
 ## How to reach it
@@ -16,7 +16,7 @@ The store fills by itself as you analyse and review. Export and Import are in *S
 | **Export Position store** | Asks where to save, then writes every Evaluation and Annotation to one Parquet file, such as `positions.parquet`. It says how many rows it wrote |
 | **Import Position store** | Asks for a Parquet file written by Export, and merges it in. It says how many rows it read, and how many were new or deeper than the store's |
 
-*Show me* on the `positions` entry in F1 opens the page.
+*Show me* on the `positions` entry in F1 opens the page. Below Export and Import, Disk watch lists what each Engine and Edition takes and prunes the store ([Disk watch](disk-watch.md#the-position-store)). [Background analysis](../engines/background-analysis.md) fills it while you do other things.
 
 ## What it keeps
 

@@ -89,7 +89,8 @@ impl Opt {
 
     /// The Game family it concerns, if only one: it leaves its area while that Family is off.
     pub fn family(&self) -> Option<&'static str> {
-        self.name.starts_with("tablebases_").then_some("chess")
+        // Background analysis queues chess positions only, for now.
+        (self.name.starts_with("tablebases_") || self.name.starts_with("analysis_")).then_some("chess")
     }
 
     /// Listed in its area for the user of `cfg`: [`Opt::listed`], and its Family shows.
@@ -139,7 +140,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 20] = [
+const OTHER_OPTS: [Opt; 26] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -162,6 +163,12 @@ const OTHER_OPTS: [Opt; 20] = [
         Engines,
         "setting.engines_runtime",
     ),
+    opt("analysis_open_games", &["analysis", "open_games"], Engines, "setting.analysis_open_games"),
+    opt("analysis_depth", &["analysis", "depth"], Engines, "setting.analysis_depth"),
+    opt("analysis_threads", &["analysis", "threads"], Engines, "setting.analysis_threads"),
+    opt("analysis_from_hour", &["analysis", "from_hour"], Engines, "setting.analysis_from_hour"),
+    opt("analysis_until_hour", &["analysis", "until_hour"], Engines, "setting.analysis_until_hour"),
+    opt("analysis_on_battery", &["analysis", "on_battery"], Engines, "setting.analysis_on_battery"),
     opt(
         "library",
         &["knowledge", "library"],

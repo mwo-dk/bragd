@@ -71,6 +71,12 @@ One switch per Game family, and under it one per Variant. All are on by default 
 |---|---|---|---|
 | `engines_containers` | Pull an Engine that is not installed | `engines.containers` | Runs it from a sealed container image with podman or docker, with no network |
 | `engines_runtime` | Container runtime | `engines.runtime` | Automatic uses podman, else docker |
+| `analysis_open_games` | Analyse Games I open in the background | `analysis.open_games` | Each chess Game you open is queued for the Position store ([Background analysis](../engines/background-analysis.md)). The `analysis_` settings show while chess is on |
+| `analysis_depth` | Depth for Games I open | `analysis.depth` | How deep each position of an opened Game is analysed |
+| `analysis_threads` | Engines at once in background analysis | `analysis.threads` | Each Engine uses one thread |
+| `analysis_from_hour` | Background analysis runs from hour | `analysis.from_hour` | 0 to 23, local time |
+| `analysis_until_hour` | Background analysis runs until hour | `analysis.until_hour` | 1 to 24; smaller than the from hour runs across midnight |
+| `analysis_on_battery` | Run background analysis on the battery too | `analysis.on_battery` | Off: it waits until the machine is plugged in |
 
 The Engine per Variant, added Engines and their options are on each Family's [Engines page](../engines/engines.md).
 

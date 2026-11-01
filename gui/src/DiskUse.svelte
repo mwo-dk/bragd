@@ -2,11 +2,13 @@
   // Disk watch: everything Bragd keeps on disk, with its size, where it is and its
   // limit; the limits for all of it and for the free space; the limits crossed; pruning the
   // Library by the Sources' Strip rules, previewed first; and what Disk watch may do by itself
-  // for each Source; and the Position store's Export and Import. Sizes are typed as shown (5 GB);
+  // for each Source; and the Position store: its Export and Import, and its housekeeping. Sizes
+  // are typed as shown (5 GB);
   // Rust reads them.
   import * as k from "./knowledge.js";
   import { t } from "./i18n.svelte.js";
   import JobLine from "./JobLine.svelte";
+  import StorePanel from "./StorePanel.svelte";
 
   /** @type {any} */
   let r = $state(null);
@@ -130,6 +132,7 @@
       <button onclick={() => positions(k.positionsImport)}>{t("positions.import")}</button>
     </div>
     {#if stored}<p role="status">{stored}</p>{/if}
+    <StorePanel />
 
     <h3>{t("disk.auto_title")}</h3>
     <p class="hint">{t("disk.auto_hint")}</p>

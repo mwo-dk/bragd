@@ -1,12 +1,13 @@
 <script>
-  // A player's summary over a Library (bragd_library::player), for each Game family Settings
+  // A player's summary over a Library (bragd_library::player), or over the open Foreign database
+  // when no Library is named, for each Game family Settings
   // show that they play in. A part a Family's Games do not give (ratings, ECO codes, dates) is
   // left out. A Game named here opens in replay.
   import * as k from "./knowledge.js";
   import { t, tn, num, i18n } from "./i18n.svelte.js";
 
-  /** @type {{ library: string, name: string, onopen: (id: number) => void, onclose: () => void }} */
-  let { library, name, onopen, onclose } = $props();
+  /** @type {{ library?: string, name: string, onopen: (id: number) => void, onclose: () => void }} */
+  let { library = "", name, onopen, onclose } = $props();
   /** @type {any} */
   let s = $state(null);
   let error = $state("");
@@ -14,7 +15,7 @@
   $effect(() => {
     s = null;
     error = "";
-    k.libraryPlayer(library, name).then((r) => (s = r), (e) => (error = k.why(e)));
+    (library ? k.libraryPlayer(library, name) : k.dbPlayer(name)).then((r) => (s = r), (e) => (error = k.why(e)));
   });
 
   const pct = (/** @type {number} */ p) => p.toLocaleString(i18n.lang, { maximumFractionDigits: 1 });
