@@ -4,7 +4,7 @@
   // asking (a bigger one waits for Download it anyway), what becomes of its downloads, and its
   // Routes: each a Library (one there, or a new one by name) and a Strip rule, with Preview (a
   // dry run) and Apply over all of them. The Sources this version cannot fetch yet are shown
-  // with their notice. A custom URL can be added.
+  // with their notice. A custom URL can be added, and removed again.
   import * as k from "./knowledge.js";
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
@@ -27,6 +27,8 @@
   let message = $state("");
   let name = $state("");
   let url = $state("");
+  /** The custom URL Source whose removal waits for a yes. @type {string | null} */
+  let removing = $state(null);
 
   /** The select's value for "a new Library", which no Library file can be called. */
   const NEW = "\u0000new";
@@ -77,6 +79,19 @@
     }
   }
 
+  async function remove(/** @type {any} */ s) {
+    error = message = "";
+    removing = null;
+    try {
+      await k.sourceRemove(s.id);
+      message = t("source.removed", { name: s.name });
+      if (open === s.id) open = null;
+      await load();
+    } catch (e) {
+      error = k.why(e);
+    }
+  }
+
   async function add() {
     error = message = "";
     try {
@@ -105,7 +120,15 @@
         <span class="meta">{s.familyName} · {s.size} · {t("source.last", { when: s.last })}</span>
         <button onclick={() => expand(s)} aria-expanded={open === s.id} disabled={!s.fetchable}>{open === s.id ? t("source.less") : t("source.more")}</button>
         <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.fetchable || !s.options.enabled}>{t("source.fetch_now")}</button>
+        {#if s.custom}<button onclick={() => (removing = s.id)}>{t("source.remove")}</button>{/if}
       </div>
+      {#if removing === s.id}
+        <div class="notice" role="alertdialog" aria-label={t("source.remove")}>
+          <p>{t("source.remove_confirm", { name: s.name })}</p>
+          <button onclick={() => remove(s)}>{t("source.remove")}</button>
+          <button class="primary" onclick={() => (removing = null)}>{t("common.cancel")}</button>
+        </div>
+      {/if}
       {#if s.notice}<p class="notice">{s.notice}</p>{/if}
       {#if s.error}<p class="error">{s.error}</p>{/if}
       {#if s.paused}<p class="notice">{t("source.paused")}</p>{/if}

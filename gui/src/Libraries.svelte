@@ -9,8 +9,8 @@
   import JobLine from "./JobLine.svelte";
   import SliceEditor from "./SliceEditor.svelte";
 
-  /** @type {{ family: string, slice: any, position: any, onstep: (family: string, step: any) => void, onslices: () => void }} */
-  let { family, slice = null, position, onstep, onslices } = $props();
+  /** @type {{ family: string, variants: any[], slice: any, position: any, onstep: (family: string, step: any) => void, onslices: () => void }} */
+  let { family, variants, slice = null, position, onstep, onslices } = $props();
   /** @type {any[]} */
   let libs = $state([]);
   /** @type {any} */
@@ -23,6 +23,8 @@
   let review = $state(null);
   /** @type {number | null} */
   let job = $state(null);
+  /** The Export to Parquet job. @type {number | null} */
+  let exporting = $state(null);
   /** @type {string[]} */
   let priority = $state([]);
   let newSource = $state("");
@@ -57,13 +59,22 @@
     if (lib && view === "review") k.libraryReview(lib.path).then((r) => (review = r), (e) => (error = k.why(e)));
   });
 
-  const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(lib.path, { players: player.trim() ? [player] : [] }, from, count);
+  const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(lib.path, { players: player.trim() ? [player] : [], family }, from, count);
 
   function choose(/** @type {any} */ l) {
     lib = l;
     view = "games";
     game = null;
     review = null;
+  }
+
+  async function exportLib() {
+    error = "";
+    try {
+      exporting = (await k.libraryExport(lib.path)) ?? exporting;
+    } catch (e) {
+      error = k.why(e);
+    }
   }
 
   async function saveOrder(/** @type {string[]} */ list) {
@@ -125,13 +136,17 @@
         <button class:current={view === "slice" && editing?.name === s.name} onclick={() => ((view = "slice"), (editing = s))}>{s.name}{s.materialised ? " ⧉" : ""}</button>
       {/each}
     </nav>
+    <div class="bar">
+      <button onclick={exportLib} title={t("lib.export_hint")}>{t("lib.export")}</button>
+      {#if exporting !== null}<JobLine id={exporting} />{/if}
+    </div>
 
     {#if view === "games"}
       {#if game}
         <Replay replay={game} onclose={() => (game = null)} onstep={(s) => onstep(game.family, s)} />
       {:else}
         <input type="text" bind:value={player} placeholder={t("db.filter_player")} aria-label={t("db.filter_player")} />
-        <GameList {fetch} version={[lib.path, player, lib.games]} onopen={async (r) => (game = await k.libraryGame(lib.path, r.id))} />
+        <GameList {fetch} version={[lib.path, player, lib.games, family]} onopen={async (r) => (game = await k.libraryGame(lib.path, r.id))} />
       {/if}
     {:else if view === "review"}
       <div class="bar">
@@ -140,7 +155,7 @@
       </div>
       {#if job !== null}<JobLine id={job} ondone={load} />{/if}
       {#if review}
-        <h3>{t("lib.duplicates")} ({num(review.duplicates.length)})</h3>
+        <h3>{t("lib.duplicates")} ({num(lib.duplicates)})</h3>
         <ul class="review">
           {#each review.duplicates as [g, sources]}
             <li>
@@ -149,7 +164,7 @@
             </li>
           {/each}
         </ul>
-        <h3>{t("lib.near")} ({num(review.near.length)})</h3>
+        <h3>{t("lib.near")} ({num(lib.nearDuplicates)})</h3>
         <p class="hint">{t("lib.near_hint")}</p>
         <ul class="review">
           {#each review.near as [short, long]}
@@ -163,7 +178,7 @@
       {/if}
     {:else if view === "slice"}
       {#key `${lib.path}/${editing?.name ?? ""}`}
-        <SliceEditor library={lib.path} slice={editing} {family} {position} {onstep} onsaved={() => (load(), onslices())} />
+        <SliceEditor library={lib.path} slice={editing} {family} {variants} {position} {onstep} onsaved={() => (load(), onslices())} />
       {/key}
     {/if}
   {/if}

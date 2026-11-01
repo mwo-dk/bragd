@@ -33,7 +33,7 @@
   {#if tab === "files"}
     <ForeignDb {onstep} {onsnap} />
   {:else if tab === "libraries"}
-    <Libraries family={family.id} {slice} {position} {onstep} {onslices} />
+    <Libraries family={family.id} variants={family.variants} {slice} {position} {onstep} {onslices} />
   {:else if tab === "sources"}
     <Sources family={family.id} />
   {:else}

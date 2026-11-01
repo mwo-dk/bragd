@@ -56,8 +56,13 @@ pub struct NetworkView {
 }
 
 /// Where the networks engine images need are kept: `<data>/bragd/networks`.
-pub fn networks_folder() -> PathBuf {
-    bragd_core::dirs::data_dir().unwrap_or_default().join("bragd").join("networks")
+pub fn networks_folder() -> Result<PathBuf, String> {
+    Ok(bragd_core::dirs::app_data().ok_or_else(no_folder)?.join("networks"))
+}
+
+/// The error when the system names no folder for Bragd's own files.
+pub fn no_folder() -> String {
+    tr("app.no_folder", &[])
 }
 
 pub fn tr(key: &str, args: &[(&str, &str)]) -> String {
@@ -65,19 +70,13 @@ pub fn tr(key: &str, args: &[(&str, &str)]) -> String {
 }
 
 /// Where the user's engine options are kept.
-pub fn store_path() -> PathBuf {
-    bragd_core::dirs::config_dir().unwrap_or_default().join("bragd").join("engine-options.toml")
-}
-
-/// The tablebase folder: the one set, or the one in Bragd's data folder.
-pub fn tablebase_folder(cfg: &Config) -> PathBuf {
-    let tb = cfg.tablebases.path.trim();
-    if tb.is_empty() { bragd_core::dirs::data_dir().unwrap_or_default().join("bragd").join("tablebases") } else { PathBuf::from(tb) }
+pub fn store_path() -> Result<PathBuf, String> {
+    Ok(bragd_core::dirs::app_config().ok_or_else(no_folder)?.join("engine-options.toml"))
 }
 
 /// `SyzygyPath` for engines: the tablebase folder when it holds tables.
 fn syzygy(cfg: &Config) -> Option<String> {
-    let f = tablebase_folder(cfg);
+    let f = cfg.tablebase_folder()?;
     std::fs::read_dir(&f).ok()?.flatten().any(|e| e.path().extension().is_some_and(|x| x == "rtbw")).then(|| f.display().to_string())
 }
 
@@ -122,13 +121,13 @@ impl Availability {
     }
 }
 
-fn home() -> PathBuf {
-    bragd_core::dirs::home_dir().unwrap_or_default()
+fn home() -> Option<PathBuf> {
+    bragd_core::dirs::home_dir()
 }
 
 /// The program `k` runs as here: the path set for it, else the one found installed.
 pub(crate) fn installed(cfg: &Config, key: &str, k: Option<&Known>) -> Option<PathBuf> {
-    cfg.engines.paths.get(key).and_then(|p| known::configured(p, &home())).or_else(|| k.and_then(Known::installed))
+    cfg.engines.paths.get(key).and_then(|p| known::configured(p, &home()?)).or_else(|| k.and_then(Known::installed))
 }
 
 fn runtime(cfg: &Config) -> Option<tools::Runtime> {
@@ -165,7 +164,7 @@ pub fn resolve(cfg: &Config, key: &str, variant: &str) -> Result<Chosen, String>
     if let Some(k) = known::known(key) {
         let dev = known::dev_images();
         let rt = (k.image().is_some() || k.dev_image(dev).is_some()).then(|| runtime(cfg)).flatten();
-        let program = known::choose(k, installed(cfg, key, Some(k)), rt.as_ref(), |rt, i| !images::pulled(&rt.path, &[i.to_string()]).is_empty(), Some(&tablebase_folder(cfg)), &networks_folder(), dev).map_err(|m| missing(cfg, k, &m))?;
+        let program = known::choose(k, installed(cfg, key, Some(k)), rt.as_ref(), |rt, i| !images::pulled(&rt.path, &[i.to_string()]).is_empty(), cfg.tablebase_folder().as_deref(), &networks_folder()?, dev).map_err(|m| missing(cfg, k, &m))?;
         return Ok(Chosen { key: key.into(), program, protocols: vec![k.protocol(variant)] });
     }
     let family = cfg.engines.added.get(key).and_then(|f| Family::from_key(f)).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
@@ -206,7 +205,7 @@ pub fn start(cfg: &Config, chosen: &Chosen, variant: &str, stop: &dyn Fn() -> bo
     if !seam::plays(e.about(), e.protocol(), variant) {
         return Err(tr("engines.not_this_variant", &[("name", &e.about().name)]));
     }
-    let store = OptionStore::load(&store_path()).unwrap_or_default();
+    let store = OptionStore::load(&store_path()?).unwrap_or_default();
     e.configure(&store, syzygy(cfg).as_deref()).map_err(|e| e.to_string())?;
     let notation = seam::notation(variant, e.protocol(), &e.about().name);
     Ok((e, notation))
@@ -358,7 +357,7 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             // Only an image needs the network: an installed engine brings its own, and an image
             // that cannot be had yet needs none.
             let network = network::for_engine(&key).filter(|_| matches!(state, Availability::Pull { .. } | Availability::Pulled { .. } | Availability::Built { .. })).map(|n| NetworkView {
-                present: n.path(&networks_folder()).is_file(),
+                present: networks_folder().is_ok_and(|f| n.path(&f).is_file()),
                 size: bragd_helper::disk::bytes(n.archive_size),
                 from: n.archive.to_string(),
                 licence: n.licence.to_string(),
@@ -398,8 +397,9 @@ pub fn download_network(held: &Held, key: &str) -> Result<(), String> {
         all.insert(key.into(), NetworkJob { total: n.archive_size, ..Default::default() });
     }
     let key = key.to_string();
+    let folder = networks_folder()?;
     std::thread::spawn(move || {
-        let r = n.download(&networks_folder(), &bragd_engines::fetch::Http, &mut |done, total| {
+        let r = n.download(&folder, &bragd_engines::fetch::Http, &mut |done, total| {
             if let Some(j) = jobs.lock().unwrap_or_else(|e| e.into_inner()).get_mut(&key) {
                 (j.done, j.total) = (done, total);
             }
@@ -422,7 +422,7 @@ pub fn set_default(variant: &str, engine: &str) -> Result<Config, String> {
 /// Family's protocols. One that says it is an engine Bragd knows (Stockfish) becomes that
 /// engine's program; any other is added under its own name.
 pub fn add(family: Family, path: &str) -> Result<Config, String> {
-    let p = known::configured(path, &home()).ok_or_else(|| tr("engines.no_file", &[("path", path)]))?;
+    let p = home().and_then(|h| known::configured(path, &h)).ok_or_else(|| tr("engines.no_file", &[("path", path)]))?;
     let program = Program::Installed { path: p.clone(), args: vec![] };
     let e = Engine::start_any(&program, seam::protocols(family), Duration::from_secs(10), &|| false).map_err(|e| tr("engines.no_start", &[("name", path), ("why", &e.to_string())]))?;
     let name = options::engine_key(&e.about().name);
@@ -449,7 +449,7 @@ pub fn remove(cfg: &Config, key: &str) -> Result<Config, String> {
 pub fn options_of(cfg: &Config, held: &Held, key: &str, variant: &str) -> Result<EngineInfo, String> {
     let chosen = resolve(cfg, key, variant)?;
     let (e, _) = start(cfg, &chosen, variant, &|| false)?;
-    let store = OptionStore::load(&store_path()).unwrap_or_default();
+    let store = OptionStore::load(&store_path()?).unwrap_or_default();
     let info = EngineInfo::new(e.about(), chosen.program.container(), &store);
     held.info.lock().unwrap_or_else(|e| e.into_inner()).insert(key.to_string(), info.clone());
     Ok(info)
@@ -459,7 +459,7 @@ pub fn options_of(cfg: &Config, held: &Held, key: &str, variant: &str) -> Result
 pub fn set_option(held: &Held, key: &str, name: &str, value: Option<&Value>) -> Result<EngineInfo, String> {
     let mut all = held.info.lock().unwrap_or_else(|e| e.into_inner());
     let info = all.get_mut(key).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
-    let store = options::set_option(&store_path(), info, name, value)?;
+    let store = options::set_option(&store_path()?, info, name, value)?;
     info.refresh(&store);
     Ok(info.clone())
 }
@@ -467,7 +467,7 @@ pub fn set_option(held: &Held, key: &str, name: &str, value: Option<&Value>) -> 
 pub fn reset_options(held: &Held, key: &str) -> Result<EngineInfo, String> {
     let mut all = held.info.lock().unwrap_or_else(|e| e.into_inner());
     let info = all.get_mut(key).ok_or_else(|| tr("engines.unknown", &[("name", key)]))?;
-    let store = options::reset_options(&store_path(), &info.key)?;
+    let store = options::reset_options(&store_path()?, &info.key)?;
     info.refresh(&store);
     Ok(info.clone())
 }

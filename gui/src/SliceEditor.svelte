@@ -7,8 +7,8 @@
   import GameList from "./GameList.svelte";
   import Replay from "./Replay.svelte";
 
-  /** @type {{ library: string, slice: any, family: string, position: {family: string, fen: string} | null, onstep: (family: string, step: any) => void, onsaved: () => void }} */
-  let { library, slice, family, position, onstep, onsaved } = $props();
+  /** @type {{ library: string, slice: any, family: string, variants: {key: string, name: string}[], position: {family: string, fen: string} | null, onstep: (family: string, step: any) => void, onsaved: () => void }} */
+  let { library, slice, family, variants, position, onstep, onsaved } = $props();
 
   const blank = () => ({ players: [], eco_from: "", eco_to: "", date_from: "", date_to: "", rating_min: null, result: "", family, variant: "", position: null });
   // svelte-ignore state_referenced_locally
@@ -71,7 +71,10 @@
       >{t("slice.result")}
       <Picker value={q.result} choices={[{ value: "", label: t("slice.any") }, ...["1-0", "0-1", "1/2-1/2", "*"].map((r) => ({ value: r, label: r }))]} label={t("slice.result")} onchange={(v) => (q.result = v)} />
     </label>
-    <label>{t("slice.variant")} <input type="text" bind:value={q.variant} placeholder="standard" size="10" /></label>
+    <label
+      >{t("slice.variant")}
+      <Picker value={q.variant} choices={[{ value: "", label: t("slice.any") }, ...variants.map((v) => ({ value: v.key, label: v.name }))]} label={t("slice.variant")} onchange={(v) => (q.variant = v)} />
+    </label>
     <div class="position">
       <span>{t("slice.position")}: {q.position ? t("slice.position_set") : t("slice.any")}</span>
       <button onclick={usePosition} disabled={!position} title={position ? "" : t("slice.position_hint")}>{t("slice.use_position")}</button>

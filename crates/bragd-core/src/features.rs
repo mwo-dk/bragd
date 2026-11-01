@@ -23,6 +23,7 @@ pub const FEATURES: &[Feature] = &[
     f("families", "getting-started/game-families.md"),
     f("play", "play/against-yourself.md"),
     f("databases", "knowledge/foreign-databases.md"),
+    f("parquet", "knowledge/parquet-export.md"),
     f("disk", "knowledge/disk-watch.md"),
     f("helper", "knowledge/helper.md"),
     f("engines", "engines/engines.md"),

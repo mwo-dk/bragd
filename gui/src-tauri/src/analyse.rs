@@ -86,10 +86,34 @@ impl Raw {
     }
 }
 
+/// Lines already turned into moves to show, by the engine's moves (at most `SHOWN`): each
+/// is replayed from the Game's start, so a poll does that only for a line that changed.
+type Shown = Vec<(Vec<String>, Vec<(String, String)>)>;
+
+/// Each of `pvs` as moves to show: from `cache` when the poll before showed it, else by
+/// `render`. `cache` then holds these lines only.
+fn shown_lines(cache: &mut Shown, pvs: &[Vec<String>], render: impl Fn(&[String]) -> Vec<(String, String)>) -> Vec<Vec<(String, String)>> {
+    let mut fresh = Shown::with_capacity(pvs.len());
+    let lines = pvs
+        .iter()
+        .map(|pv| {
+            let moves = match cache.iter().find(|(key, _)| key == pv) {
+                Some((_, moves)) => moves.clone(),
+                None => render(pv),
+            };
+            fresh.push((pv.clone(), moves.clone()));
+            moves
+        })
+        .collect();
+    *cache = fresh;
+    lines
+}
+
 struct Live {
     asked: Asked,
     raw: Arc<Mutex<Raw>>,
     stop: Arc<AtomicBool>,
+    shown: Arc<Mutex<Shown>>,
 }
 
 impl Drop for Live {
@@ -160,7 +184,7 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
             raw.error = Some(e);
         }
     });
-    *held.live.lock().unwrap_or_else(|e| e.into_inner()) = Some(Live { asked, raw, stop });
+    *held.live.lock().unwrap_or_else(|e| e.into_inner()) = Some(Live { asked, raw, stop, shown: Default::default() });
     Ok(())
 }
 
@@ -196,23 +220,25 @@ pub struct Now {
 /// The analysis as far as it has come; None when none was started.
 pub fn now(held: &Held) -> Option<Now> {
     // Copied out, so the replays below hold neither lock and the engine's reports never wait.
-    let (asked, raw) = {
+    let (asked, raw, shown) = {
         let live = held.live.lock().unwrap_or_else(|e| e.into_inner());
         let l = live.as_ref()?;
         let raw = l.raw.lock().unwrap_or_else(|e| e.into_inner()).clone();
-        (l.asked.clone(), raw)
+        (l.asked.clone(), raw, l.shown.clone())
     };
     let lines = raw
         .notation
         .map(|n| {
-            raw.lines
-                .iter()
-                .filter(|i| !i.pv.is_empty())
-                .map(|i| {
+            let heard: Vec<&Info> = raw.lines.iter().filter(|i| !i.pv.is_empty()).collect();
+            let pvs: Vec<Vec<String>> = heard.iter().map(|i| i.pv.iter().take(SHOWN).cloned().collect()).collect();
+            let a = &asked;
+            let moves = shown_lines(&mut shown.lock().unwrap_or_else(|e| e.into_inner()), &pvs, |pv| seam::line(&a.variant, a.initial.as_deref(), &a.entries, n, pv));
+            heard
+                .into_iter()
+                .zip(moves)
+                .map(|(i, moves)| {
                     let score = i.score.map(|s: Score| if raw.second { s.flipped() } else { s });
-                    let pv: Vec<String> = i.pv.iter().take(SHOWN).cloned().collect();
-                    let a = &asked;
-                    let moves = seam::line(&a.variant, a.initial.as_deref(), &a.entries, n, &pv).into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect();
+                    let moves = moves.into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect();
                     LineView { score: score.map(Score::shown).unwrap_or_default(), depth: i.depth, moves }
                 })
                 .filter(|v| !v.moves.is_empty())
@@ -238,10 +264,10 @@ pub fn review_start(cfg: &Config, held: &Held, variant: &str, initial: Option<&s
     let setup = Setup {
         program: chosen.program,
         protocol,
-        options: bragd_engines::options::OptionStore::load(&engines::store_path()).unwrap_or_default(),
+        options: bragd_engines::options::OptionStore::load(&engines::store_path()?).unwrap_or_default(),
         syzygy: None,
         limit: Limit::Time(300),
-        cache: bragd_core::dirs::cache_dir().map(|c| c.join("bragd").join("reviews")),
+        cache: bragd_core::dirs::app_cache().map(|c| c.join("reviews")),
     };
     let reviewer = Reviewer::start(&setup, &game);
     *held.review.lock().unwrap_or_else(|e| e.into_inner()) = Some(Reviewing { reviewer, entries: game.moves.len() });
@@ -360,7 +386,7 @@ pub fn tablebase(cfg: &Config, variant: &str, initial: Option<&str>, entries: &[
         return Ok(None);
     }
     let side = state.to_move.map(|s| tr(&format!("side.{}", s.name.to_lowercase()), &[])).unwrap_or_default();
-    let tb = Tablebases { folders: vec![engines::tablebase_folder(cfg)], online: cfg.tablebases.online && !offline() };
+    let tb = Tablebases { folders: cfg.tablebase_folder().into_iter().collect(), online: cfg.tablebases.online && !offline() };
     if tb.covers(fen) {
         return Ok(Some(TableView { pieces, local: true, ..Default::default() }));
     }
@@ -392,6 +418,24 @@ pub fn setup(variant: &str, text: &str) -> Result<State, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_line_is_replayed_only_when_it_changed() {
+        let n = std::cell::Cell::new(0);
+        let render = |pv: &[String]| {
+            n.set(n.get() + 1);
+            pv.iter().map(|m| (m.clone(), m.to_uppercase())).collect()
+        };
+        let pv = |s: &str| s.split(' ').map(String::from).collect::<Vec<_>>();
+        let mut cache = Shown::new();
+        let first = shown_lines(&mut cache, &[pv("e7e5 g1f3"), pv("c7c5")], render);
+        assert_eq!((n.get(), first[1].clone()), (2, vec![("c7c5".to_string(), "C7C5".to_string())]));
+        assert_eq!(shown_lines(&mut cache, &[pv("e7e5 g1f3"), pv("c7c5")], render), first);
+        assert_eq!(n.get(), 2, "nothing changed, nothing replayed");
+        let next = shown_lines(&mut cache, &[pv("e7e5 g1f3"), pv("c7c6")], render);
+        assert_eq!((n.get(), next[0].clone()), (3, first[0].clone()), "only the changed line");
+        assert_eq!(cache.len(), 2, "the cache holds this poll's lines only");
+    }
 
     #[test]
     fn a_line_number_past_those_asked_for_is_ignored() {

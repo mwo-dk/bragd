@@ -57,6 +57,8 @@ pub enum Request {
     /// A Source's options: on or off, its schedule, metered, disk cap, a custom URL, its Strip
     /// rule, what becomes of its downloads, and what Disk watch may do for it by itself.
     SetSource { source: String, options: Options },
+    /// A custom URL Source taken away, with its downloads; its Games stay in the Libraries.
+    RemoveSource { source: String },
     /// Everything Bragd keeps on disk, its limits, the free space, and the limits crossed.
     DiskReport,
     /// Disk watch's limits, written to `[disk]` in config.toml; the next check uses them.
@@ -426,6 +428,10 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, mut
             },
             Request::Sources => Reply::Sources { sources: jobs.sources() },
             Request::SetSource { source, options } => match jobs.set_source(&source, options) {
+                Ok(()) => Reply::Done,
+                Err(error) => Reply::Error { error },
+            },
+            Request::RemoveSource { source } => match jobs.remove_source(&source) {
                 Ok(()) => Reply::Done,
                 Err(error) => Reply::Error { error },
             },

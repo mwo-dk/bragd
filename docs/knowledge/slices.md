@@ -23,7 +23,7 @@ A Slice is a named query over a Library, such as "Grünfeld" or "both players 25
 | From, To | A date range, as `1990` or `1999.12` |
 | Both rated at least | Both players rated at least this. A Game missing a rating is left out |
 | Result | `1-0`, `0-1`, `1/2-1/2` or `*` |
-| Variant | The Variant as the Library stores it, such as `standard` or `chess960` |
+| Variant | Any, or one of the Family's Variants, such as Chess or Chess960 ([Variant ids](libraries.md#which-variant-ids-does-a-library-store)) |
 | Position | A board position the Game passes through |
 
 A field left empty matches every Game.

@@ -39,6 +39,7 @@ export const libraryGame = (/** @type {string} */ path, /** @type {number} */ id
 export const libraryReview = (/** @type {string} */ path) => invoke("library_review", { path });
 /** @returns {Promise<number>} */
 export const libraryDedupe = (/** @type {string} */ path) => invoke("library_dedupe", { path });
+export const libraryExport = (/** @type {string} */ path) => invoke("library_export", { path });
 /** @returns {Promise<number>} */
 export const libraryPrune = (/** @type {boolean} */ dryRun) => invoke("library_prune", { dryRun });
 /** @returns {Promise<string[]>} */
@@ -59,6 +60,7 @@ export const sources = () => invoke("sources_list");
 export const sourceSet = (/** @type {string} */ id, /** @type {Obj} */ options, /** @type {string | null} */ diskCap = null, /** @type {string | null} */ maxDownload = null) =>
   invoke("source_set", { id, options, diskCap, maxDownload });
 export const sourceAdd = (/** @type {string} */ name, /** @type {string} */ url) => invoke("source_add", { name, url });
+export const sourceRemove = (/** @type {string} */ id) => invoke("source_remove", { id });
 /** @returns {Promise<number>} */
 export const sourceFetch = (/** @type {string} */ id) => invoke("source_fetch", { id });
 /** @returns {Promise<number>} */

@@ -240,7 +240,7 @@ mod tests {
         assert_eq!(find(Query { rating_min: Some(2500), ..Default::default() }), [2, 3]);
         assert_eq!(find(Query { result: Some("1-0".into()), ..Default::default() }), [3]);
         assert_eq!(find(Query { variant: Some("chess960".into()), ..Default::default() }), Vec::<i64>::new());
-        assert_eq!(find(Query { family: Some("chess".into()), variant: Some("standard".into()), ..Default::default() }).len(), 4);
+        assert_eq!(find(Query { family: Some("chess".into()), variant: Some("chess".into()), ..Default::default() }).len(), 4);
         // The position after 1.e4 c5 2.Nf3: only the Sicilian reaches it.
         let b = pgn::board("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2").unwrap();
         assert_eq!(find(Query { position: Some(polyglot::key(&b)), ..Default::default() }), [3]);

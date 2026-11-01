@@ -21,14 +21,14 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// The Helper's own folder: its lock, address, log, state and downloads. In the data folder,
 /// which is the user's own.
 pub fn folder() -> Option<PathBuf> {
-    Some(bragd_core::dirs::data_dir()?.join("bragd").join("helper"))
+    Some(bragd_core::dirs::app_data()?.join("helper"))
 }
 
 /// The Library Sources and imports go into when none is named: `main.bragd` in the folder
 /// Settings names for Libraries, else in Bragd's data folder.
 pub fn default_library(cfg: &bragd_core::config::Config) -> Option<PathBuf> {
     let dir = if cfg.knowledge.library.trim().is_empty() {
-        bragd_core::dirs::data_dir()?.join("bragd").join("libraries")
+        bragd_core::dirs::app_data()?.join("libraries")
     } else {
         PathBuf::from(cfg.knowledge.library.trim())
     };

@@ -46,6 +46,22 @@ mod fake {
 #[cfg(any(test, feature = "test-home"))]
 pub use fake::*;
 
+/// Bragd's own folder in the config folder, `<config>/bragd`. None when the system names no
+/// config folder: never a relative path, which would land wherever Bragd was started.
+pub fn app_config() -> Option<std::path::PathBuf> {
+    Some(config_dir()?.join("bragd"))
+}
+
+/// Bragd's own folder in the data folder, `<data>/bragd`: Libraries, the Helper, downloads.
+pub fn app_data() -> Option<std::path::PathBuf> {
+    Some(data_dir()?.join("bragd"))
+}
+
+/// Bragd's own folder in the cache folder, `<cache>/bragd`.
+pub fn app_cache() -> Option<std::path::PathBuf> {
+    Some(cache_dir()?.join("bragd"))
+}
+
 #[cfg(test)]
 mod tests {
     /// Every place Bragd keeps the user's things lies in the temporary folder in tests.
@@ -57,11 +73,14 @@ mod tests {
             ("config dir", super::config_dir()),
             ("data dir", super::data_dir()),
             ("cache dir", super::cache_dir()),
+            ("app config", super::app_config()),
+            ("app data", super::app_data()),
+            ("app cache", super::app_cache()),
             ("config", crate::config::Config::path()),
             ("state", crate::state::AppState::path()),
         ] {
             let path = path.unwrap_or_else(|| panic!("{what}: none"));
-            assert!(path.starts_with(&tmp), "{what}: {}", path.display());
+            assert!(path.is_absolute() && path.starts_with(&tmp), "{what}: {}", path.display());
         }
     }
 }

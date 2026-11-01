@@ -50,7 +50,7 @@ pub fn format(path: &Path) -> Option<Format> {
         Some(Format::Epd)
     } else if n.ends_with(".sgf") {
         Some(Format::Sgf)
-    } else if n.ends_with(".pdn") {
+    } else if crate::stream::unpacked_name(&n).ends_with(".pdn") {
         Some(Format::Pdn)
     } else { crate::shogi::format(&n) }
 }
@@ -215,6 +215,7 @@ mod tests {
     #[test]
     fn names_and_positions() {
         assert_eq!(format(Path::new("/a/Games.PGN.gz")), Some(Format::Pgn));
+        assert_eq!(format(Path::new("a.pdn.gz")), Some(Format::Pdn));
         assert_eq!(format(Path::new("/a/Club.si4")), Some(Format::Pgn));
         assert_eq!(format(Path::new("/a/Club.si5")), Some(Format::Pgn));
         assert_eq!(format(Path::new("/a/Mega.CBV")), Some(Format::Pgn));

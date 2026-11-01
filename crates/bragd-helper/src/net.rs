@@ -165,12 +165,6 @@ pub(crate) fn part_of(p: &Path) -> PathBuf {
     PathBuf::from(s)
 }
 
-/// The kinds of file a Library imports, by extension (`.pgn.gz`, `.pgn.zst` and `.pgn.bz2` too).
-pub fn importable(name: &str) -> bool {
-    let n = bragd_library::stream::unpacked_name(name).to_ascii_lowercase();
-    [".pgn", ".sgf", ".kif", ".csa", ".pdn"].iter().any(|e| n.ends_with(e))
-}
-
 /// Whether the connection is metered: `Some` where the system says cheaply (NetworkManager on
 /// Linux), `None` where it cannot be told.
 pub fn metered() -> Option<bool> {
@@ -288,9 +282,7 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn importable_names_and_networkmanager_answers() {
-        assert!(importable("twic1600.pgn") && importable("x.SGF") && importable("a.pgn.zst"));
-        assert!(!importable("readme.txt") && !importable("a.zip"));
+    fn networkmanager_answers() {
         assert_eq!(nm_metered("u 1\n"), Some(true));
         assert_eq!(nm_metered("u 4\n"), Some(false));
         assert_eq!(nm_metered("u 0\n"), None);

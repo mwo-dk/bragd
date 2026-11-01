@@ -138,6 +138,11 @@ fn upgrade(mut v: serde_json::Value) -> serde_json::Value {
     v
 }
 
+/// `knowledge.max_unpack_ratio`, read at each job so a change in Settings needs no restart.
+fn max_ratio() -> u64 {
+    Config::load().unwrap_or_default().knowledge.max_unpack_ratio
+}
+
 /// A Source's id as a folder name of its own: letters, digits and `-` stay, and every other
 /// byte is written `_` and its two hex digits, so no two ids share a folder (`custom:club.a` is
 /// `custom_3aclub_2ea`, `custom:club_a` is `custom_3aclub_5fa`).
@@ -294,6 +299,30 @@ impl Jobs {
         Ok(())
     }
 
+    /// Removes a custom URL Source: its options, what its fetches remembered, and its
+    /// downloads. The Games it brought stay in the Libraries. A built-in Source cannot be
+    /// removed (it is turned off), nor a Source with a job queued or running.
+    pub fn remove_source(&self, id: &str) -> Result<(), String> {
+        if !id.starts_with(sources::CUSTOM) {
+            return Err(format!("{id}: only a custom URL Source can be removed"));
+        }
+        let mut st = self.lock();
+        let busy = st.jobs.iter().any(|j| matches!(j.status, Status::Queued | Status::Running) && matches!(&j.work, Work::Fetch { source } | Work::Strip { source, .. } if source == id));
+        if busy {
+            return Err(format!("{id}: a job of this Source is under way"));
+        }
+        if st.sources.remove(id).is_none() {
+            return Err(format!("no Source {id}"));
+        }
+        self.save(&st);
+        drop(st);
+        let dir = self.source_dir(id);
+        match std::fs::remove_dir_all(&dir) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("{}: {e}", dir.display())),
+            _ => Ok(()),
+        }
+    }
+
     /// The user's yes to a download over a Source's cap: its next fetch may download what the
     /// server said, once, and is queued now. The job's id.
     pub fn allow_download(&self, id: &str) -> Result<u64, String> {
@@ -356,6 +385,7 @@ impl Jobs {
         }
         let mut lib = Library::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
         lib.set_priority(&self.priority.iter().map(String::as_str).collect::<Vec<_>>());
+        lib.max_ratio = max_ratio();
         Ok(lib)
     }
 
@@ -475,7 +505,7 @@ impl Jobs {
                 }
                 report.removed.push((f.clone(), len));
             } else if let Some(rules) = &rules {
-                report.files.push(strip::rewrite(f, rules, dry_run, &stop).map_err(|e| format!("{}: {e}", f.display()))?);
+                report.files.push(strip::rewrite(f, rules, dry_run, max_ratio(), &stop).map_err(|e| format!("{}: {e}", f.display()))?);
             }
             self.progress(id, n as u64 + 1, Some(files.len() as u64));
         }
@@ -492,24 +522,28 @@ impl Jobs {
         Ok(games)
     }
 
-    /// Where Bragd keeps things, by `cfg`.
-    pub fn places(&self, cfg: &Config) -> disk::Places {
-        let data = bragd_core::dirs::data_dir().unwrap_or_default().join("bragd");
-        let tb = cfg.tablebases.path.trim();
-        disk::Places {
+    /// Where Bragd keeps things, by `cfg`; None when the system names no data or cache folder.
+    pub fn places(&self, cfg: &Config) -> Option<disk::Places> {
+        Some(disk::Places {
             libraries: self.library.parent().map(Path::to_path_buf).unwrap_or_default(),
             helper: self.dir.clone(),
             sources: self.sources().into_iter().map(|(a, _, _)| (a.id.clone(), self.source_dir(&a.id))).collect(),
-            tablebases: if tb.is_empty() { data.join("tablebases") } else { PathBuf::from(tb) },
-            cache: bragd_core::dirs::cache_dir().unwrap_or_default().join("bragd"),
-            data,
-        }
+            tablebases: cfg.tablebase_folder()?,
+            cache: bragd_core::dirs::app_cache()?,
+            data: bragd_core::dirs::app_data()?,
+        })
+    }
+
+    /// What Bragd keeps on disk at `places`, against the limits in `cfg`: nothing when there
+    /// are no places.
+    fn report(&self, cfg: &Config, images: &[(String, u64)]) -> disk::Report {
+        self.places(cfg).map(|p| disk::report(&p, &cfg.disk, images, &disk::free_space)).unwrap_or_default()
     }
 
     /// What Bragd keeps on disk now, against the limits in `cfg`, with a notice for each
     /// Source Disk watch holds back.
     pub fn disk_report(&self, cfg: &Config) -> disk::Report {
-        self.notices(disk::report(&self.places(cfg), &cfg.disk, &(self.images)(), &disk::free_space))
+        self.notices(self.report(cfg, &(self.images)()))
     }
 
     /// `r` with a notice for each Source Disk watch holds back.
@@ -541,7 +575,7 @@ impl Jobs {
         // The runtime is asked about the images once a check, and the folders walked again
         // only when a download was deleted.
         let images = (self.images)();
-        let before = disk::report(&self.places(cfg), &cfg.disk, &images, &disk::free_space);
+        let before = self.report(cfg, &images);
         let mut deleted = 0;
         let everyone = before.crossed.iter().any(|c| c.item.is_none());
         for (a, o, m) in self.sources() {
@@ -566,7 +600,7 @@ impl Jobs {
                 self.add(Work::Strip { source: a.id, dry_run: false });
             }
         }
-        let r = self.notices(if deleted > 0 { disk::report(&self.places(cfg), &cfg.disk, &images, &disk::free_space) } else { before });
+        let r = self.notices(if deleted > 0 { self.report(cfg, &images) } else { before });
         *self.crossed.lock().unwrap_or_else(|e| e.into_inner()) = r.crossed.clone();
         r
     }
@@ -617,7 +651,7 @@ impl Jobs {
                 match (options.after_import, &rules) {
                     (AfterImport::Delete, _) => std::fs::remove_file(f).map_err(|e| format!("{}: {e}", f.display()))?,
                     (AfterImport::Strip, Some(rules)) => {
-                        strip::rewrite(f, rules, false, &stop).map_err(|e| format!("{}: {e}", f.display()))?;
+                        strip::rewrite(f, rules, false, max_ratio(), &stop).map_err(|e| format!("{}: {e}", f.display()))?;
                     }
                     _ => {}
                 }
@@ -781,6 +815,15 @@ pub(crate) mod tests {
         jobs.add(Work::Fetch { source: "custom:club".into() });
         jobs.run_next();
         assert_eq!(count(&lib), 2);
+        // Removed: no longer listed, its downloads gone, its Games kept. A built-in one stays.
+        let queued = jobs.add(Work::Fetch { source: "custom:club".into() });
+        assert!(jobs.remove_source("custom:club").is_err(), "a fetch is queued");
+        jobs.cancel(queued);
+        jobs.remove_source("custom:club").unwrap();
+        assert!(!jobs.sources().iter().any(|(a, _, _)| a.id == "custom:club"));
+        assert!(!src.exists());
+        assert_eq!(count(&lib), 2);
+        assert!(jobs.remove_source("twic").is_err() && jobs.remove_source("custom:club").is_err());
     }
 
     #[test]
@@ -904,7 +947,7 @@ pub(crate) mod tests {
     }
 
     fn games_in(path: &Path) -> u64 {
-        bragd_library::stream::file_games(path, &|| false, &mut |_, _, _| true).unwrap().games
+        bragd_library::stream::file_games(path, 50, &|| false, &mut |_, _, _| true).unwrap().games
     }
 
     /// A custom URL Source of RATED, set up with its options changed by `set`.

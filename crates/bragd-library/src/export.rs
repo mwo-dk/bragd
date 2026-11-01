@@ -41,8 +41,20 @@ const COLUMNS: [(&str, &str); 20] = [
 const ROWS: usize = 64 * 1024;
 
 /// Writes every Game of `lib` to the Parquet file `out` (Snappy-compressed), with its Sources'
-/// names; the number of rows written.
+/// names; the number of rows written. Written beside it first, then put in place, so a failed
+/// export leaves a file that was there before whole.
 pub fn to_parquet(lib: &Library, out: &Path) -> Result<u64> {
+    let mut part = out.as_os_str().to_owned();
+    part.push(".part");
+    let part = std::path::PathBuf::from(part);
+    let written = write_parquet(lib, &part).and_then(|n| Ok(std::fs::rename(&part, out).map(|_| n)?));
+    if written.is_err() {
+        let _ = std::fs::remove_file(&part);
+    }
+    written
+}
+
+fn write_parquet(lib: &Library, out: &Path) -> Result<u64> {
     let fields: Vec<&str> = COLUMNS.iter().map(|c| c.1).collect();
     let schema = Arc::new(parse_message_type(&format!("message games {{ {}; }}", fields.join("; ")))?);
     let props = Arc::new(WriterProperties::builder().set_compression(Compression::SNAPPY).build());
@@ -133,5 +145,11 @@ mod tests {
         assert!(rows[0].contains("Byrne, Donald") && rows[0].contains("white_elo: 2400"), "{}", rows[0]);
         assert!(rows[1].contains("white_elo: null") && rows[1].contains("start: null"), "{}", rows[1]);
         assert!(rows[2].contains("4k3/8/8/8/8/8/8/4K2R"), "{}", rows[2]);
+        // A failed export leaves the file that was there whole, and nothing beside it.
+        let before = std::fs::read(&out).unwrap();
+        lib.conn().execute_batch("DROP TABLE game_sources").unwrap();
+        assert!(to_parquet(&lib, &out).is_err());
+        assert_eq!(std::fs::read(&out).unwrap(), before);
+        assert_eq!(std::fs::read_dir(&d.0).unwrap().filter_map(|e| e.ok()).filter(|e| e.file_name().to_string_lossy().ends_with(".part")).count(), 0);
     }
 }

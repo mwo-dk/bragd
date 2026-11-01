@@ -4,15 +4,16 @@
 
 A Library is Bragd's own store of Games: one SQLite file ending in `.bragd`. Imports land in it, and each Game appears once, however many Sources brought it. Every Game remembers its Sources. The default Library is `main.bragd`.
 
-![The Libraries tab: main.bragd listed with its Games, size, Duplicates and Near-duplicates, its Games below, and the Source priority list at the bottom](../screenshots/databases-libraries-1100.png)
+![The Libraries tab: main.bragd listed with its Games, size, Duplicates and Near-duplicates, its tabs and Export to Parquet, its Games below, and the Source priority list at the bottom](../screenshots/databases-libraries-1100.png)
 *Databases → Libraries.*
 
 ## How to reach it
 
 1. In the sidebar, open a Family and choose **Databases**, then the **Libraries** tab.
 2. The table lists every `.bragd` file in the Library folder, with its Games, size, Duplicates and Near-duplicates. Click a name to open it.
-3. An open Library has its own tabs: **Games**, **Duplicates**, **New Slice**, and one button per saved Slice (a kept copy is marked ⧉).
-4. Click a Game to step through it, as in a Foreign database: **←**, **→**, **Home** and **End**.
+3. An open Library has its own tabs: **Games**, **Duplicates**, **New Slice**, and one button per saved Slice (a kept copy is marked ⧉). **Export to Parquet** sits under them ([Export to Parquet](parquet-export.md)).
+4. **Games** lists the Library's Games of the Family whose page you are on: chess Games on the chess page, go Games on the go page.
+5. Click a Game to step through it, as in a Foreign database: **←**, **→**, **Home** and **End**.
 
 Games get into a Library in three ways:
 
@@ -32,6 +33,7 @@ Nothing to install. The Helper does the imports, and a window starts it when non
 |---|---|---|---|
 | Library folder | `knowledge.library` | empty: `<data>/bragd/libraries` | Where Libraries are kept. Sources and imports go into `main.bragd` there |
 | Source priority | `knowledge.source_priority` | `["twic", "lichess"]` | When Duplicates disagree on a header, the Source listed first wins ([Duplicates](duplicates.md)) |
+| Largest unpacking ratio | `knowledge.max_unpack_ratio` | `50` | How far a packed game file may unpack before its import stops ([Sources](sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
 
 `<data>` is your system's data folder: `~/.local/share` on Linux and the BSDs, `~/Library/Application Support` on macOS and `%APPDATA%` on Windows. See [Files on disk](../reference/files.md).
 
@@ -59,7 +61,11 @@ A PGN or PDN file, packed or not, and every zip is read as a stream, one Game at
 
 #### Does the Games list show only the Family I came from?
 
-No. A Library's Games tab lists all its Games, whatever their Family, filtered only by the player you type. Slices can be limited to one Family or Variant.
+Yes. On the chess page the Games tab lists the Library's chess Games, on the go page its go Games, and so on, filtered further by the player you type. The Libraries table counts every Game, whatever its Family. A Slice can be limited to one Variant of the Family as well.
+
+#### Which Variant ids does a Library store?
+
+The ids of Bragd's own Variants, the same as in *Settings → Game families* and `config.toml`: `chess`, `chess960`, `kingofthehill`, `draughts` (international), `checkers`, `draughts-russian`, `draughts-brazilian`, `xiangqi`, `shogi`, `go-9`, `go-13` and `go-19`. A PGN `Variant` tag of `Standard` or `From Position` is `chess`. A Variant Bragd does not play keeps its own name in lower case, without spaces: `three-check`, `go-7`, `gametype-22`.
 
 ---
 [← Previous: Foreign databases](foreign-databases.md) · [Next: Duplicates →](duplicates.md)

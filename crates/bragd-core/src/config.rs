@@ -134,6 +134,10 @@ pub struct KnowledgeConfig {
     pub library: String,
     /// Sources, the first winning a header conflict between Duplicates.
     pub source_priority: Vec<String>,
+    /// How many times its own size a packed game file (`.pgn.zst`, `.pgn.bz2`, …) may unpack
+    /// to: past that, the import stops, taking it for a bomb. A Lichess month unpacks to about
+    /// 7 times its size.
+    pub max_unpack_ratio: u64,
 }
 
 impl Default for KnowledgeConfig {
@@ -141,9 +145,14 @@ impl Default for KnowledgeConfig {
         KnowledgeConfig {
             library: String::new(),
             source_priority: vec!["twic".into(), "lichess".into()],
+            max_unpack_ratio: MAX_UNPACK_RATIO,
         }
     }
 }
+
+/// `knowledge.max_unpack_ratio` unless set: a real game file unpacks to about 7 times its
+/// size, a bomb of blank blocks to thousands.
+pub const MAX_UNPACK_RATIO: u64 = 50;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -216,8 +225,14 @@ fn take<T: DeserializeOwned>(
 }
 
 impl Config {
+    /// The tablebase folder: the one set, else `tablebases` in Bragd's data folder.
+    pub fn tablebase_folder(&self) -> Option<PathBuf> {
+        let tb = self.tablebases.path.trim();
+        if tb.is_empty() { Some(crate::dirs::app_data()?.join("tablebases")) } else { Some(PathBuf::from(tb)) }
+    }
+
     pub fn path() -> Option<PathBuf> {
-        Some(crate::dirs::config_dir()?.join("bragd").join("config.toml"))
+        Some(crate::dirs::app_config()?.join("config.toml"))
     }
 
     /// The user's config, the defaults when there is no file. A mistake costs only its area

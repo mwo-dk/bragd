@@ -307,7 +307,7 @@ impl Source for CustomUrl {
         let name = self.url.split(['?', '#']).next().unwrap_or("").rsplit('/').next().unwrap_or("");
         let name: String = name.chars().filter(|c| c.is_alphanumeric() || matches!(c, '.' | '-' | '_')).collect();
         let zip = name.to_ascii_lowercase().ends_with(".zip");
-        if !(self.url.starts_with("https://") || self.url.starts_with("http://")) || name.starts_with('.') || !(zip || net::importable(&name)) {
+        if !(self.url.starts_with("https://") || self.url.starts_with("http://")) || name.starts_with('.') || !(zip || bragd_library::stream::importable(&name)) {
             return Err(io::Error::other(format!("{}: not a PGN, SGF, KIF, CSA or PDN file, or a zip of them", self.url)));
         }
         let to = cx.dir.join(&name);

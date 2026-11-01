@@ -55,7 +55,7 @@ Saving restarts the Helper. A job that was running starts again from its beginni
 
 #### Why are there at most 500 Duplicates in the list?
 
-The review shows at most 500 Duplicates and 500 Near-duplicate pairs, so the page stays quick on a large Library. The Duplicates count in the Libraries table stops at 500 too.
+The review shows at most 500 Duplicates and 500 Near-duplicate pairs, so the page stays quick on a large Library. The counts in the Libraries table and in the review headings are the whole totals.
 
 #### What names go in the priority list?
 
