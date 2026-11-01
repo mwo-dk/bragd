@@ -954,8 +954,8 @@ pub(crate) mod tests {
 
     /// A fake UCI engine added by its path for chess, `Fake 2.0`, that finds `e2e4` at depth 20.
     #[cfg(unix)]
+    /// The caller holds `CONFIG`.
     fn fake_analyst(d: &Path, key: &str) {
-        let _config = CONFIG.lock().unwrap_or_else(|e| e.into_inner());
         let script = "while read l; do case \"$l\" in uci) echo 'id name Fake 2.0'; echo uciok;; isready) echo readyok;; go*) echo 'info depth 20 score cp 31 pv e2e4 e7e5'; echo 'bestmove e2e4';; quit) exit 0;; esac; done";
         let p = d.join(key);
         let mut sh = std::process::Command::new("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(&p).stdin(std::process::Stdio::piped()).spawn().unwrap();
@@ -978,6 +978,7 @@ pub(crate) mod tests {
     #[test]
     fn background_analysis_fills_the_position_store() {
         use bragd_positions::{Edition, Evaluation, Score, Store};
+        let _config = CONFIG.lock().unwrap_or_else(|e| e.into_inner());
         let d = crate::tests::Dir::new("analyse");
         // The store is the test home's, kept between runs: keys of this run's own.
         let k = |n: u64| (u64::from(std::process::id()) << 32) | n;
@@ -1014,6 +1015,7 @@ pub(crate) mod tests {
     #[cfg(unix)]
     #[test]
     fn background_analysis_waits_on_the_battery() {
+        let _config = CONFIG.lock().unwrap_or_else(|e| e.into_inner());
         let d = crate::tests::Dir::new("analyse-battery");
         fake_analyst(&d.0, "fake-analyst-b");
         let battery = Arc::new(AtomicBool::new(true));
@@ -1035,6 +1037,37 @@ pub(crate) mod tests {
         let j = jobs.list().into_iter().find(|j| j.id == id).unwrap();
         assert_eq!((j.status, j.done), (Status::Done, 1));
         assert!(!jobs.analysis_waits.load(Ordering::Relaxed));
+    }
+
+    /// Outside the hours config.toml's `[analysis]` gives, background analysis waits, and
+    /// runs once they allow it.
+    #[cfg(unix)]
+    #[test]
+    fn background_analysis_waits_outside_its_hours() {
+        let _config = CONFIG.lock().unwrap_or_else(|e| e.into_inner());
+        let d = crate::tests::Dir::new("analyse-hours");
+        fake_analyst(&d.0, "fake-analyst-h");
+        let hours = |from: u64, until: u64| {
+            Config::save_value(&["analysis", "from_hour"], (from as i64).into()).unwrap();
+            Config::save_value(&["analysis", "until_hour"], (until as i64).into()).unwrap();
+        };
+        let now = crate::analysis::local_hour();
+        hours((now + 1) % 24, (now + 2) % 24);
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
+        let id = jobs.add(Work::Analyse { job: analyse_job("fake-analyst-h", &[((u64::from(std::process::id()) << 32) | 0x4045, 1)], "", false) });
+        let runner = {
+            let jobs = jobs.clone();
+            std::thread::spawn(move || jobs.run_first(Lane::Analysis))
+        };
+        let until = std::time::Instant::now() + Duration::from_secs(30);
+        while !jobs.analysis_waits.load(Ordering::Relaxed) {
+            assert!(std::time::Instant::now() < until, "it never waited");
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert_eq!(jobs.list().into_iter().find(|j| j.id == id).unwrap().done, 0);
+        hours(0, 24);
+        assert!(runner.join().unwrap());
+        assert_eq!(jobs.list().into_iter().find(|j| j.id == id).unwrap().status, Status::Done);
     }
 
     /// A Game opened again is queued once, and only the newest Games opened stay queued.
