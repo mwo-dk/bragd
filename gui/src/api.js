@@ -72,6 +72,12 @@ export const engineResetOptions = (/** @type {string} */ key) => invoke("engine_
 /** @returns {Promise<void>} */
 export const enginePull = (/** @type {string} */ key) => invoke("engine_pull", { key });
 export const engineNetworkDownload = (/** @type {string} */ key) => invoke("engine_network_download", { key });
+/** Engine matches of a Family: what a match can be set up with, and every match so far (gui/src-tauri/src/matches.rs). @returns {Promise<any>} */
+export const matchesPage = (/** @type {string} */ familyKey) => invoke("matches_page", { familyKey });
+/** Starts a match in the Helper: its job id. @returns {Promise<number>} */
+export const matchStart = (/** @type {any} */ setup) => invoke("match_start", { setup });
+/** Asks for an opening book or a file of opening lines. @returns {Promise<string|null>} */
+export const matchBookPick = () => invoke("match_book_pick");
 /** The engines there to run for a Variant, and whether more could be got. @returns {Promise<{engines: {key: string, name: string}[], default: string|null, more: boolean, sides: string[]}>} */
 export const engineChoices = (/** @type {string} */ variant) => invoke("engine_choices", { variant });
 /** @returns {Promise<{entry: string, notation: string}>} */

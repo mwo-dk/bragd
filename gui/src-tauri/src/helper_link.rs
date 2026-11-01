@@ -130,6 +130,7 @@ pub fn what(work: &Work) -> String {
         Work::Strip { source, .. } => t!("job.strip", "source" => source),
         Work::Prune { library, dry_run: true } => t!("job.prune_preview", "library" => file_name(library)),
         Work::Prune { library, .. } => t!("job.prune", "library" => file_name(library)),
+        Work::Match { setup } => t!("job.match", "engines" => setup.engines.iter().map(|k| bragd_engines::known::known(k).map_or(k.as_str(), |k| k.name)).collect::<Vec<_>>().join(" – ")),
     }
 }
 
@@ -172,7 +173,8 @@ pub fn job_view(j: &Job) -> JobView {
             None => t!("job.count", "done" => j.done),
         },
         error: j.error.clone().unwrap_or_default(),
-        report: j.report.as_ref().map(report).unwrap_or_default(),
+        // A match's standings are on its Engine matches page.
+        report: j.report.as_ref().filter(|_| !matches!(j.work, Work::Match { .. })).map(report).unwrap_or_default(),
         live: matches!(j.status, Status::Queued | Status::Running),
     }
 }
@@ -219,6 +221,7 @@ mod tests {
             files: vec![Rewritten { kept: 3, stripped: 7, bytes_before: 10_000, bytes_after: 3_000, ..Default::default() }],
             removed: vec![],
             library: Some(Pruned { games: 7, of: 10, bytes: 2_000_000, ..Default::default() }),
+            results: None,
         };
         let text = report(&r);
         assert!(text.contains('7') && text.contains("10") && text.contains("2.0 MB") && text.contains("3.0 kB"), "{text}");

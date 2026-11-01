@@ -12,6 +12,12 @@ fn os_byte() -> u8 {
     b[0]
 }
 
+/// A number from the operating system's random source: the seed an engine match chooses its
+/// openings by.
+pub fn seed() -> u64 {
+    u64::from_le_bytes(std::array::from_fn(|_| os_byte()))
+}
+
 /// A number in `0..n`, every one equally likely: bytes from the top, uneven slice are thrown
 /// away (rejection sampling), so no face is favoured as `byte % n` would favour the low ones.
 fn uniform(n: u8, next: &mut impl FnMut() -> u8) -> u8 {

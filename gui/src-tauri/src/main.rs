@@ -8,6 +8,7 @@ mod help;
 mod databases;
 mod helper_link;
 mod knowledge;
+mod matches;
 mod analyse;
 mod engine_commands;
 mod engines;
@@ -387,6 +388,9 @@ fn main() {
             knowledge::helper_status,
             knowledge::helper_retry,
             knowledge::job_cancel,
+            matches::matches_page,
+            matches::match_start,
+            matches::match_book_pick,
             knowledge::db_pick,
             knowledge::db_current,
             knowledge::db_close,

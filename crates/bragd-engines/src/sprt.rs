@@ -11,30 +11,111 @@
 
 /// The expected score of a player `elo` stronger (logistic Elo).
 pub fn score_of(elo: f64) -> f64 {
-    todo!()
+    1.0 / (1.0 + 10.0_f64.powf(-elo / 400.0))
 }
 
 /// The Elo difference a score means, the score kept within 0.001 and 0.999.
 pub fn elo_of(score: f64) -> f64 {
-    todo!()
+    let score = score.clamp(0.001, 0.999);
+    -400.0 * (1.0 / score - 1.0).log10()
 }
 
 /// The log-likelihood ratio of `elo1` against `elo0` for `results` (three or five
 /// frequencies). A frequency of 0 counts as 0.001, so a first lost game has a finite ratio.
 pub fn llr(results: &[u64], elo0: f64, elo1: f64) -> f64 {
-    todo!()
+    if results.is_empty() {
+        return 0.0;
+    }
+    let frequencies: Vec<f64> = results
+        .iter()
+        .map(|&count| if count == 0 { 0.001 } else { count as f64 })
+        .collect();
+    let n: f64 = frequencies.iter().sum();
+    let probabilities: Vec<f64> = frequencies.iter().map(|count| count / n).collect();
+    let denominator = (results.len() - 1) as f64;
+    let values: Vec<f64> = (0..results.len())
+        .map(|i| i as f64 / denominator)
+        .collect();
+
+    fn fitted_distribution(probabilities: &[f64], values: &[f64], score: f64) -> Vec<f64> {
+        let differences: Vec<f64> = values.iter().map(|value| value - score).collect();
+        let min = differences.iter().copied().fold(f64::INFINITY, f64::min);
+        let max = differences.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let mut left = -1.0 / max;
+        let mut right = -1.0 / min;
+        for _ in 0..200 {
+            let middle = left + (right - left) / 2.0;
+            let f: f64 = probabilities
+                .iter()
+                .zip(&differences)
+                .map(|(p, d)| p * d / (1.0 + middle * d))
+                .sum();
+            if f > 0.0 {
+                left = middle;
+            } else {
+                right = middle;
+            }
+            if right - left < 1e-15 {
+                break;
+            }
+        }
+        let x = left + (right - left) / 2.0;
+        probabilities
+            .iter()
+            .zip(differences)
+            .map(|(p, d)| p / (1.0 + x * d))
+            .collect()
+    }
+
+    let q0 = fitted_distribution(&probabilities, &values, score_of(elo0));
+    let q1 = fitted_distribution(&probabilities, &values, score_of(elo1));
+    n * probabilities
+        .iter()
+        .zip(q0.iter().zip(q1.iter()))
+        .map(|(p, (a, b))| p * (b.ln() - a.ln()))
+        .sum::<f64>()
 }
 
 /// The bounds the ratio is held against: below the first, `elo0` is accepted; above the
 /// second, `elo1`. `alpha` and `beta`: the chances of the two errors.
 pub fn bounds(alpha: f64, beta: f64) -> (f64, f64) {
-    todo!()
+    ((beta / (1.0 - alpha)).ln(), ((1.0 - beta) / alpha).ln())
 }
 
 /// The Elo difference `results` (three or five frequencies) show, and half the width of its
 /// 95 % confidence interval. None before the first game.
 pub fn elo(results: &[u64]) -> Option<(f64, f64)> {
-    todo!()
+    if results.iter().all(|&count| count == 0) {
+        return None;
+    }
+    if results.len() < 2 {
+        return None;
+    }
+    let frequencies: Vec<f64> = results
+        .iter()
+        .map(|&count| if count == 0 { 0.001 } else { count as f64 })
+        .collect();
+    let n: f64 = frequencies.iter().sum();
+    let probabilities: Vec<f64> = frequencies.iter().map(|count| count / n).collect();
+    let k = results.len() as f64;
+    let mean: f64 = probabilities
+        .iter()
+        .enumerate()
+        .map(|(i, p)| p * i as f64 / (k - 1.0))
+        .sum();
+    let games = n * (k - 1.0) / 2.0;
+    let variance: f64 = probabilities
+        .iter()
+        .enumerate()
+        .map(|(i, p)| {
+            let value = i as f64 / (k - 1.0);
+            p * (value - mean).powi(2) * (k - 1.0) / 2.0
+        })
+        .sum();
+    let sd = (variance / games).sqrt();
+    let lo = mean - 1.959_963_984_540_054 * sd;
+    let hi = mean + 1.959_963_984_540_054 * sd;
+    Some((elo_of(mean), (elo_of(hi) - elo_of(lo)) / 2.0))
 }
 
 #[cfg(test)]
