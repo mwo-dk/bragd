@@ -95,7 +95,7 @@ pub fn positions(text: &str) -> Vec<Position> {
             let counters = fields.len() >= 6 && fields[4].parse::<u32>().is_ok() && fields[5].parse::<u32>().is_ok();
             let n = if counters { 6 } else { fields.len().min(4) };
             let fen = fields[..n].join(" ");
-            let ok = pgn::board(&fen).map(|b| b.to_string());
+            let ok = pgn::board(&fen).map(|b| b.to_fen());
             Position { line: i + 1, fen: ok, about: fields[n..].join(" ") }
         })
         .collect()

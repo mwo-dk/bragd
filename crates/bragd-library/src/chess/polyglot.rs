@@ -4,7 +4,7 @@
 //! with Polyglot's 781 numbers below): a position's moves are found by a binary search, a few
 //! reads of the file, so a book of any size costs no memory.
 
-use cozy_chess::{Board, Color, File, Move, Piece, Rank, Square};
+use rules_chess::{CastlingNotation, Color, Move, Piece, Position, Role, Side, Square};
 use serde::Serialize;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -28,33 +28,30 @@ pub struct BookMove {
 }
 
 /// The key of a position, as Polyglot makes it.
-pub fn key(b: &Board) -> u64 {
+pub fn key(b: &Position) -> u64 {
     let mut k = 0u64;
-    for &colour in &[Color::White, Color::Black] {
-        for (p, piece) in [Piece::Pawn, Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen, Piece::King].into_iter().enumerate() {
+    for colour in [Color::White, Color::Black] {
+        for (p, role) in [Role::Pawn, Role::Knight, Role::Bishop, Role::Rook, Role::Queen, Role::King].into_iter().enumerate() {
             let kind = 2 * p + (colour == Color::White) as usize;
-            for sq in b.colored_pieces(colour, piece) {
+            for sq in b.pieces(colour, role) {
                 k ^= RANDOM[64 * kind + 8 * sq.rank() as usize + sq.file() as usize];
             }
         }
     }
-    for (i, (colour, short)) in [(Color::White, true), (Color::White, false), (Color::Black, true), (Color::Black, false)].into_iter().enumerate() {
-        let r = b.castle_rights(colour);
-        if if short { r.short.is_some() } else { r.long.is_some() } {
+    let rights = b.castling_rights();
+    for (i, (colour, side)) in [(Color::White, Side::Kingside), (Color::White, Side::Queenside), (Color::Black, Side::Kingside), (Color::Black, Side::Queenside)].into_iter().enumerate() {
+        if rights.has(colour, side) {
             k ^= RANDOM[768 + i];
         }
     }
     // The en passant file counts only when a pawn of the side to move stands beside it.
-    if let Some(file) = b.en_passant() {
+    if let Some(target) = b.en_passant_square() {
         let us = b.side_to_move();
-        let rank = if us == Color::White { Rank::Fifth } else { Rank::Fourth };
-        let f = file as usize;
-        let beside = [f.checked_sub(1), (f < 7).then_some(f + 1)].into_iter().flatten().any(|g| {
-            let sq = Square::new(File::index(g), rank);
-            b.piece_on(sq) == Some(Piece::Pawn) && b.color_on(sq) == Some(us)
-        });
+        let rank = if us == Color::White { 4 } else { 3 };
+        let f = target.file();
+        let beside = [f.checked_sub(1), (f < 7).then_some(f + 1)].into_iter().flatten().any(|g| b.piece_at(Square::from_file_rank(g, rank)) == Some(Piece::new(us, Role::Pawn)));
         if beside {
-            k ^= RANDOM[772 + f];
+            k ^= RANDOM[772 + f as usize];
         }
     }
     if b.side_to_move() == Color::White {
@@ -72,19 +69,19 @@ fn entry(e: &[u8; 16]) -> (u64, u16, u16, u32) {
     (key, mv, weight, learn)
 }
 
-/// A book's move as cozy-chess has it: castling is the king onto its rook in both.
-fn book_move(b: &Board, mv: u16) -> Option<Move> {
-    let sq = |bits: u16| Square::new(File::index((bits & 7) as usize), Rank::index(((bits >> 3) & 7) as usize));
+/// A book's move, if legal on `b`: castling is the king onto its rook, as in `rules_chess`.
+fn book_move(b: &Position, mv: u16) -> Option<Move> {
+    let sq = |bits: u16| Square::from_file_rank((bits & 7) as u8, ((bits >> 3) & 7) as u8);
     let promotion = match (mv >> 12) & 7 {
         0 => None,
-        1 => Some(Piece::Knight),
-        2 => Some(Piece::Bishop),
-        3 => Some(Piece::Rook),
-        4 => Some(Piece::Queen),
+        1 => Some(Role::Knight),
+        2 => Some(Role::Bishop),
+        3 => Some(Role::Rook),
+        4 => Some(Role::Queen),
         _ => return None,
     };
-    let m = Move { from: sq(mv >> 6), to: sq(mv), promotion };
-    b.is_legal(m).then_some(m)
+    let (from, to) = (sq(mv >> 6), sq(mv));
+    b.legal_moves().into_iter().find(|m| m.from() == from && m.to() == to && m.promotion_role() == promotion)
 }
 
 /// A book file open for reading.
@@ -114,7 +111,7 @@ impl Book {
 
     /// The book's moves for the position `b`, the heaviest first. Moves that cannot be played
     /// there (another position with the same key) are left out.
-    pub fn moves(&mut self, b: &Board) -> Vec<BookMove> {
+    pub fn moves(&mut self, b: &Position) -> Vec<BookMove> {
         let k = key(b);
         // The first entry with a key of at least k.
         let (mut lo, mut hi) = (0u64, self.entries);
@@ -145,11 +142,10 @@ impl Book {
         let mut out: Vec<BookMove> = found
             .into_iter()
             .map(|(m, weight, learn)| {
-                let mut after = b.clone();
-                after.play_unchecked(m);
+                let after = b.make_move(m);
                 BookMove {
                     san: super::pgn::san(b, m),
-                    uci: uci(b, m),
+                    uci: m.to_uci(CastlingNotation::KingDestination),
                     weight,
                     share: if total == 0 { 0.0 } else { weight as f32 * 100.0 / total as f32 },
                     learn,
@@ -160,22 +156,6 @@ impl Book {
         out.sort_by_key(|m| std::cmp::Reverse(m.weight));
         out
     }
-}
-
-/// A move in UCI, castling as the king's own move (`e1g1`).
-pub(crate) fn uci(b: &Board, m: Move) -> String {
-    let mut to = m.to;
-    if b.piece_on(m.from) == Some(Piece::King) && b.color_on(m.to) == b.color_on(m.from) {
-        to = Square::new(if m.to.file() > m.from.file() { File::G } else { File::C }, m.from.rank());
-    }
-    let p = match m.promotion {
-        Some(Piece::Knight) => "n",
-        Some(Piece::Bishop) => "b",
-        Some(Piece::Rook) => "r",
-        Some(Piece::Queen) => "q",
-        _ => "",
-    };
-    format!("{}{to}{p}", m.from)
 }
 
 /// Whether the file is a Polyglot book: a `.bin` file of whole 16-byte entries whose first and
@@ -239,7 +219,7 @@ pub struct Summary {
 
 pub fn summary(path: &Path) -> std::io::Result<Summary> {
     let mut b = Book::open(path)?;
-    Ok(Summary { entries: b.entries, moves: b.moves(&Board::default()) })
+    Ok(Summary { entries: b.entries, moves: b.moves(&Position::starting()) })
 }
 
 /// The book's moves for the position `fen`, from the book at `path`.
@@ -456,11 +436,13 @@ const RANDOM: [u64; 781] = [
 pub(crate) mod tests {
     use super::*;
 
-    fn after(moves: &[&str]) -> Board {
-        let mut b = Board::default();
+    fn after(moves: &[&str]) -> Position {
+        let mut b = Position::starting();
         for m in moves {
-            let mv = super::super::pgn::san_move(&b, m).or_else(|| m.parse::<Move>().ok().filter(|mv| b.is_legal(*mv))).unwrap_or_else(|| panic!("{m}"));
-            b.play_unchecked(mv);
+            let mv = super::super::pgn::san_move(&b, m)
+                .or_else(|| b.legal_moves().into_iter().find(|mv| mv.to_uci(CastlingNotation::KingTakesRook) == *m))
+                .unwrap_or_else(|| panic!("{m}"));
+            b = b.make_move(mv);
         }
         b
     }
@@ -494,7 +476,7 @@ pub(crate) mod tests {
             };
             s(to) | (s(from) << 6)
         };
-        let start = key(&Board::default());
+        let start = key(&Position::starting());
         let e4 = key(&after(&["e4"]));
         let mut entries = vec![
             (start, mv("e2", "e4"), 60u16, 0u32),

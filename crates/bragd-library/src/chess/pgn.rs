@@ -3,7 +3,7 @@
 //! all are read without a panic: a move that cannot be played ends the positions of its line
 //! (the moves after it are still listed), and what is not PGN is skipped.
 
-use cozy_chess::{Board, Color, File, Move, Piece, Rank, Square};
+use rules_chess::{Chess as Rules960, Color, Move, MoveKind, Position, Square};
 use serde::Serialize;
 use super::lex::{Movetext, Tok};
 
@@ -142,13 +142,13 @@ pub fn take_marks(c: &str, marks: &mut Vec<Mark>) -> String {
 
 /// A position's FEN; Shredder-FEN's castling (`HAha`) when a right is not the corner rook's
 /// with the king on its e-square (Chess960), so that `board` reads it back the same.
-pub fn fen(b: &Board) -> String {
+pub fn fen(b: &Position) -> String {
+    let r = b.castling_rights();
     let plain = Color::ALL.iter().all(|&c| {
-        let r = b.castle_rights(c);
-        (r.short.is_none() && r.long.is_none())
-            || (b.king(c).file() == File::E && r.short.is_none_or(|f| f == File::H) && r.long.is_none_or(|f| f == File::A))
+        let (short, long) = (r.rook_file(c, rules_chess::Side::Kingside), r.rook_file(c, rules_chess::Side::Queenside));
+        (short.is_none() && long.is_none()) || (b.king_square(c).file() == 4 && short.is_none_or(|f| f == 7) && long.is_none_or(|f| f == 0))
     });
-    if plain { b.to_string() } else { format!("{b:#}") }
+    if plain { b.to_fen() } else { b.to_shredder_fen() }
 }
 
 /// A game read in full.
@@ -397,214 +397,32 @@ pub fn full_fen(fen: &str) -> String {
     }
 }
 
-/// A position from FEN, as lenient as can be: the counters may be missing, castling rights the
-/// pieces do not allow are dropped, and an en passant square that cannot be taken too.
-pub fn board(fen: &str) -> Option<Board> {
-    let full = full_fen(fen);
-    // Shredder-FEN's castling (HAha) too, for Chess960, before anything is dropped.
-    let read = |f: &str| Board::from_fen(f, false).or_else(|_| Board::from_fen(f, true)).ok();
-    if let Some(b) = read(&full) {
-        return Some(b);
-    }
-    let mut f: Vec<&str> = full.split(' ').collect();
-    if f.len() == 6 {
-        f[3] = "-";
-        if let Some(b) = read(&f.join(" ")) {
-            return Some(b);
-        }
-        f[2] = "-";
-        return read(&f.join(" "));
-    }
-    None
+/// A position from FEN, as lenient as can be (`Position::from_fen_lenient`): the counters may
+/// be missing, castling rights the pieces do not allow are dropped, and an en passant square
+/// that cannot be taken too.
+pub fn board(fen: &str) -> Option<Position> {
+    Position::from_fen_lenient(fen)
 }
 
-fn piece_of(c: char) -> Option<Piece> {
-    Some(match c {
-        'K' => Piece::King,
-        'Q' => Piece::Queen,
-        'R' => Piece::Rook,
-        'B' => Piece::Bishop,
-        'N' => Piece::Knight,
-        'P' => Piece::Pawn,
-        _ => return None,
-    })
-}
-
-/// The move `san` names on `b`: SAN as written by hand too (`0-0`, `e2-e4`, `Ng1f3`, `e8Q`, a
-/// missing `x`). None when no legal move fits, or more than one does.
-pub fn san_move(b: &Board, san: &str) -> Option<Move> {
-    let s: String = san
-        .chars()
-        .filter(|c| !matches!(c, '+' | '#' | 'x' | ':' | '-' | '=' | '!' | '?'))
-        .collect();
-    let castle = san.trim_end_matches(['+', '#', '!', '?']);
-    let short = matches!(castle, "O-O" | "0-0" | "o-o");
-    let long = matches!(castle, "O-O-O" | "0-0-0" | "o-o-o");
-    let mut found = None;
-    let mut count = 0;
-    let king = b.king(b.side_to_move());
-    if short || long {
-        b.generate_moves_for(b.pieces(Piece::King), |moves| {
-            for mv in moves {
-                // cozy-chess castles as the king taking its own rook.
-                if b.color_on(mv.to) == Some(b.side_to_move()) && mv.from == king {
-                    let kingside = mv.to.file() > mv.from.file();
-                    if kingside == short {
-                        found = Some(mv);
-                        count += 1;
-                    }
-                }
-            }
-            false
-        });
-        return (count == 1).then_some(found).flatten();
-    }
-    let mut chars: Vec<char> = s.chars().collect();
-    // The promotion piece at the end: e8Q (from e8=Q).
-    let mut promotion = None;
-    if chars.len() >= 3
-        && let Some(p) = chars.last().and_then(|&c| piece_of(c.to_ascii_uppercase()))
-        && chars[chars.len() - 2].is_ascii_digit()
-        && !matches!(p, Piece::King | Piece::Pawn)
-    {
-        promotion = Some(p);
-        chars.pop();
-    }
-    let role = match chars.first() {
-        Some(&c) if c.is_ascii_uppercase() => {
-            chars.remove(0);
-            piece_of(c)?
-        }
-        _ => Piece::Pawn,
-    };
-    if chars.len() < 2 {
-        return None;
-    }
-    let (f, r) = (chars[chars.len() - 2], chars[chars.len() - 1]);
-    if !('a'..='h').contains(&f) || !('1'..='8').contains(&r) {
-        return None;
-    }
-    let to_file = File::try_index(f as usize - 'a' as usize)?;
-    let to_rank = Rank::try_index(r as usize - '1' as usize)?;
-    let to = Square::new(to_file, to_rank);
-    let mut from_file = None;
-    let mut from_rank = None;
-    for &c in &chars[..chars.len() - 2] {
-        if c.is_ascii_lowercase() && ('a'..='h').contains(&c) {
-            from_file = File::try_index(c as usize - 'a' as usize);
-        } else if ('1'..='8').contains(&c) {
-            from_rank = Rank::try_index(c as usize - '1' as usize);
-        } else {
-            return None;
-        }
-    }
-    b.generate_moves(|moves| {
-        if moves.piece != role {
-            return false;
-        }
-        for mv in moves {
-            // A king never takes its own rook here: that is castling, named above.
-            if mv.to != to || b.color_on(mv.to) == Some(b.side_to_move()) {
-                continue;
-            }
-            if from_file.is_some_and(|f| mv.from.file() != f) || from_rank.is_some_and(|r| mv.from.rank() != r) {
-                continue;
-            }
-            let promo = mv.promotion;
-            if role == Piece::Pawn && promo.is_some() && promo != promotion.or(Some(Piece::Queen)) {
-                continue;
-            }
-            if promotion.is_some() && promo != promotion {
-                continue;
-            }
-            if found != Some(mv) {
-                count += 1;
-            }
-            found = Some(mv);
-        }
-        false
-    });
-    (count == 1).then_some(found).flatten()
+/// The move `san` names on `b`, SAN as written by hand too (`rules_chess::from_san_loose`).
+pub fn san_move(b: &Position, san: &str) -> Option<Move> {
+    rules_chess::from_san_loose(b, san)
 }
 
 /// A legal move on `b` in English SAN, as a book writes it: `Nbd2`, `exd5`, `O-O`, `e8=Q+`.
-pub fn san(b: &Board, mv: Move) -> String {
-    let piece = b.piece_on(mv.from).unwrap_or(Piece::Pawn);
-    let mut out = String::new();
-    if piece == Piece::King && b.color_on(mv.to) == b.color_on(mv.from) {
-        out.push_str(if mv.to.file() > mv.from.file() { "O-O" } else { "O-O-O" });
-    } else {
-        let capture = b.color_on(mv.to).is_some() || (piece == Piece::Pawn && mv.from.file() != mv.to.file());
-        if piece == Piece::Pawn {
-            if capture {
-                out.push(char::from(b'a' + mv.from.file() as u8));
-            }
-        } else {
-            out.push(match piece {
-                Piece::Knight => 'N',
-                Piece::Bishop => 'B',
-                Piece::Rook => 'R',
-                Piece::Queen => 'Q',
-                _ => 'K',
-            });
-            // Other pieces of its kind that reach the square: its file, else its rank, else both.
-            let mut others = vec![];
-            b.generate_moves_for(b.colored_pieces(b.side_to_move(), piece), |moves| {
-                for m in moves {
-                    if m.to == mv.to && m.from != mv.from {
-                        others.push(m.from);
-                    }
-                }
-                false
-            });
-            if !others.is_empty() {
-                let file = !others.iter().any(|s| s.file() == mv.from.file());
-                let rank = !others.iter().any(|s| s.rank() == mv.from.rank());
-                if file || !rank {
-                    out.push(char::from(b'a' + mv.from.file() as u8));
-                }
-                if !file {
-                    out.push(char::from(b'1' + mv.from.rank() as u8));
-                }
-            }
-        }
-        if capture {
-            out.push('x');
-        }
-        out.push_str(&mv.to.to_string());
-        if let Some(p) = mv.promotion {
-            out.push('=');
-            out.push(match p {
-                Piece::Knight => 'N',
-                Piece::Bishop => 'B',
-                Piece::Rook => 'R',
-                _ => 'Q',
-            });
-        }
-    }
-    let mut after = b.clone();
-    after.play_unchecked(mv);
-    if !after.checkers().is_empty() {
-        let mut any = false;
-        after.generate_moves(|_| {
-            any = true;
-            true
-        });
-        out.push(if any { '+' } else { '#' });
-    }
-    out
+pub fn san(b: &Position, mv: Move) -> String {
+    rules_chess::to_san(&Rules960, b, mv)
 }
 
-/// The square a move ends on as the eye sees it: castling goes to the king's square, not its
-/// rook's (cozy-chess's notation).
-pub(crate) fn shown_squares(b: &Board, mv: Move) -> (u8, u8) {
-    let to = if b.piece_on(mv.from) == Some(Piece::King) && b.color_on(mv.to) == b.color_on(mv.from) {
-        let file = if mv.to.file() > mv.from.file() { File::G } else { File::C };
-        Square::new(file, mv.from.rank())
-    } else {
-        mv.to
+/// The squares a move goes from and to as the eye sees it: castling goes to the king's square,
+/// not its rook's.
+pub(crate) fn shown_squares(mv: Move) -> (u8, u8) {
+    let to = match mv.kind() {
+        MoveKind::KingsideCastle => Square::from_file_rank(6, mv.from().rank()),
+        MoveKind::QueensideCastle => Square::from_file_rank(2, mv.from().rank()),
+        _ => mv.to(),
     };
-    (mv.from as u8, to as u8)
+    (mv.from().index(), to.index())
 }
 
 /// What a game of the PGN family needs to be read and played out: chess here, draughts in
@@ -626,39 +444,38 @@ pub(crate) trait Rules {
     fn play(&self, b: &Self::Board, mv: &str) -> Option<(Self::Board, String, Option<u8>, Option<u8>)>;
 }
 
-/// Chess, by cozy-chess.
+/// Chess, by `rules_chess`.
 pub(crate) struct Chess;
 
 impl Rules for Chess {
-    type Board = Board;
+    type Board = Position;
     const MARKS: bool = true;
 
-    fn start(&self, tags: &[(String, String)], _: &str) -> (Board, String) {
+    fn start(&self, tags: &[(String, String)], _: &str) -> (Position, String) {
         tags.iter()
             .find(|(k, _)| k.eq_ignore_ascii_case("FEN"))
             .and_then(|(_, f)| board(f).map(|b| (b, full_fen(f))))
-            .unwrap_or_else(|| (Board::default(), START.to_string()))
+            .unwrap_or_else(|| (Position::starting(), START.to_string()))
     }
 
     fn word<'a>(&self, w: &'a str) -> Word<'a> {
         word(w)
     }
 
-    fn turn(&self, b: &Board) -> (bool, u32) {
-        (b.side_to_move() == Color::White, b.fullmove_number() as u32)
+    fn turn(&self, b: &Position) -> (bool, u32) {
+        (b.side_to_move() == Color::White, b.fullmove_number())
     }
 
-    fn play(&self, b: &Board, san: &str) -> Option<(Board, String, Option<u8>, Option<u8>)> {
+    fn play(&self, b: &Position, san: &str) -> Option<(Position, String, Option<u8>, Option<u8>)> {
         // A null move (`--`, or `Z0`): the turn passes.
         if san == "--" || san == "Z0" {
-            let nb = b.null_move()?;
-            return Some((nb.clone(), fen(&nb), None, None));
+            let nb = b.pass()?;
+            return Some((nb, fen(&nb), None, None));
         }
         let mv = san_move(b, san)?;
-        let (from, to) = shown_squares(b, mv);
-        let mut nb = b.clone();
-        nb.play_unchecked(mv);
-        Some((nb.clone(), fen(&nb), Some(from), Some(to)))
+        let (from, to) = shown_squares(mv);
+        let nb = b.make_move(mv);
+        Some((nb, fen(&nb), Some(from), Some(to)))
     }
 }
 
@@ -920,7 +737,7 @@ mod tests {
         // A Chess960 position's FEN reads back the same, its castling in Shredder-FEN.
         let b = board("4k3/p7/8/8/8/8/8/5KR1 w G - 0 1").unwrap();
         assert_eq!(fen(&b), "4k3/p7/8/8/8/8/8/5KR1 w G - 0 1");
-        assert_eq!(fen(&Board::default()), START);
+        assert_eq!(fen(&Position::starting()), START);
     }
 
     #[test]
@@ -964,26 +781,6 @@ mod tests {
         assert!(s.starts_with("1.e4 e5 2.Nf3 d6 3.d4 Bg4 {This is a weak move already.} 4.dxe5"), "{s}");
         assert!(s.contains("15.Bxd7+ Nxd7 ( 15…Qxd7 16.Qb8+ Ke7 17.Qxe5+ ( 17.Bxf6+ gxf6 ) 17…Kd8 ) 16.Qb8+"), "{s}");
         assert!(s.ends_with("17.Rd8# 1-0"));
-    }
-
-    #[test]
-    fn san_as_people_write_it() {
-        let b = Board::default();
-        for s in ["e4", "e2-e4", "e2e4", "Pe4"] {
-            assert!(san_move(&b, s).is_some(), "{s}");
-        }
-        assert!(san_move(&b, "Nf3").is_some() && san_move(&b, "Ng1f3").is_some() && san_move(&b, "Ng1-f3").is_some());
-        assert!(san_move(&b, "Nc3").is_some() && san_move(&b, "Nd2").is_none());
-        assert!(san_move(&b, "e5").is_none() && san_move(&b, "Ke2").is_none() && san_move(&b, "O-O").is_none());
-        // Two knights reach d2: SAN says which.
-        let b = board("4k3/8/8/8/8/8/8/1N2KN2 w - - 0 1").unwrap();
-        assert!(san_move(&b, "Nd2").is_none());
-        assert!(san_move(&b, "Nbd2").is_some() && san_move(&b, "Nfd2").is_some());
-        // Promotion, with and without `=`, and castling with zeros.
-        let b = board("8/P5k1/8/8/8/8/8/R3K2R w KQ - 0 1").unwrap();
-        assert_eq!(san_move(&b, "a8=N").and_then(|m| m.promotion), Some(Piece::Knight));
-        assert_eq!(san_move(&b, "a8Q").and_then(|m| m.promotion), Some(Piece::Queen));
-        assert!(san_move(&b, "0-0").is_some() && san_move(&b, "O-O-O+").is_some());
     }
 
     #[test]
@@ -1044,11 +841,6 @@ mod tests {
             .unwrap()
             .join()
             .unwrap();
-        // Moves no board has: no panic, just no move.
-        let b = Board::default();
-        for s in ["KQ1", "aA1", "e9", "Nz3", "Q@4", "N~3", "A1", "bxc0", "é4", "N1"] {
-            assert!(san_move(&b, s).is_none(), "{s}");
-        }
         let g = parse("1.KQ1 2.aA1 *");
         assert_eq!(g.error.as_deref(), Some("1.KQ1"));
         // So many moves: the game stops at MAX_MOVES.
@@ -1057,38 +849,6 @@ mod tests {
         // A tag value no longer than MAX_TAG.
         let long = format!("[White \"{}\"]", "x".repeat(100_000));
         assert_eq!(tag_pair(&long).unwrap().1.len(), MAX_TAG);
-    }
-
-    #[test]
-    fn moves_written_in_san() {
-        let all = |fen: &str| -> Vec<String> {
-            let b = board(fen).unwrap();
-            let mut v = vec![];
-            b.generate_moves(|ms| {
-                for m in ms {
-                    v.push(san(&b, m));
-                }
-                false
-            });
-            // Every move written reads back as itself.
-            for s in &v {
-                let m = san_move(&b, s).unwrap_or_else(|| panic!("{s} on {fen}"));
-                assert_eq!(&san(&b, m), s);
-            }
-            v
-        };
-        assert!(all(START).contains(&"Nf3".to_string()));
-        let v = all("4k3/8/8/8/8/8/8/1N2KN2 w - - 0 1");
-        assert!(v.contains(&"Nbd2".into()) && v.contains(&"Nfd2".into()));
-        let v = all("8/P5k1/8/8/8/8/8/R3K2R w KQ - 0 1");
-        assert!(v.contains(&"a8=Q".into()) && v.contains(&"O-O".into()) && v.contains(&"O-O-O".into()));
-        let v = all("r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1");
-        assert!(v.contains(&"Qxf7#".into()));
-        let v = all("rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3");
-        assert!(v.contains(&"exf6".into()));
-        // Rooks on one file: the rank tells them apart.
-        let v = all("4k3/8/R7/8/8/8/R7/4K3 w - - 0 1");
-        assert!(v.contains(&"R6a4".into()) && v.contains(&"R2a4".into()));
     }
 
     #[test]

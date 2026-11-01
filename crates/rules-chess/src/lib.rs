@@ -49,7 +49,7 @@ pub use game::{ClaimError, Game, MoveError};
 pub use outcome::{DrawClaim, DrawReason, Outcome, WinReason};
 pub use piece::{Color, Piece, Role};
 pub use position::Position;
-pub use san::{from_san, to_san};
+pub use san::{from_san, from_san_loose, to_san};
 pub use square::Square;
 pub use variant::{
     Chess, Chess960, KingOfTheHill, RacingKings, Rules, Seirawan, Shatranj, Variant,

@@ -224,6 +224,86 @@ pub fn from_san<V: Variant + ?Sized>(variant: &V, position: &Position, text: &st
     found
 }
 
+/// The chess move (Chess960's too) a game file names: SAN as people write
+/// it by hand as well — `0-0` and `o-o`, `e2-e4`, `Ng1f3`, `e8Q`, a missing
+/// `x` or `:` for one. None when no legal move fits, or more than one does.
+///
+/// Looser than [`from_san`] on purpose: files from before SAN settled spell
+/// moves every way, and a move this reads must still be the only legal one
+/// that fits. A promotion without its piece is a queen's.
+pub fn from_san_loose(position: &Position, text: &str) -> Option<Move> {
+    let legal = position.legal_moves();
+    let castle = text.trim_end_matches(['+', '#', '!', '?']);
+    let short = matches!(castle, "O-O" | "0-0" | "o-o");
+    let long = matches!(castle, "O-O-O" | "0-0-0" | "o-o-o");
+    if short || long {
+        let wanted = if short { MoveKind::KingsideCastle } else { MoveKind::QueensideCastle };
+        let mut fits = legal.into_iter().filter(|mv| mv.kind() == wanted);
+        return match (fits.next(), fits.next()) {
+            (Some(mv), None) => Some(mv),
+            _ => None,
+        };
+    }
+    let role_of = |c: char| if c == 'P' { Some(Role::Pawn) } else { Role::CHESS.into_iter().find(|r| r.letter() == Some(c)) };
+    let mut chars: Vec<char> = text.chars().filter(|c| !matches!(c, '+' | '#' | 'x' | ':' | '-' | '=' | '!' | '?')).collect();
+    // The promotion piece at the end: e8Q (from e8=Q).
+    let mut promotion = None;
+    if chars.len() >= 3
+        && let Some(r) = chars.last().and_then(|&c| role_of(c.to_ascii_uppercase()))
+        && chars[chars.len() - 2].is_ascii_digit()
+        && !matches!(r, Role::King | Role::Pawn)
+    {
+        promotion = Some(r);
+        chars.pop();
+    }
+    let role = match chars.first() {
+        Some(&c) if c.is_ascii_uppercase() => {
+            chars.remove(0);
+            role_of(c)?
+        }
+        _ => Role::Pawn,
+    };
+    if chars.len() < 2 {
+        return None;
+    }
+    let (f, r) = (chars[chars.len() - 2], chars[chars.len() - 1]);
+    if !('a'..='h').contains(&f) || !('1'..='8').contains(&r) {
+        return None;
+    }
+    let to = crate::square::Square::from_file_rank(f as u8 - b'a', r as u8 - b'1');
+    let (mut from_file, mut from_rank) = (None, None);
+    for &c in &chars[..chars.len() - 2] {
+        if ('a'..='h').contains(&c) {
+            from_file = Some(c as u8 - b'a');
+        } else if ('1'..='8').contains(&c) {
+            from_rank = Some(c as u8 - b'1');
+        } else {
+            return None;
+        }
+    }
+    let mut found = None;
+    let mut count = 0;
+    for mv in legal {
+        // A castle is named only as one, above.
+        if mv.kind().is_castle() || mv.to() != to || position.piece_at(mv.from()).map(|p| p.role) != Some(role) {
+            continue;
+        }
+        if from_file.is_some_and(|f| mv.from().file() != f) || from_rank.is_some_and(|r| mv.from().rank() != r) {
+            continue;
+        }
+        let promo = mv.promotion_role();
+        if promo.is_some() && promo != promotion.or(Some(Role::Queen)) {
+            continue;
+        }
+        if promotion.is_some() && promo != promotion {
+            continue;
+        }
+        found = Some(mv);
+        count += 1;
+    }
+    (count == 1).then_some(found).flatten()
+}
+
 /// Strips what does not change which move is meant.
 fn normalise(text: &str) -> String {
     let mut out = String::new();
@@ -684,5 +764,54 @@ mod tests {
         let start = Position::starting();
         assert!(from_san(&Chess, &start, "b4").is_some());
         assert_eq!(from_san(&Chess, &start, "B4"), None);
+    }
+
+    #[test]
+    fn loose_san_as_people_write_it() {
+        let loose = |fen: &str, text: &str| from_san_loose(&position(fen), text);
+        for s in ["e4", "e2-e4", "e2e4", "Pe4"] {
+            assert!(loose(START, s).is_some(), "{s}");
+        }
+        assert!(loose(START, "Nf3").is_some() && loose(START, "Ng1f3").is_some() && loose(START, "Ng1-f3").is_some());
+        assert!(loose(START, "Nc3").is_some() && loose(START, "Nd2").is_none());
+        assert!(loose(START, "e5").is_none() && loose(START, "Ke2").is_none() && loose(START, "O-O").is_none());
+        // Two knights reach d2: the text must say which.
+        let two = "4k3/8/8/8/8/8/8/1N2KN2 w - - 0 1";
+        assert!(loose(two, "Nd2").is_none());
+        assert!(loose(two, "Nbd2").is_some() && loose(two, "Nfd2").is_some());
+        // Promotion with and without `=`, a queen when unnamed, castling with zeroes.
+        let fen = "8/P5k1/8/8/8/8/8/R3K2R w KQ - 0 1";
+        assert_eq!(loose(fen, "a8=N").and_then(|m| m.promotion_role()), Some(Role::Knight));
+        assert_eq!(loose(fen, "a8Q").and_then(|m| m.promotion_role()), Some(Role::Queen));
+        assert_eq!(loose(fen, "a8").and_then(|m| m.promotion_role()), Some(Role::Queen));
+        assert!(loose(fen, "0-0").is_some() && loose(fen, "O-O-O+").is_some() && loose(fen, "o-o").is_some());
+        // A capture written with a colon, or without its x.
+        let fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
+        assert_eq!(loose(fen, "e4:d5"), loose(fen, "exd5"));
+        assert_eq!(loose(fen, "ed5"), loose(fen, "exd5"));
+        // Chess960: a king already on g1 castles by moving only its rook.
+        let fen = "4k3/8/8/8/8/8/8/6KR w H - 0 1";
+        assert!(matches!(loose(fen, "O-O").map(|m| m.kind()), Some(MoveKind::KingsideCastle)));
+        // Text no board has: no move, and no panic.
+        for s in ["KQ1", "aA1", "e9", "Nz3", "Q@4", "N~3", "A1", "bxc0", "é4", "N1", "", "x", "=Q"] {
+            assert!(loose(START, s).is_none(), "{s}");
+        }
+    }
+
+    #[test]
+    fn every_move_written_reads_back_loosely() {
+        for fen in [
+            START,
+            "4k3/8/8/8/8/8/8/1N2KN2 w - - 0 1",
+            "8/P5k1/8/8/8/8/8/R3K2R w KQ - 0 1",
+            "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1",
+            "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3",
+            "4k3/8/R7/8/8/8/R7/4K3 w - - 0 1",
+        ] {
+            let p = position(fen);
+            for mv in Chess.legal_moves(&p) {
+                assert_eq!(from_san_loose(&p, &to_san(&Chess, &p, mv)), Some(mv), "{fen}");
+            }
+        }
     }
 }

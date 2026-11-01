@@ -11,13 +11,13 @@ description = "Bragd's game databases: Foreign databases read in place, SQLite L
 bragd-core = { path = "../bragd-core" }
 # `.pgn.bz2` (FICS), unpacked as it streams, in pure Rust.
 bzip2 = "0.6"
-# Chess boards, moves and legality, for reading games (SAN, FEN, Polyglot keys).
-cozy-chess = "0.3.4"
 encoding_rs = "0.8.42"
 flate2 = "1.1.10"
 memchr = "2"
 # `.pgn.zst`, unpacked in pure Rust.
 ruzstd = "0.9.0"
+# Chess boards, moves and legality, for reading games (SAN, FEN, Polyglot keys).
+rules-chess = { path = "../rules-chess" }
 rusqlite = { version = "0.41.1", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

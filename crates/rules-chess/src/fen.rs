@@ -112,6 +112,87 @@ impl Position {
         Ok(position)
     }
 
+    /// A position from a FEN as game files write them: the counters may be
+    /// missing, an en passant square no pawn can take on is dropped, and then
+    /// castling rights the board cannot back. Refused, beyond what
+    /// [`Position::from_fen`] refuses: pieces other than chess's, more than
+    /// sixteen men or eight pawns a side, three checkers, the side not to
+    /// move in check, a halfmove clock over 100 and a move number of 0. That
+    /// is a position a game could be in, so a file's start reads as it did
+    /// before this crate read files.
+    pub fn from_fen_lenient(fen: &str) -> Option<Position> {
+        let fields: Vec<&str> = fen.split_whitespace().collect();
+        let mut full = match fields.len() {
+            0 => return None,
+            1 => vec![fields[0], "w", "-", "-", "0", "1"],
+            2 => vec![fields[0], fields[1], "-", "-", "0", "1"],
+            3 => vec![fields[0], fields[1], fields[2], "-", "0", "1"],
+            4 => vec![fields[0], fields[1], fields[2], fields[3], "0", "1"],
+            5 => vec![fields[0], fields[1], fields[2], fields[3], fields[4], "1"],
+            _ => fields[..6].to_vec(),
+        };
+        let counters_ok = full[4].parse::<u32>().is_ok_and(|n| n <= 100) && full[5].parse::<u32>().is_ok_and(|n| n > 0);
+        if !counters_ok {
+            return None;
+        }
+        let read = |f: &[&str]| Position::from_fen(&f.join(" ")).ok().filter(Position::could_be_in_a_game);
+        if let Some(p) = read(&full) {
+            return Some(p);
+        }
+        full[3] = "-";
+        if let Some(p) = read(&full) {
+            return Some(p);
+        }
+        full[2] = "-";
+        read(&full)
+    }
+
+    /// What [`Position::from_fen_lenient`] asks beyond a valid FEN.
+    fn could_be_in_a_game(&self) -> bool {
+        let us = self.side_to_move();
+        if Role::ALL.iter().any(|r| !Role::CHESS.contains(r) && !self.by_role(*r).is_empty()) {
+            return false;
+        }
+        for color in Color::ALL {
+            if self.by_color(color).count() > 16 || self.pieces(color, Role::Pawn).count() > 8 {
+                return false;
+            }
+        }
+        let king = self.king_square(us);
+        let checkers = self.attackers_to(king, self.occupied()) & self.by_color(us.opponent());
+        if checkers.count() > 2 {
+            return false;
+        }
+        let Some(target) = self.en_passant_square() else { return true };
+        // The pawn that went past it, and the square it came from.
+        let (Some(pawn), Some(source)) = (target.offset(-us.forward()), target.offset(us.forward())) else { return false };
+        self.piece_at(pawn) == Some(Piece::new(us.opponent(), Role::Pawn))
+            && self.piece_at(target).is_none()
+            && self.piece_at(source).is_none()
+            // A check now came from that pawn, or through the square it left.
+            && checkers.into_iter().all(|c| c == pawn || crate::attacks::between(c, king).contains(source))
+    }
+
+    /// The FEN with Shredder's castling field (`HAha`): each right by its
+    /// rook's file. Unambiguous for any Chess960 array, where X-FEN's `K` and
+    /// `Q` need the reader to find the outermost rook.
+    pub fn to_shredder_fen(&self) -> String {
+        let mut fields: Vec<String> = self.to_fen().split(' ').map(str::to_string).collect();
+        if !self.castling_rights().is_empty() {
+            let mut field = String::new();
+            for color in Color::ALL {
+                for side in Side::ALL {
+                    if let Some(file) = self.castling_rights().rook_file(color, side) {
+                        let letter = (b'A' + file) as char;
+                        field.push(if color == Color::White { letter } else { letter.to_ascii_lowercase() });
+                    }
+                }
+            }
+            fields[2] = field;
+        }
+        fields.join(" ")
+    }
+
     pub fn to_fen(&self) -> String {
         let mut fen = String::with_capacity(80);
 
@@ -454,5 +535,37 @@ mod tests {
     fn an_en_passant_square_must_be_on_the_third_or_sixth_rank() {
         assert!(Position::from_fen("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1").is_ok());
         assert!(Position::from_fen("4k3/8/8/3pP3/8/8/8/4K3 w - d5 0 1").is_err());
+    }
+
+    #[test]
+    fn a_lenient_read_drops_what_the_board_cannot_back() {
+        let read = |fen: &str| Position::from_fen_lenient(fen).map(|p| p.to_fen());
+        // Counters missing.
+        assert_eq!(read("4k3/8/8/3pP3/8/8/8/4K3 w - d6").as_deref(), Some("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"));
+        assert_eq!(read("4k3/8/8/8/8/8/8/4K3").as_deref(), Some("4k3/8/8/8/8/8/8/4K3 w - - 0 1"));
+        // An en passant square with no pawn past it goes; then rights with no rook.
+        assert_eq!(read("r3k3/8/8/8/8/8/8/4K2R w Kq e6 0 1").as_deref(), Some("r3k3/8/8/8/8/8/8/4K2R w Kq - 0 1"));
+        assert_eq!(read("r3k3/8/8/8/8/8/8/4K2R w KQkq e6 0 1").as_deref(), Some("r3k3/8/8/8/8/8/8/4K2R w - - 0 1"));
+        // Positions no game could be in.
+        for fen in [
+            "4k3/8/8/8/8/8/8/r3K3 b - - 0 1",
+            "4k3/8/8/8/8/8/8/4K3 w - - 101 1",
+            "4k3/8/8/8/8/8/8/4K3 w - - 0 0",
+            "4k3/8/8/8/8/8/8/4KF2 w - - 0 1",
+            "4k3/PPPPPPPP/P7/8/8/8/8/4K3 w - - 0 1",
+            "no position",
+            "",
+        ] {
+            assert_eq!(read(fen), None, "{fen}");
+        }
+    }
+
+    #[test]
+    fn shredder_names_each_right_by_its_file() {
+        let p = Position::from_fen("1r1kr3/8/8/8/8/8/8/1R1KR3 w KQkq - 0 1").unwrap();
+        assert_eq!(p.to_shredder_fen(), "1r1kr3/8/8/8/8/8/8/1R1KR3 w EBeb - 0 1");
+        assert_eq!(Position::starting().to_shredder_fen(), "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
+        let none = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
+        assert_eq!(Position::from_fen(none).unwrap().to_shredder_fen(), none);
     }
 }

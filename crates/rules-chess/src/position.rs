@@ -381,6 +381,25 @@ impl Position {
         self.legal_moves().contains(mv)
     }
 
+    /// The position after a null move (`--` in a game file): the turn passes,
+    /// en passant expires, the halfmove clock counts on (to 100 at most) and
+    /// the move number too after Black. None when the side to move is in
+    /// check, where passing would leave its king to be taken.
+    pub fn pass(&self) -> Option<Position> {
+        if self.is_check() {
+            return None;
+        }
+        let mut next = *self;
+        next.halfmove_clock = (self.halfmove_clock + 1).min(100);
+        if self.side_to_move == Color::Black {
+            next.fullmove_number = self.fullmove_number.saturating_add(1);
+        }
+        next.side_to_move = self.side_to_move.opponent();
+        next.en_passant = None;
+        next.key = next.compute_key();
+        Some(next)
+    }
+
     /// The position after `mv`.
     ///
     /// # Panics
@@ -829,4 +848,14 @@ mod tests {
     const D5: Square = Square::new(35);
     const D6: Square = Square::new(43);
     const E3: Square = Square::new(20);
+
+    #[test]
+    fn a_pass_hands_over_the_turn() {
+        let p = position("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+        let passed = p.pass().unwrap();
+        assert_eq!(passed.to_fen(), "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 1 2");
+        assert_eq!(passed.key(), position(&passed.to_fen()).key());
+        assert_eq!(position("4k3/8/8/8/8/8/8/4K3 w - - 100 9").pass().unwrap().halfmove_clock(), 100);
+        assert!(position("4k3/8/8/8/8/8/8/4K2r w - - 0 1").pass().is_none(), "in check");
+    }
 }
