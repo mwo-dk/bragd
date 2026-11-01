@@ -1,0 +1,5 @@
+# The Bragd server starts on hosted Supabase, with a Rust game service beside it
+
+The Bragd server's accounts, Friends, Chat, presence and Call signalling live in Supabase, hosted on the free plan in an EU region. Games between Bragd players are refereed by a game service of our own, in Rust on the Hetzner host, using Bragd's rules crates and the same Postgres.
+
+Earlier we chose one Rust server with its own Postgres, and turned Supabase down because it would mean two backends. Two things changed. Chat and Calls need auth, presence, realtime messages and signalling, which Supabase already has. And the Hetzner Node (a cx23, 4 GB) has no room for a self-hosted Supabase. Sharing one Postgres keeps it to one database, not two backends. In return, a US company processes the data, the free plan pauses a project after a quiet week, and its limits (500 MB, 200 Realtime connections) will force a move to the Pro plan or to self-hosting. Since it is plain Postgres, that move is a dump and restore.

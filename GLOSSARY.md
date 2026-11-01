@@ -102,7 +102,7 @@ Another player on the Bragd server whom you both accepted. Members of your Clubs
 _Avoid_: contact, buddy
 
 **Bragd server**:
-The server Bragd's makers run for accounts, Friends, Games between Bragd players, and bringing Calls together.
+What Bragd's makers run for accounts, Friends, Games between Bragd players, and bringing Calls together: hosted Supabase plus Bragd's own game service.
 _Avoid_: backend, cloud, lobby
 
 ### Clubs and competition
