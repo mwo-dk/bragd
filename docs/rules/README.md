@@ -117,4 +117,4 @@ not a piece, and the board model and the sprites assume one piece per cell.
 Recorded here so it is not proposed again as though it were cheap.
 
 ---
-[← Previous: Swiss pairing](../reference/swiss-pairing.md) · [Next: Changelog →](../changelog.md)
+[← Previous: Round-robin, knockout and Scheveningen](../reference/round-robin-and-knockout.md) · [Next: Changelog →](../changelog.md)

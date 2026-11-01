@@ -9,7 +9,9 @@
 //! points the caller passes `win: 2` and records a draw as 1.
 
 pub mod dutch;
+pub mod knockout;
 pub mod round_robin;
+pub mod scheveningen;
 pub mod trf;
 
 mod colour;
@@ -138,6 +140,12 @@ pub enum Rule {
     /// A round of FIDE's Berger table for `size` players (C.05 Annex 1).
     /// In `cycle` 2 of a double round-robin the colours are reversed.
     Berger { size: u32, round: u32, cycle: u32 },
+    /// A round of a knockout bracket (FIDE World Cup regulations); the byes
+    /// are the bracket's floaters.
+    Knockout { round: u32 },
+    /// A round of a Scheveningen between two teams; colours are reversed in
+    /// cycle 2 of a double one.
+    Scheveningen { round: u32, cycle: u32 },
 }
 
 /// The criteria of C.04.3 2.3-2.4 a bracket can fail.
@@ -197,6 +205,8 @@ pub enum Error {
     NoLegalPairing,
     /// A bracket mixes more score levels than the pairing weights can hold.
     TooComplex,
+    /// A knockout match of an earlier round has no single winner.
+    NoWinner { round: u32, board: u32 },
 }
 
 impl std::fmt::Display for Error {
@@ -208,6 +218,9 @@ impl std::fmt::Display for Error {
             Error::TournamentOver => write!(f, "every round has been played"),
             Error::NoLegalPairing => write!(f, "no pairing meets the absolute criteria"),
             Error::TooComplex => write!(f, "a bracket mixes too many scores to pair"),
+            Error::NoWinner { round, board } => {
+                write!(f, "match {board} of round {round} has no single winner")
+            }
         }
     }
 }
