@@ -37,7 +37,7 @@ libc = "0.2"
 # Whether a laptop runs on its battery, the free space on a disk, and the local hour for
 # background analysis.
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_System_Power", "Win32_Storage_FileSystem", "Win32_System_SystemInformation"] }
+windows-sys = { version = "0.61", features = ["Win32_System_Power", "Win32_Storage_FileSystem", "Win32_System_SystemInformation", "Win32_Foundation"] }
 
 [dev-dependencies]
 bragd-core = { path = "../bragd-core", features = ["test-home"] }
