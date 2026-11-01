@@ -333,6 +333,7 @@ name = "bragd-clubs"
 version = "0.1.0"
 dependencies = [
  "bragd-core",
+ "bragd-games",
  "libc",
  "pairing",
  "rusqlite",

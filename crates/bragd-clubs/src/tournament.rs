@@ -110,6 +110,32 @@ pub struct Game {
     pub white: usize,
     pub black: usize,
     pub result: Option<Outcome>,
+    /// Go with handicaps (`Handicap`): 0 an even game, 1 Black first with komi 0.5 and no
+    /// stones, 2 to 9 that many stones with komi 0.5. Black is the weaker player.
+    #[serde(default)]
+    pub handicap: u32,
+}
+
+/// Go's handicap pairing: each 100 rating points between two players is one stone, as on the
+/// European Go Federation's list, less `reduction`, and at most `max`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Handicap {
+    pub reduction: u32,
+    pub max: u32,
+}
+
+impl Default for Handicap {
+    fn default() -> Handicap {
+        Handicap { reduction: 0, max: 9 }
+    }
+}
+
+impl Handicap {
+    /// The handicap of a game between players rated `a` and `b`.
+    pub fn of(self, a: u32, b: u32) -> u32 {
+        (a.abs_diff(b).saturating_add(50) / 100).saturating_sub(self.reduction).min(self.max.min(9))
+    }
 }
 
 /// A Round: its boards in order, the pairing-allocated bye, and the half-point byes asked for.
@@ -285,6 +311,13 @@ pub struct Tournament {
     pub log: Vec<Entry>,
     /// The Club's ratings were worked out from its games.
     pub rated: bool,
+    /// The Variant played, by its catalogue key: any Family can run a Tournament.
+    pub variant: String,
+    /// Go only: handicap games instead of even ones.
+    pub handicap: Option<Handicap>,
+    /// Backgammon only: each pairing is a match to this many points, and its result is the
+    /// match's winner.
+    pub match_to: Option<u32>,
 }
 
 impl Default for Tournament {
@@ -303,6 +336,9 @@ impl Default for Tournament {
             seeds: vec![],
             log: vec![],
             rated: false,
+            variant: "chess".into(),
+            handicap: None,
+            match_to: None,
         }
     }
 }
@@ -319,6 +355,34 @@ impl Tournament {
         // A round-robin's Rounds follow from its players, when Round 1 is paired.
         let rounds = if matches!(system, System::Dutch) { rounds } else { 0 };
         Ok(Tournament { name: name.trim().into(), date: date.into(), system, rounds, tiebreaks: tiebreak::defaults(system), ..Tournament::default() })
+    }
+
+    /// Sets what is played, before Round 1: the Variant, go's handicaps and backgammon's
+    /// match length, each only for its own Family.
+    pub fn set_game(&mut self, variant: &str, handicap: Option<Handicap>, match_to: Option<u32>) -> Result<()> {
+        if !self.played.is_empty() {
+            return Err(Error::Invalid("tournaments.error.started"));
+        }
+        let family = bragd_games::variant(variant).map_err(|_| Error::Invalid("tournaments.error.variant"))?.family();
+        if handicap.is_some() && family != bragd_games::Family::Go {
+            return Err(Error::Invalid("tournaments.error.variant"));
+        }
+        if match_to.is_some() != (family == bragd_games::Family::Backgammon) || match_to.is_some_and(|n| !(1..=99).contains(&n)) {
+            return Err(Error::Invalid("tournaments.error.match_to"));
+        }
+        self.variant = variant.into();
+        self.handicap = handicap;
+        self.match_to = match_to;
+        Ok(())
+    }
+
+    /// The board of `white` and `black` as played: with handicaps, the weaker player is Black.
+    fn board(&self, white: usize, black: usize) -> Game {
+        let Some(h) = self.handicap else { return Game { white, black, result: None, handicap: 0 } };
+        let (rw, rb) = (self.players[white].rating, self.players[black].rating);
+        let handicap = h.of(rw, rb);
+        let (white, black) = if handicap > 0 && rb > rw { (black, white) } else { (white, black) };
+        Game { white, black, result: None, handicap }
     }
 
     fn note(&mut self, who: &str, player: &str, what: &str, old: String, new: String, why: &str) {
@@ -487,7 +551,7 @@ impl Tournament {
         for &p in &half {
             self.players[p].status = Status::Here;
         }
-        self.played.push(Round { games: pairs.into_iter().map(|(white, black)| Game { white, black, result: None }).collect(), bye, half });
+        self.played.push(Round { games: pairs.into_iter().map(|(white, black)| self.board(white, black)).collect(), bye, half });
         Ok(())
     }
 
@@ -562,7 +626,7 @@ impl Tournament {
         }
         let old = self.pairing_text(last);
         let half = last.half.clone();
-        let new = Round { games: pairs.iter().map(|&(white, black)| Game { white, black, result: None }).collect(), bye, half };
+        let new = Round { games: pairs.iter().map(|&(white, black)| self.board(white, black)).collect(), bye, half };
         let new_text = self.pairing_text(&new);
         *self.played.last_mut().unwrap() = new;
         let n = self.played.len();
@@ -617,6 +681,9 @@ impl Tournament {
         let g = *self.played.get(round).and_then(|r| r.games.get(board)).ok_or(Error::Invalid("tournaments.error.no_board"))?;
         if g.result == result {
             return Ok(());
+        }
+        if self.match_to.is_some() && result == Some(Outcome::Draw) {
+            return Err(Error::Invalid("tournaments.error.match_draw"));
         }
         if let Some(old) = g.result {
             if why.trim().is_empty() {
@@ -703,6 +770,35 @@ mod tests {
 
     fn pairs(t: &Tournament) -> Vec<(String, String)> {
         t.played.last().unwrap().games.iter().map(|g| (t.players[g.white].name.clone(), t.players[g.black].name.clone())).collect()
+    }
+
+    #[test]
+    fn a_go_handicap_gives_the_weaker_player_black_and_a_stone_a_hundred_points() {
+        let h = Handicap::default();
+        assert_eq!([h.of(2000, 2000), h.of(2000, 1951), h.of(2000, 1950), h.of(1950, 2000), h.of(2400, 1000)], [0, 0, 1, 1, 9]);
+        assert_eq!(Handicap { reduction: 2, max: 4 }.of(2000, 1400), 4);
+        assert_eq!(Handicap { reduction: 2, max: 4 }.of(2000, 1850), 0);
+        let mut t = named(&[("Anna", 2100), ("Bo", 1900), ("Carl", 2000), ("Dan", 1800)]);
+        assert_eq!(t.set_game("chess", Some(h), None), Err(Error::Invalid("tournaments.error.variant")), "go only");
+        t.set_game("go-19", Some(h), None).unwrap();
+        t.pair_next().unwrap();
+        // The Dutch system pairs Anna – Bo and Dan – Carl; Dan, the weaker, takes Black.
+        assert_eq!(pairs(&t), [("Anna".into(), "Bo".into()), ("Carl".into(), "Dan".into())]);
+        assert_eq!(t.played[0].games.iter().map(|g| g.handicap).collect::<Vec<_>>(), [2, 2]);
+        assert_eq!(t.set_game("go-9", None, None), Err(Error::Invalid("tournaments.error.started")));
+    }
+
+    #[test]
+    fn a_backgammon_tournament_plays_matches_that_cannot_be_drawn() {
+        let mut t = named(&[("Anna", 2100), ("Bo", 1900)]);
+        assert_eq!(t.set_game("backgammon", None, None), Err(Error::Invalid("tournaments.error.match_to")), "a match length is needed");
+        assert_eq!(t.set_game("go-9", None, Some(7)), Err(Error::Invalid("tournaments.error.match_to")));
+        assert_eq!(t.set_game("backgammon", None, Some(0)), Err(Error::Invalid("tournaments.error.match_to")));
+        t.set_game("backgammon", None, Some(7)).unwrap();
+        t.pair_next().unwrap();
+        assert_eq!(t.set_result("Mette", 0, 0, Some(Outcome::Draw), ""), Err(Error::Invalid("tournaments.error.match_draw")));
+        t.set_result("Mette", 0, 0, Some(Outcome::Black), "").unwrap();
+        assert_eq!(t.points(by_name(&t, "Bo")), 2);
     }
 
     #[test]
