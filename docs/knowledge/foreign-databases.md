@@ -42,17 +42,18 @@ Only the file. These formats open:
 | KIF and CSA (shogi) | `.kif`, `.kifu`, `.csa` |
 | PDN (draughts) | `.pdn` |
 
-A large file is listed while it is read, with the count so far. A very large file is listed up to a cap, and a line says so. Only the rows in sight are asked of Rust, so scrolling stays quick.
+A large file is listed while it is read, with the count so far. A very large file is listed up to a cap, and a line says so. A packed file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) is unpacked only as far as an import may unpack it ([Largest unpacking ratio](#why-does-a-packed-file-stop-saying-it-unpacks-too-far)), so a Lichess month opens whole. Only the rows in sight are asked of Rust, so scrolling stays quick.
 
 Replay draws a board for chess (and Chess960, from the `Variant` header) and shogi. Draughts and xiangqi Games list their moves without a board for now, because their readers give no position per move. Go Games show their headers.
 
 ## Settings and config.toml
 
-Foreign databases have no settings of their own. Importing uses the Library folder:
+Foreign databases share these settings with importing:
 
 | Setting | `config.toml` key | Default | What it does |
 |---|---|---|---|
 | Library folder | `knowledge.library` | empty: `<data>/bragd/libraries` | Where the Library that imports land in is kept |
+| Largest unpacking ratio | `knowledge.max_unpack_ratio` | `50` | How many times its own size a packed game file may unpack to before reading it stops, whether it is opened or imported |
 
 ## Questions
 
@@ -79,6 +80,10 @@ The evaluation profile, when the file carries one (ChessBase's `[%evp]` comment)
 #### Why does a Game stop part way?
 
 The file has a move that cannot be played from the position before it. Bragd shows the moves up to that one and names it.
+
+#### Why does a packed file stop, saying it unpacks too far?
+
+Opening a packed file keeps the same rule as importing one ([Sources](sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)). Once the file has unpacked to more than *Largest unpacking ratio* times its packed size, 50 unless you change it, reading stops and the Games read so far stay listed. The first 64 MB unpacked always pass. A real file stays far below: a Lichess month unpacks to about 7 times its size. If a file you trust stops, raise the ratio in *Settings → Knowledge* and open it again.
 
 #### Can I open EPD files or Polyglot books here?
 

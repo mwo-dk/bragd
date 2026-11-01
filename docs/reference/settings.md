@@ -79,7 +79,7 @@ The Engine per Variant, added Engines and their options are on each Family's [En
 |---|---|---|---|
 | `library` | Library folder | `knowledge.library` | Where your Libraries are kept. Empty: Bragd's data folder |
 | `source_priority` | Source priority | `knowledge.source_priority` | When Duplicates merge, a header conflict goes the way of the Source listed first. Typed as a list with commas |
-| `max_unpack_ratio` | Largest unpacking ratio | `knowledge.max_unpack_ratio` | How many times its own size a packed game file may unpack to before an import stops. `50` unless set ([Sources](../knowledge/sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
+| `max_unpack_ratio` | Largest unpacking ratio | `knowledge.max_unpack_ratio` | How many times its own size a packed game file may unpack to before an import, or reading it as a Foreign database, stops. `50` unless set ([Sources](../knowledge/sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
 | `tablebases_path` | Tablebase folder | `tablebases.path` | Your Syzygy tables. The folder is passed to every Engine |
 | `start_with_session` | Start with my session | `helper.start_with_session` | The Helper keeps fetching and indexing while no window is open |
 

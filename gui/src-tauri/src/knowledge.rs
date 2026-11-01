@@ -73,7 +73,7 @@ pub fn db_pick(app: AppHandle, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> 
 }
 
 fn db_open(path: &Path, k: &Knowledge, cfg: &Config) -> Res<FileView> {
-    let f = OpenFile::open(path)?;
+    let f = OpenFile::open(path, cfg)?;
     let v = f.view(cfg);
     *k.dbs.file.lock().unwrap_or_else(|e| e.into_inner()) = Some(f);
     Ok(v)

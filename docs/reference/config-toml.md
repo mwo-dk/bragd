@@ -43,7 +43,7 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`.
 | `tablebases.online` | `true` | Ask the Lichess tablebase API for a position your tables do not cover |
 | `knowledge.library` | `""` | Where Libraries are kept. Empty: `libraries` in Bragd's data folder ([Libraries](../knowledge/libraries.md)) |
 | `knowledge.source_priority` | `["twic", "lichess"]` | Sources in order: the first wins a header conflict between Duplicates ([Duplicates](../knowledge/duplicates.md)) |
-| `knowledge.max_unpack_ratio` | `50` | How many times its own size a packed game file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) may unpack to. Past it the import stops ([Sources](../knowledge/sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
+| `knowledge.max_unpack_ratio` | `50` | How many times its own size a packed game file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) may unpack to. Past it the import stops, and so does reading it as a Foreign database ([Sources](../knowledge/sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
 | `helper.start_with_session` | `false` | Start the Helper with your session, not only with a window ([The Helper](../knowledge/helper.md)) |
 | `updates.check` | `true` | Ask this copy's channel for a newer version at start and once a day ([Privacy](privacy.md)) |
 | `disk.total` | `0` | The most, in bytes, that everything Bragd keeps may take together. `0` is no limit ([Disk watch](../knowledge/disk-watch.md)) |

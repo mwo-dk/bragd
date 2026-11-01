@@ -329,13 +329,14 @@ pub struct Limits {
     pub games: usize,
     /// Bytes of the names kept (players, events, openings), with what keeping each costs.
     pub names: usize,
-    /// Bytes a packed file is unpacked to, at most.
-    pub unpacked: u64,
+    /// How many times its own size a packed file may unpack to: `knowledge.max_unpack_ratio`,
+    /// the rule an import keeps (`stream::games`).
+    pub ratio: u64,
 }
 
 impl Default for Limits {
     fn default() -> Self {
-        Limits { games: 10_000_000, names: 256 << 20, unpacked: 64 << 30 }
+        Limits { games: 10_000_000, names: 256 << 20, ratio: bragd_core::config::MAX_UNPACK_RATIO }
     }
 }
 
@@ -552,7 +553,7 @@ impl Source {
         // ponytail: a packed file is unpacked from its start for a game before the last one
         // read; seek points every few MB would make going back cheap, if it is ever slow.
         if self.open.as_ref().is_none_or(|(_, at)| *at > offset) {
-            self.open = Some((reader(&self.path, Arc::default(), Limits::default().unpacked)?, 0));
+            self.open = Some((reader(&self.path, Arc::default(), u64::MAX)?, 0));
         }
         let (r, at) = self.open.as_mut().expect("opened above");
         io::copy(&mut r.take(offset - *at), &mut io::sink())?;
@@ -696,7 +697,7 @@ impl Table {
             let (sh, st, b, rd) = (shared.clone(), stop.clone(), base.clone(), read.clone());
             std::thread::Builder::new()
                 .name("chess-games".into())
-                .spawn(move || index(|each| scan_scid(&b, &st, &rd, each), &sh, super::Format::Pgn, limits, || false))?;
+                .spawn(move || index(|each| scan_scid(&b, &st, &rd, each), &sh, super::Format::Pgn, limits))?;
             return Ok(Table { path: path.to_path_buf(), format: super::Format::Pgn, shared, read, size, stop, source, scid: Some(base), _held: None });
         }
         if super::cbh::is_cbh(path) {
@@ -705,19 +706,18 @@ impl Table {
             let (sh, st, rd, p) = (shared.clone(), stop.clone(), read.clone(), path.to_path_buf());
             std::thread::Builder::new()
                 .name("chess-games".into())
-                .spawn(move || index(|each| scan_cbh(&p, &st, &rd, size, true, each), &sh, super::Format::Pgn, limits, || false))?;
+                .spawn(move || index(|each| scan_cbh(&p, &st, &rd, size, true, each), &sh, super::Format::Pgn, limits))?;
             let _held = super::cbv::is_cbv(path).then(|| super::cbv::hold(path));
             return Ok(Table { path: path.to_path_buf(), format: super::Format::Pgn, shared, read, size, stop, source, scid: None, _held });
         }
-        let r = reader(path, read.clone(), limits.unpacked)?;
-        // What the packed file unpacked to: at the limit, the rest of it was left.
-        let unpacked = Arc::new(AtomicU64::new(0));
-        let packed = pack(path) != Pack::None;
-        let r: Box<dyn Read + Send> = Box::new(Counted { inner: r, read: unpacked.clone() });
-        let (sh, st) = (shared.clone(), stop.clone());
+        let r = reader(path, read.clone(), u64::MAX)?;
+        let (sh, st, rd) = (shared.clone(), stop.clone(), read.clone());
         let format = kind(path);
         std::thread::Builder::new().name("chess-games".into()).spawn(move || {
-            index(|each| scan(BufReader::with_capacity(1 << 16, r), &st, format, true, false, each), &sh, format, limits, || packed && unpacked.load(Ordering::Relaxed) >= limits.unpacked)
+            // A stop is heard as the bytes unpack, not only between games: a bomb has none.
+            let halt = || st.load(Ordering::Relaxed);
+            let r = BufReader::with_capacity(1 << 16, crate::stream::capped(r, limits.ratio, &rd, &halt));
+            index(|each| scan(r, &st, format, true, false, each), &sh, format, limits)
         })?;
         Ok(Table { path: path.to_path_buf(), format, shared, read, size, stop, source, scid: None, _held: None })
     }
@@ -859,8 +859,7 @@ impl Table {
 }
 
 /// The pass over the games: their records, handed over in batches so the table fills.
-/// `cut`: the packed file was unpacked as far as the limits allow.
-fn index(feed: impl FnOnce(&mut dyn FnMut(&Head) -> bool) -> io::Result<()>, shared: &Mutex<Shared>, format: super::Format, limits: Limits, cut: impl Fn() -> bool) {
+fn index(feed: impl FnOnce(&mut dyn FnMut(&Head) -> bool) -> io::Result<()>, shared: &Mutex<Shared>, format: super::Format, limits: Limits) {
     let chess = format == super::Format::Pgn;
     // What the names cost so far: their bytes, twice (the list and the lookup), and the rest.
     let mut names = 0usize;
@@ -922,7 +921,7 @@ fn index(feed: impl FnOnce(&mut dyn FnMut(&Head) -> bool) -> io::Result<()>, sha
     flush(&mut batch, &mut fresh, &mut base);
     let mut s = shared.lock().unwrap_or_else(|e| e.into_inner());
     s.done = true;
-    s.capped = capped || cut();
+    s.capped = capped;
     if let Err(e) = res {
         s.error = Some(e.to_string());
     }
@@ -1177,11 +1176,47 @@ mod tests {
         assert_eq!((p1.games, p1.capped), (1000, true));
         let p2 = wait(&Table::open_with(&p, Limits { names: 64 * 1024, ..full }).unwrap());
         assert!(p2.capped && p2.games < 1000, "{p2:?}");
-        // Unpacked no further than allowed: about 20 bytes a game.
-        let p3 = wait(&Table::open_with(&p, Limits { unpacked: 20_000, ..full }).unwrap());
-        assert!(p3.games < 1100 && p3.capped, "{p3:?}");
         let p4 = wait(&Table::open(&p).unwrap());
         assert_eq!((p4.games, p4.capped), (50_000, false));
+    }
+
+    /// A file opened in place unpacks as far as an import may (`knowledge.max_unpack_ratio`),
+    /// whatever its size: a bomb stops at the ratio with the games read so far, a raised ratio
+    /// reads it whole, and a stop is heard while the blank bytes unpack.
+    #[test]
+    fn an_open_file_stops_at_the_unpacking_ratio() {
+        let d = tempdir::Dir::new();
+        let p = d.0.join("bomb.pgn.gz");
+        let mut games = String::new();
+        for i in 0..1000 {
+            games.push_str(&format!("[White \"p{i}\"]\n1.e4 *\n"));
+        }
+        // Gzip members one after another: 70 MB of blank lines from a file of some 100 KB.
+        let mut bytes = crate::stream::tests::gz(&games);
+        let blank = crate::stream::tests::gz(&"\n".repeat(1 << 20));
+        for _ in 0..70 {
+            bytes.extend_from_slice(&blank);
+        }
+        std::fs::write(&p, &bytes).unwrap();
+        let wait = |l: &Table| {
+            while !l.progress().done {
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            l.progress()
+        };
+        let ratio = bragd_core::config::MAX_UNPACK_RATIO;
+        let p1 = wait(&Table::open(&p).unwrap());
+        // The last game, whose end the blank lines hold, is not listed.
+        assert_eq!(p1.games, 999);
+        assert!(p1.error.as_deref().is_some_and(|e| e.contains(&format!("more than {ratio} times"))), "{p1:?}");
+        let whole = Limits { ratio: u64::MAX, ..Limits::default() };
+        let p2 = wait(&Table::open_with(&p, whole).unwrap());
+        assert_eq!((p2.games, p2.error, p2.read), (1000, None, bytes.len() as u64));
+        let t = Table::open_with(&p, whole).unwrap();
+        t.stop.store(true, Ordering::Relaxed);
+        let p3 = wait(&t);
+        assert_eq!(p3.error.as_deref(), Some("stopped"));
+        assert!(p3.read < bytes.len() as u64, "{p3:?}");
     }
 
     #[test]

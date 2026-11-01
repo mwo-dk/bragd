@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Map, Value};
 
-use crate::chess::{Format, Table, openings, pgn, polyglot};
+use crate::chess::{Format, Table, games::Limits, openings, pgn, polyglot};
 use crate::strip::StripRule;
 use crate::go;
 
@@ -328,8 +328,9 @@ enum Reader {
 }
 
 impl Reader {
-    fn open(path: &Path) -> io::Result<Reader> {
-        if go::is_sgf(path) { Ok(Reader::Go(go::Collection::open(path)?)) } else { Ok(Reader::Table(Table::open(path)?)) }
+    /// The file at `path`, unpacked to at most `max_ratio` times its size (`Limits::ratio`).
+    fn open(path: &Path, max_ratio: u64) -> io::Result<Reader> {
+        if go::is_sgf(path) { Ok(Reader::Go(go::Collection::open(path)?)) } else { Ok(Reader::Table(Table::open_with(path, Limits { ratio: max_ratio, ..Limits::default() })?)) }
     }
 
     /// Game `i` (from 0), once the reader has listed it; `None` past the last.
@@ -452,8 +453,8 @@ pub struct Library {
     priority: Vec<String>,
     /// Games written in one transaction during an import.
     pub batch: usize,
-    /// How many times its size a packed file may unpack to during an import (`stream::games`):
-    /// `knowledge.max_unpack_ratio`.
+    /// How many times its size a packed file may unpack to during an import (`stream::games`,
+    /// `Limits::ratio`): `knowledge.max_unpack_ratio`.
     pub max_ratio: u64,
 }
 
@@ -542,7 +543,7 @@ impl Library {
 
     /// `import_with` through the table a reader makes of the file, counting on from `p`.
     fn import_reader(&mut self, path: &Path, source: &str, rule: Option<&StripRule>, mut p: Progress, stop: &dyn Fn() -> bool, progress: &mut dyn FnMut(&Progress)) -> Result<Progress> {
-        let reader = Reader::open(path)?;
+        let reader = Reader::open(path, self.max_ratio)?;
         let batch = self.batch.max(1);
         let mut i = 0usize;
         'batches: loop {

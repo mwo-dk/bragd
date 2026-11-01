@@ -10,7 +10,7 @@ use std::sync::Mutex;
 use bragd_core::config::Config;
 use bragd_core::t;
 use bragd_helper::disk;
-use bragd_library::chess::{self, Format, Query, Table, pgn};
+use bragd_library::chess::{self, Format, Query, Table, games::Limits, pgn};
 use bragd_library::go::Collection;
 use bragd_library::library::{Library, Stored, text_key};
 use bragd_library::slice;
@@ -156,11 +156,12 @@ fn file_name(p: &Path) -> String {
 }
 
 impl OpenFile {
-    pub fn open(path: &Path) -> Result<OpenFile, String> {
+    /// The file at `path`, unpacked no further than an import may (`knowledge.max_unpack_ratio`).
+    pub fn open(path: &Path, cfg: &Config) -> Result<OpenFile, String> {
         let reader = if bragd_library::go::is_sgf(path) {
             Reader::Go(Collection::open(path).map_err(|e| e.to_string())?)
         } else {
-            Reader::Table(Table::open(path).map_err(|e| e.to_string())?)
+            Reader::Table(Table::open_with(path, Limits { ratio: cfg.knowledge.max_unpack_ratio, ..Limits::default() }).map_err(|e| e.to_string())?)
         };
         Ok(OpenFile { path: path.to_path_buf(), reader, last: None })
     }
@@ -602,7 +603,7 @@ mod tests {
         std::fs::create_dir_all(&d).unwrap();
         let p = d.join("one.sgf");
         std::fs::write(&p, "(;GM[1]SZ[9];B[ee];W[cc])").unwrap();
-        let f = OpenFile::open(&p).unwrap();
+        let f = OpenFile::open(&p, &Config::default()).unwrap();
         assert!(!f.view(&Config::default()).family_off);
         let off = Config::parse("[families.family]\ngo = false\n").unwrap();
         let v = f.view(&off);

@@ -33,7 +33,7 @@ Nothing to install. The Helper does the imports, and a window starts it when non
 |---|---|---|---|
 | Library folder | `knowledge.library` | empty: `<data>/bragd/libraries` | Where Libraries are kept. Sources and imports go into `main.bragd` there |
 | Source priority | `knowledge.source_priority` | `["twic", "lichess"]` | When Duplicates disagree on a header, the Source listed first wins ([Duplicates](duplicates.md)) |
-| Largest unpacking ratio | `knowledge.max_unpack_ratio` | `50` | How far a packed game file may unpack before its import stops ([Sources](sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
+| Largest unpacking ratio | `knowledge.max_unpack_ratio` | `50` | How far a packed game file may unpack before its import, or reading it in place, stops ([Sources](sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
 
 `<data>` is your system's data folder: `~/.local/share` on Linux and the BSDs, `~/Library/Application Support` on macOS and `%APPDATA%` on Windows. See [Files on disk](../reference/files.md).
 
