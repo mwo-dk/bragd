@@ -53,7 +53,7 @@
     if (first) page = { kind: "item", family: first.id, item: "play" };
     // The wizard on a first start, the tour cards after an upgrade; then notices and hints,
     // and the update check (which may take a few seconds).
-    api.guideDue().then((d) => ([guide.wizard, guide.cards] = [d.wizard, d.cards]));
+    api.guideDue().then((d) => ([guide.wizard, guide.first, guide.cards] = [d.wizard, d.wizard, d.cards]));
     api.noticeList(true).then((n) => {
       guide.notices = n;
       api.updateCheck().then((all) => (guide.notices = [...all, ...guide.notices.filter((x) => /^(hint|local):/.test(x.id))]));

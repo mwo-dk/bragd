@@ -1028,6 +1028,28 @@ mod tests {
         }
     }
 
+    /// UNTRANSLATED.md names every text a language of its own writes as British English does:
+    /// in its list for every language, or on that language's own line.
+    #[test]
+    fn i18n_untranslated_md_lists_every_text_still_in_english() {
+        let md = include_str!("../locales/UNTRANSLATED.md");
+        let ticks = |s: &str| s.split('`').skip(1).step_by(2).map(String::from).collect::<std::collections::HashSet<_>>();
+        let everywhere = ticks(&md.lines().filter(|l| l.starts_with("- `")).collect::<Vec<_>>().join(" "));
+        let reference = catalogue(REFERENCE);
+        let mut missing = vec![];
+        for code in LANGUAGES.iter().map(|l| l.code).filter(|c| !c.starts_with("en") && chain(c).len() == 2) {
+            let own: Map = serde_json::from_str(source(code)).unwrap();
+            let line = md.lines().find(|l| l.starts_with(&format!("- **{code}**:"))).map(ticks).unwrap_or_default();
+            for (k, v) in &own {
+                if v.is_string() && reference.get(k) == Some(v) && !everywhere.contains(k) && !line.contains(k) {
+                    missing.push(format!("{code}: {k}"));
+                }
+            }
+        }
+        missing.sort();
+        assert!(missing.is_empty(), "add to UNTRANSLATED.md: {missing:?}");
+    }
+
     /// Each language names one thing one way: the variants a file once mixed stay out, and a
     /// file writes its apostrophes inside words either straight or curly, not both.
     #[test]

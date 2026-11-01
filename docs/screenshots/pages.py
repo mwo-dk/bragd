@@ -11,7 +11,7 @@ needs `fake-uci` (a stand-in UCI engine) in the demo home; see `engine()`.
 import json, os, sys
 from pathlib import Path
 
-from cap import HERE, Desktop, _env, gif, widths
+from cap import HERE, SEEN, WIDTHS, Desktop, _env, gif, widths
 
 FAMILIES = ["chess", "xiangqi", "shogi", "go", "draughts", "tafl", "backgammon", "ur", "senet"]
 NAMES = {f: f.capitalize() for f in FAMILIES}
@@ -258,7 +258,25 @@ def matches():
             p.unlink(missing_ok=True)
 
 
-ALL = {"matches": matches, "clubs": clubs, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes}
+def wizard():
+    """wizard-<step>-390.png and -1100.png: the install wizard's six steps on a first start, and
+    whats-new-card-390.png and -1100.png: the first tour card after an upgrade."""
+    state = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/state.json"
+    for w, h in WIDTHS.items():
+        with Desktop(size=(w, h), state={}) as d:
+            d.wait(2)
+            for i, step in enumerate(["welcome", "games", "engines", "knowledge", "online", "helper"]):
+                if i:
+                    click(d, "Next", ".wizard footer")
+                d.shot(HERE / f"wizard-{step}-{w}.png")
+        with Desktop(size=(w, h), state=dict(SEEN, seen_version="0.1.0")) as d:
+            d.wait(2)
+            d.shot(HERE / f"whats-new-card-{w}.png")
+    # The next picture starts as a demo home does, having seen the wizard and every card.
+    state.unlink(missing_ok=True)
+
+
+ALL = {"matches": matches, "clubs": clubs, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

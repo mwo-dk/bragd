@@ -98,6 +98,8 @@ pub struct Open {
     themes: Vec<wizard::Swatch>,
     boards: Vec<wizard::Swatch>,
     engines: Vec<FamilyEngines>,
+    /// The sites the Online step names: those that play a Family that is on.
+    servers: Vec<&'static str>,
     offers: Vec<wizard::Offer>,
     ticked: Vec<String>,
 }
@@ -120,22 +122,36 @@ fn helper_sources() -> Vec<wizard::Source> {
         .collect()
 }
 
-/// The engines of each Family that is on and has outside engines, each looked for here the
-/// way Play looks: the path set in Settings first, then the PATH.
+/// The engines of each Family that is on, each looked for here the way Play looks: the path set
+/// in Settings first, then the PATH. A Family without outside engines has none: Bragd's own Bot
+/// plays it.
 fn engines(cfg: &Config) -> Vec<FamilyEngines> {
     Family::ALL
         .iter()
-        .filter(|f| f.has_engine() && cfg.family_shown(f.key()))
+        .filter(|f| cfg.family_shown(f.key()))
         .map(|f| FamilyEngines {
             name: t!(&format!("family.{}", f.key())),
             engines: KNOWN
                 .iter()
                 // The engines' own Variant keys differ from the catalogue's (S5): the Family decides.
+                .filter(|_| f.has_engine())
                 .filter(|k| k.variants.iter().any(|v| known::family(v).and_then(|kf| serde_json::to_value(kf).ok()).is_some_and(|kf| kf == f.key())))
                 .map(|k| EngineView { name: k.name, installed: crate::engines::installed(cfg, k.key, Some(k)).map(|p| p.display().to_string()), image: k.image().is_some(), site: k.site, program: k.programs[0] })
                 .collect(),
         })
         .collect()
+}
+
+/// Where each Family can be played online today, in the browser.
+const SERVERS: &[(&str, &[&str])] = &[
+    ("https://lichess.org/", &["chess"]),
+    ("https://lishogi.org/", &["shogi"]),
+    ("https://www.pychess.org/", &["chess", "xiangqi", "shogi"]),
+    ("https://online-go.com/", &["go"]),
+];
+
+fn servers(cfg: &Config) -> Vec<&'static str> {
+    SERVERS.iter().filter(|(_, fams)| fams.iter().any(|f| cfg.family_shown(f))).map(|(url, _)| *url).collect()
 }
 
 #[tauri::command(async)]
@@ -147,6 +163,7 @@ pub fn wizard_open(ctx: tauri::State<'_, Ctx>) -> Open {
         themes: wizard::theme_swatches(),
         boards: wizard::board_swatches(&cfg),
         engines: engines(&cfg),
+        servers: servers(&cfg),
         ticked: wizard::ticked(&offers),
         offers,
     }
@@ -249,5 +266,24 @@ mod tests {
         cfg.engines.paths.insert("stockfish".into(), me.display().to_string());
         let seen = engines(&cfg).into_iter().flat_map(|f| f.engines).find(|e| e.program == "stockfish").unwrap();
         assert_eq!(seen.installed.as_deref(), Some(me.display().to_string().as_str()));
+    }
+
+    /// Someone who plays one game reads only of the sites and engines for it.
+    #[test]
+    fn the_wizard_names_only_what_plays_the_families_that_are_on() {
+        let only = |keep: &str| {
+            let mut cfg = Config::default();
+            for f in Family::ALL.iter().filter(|f| f.key() != keep) {
+                cfg.families.family.insert(f.key().into(), false);
+            }
+            cfg
+        };
+        assert_eq!(servers(&only("go")), ["https://online-go.com/"]);
+        assert_eq!(servers(&only("chess")), ["https://lichess.org/", "https://www.pychess.org/"]);
+        assert!(servers(&only("tafl")).is_empty());
+        let tafl = engines(&only("tafl"));
+        assert_eq!(tafl.len(), 1, "tafl is listed, played by Bragd's own Bot");
+        assert!(tafl[0].engines.is_empty());
+        assert_eq!(servers(&Config::default()).len(), SERVERS.len());
     }
 }
