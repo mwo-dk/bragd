@@ -31,3 +31,7 @@ blake3 = "1.8"
 # A console engine started from the desktop app must not flash a console window.
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_System_Console"] }
+
+[dev-dependencies]
+# The stand-in engine of the screenshots (examples/fake-engine.rs) reads a GNU Backgammon board.
+rules-backgammon = { path = "../rules-backgammon" }

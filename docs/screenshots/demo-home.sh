@@ -4,6 +4,8 @@
 # show. It holds a few games, and a demo Library made from them with the library crate
 # (`bragd-library`'s `demo_library` example, run here outside the sandbox, writing only into
 # <dir>): a Duplicate from two Sources, a Near-duplicate cut short, a Slice, and a player's Games.
+# It also holds a few Games of every Family with an Engine (go, shogi, xiangqi, draughts and
+# backgammon), and `fake-engine`, a stand-in engine for go, shogi, xiangqi and backgammon.
 #
 #   docs/screenshots/demo-home.sh <dir>
 set -euo pipefail
@@ -176,14 +178,97 @@ cat > "$dir/Games/players.pgn" <<'PGN'
 1. e4 e5 2. Nf3 Nf6 3. Nxe5 0-1
 PGN
 
+# A Game with a Comment in German, for Translate in a Library Game (pages.py, model()).
+cat > "$dir/Games/comments.pgn" <<'PGN'
+[Event "Demo"]
+[Site "Demo"]
+[Date "2026.01.03"]
+[White "Weiß"]
+[Black "Schwarz"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 {Die Spanische Partie. Weiß greift den Springer an, der den Bauern auf e5 verteidigt.} a6 4. Ba4 Nf6 *
+PGN
+
+# Two short 9×9 go Games, two shogi Games (CSA), two xiangqi Games and one draughts Game, made
+# up for the demo.
+cat > "$dir/Games/go.sgf" <<'SGF'
+(;FF[4]GM[1]SZ[9]KM[7.5]PB[Sato, Ken]PW[Lee, Min]DT[2026-09-12]RE[B+3.5];B[ee];W[gc];B[cg];W[gg];B[ge];W[he];B[gf];W[hf];B[fg];W[gh];B[cc];W[eg];B[ef];W[dg];B[dh];W[fh];B[ch];W[hd];B[fc];W[gb];B[fb])
+(;FF[4]GM[1]SZ[9]KM[7.5]PB[Lee, Min]PW[Sato, Ken]DT[2026-09-19]RE[W+R];B[ec];W[eg];B[gf];W[cf];B[ce];W[be];B[de];W[bd];B[cc];W[fe];B[ff];W[ef];B[ge];W[fd])
+SGF
+cat > "$dir/Games/shogi1.csa" <<'CSA'
+N+Mori Aki
+N-Ueda Jun
+PI
++
++7776FU
+-3334FU
++2726FU
+-8384FU
++2625FU
+-8485FU
++6978KI
+-4132KI
++2524FU
+-2324FU
++2824HI
+-0023FU
++2426HI
+%TORYO
+CSA
+cat > "$dir/Games/shogi2.csa" <<'CSA'
+N+Ueda Jun
+N-Mori Aki
+PI
++
++2726FU
+-3334FU
++2625FU
+-2233KA
++7776FU
+-4132KI
+%TORYO
+CSA
+cat > "$dir/Games/xiangqi.pgn" <<'PGN'
+[Game "Chinese Chess"]
+[Event "Club night"]
+[Red "Wang, Lei"]
+[Black "Chen, Yu"]
+[Result "1-0"]
+
+1. h2e2 h9g7 2. h0g2 i9h9 3. i0h0 b9c7 4. b0c2 c6c5 5. c3c4 b7b3 1-0
+
+[Game "Chinese Chess"]
+[Event "Club night"]
+[Red "Chen, Yu"]
+[Black "Wang, Lei"]
+[Result "1/2-1/2"]
+
+1. b2e2 b9c7 2. b0c2 h9g7 3. a0b0 a9b9 1/2-1/2
+PGN
+cat > "$dir/Games/draughts.pdn" <<'PDN'
+[Event "Club night"]
+[White "de Vries, Anna"]
+[Black "Bakker, Bram"]
+[Result "2-0"]
+
+1. 32-28 18-23 2. 37-32 12-18 3. 41-37 7-12 4. 46-41 1-7 2-0
+PDN
+
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
 lib="$dir/.local/share/bragd/libraries/main.bragd"
 (cd "$repo" && cargo run -q --release -p bragd-library --example demo_library -- "$lib" twic "$dir/Games/demo.pgn")
 (cd "$repo" && cargo run -q --release -p bragd-library --example demo_library -- "$lib" lichess "$dir/Games/copies.pgn")
 (cd "$repo" && cargo run -q --release -p bragd-library --example demo_library -- "$lib" twic "$dir/Games/players.pgn")
+(cd "$repo" && cargo run -q --release -p bragd-library --example demo_library -- "$lib" club "$dir/Games/comments.pgn" "$dir/Games/go.sgf" \
+  "$dir/Games/shogi1.csa" "$dir/Games/shogi2.csa" "$dir/Games/xiangqi.pgn" "$dir/Games/draughts.pdn" backgammon)
 
 # A stand-in UCI engine for the pictures of Play against an Engine (pages.py sets it as
 # Stockfish's program): it answers from one line of the Italian game.
 install -m 755 "$repo/docs/screenshots/fake-uci" "$dir/fake-uci"
+# A stand-in for KataGo, Fairy-Stockfish (shogi and xiangqi) and GNU Backgammon: legal moves,
+# made-up scores (crates/bragd-engines/examples/fake-engine.rs). pages.py sets it as their program.
+(cd "$repo" && cargo build -q --release -p bragd-engines --example fake-engine)
+install -m 755 "$repo/target/release/examples/fake-engine" "$dir/fake-engine"
 
 echo "demo home: $dir"

@@ -280,7 +280,10 @@ pub fn now(held: &Held) -> Option<Now> {
     let lines = raw
         .notation
         .map(|n| {
-            let heard: Vec<&Info> = raw.lines.iter().filter(|i| !i.pv.is_empty()).collect();
+            // GNU Backgammon before the roll judges the position and names no move: its equity
+            // shows alone. Any other line shows once it has a move.
+            let alone = n == Notation::Gnubg;
+            let heard: Vec<&Info> = raw.lines.iter().filter(|i| !i.pv.is_empty() || (alone && i.score.is_some())).collect();
             let pvs: Vec<Vec<String>> = heard.iter().map(|i| i.pv.iter().take(SHOWN).cloned().collect()).collect();
             let a = &asked;
             let moves = shown_lines(&mut crate::lock(&shown), &pvs, |pv| seam::line(&a.variant, a.initial.as_deref(), &a.entries, n, pv));
@@ -292,7 +295,7 @@ pub fn now(held: &Held) -> Option<Now> {
                     let moves = moves.into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect();
                     LineView { score: score.map(Score::shown).unwrap_or_default(), depth: i.depth, moves }
                 })
-                .filter(|v| !v.moves.is_empty())
+                .filter(|v| !v.moves.is_empty() || (alone && !v.score.is_empty()))
                 .collect()
         })
         .unwrap_or_default();
@@ -623,6 +626,34 @@ mod tests {
         let shown: Vec<&str> = n.lines[0].moves.iter().map(|m| m.notation.as_str()).collect();
         assert_eq!(shown, ["e5", "Nf3"]);
         assert_eq!(n.lines[1].score, "+0.40");
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// GNU Backgammon before the roll gives an equity and no move: it still shows.
+    #[cfg(unix)]
+    #[test]
+    fn an_equity_before_the_roll_shows_without_a_line() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = std::env::temp_dir().join(format!("bragd-gui-analyse-bg-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("fake");
+        std::fs::write(&p, "#!/bin/sh\nwhile read l; do case \"$l\" in 'show version') echo 'GNU Backgammon 1.08.003';; 'set prompt'*) echo \"The prompt has been set to \\`bragd>'.\";; eval) echo 'bragd> 2 ply: 0.525 0.150 0.007 0.125 0.005 +0.076 +0.098';; 'show prompt') echo \"bragd>The prompt is set to \\`bragd>'.\";; quit) exit 0;; esac; done\n").unwrap();
+        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut cfg = Config::default();
+        cfg.engines.paths.insert("gnubg".into(), p.display().to_string());
+        let held = Held::default();
+        start(&cfg, &held, "backgammon", None, vec![], Some("gnubg".into()), Some(1)).unwrap();
+        let mut n = now(&held).unwrap();
+        for _ in 0..200 {
+            if !n.running && !n.lines.is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(25));
+            n = now(&held).unwrap();
+        }
+        assert_eq!(n.error, None);
+        assert_eq!(n.lines.len(), 1, "{:?}", n.lines.iter().map(|l| &l.score).collect::<Vec<_>>());
+        assert!(n.lines[0].moves.is_empty() && !n.lines[0].score.is_empty());
         std::fs::remove_dir_all(&d).unwrap();
     }
 

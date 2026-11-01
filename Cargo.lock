@@ -403,6 +403,7 @@ dependencies = [
  "bragd-core",
  "bragd-games",
  "bragd-positions",
+ "rules-backgammon",
  "rules-chess",
  "serde",
  "serde_json",

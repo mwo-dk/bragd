@@ -477,6 +477,19 @@ fn sources_of(k: &Knowledge) -> Res<Vec<(sources::About, Options, sources::Memo)
     }
 }
 
+/// A Source's size as its row shows it: about so much a day, week or month on its schedule. One
+/// this version cannot fetch yet has no schedule to keep, so only its size per fetch shows.
+fn size_text(a: &sources::About, o: &Options) -> String {
+    if a.size == 0 {
+        return t!("source.size_unknown");
+    }
+    let size = bragd_core::i18n::bytes(a.size);
+    if !a.fetchable {
+        return t!("wizard.size_off", "size" => size);
+    }
+    t!(&format!("wizard.size_{}", serde_json::to_value(o.schedule).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default()), "size" => size)
+}
+
 #[tauri::command(async)]
 pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<SourcesPage> {
     let now = bragd_core::fs::now();
@@ -490,7 +503,7 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
         .map(|(a, o, m, list)| SourceView {
             more: list.is_some_and(|l| !l.suggested(&tags)) && !o.enabled,
             family_name: if a.family.is_empty() { t!("source.any_family") } else { t!(&format!("family.{}", a.family)) },
-            size: if a.size == 0 { t!("source.size_unknown") } else { t!(&format!("wizard.size_{}", serde_json::to_value(o.schedule).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default()), "size" => bragd_core::i18n::bytes(a.size)) },
+            size: size_text(&a, &o),
             notice: a.notice.as_deref().map(|n| t!(n, "source" => a.name)).unwrap_or_default(),
             custom: a.id.starts_with(sources::CUSTOM),
             rating_list: a.kind == sources::Kind::RatingList,
@@ -699,6 +712,17 @@ pub fn library_prune(dry_run: bool, k: State<'_, Knowledge>) -> Res<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_source_not_fetched_yet_shows_no_schedule() {
+        let all: Vec<sources::About> = sources::builtin().iter().map(|s| s.about()).collect();
+        let lichess = all.iter().find(|a| a.id == "lichess-db").unwrap();
+        assert!(!lichess.fetchable);
+        let text = size_text(lichess, &lichess.defaults());
+        assert!(text.contains("30") && !text.contains("month"), "{text}");
+        let twic = all.iter().find(|a| a.id == "twic").unwrap();
+        assert!(size_text(twic, &twic.defaults()).ends_with("a week"), "a Source fetched on its schedule still says how often");
+    }
 
     #[test]
     fn sizes_are_read_as_typed() {

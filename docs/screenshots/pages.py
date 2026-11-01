@@ -457,14 +457,48 @@ COMMENTS_PGN = """[Event "Demo"]
 """
 
 
+def fake_model():
+    """A stand-in language model on 127.0.0.1, in a thread: its model list names one model, and
+    every chat answer is the English of COMMENTS_PGN's comment. Stop it with `.shutdown()`."""
+    import http.server, threading
+
+    class Fake(http.server.BaseHTTPRequestHandler):
+        def answer(self, body):
+            data = json.dumps(body).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_GET(self):
+            self.answer({"object": "list", "data": [{"id": "demo-translator", "object": "model"}]})
+
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            text = "The Spanish Game. White attacks the knight that defends the pawn on e5."
+            self.answer({"choices": [{"index": 0, "message": {"role": "assistant", "content": text}}]})
+
+        def log_message(self, *_):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Fake)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
 def model():
     """language-model-390.png and -1100.png: Settings → Language model with the model server
     running on this machine, and translate-comment-390.png and -1100.png: a German comment
-    translated in replay. Needs a model server on the host (MODEL_URL and MODEL_NAME, default
-    Lemonade on 13305); one translation is asked, then kept in the demo home. The Foreign database
+    translated in replay, and translate-library-*.png: the same comment in a Library Game. The model is a stand-in (fake_model) unless MODEL_URL and MODEL_NAME
+    name a real server on the host; one translation is asked, then kept in the demo home. The Foreign database
     is opened through a stand-in for Coxswain's picker, put beside bragd-gui for the run."""
-    url = os.environ.get("MODEL_URL", "http://localhost:13305/api/v1")
-    name = os.environ.get("MODEL_NAME", "Qwen3-Coder-30B-A3B-Instruct-GGUF")
+    fake = None
+    if os.environ.get("MODEL_URL"):
+        url, name = os.environ["MODEL_URL"], os.environ.get("MODEL_NAME", "")
+    else:
+        fake = fake_model()
+        url, name = f"http://127.0.0.1:{fake.server_port}/v1", "demo-translator"
     home = Path(_env()["DEMO_HOME"])
     (home / "Games/comments.pgn").write_text(COMMENTS_PGN)
     picker = HERE.parent.parent / "target/release/coxswain-gui"
@@ -500,9 +534,30 @@ def model():
             js(d, "document.querySelector('main .comment')?.scrollIntoView({block: 'center'})")
 
         widths("translate-comment", comment)
+
+        def library(d):
+            unfold(d)
+            nav(d, "chess", "Databases")
+            click(d, "Libraries", "main")
+            js(d, "document.querySelector('main td button.link').click()")
+            d.wait(1.5)
+            js(d, "[...document.querySelectorAll('main .row')].find(r => r.textContent.includes('Schwarz'))?.click()")
+            d.wait(1.5)
+            js(d, "document.querySelectorAll('main .moves button')[4].click()")
+            d.wait(1)
+            js(d, "document.querySelector('main button.translate')?.click()")
+            for _ in range(30):
+                if js(d, "return !!document.querySelector('main .machine')"):
+                    break
+                d.wait(1)
+            js(d, "document.querySelector('main .comment')?.scrollIntoView({block: 'center'})")
+
+        widths("translate-library", library, out=Path(os.environ.get("CAP_OUT", HERE)))
     finally:
         config("")
         picker.unlink(missing_ok=True)
+        if fake:
+            fake.shutdown()
 
 
 def background():
@@ -670,7 +725,175 @@ def online():
             p.wait(5)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background, "peers": peers, "sharing": sharing, "online": online}
+def sources():
+    """databases-sources-390.png and -1100.png: Chess → Databases → Sources, TWIC first and the
+    Sources not fetched yet greyed out, with their size and no schedule."""
+    def page(d):
+        unfold(d)
+        nav(d, "chess", "Databases")
+        click(d, "Sources", "main")
+        d.wait(1.5)
+    widths("databases-sources", page)
+
+
+# The stand-in engines of the demo home, for every Family with an Engine but draughts.
+ENGINES = '[engines.paths]\nstockfish = "/home/demo/fake-uci"\nkatago = "/home/demo/fake-engine"\nfairy-stockfish = "/home/demo/fake-engine"\ngnubg = "/home/demo/fake-engine"\n'
+# A few moves to play in Analyse, and a player of the demo Library, per Family. A backgammon
+# turn is a throw and the engine's first line.
+LINES = {"chess": ["e2 e4", "e7 e5", "g1 f3", "b8 c6", "f1 c4", "d8 g5"], "go": ["e5", "c3", "g7", "g3", "c7", "e3", "d6"],
+         "shogi": ["7g 7f", "3c 3d", "2g 2f", "8c 8d", "2f 2e"], "backgammon": ["throw"] * 4}
+PLAYERS = {"chess": "hansen", "go": "sato", "shogi": "mori", "backgammon": "vik"}
+
+
+def unfold(d):
+    js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+    d.wait(0.4)
+
+
+def stop(d):
+    """Stop the engine on the Analyse page, when it runs."""
+    js(d, "[...document.querySelectorAll('main button')].find(b => b.textContent.trim() === 'Stop')?.click()")
+    d.wait(0.5)
+
+
+def play_line(d, family):
+    """Play LINES[family] on the Analyse page."""
+    for m in LINES[family]:
+        if m == "throw":
+            click(d, "Throw", "main")
+            d.wait(0.6)
+            click(d, "Analyse", "main")
+            d.wait(2.5)
+            js(d, "document.querySelector('main .lines button.mv')?.click()")
+            stop(d)
+        else:
+            for sq in m.split():
+                cell(d, sq)
+                d.wait(0.35)
+    d.wait(1)
+
+
+def families(only=None):
+    """The 0.4.0 screens for chess, go, shogi and backgammon, each at 390 and 1100 px, into
+    $CAP_OUT (default: here): analyse-stored-<family> (Analyse showing a line from the Position
+    store, which an earlier run put there), review-<family> (Review with its Annotations and the
+    move list's marks), slice-analyse-<family> (a Slice's Analyse in background), jobs-<family>
+    (the Jobs page with the job it queued), player-<family> (Find a player), and once
+    store-table (Disk watch's Position store). `only` ("go" or "chess"): every other Family
+    turned off, and the start, Databases, Settings → Knowledge and F1 pictures as only-<family>-*."""
+    out = Path(os.environ.get("CAP_OUT", HERE))
+    home = Path(_env()["DEMO_HOME"]) / ".local/share/bragd"
+    off = "".join(f"{f} = false\n" for f in FAMILIES if only and f != only)
+    config(ENGINES + "[analysis]\nopen_games = false\n" + (f"[families.family]\n{off}" if off else ""))
+    try:
+        if only:
+            def start(d):
+                unfold(d)
+                nav(d, only, "Analyse")
+            widths(f"only-{only}-start", start, out=out)
+
+            def library(d):
+                unfold(d)
+                nav(d, only, "Databases")
+                click(d, "Libraries", "main")
+                js(d, "document.querySelector('main td button.link').click()")
+                d.wait(1.5)
+            widths(f"only-{only}-library", library, out=out)
+
+            def knowledge(d):
+                unfold(d)
+                click(d, "Settings", "nav")
+                click(d, "Knowledge", "main")
+                d.wait(1.5)
+            widths(f"only-{only}-knowledge", knowledge, out=out)
+            widths(f"only-{only}-help", lambda d: (d.keys("F1"), d.wait(1)), out=out)
+            return
+        for f in ["chess", "go", "shogi", "backgammon"]:
+            # Analysed once, so the next start finds the line in the Position store.
+            with Desktop(size=W1100) as d:
+                nav(d, f, "Analyse")
+                play_line(d, f)
+                click(d, "Analyse", "main")
+                d.wait(4)
+                stop(d)
+
+            def stored(d):
+                unfold(d)
+                nav(d, f, "Analyse")
+                play_line(d, f)
+                click(d, "Analyse", "main")
+                d.wait(1.5)
+            widths(f"analyse-stored-{f}", stored, out=out)
+
+            def review(d):
+                stored(d)
+                click(d, "Review the game", "main")
+                d.wait(6)
+                js(d, "document.querySelector('main .notes')?.scrollIntoView({block: 'center'})")
+            # Backgammon has no Review yet (docs/engines/review.md).
+            if f != "backgammon":
+                widths(f"review-{f}", review, out=out)
+
+            def slice_page(d):
+                unfold(d)
+                nav(d, f, "Databases")
+                click(d, "Libraries", "main")
+                js(d, "document.querySelector('main td button.link').click()")
+                d.wait(1)
+                # The Family's own Slice: "White wins" for chess, "Go club" and so on.
+                click(d, "White wins" if f == "chess" else f"{NAMES[f]} club", "main")
+                d.wait(1)
+                click(d, "Analyse in background", "main")
+                d.wait(1.5)
+                js(d, "document.querySelector('main .analyse')?.scrollIntoView()")
+            widths(f"slice-analyse-{f}", slice_page, out=out)
+
+            def jobs(d):
+                slice_page(d)
+                click(d, "Queue", "main .analyse")
+                d.wait(5)
+                js(d, "document.querySelector('button.helper').click()")
+                d.wait(1.5)
+                js(d, "const h = [...document.querySelectorAll('main h2')].find(h => h.textContent.trim() === 'Background analysis'); h && h.scrollIntoView()")
+            # A slow stand-in, so the job is seen running; and no jobs of an earlier run.
+            slow = Path(_env()["DEMO_HOME"]) / "fake-engine.slow"
+            slow.touch()
+            try:
+                for w, h in WIDTHS.items():
+                    (home / "helper/state.json").unlink(missing_ok=True)
+                    with Desktop(size=(w, h)) as d:
+                        jobs(d)
+                        d.shot(out / f"jobs-{f}-{w}.png")
+            finally:
+                slow.unlink()
+
+            def player(d):
+                unfold(d)
+                nav(d, f, "Databases")
+                click(d, "Libraries", "main")
+                js(d, "document.querySelector('main td button.link').click()")
+                d.wait(1)
+                js(d, f"""const i = document.querySelector('main input[type=search]');
+                  i.value = {json.dumps(PLAYERS[f])}; i.dispatchEvent(new Event('input', {{bubbles: true}}));
+                  i.form.requestSubmit();""")
+                d.wait(1.5)
+            widths(f"player-{f}", player, out=out)
+
+        def store(d):
+            unfold(d)
+            click(d, "Settings", "nav")
+            click(d, "Knowledge", "main")
+            d.wait(2)
+            js(d, "const h = [...document.querySelectorAll('main h3')].find(h => h.textContent.trim() === 'Position store'); h && h.scrollIntoView()")
+        widths("store-table", store, out=out)
+    finally:
+        config("")
+        for p in (home / "helper/state.json", home / "positions.sqlite", home / "positions.sqlite-wal", home / "positions.sqlite-shm"):
+            p.unlink(missing_ok=True)
+
+
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background, "peers": peers, "sharing": sharing, "online": online, "families": families, "sources": sources,
+       "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:
