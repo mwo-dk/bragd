@@ -71,13 +71,10 @@ pub fn comment_view(m: &ModelConfig, store: Option<&Translations>, text: &str, r
     }
 }
 
-/// `text` translated into the language of `reader` by the model of `m`, and kept in `store`. A
-/// translation already kept is given without asking the model.
-pub fn translate(m: &ModelConfig, store: &Translations, text: &str, reader: &str) -> Result<Translation, String> {
+/// `text` translated into the language of `reader` by the model of `m`, kept nowhere: a Peer asks
+/// this for another machine, which keeps it.
+pub fn ask(m: &ModelConfig, text: &str, reader: &str) -> Result<Translation, String> {
     let text = text.trim();
-    if let Some(t) = store.get(text, reader).map_err(|e| e.to_string())? {
-        return Ok(t);
-    }
     if !ready(m) {
         return Err(t!("model.error.not_ready"));
     }
@@ -89,7 +86,17 @@ pub fn translate(m: &ModelConfig, store: &Translations, text: &str, reader: &str
     );
     let out = client::chat(&m.url, key::get(&m.url).as_deref(), &m.name, &system, text)?;
     let time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64);
-    let t = Translation { text: out, model: m.name.clone(), time };
+    Ok(Translation { text: out, model: m.name.clone(), time })
+}
+
+/// `text` translated into the language of `reader` by the model of `m`, and kept in `store`. A
+/// translation already kept is given without asking the model.
+pub fn translate(m: &ModelConfig, store: &Translations, text: &str, reader: &str) -> Result<Translation, String> {
+    let text = text.trim();
+    if let Some(t) = store.get(text, reader).map_err(|e| e.to_string())? {
+        return Ok(t);
+    }
+    let t = ask(m, text, reader)?;
     store.put(text, reader, &t).map_err(|e| e.to_string())?;
     Ok(t)
 }

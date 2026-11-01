@@ -86,6 +86,8 @@ pub enum Request {
     Unpair { id: String },
     /// Other Helpers announcing themselves on the home network.
     PeersLook,
+    /// Take what is new from every Peer now, in the background: Peers as they stand.
+    PeersSync,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -250,7 +252,8 @@ pub fn serve(stay: bool) -> io::Result<Ended> {
     note(format_args!("Helper starts, process {}", std::process::id()));
     let runtime = cfg.engines.runtime.clone();
     let images = Box::new(move || crate::disk::pulled_images(&runtime));
-    let jobs = || Jobs::open(&dir, Box::new(crate::net::Web::default()), library, cfg.knowledge.source_priority.clone(), Box::new(crate::battery::on_battery), images);
+    let data = bragd_core::dirs::app_data().ok_or_else(|| io::Error::other("no data folder"))?;
+    let jobs = || Jobs::open(&dir, &data, Box::new(crate::net::Web::default()), library, cfg.knowledge.source_priority.clone(), Box::new(crate::battery::on_battery), images);
     let ended = serve_in(OURS, &dir, stay || cfg.helper.start_with_session, LINGER, jobs);
     match &ended {
         Ok(e) => note(format_args!("Helper leaves: {e:?}")),
@@ -280,9 +283,10 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     let addr_file = dir.join("helper.addr");
     write_private(&addr_file, &format!("{addr}\n{token}\n"))?;
 
-    // Peers listen only from the Helper that holds the lock.
-    crate::peers::apply();
     let jobs = jobs();
+    // Peers listen only from the Helper that holds the lock, and share its jobs.
+    crate::peers::start(&jobs);
+    crate::peers::apply();
     let worker = {
         let jobs = jobs.clone();
         std::thread::spawn(move || jobs.work())
@@ -295,6 +299,15 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
         let jobs = jobs.clone();
         std::thread::spawn(move || jobs.work_lane(crate::jobs::Lane::Analysis))
     };
+    let model_worker = {
+        let jobs = jobs.clone();
+        std::thread::spawn(move || jobs.work_lane(crate::jobs::Lane::Model))
+    };
+    // The Position store's sync with Peers; it leaves with the Helper, not waited for.
+    if let Some(share) = crate::peers::share() {
+        let (share, jobs) = (share.clone(), jobs.clone());
+        std::thread::spawn(move || share.run(&|| jobs.quitting()));
+    }
     let (clients, quit, last) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicBool::new(false)), Arc::new(Mutex::new(Instant::now())));
     {
         let (jobs, clients, quit, last) = (jobs.clone(), clients.clone(), quit.clone(), last.clone());
@@ -326,6 +339,7 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     let _ = worker.join();
     let _ = match_worker.join();
     let _ = analysis_worker.join();
+    let _ = model_worker.join();
     let _ = std::fs::remove_file(addr_file);
     Ok(if quit.load(Ordering::SeqCst) { Ended::Asked } else { Ended::Idle })
 }
@@ -488,6 +502,13 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, mut
             Request::PairHide => peers(crate::peers::hide_code()),
             Request::PairWith { addr, code } => peers(crate::peers::pair(&addr, &code)),
             Request::Unpair { id } => peers(crate::peers::unpair(&id)),
+            Request::PeersSync => {
+                // In the background: a window waits only seconds for an answer.
+                if let Some(s) = crate::peers::share() {
+                    std::thread::spawn(move || s.sync_all());
+                }
+                peers(crate::peers::view(false))
+            }
             Request::PeersLook => match crate::peers::look() {
                 Ok(found) => Reply::Found { found },
                 Err(error) => Reply::Error { error },

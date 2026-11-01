@@ -256,7 +256,7 @@ mod tests {
         let s = setup(Kind::Sprt { elo0: 0.0, elo1: 5.0, alpha: 0.05, beta: 0.05 });
         let mut results = matches::unplayed(20);
         results.replace_range(0..4, "1=10");
-        let j = Job { id: 3, work: Work::Match { setup: s.clone() }, status: Status::Running, done: 4, total: Some(20), error: None, resumed: 0, report: Some(Report { results: Some(results), ..Default::default() }) };
+        let j = Job { id: 3, work: Work::Match { setup: s.clone() }, status: Status::Running, done: 4, total: Some(20), error: None, resumed: 0, report: Some(Report { results: Some(results), ..Default::default() }), lent: None, from: None };
         let v = view(&j, &s);
         assert_eq!(v.rows.len(), 2);
         // Stockfish: won with White, drew with Black, then won both.
