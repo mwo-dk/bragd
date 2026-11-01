@@ -9,6 +9,7 @@ pub mod battery;
 pub mod disk;
 pub mod helper;
 pub mod jobs;
+pub mod matches;
 pub mod net;
 pub mod service;
 pub mod sources;

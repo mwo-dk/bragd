@@ -39,9 +39,12 @@ pub enum Work {
     Strip { source: String, dry_run: bool },
     /// The Strip rule of every Route to a Library applied to its Games (`Library::prune`).
     Prune { library: PathBuf, dry_run: bool },
+    /// An engine match (`crate::matches`), its Games into `Setup::library`. Matches run beside
+    /// the other jobs, one at a time, so a long one never holds up a Source.
+    Match { setup: bragd_engines::matches::Setup },
 }
 
-/// What a Strip or Prune job did, or would do in a dry run.
+/// What a Strip or Prune job did, or would do in a dry run, and how far a match is.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Report {
     /// Downloads written again with only the Games kept.
@@ -50,6 +53,10 @@ pub struct Report {
     pub removed: Vec<(PathBuf, u64)>,
     /// What went from the Libraries, added up.
     pub library: Option<Pruned>,
+    /// A match's results so far, one character per Game of its schedule
+    /// (`bragd_engines::matches::unplayed`).
+    #[serde(default)]
+    pub results: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -395,11 +402,17 @@ impl Jobs {
         Ok(p.read as u64)
     }
 
-    /// Runs the first queued job: false when there is none.
+    /// Runs the first queued job other than a match: false when there is none.
     pub fn run_next(&self) -> bool {
+        self.run_first(false)
+    }
+
+    /// Runs the first queued job that is a match (`matches`) or that is not: false when there
+    /// is none.
+    fn run_first(&self, matches: bool) -> bool {
         let (id, work) = {
             let mut st = self.lock();
-            let Some(j) = st.jobs.iter_mut().find(|j| j.status == Status::Queued) else { return false };
+            let Some(j) = st.jobs.iter_mut().find(|j| j.status == Status::Queued && matches!(j.work, Work::Match { .. }) == matches) else { return false };
             j.status = Status::Running;
             let next = (j.id, j.work.clone());
             self.save(&st);
@@ -452,7 +465,32 @@ impl Jobs {
                 self.set_report(id, Report { library: Some(p), ..Default::default() });
                 Ok(games)
             }
+            Work::Match { setup } => self.play_match(id, setup),
         }
+    }
+
+    /// Plays the match on from the results kept in its report, each Game into its Library as it
+    /// ends: the Games played.
+    fn play_match(&self, id: u64, setup: &bragd_engines::matches::Setup) -> Result<u64, String> {
+        let kept = self.lock().jobs.iter().find(|j| j.id == id).and_then(|j| j.report.as_ref()?.results.clone()).unwrap_or_default();
+        let lib = Mutex::new(self.open_library(&setup.library)?);
+        let total = bragd_engines::matches::schedule(&setup.kind, setup.engines.len(), setup.rounds).len() as u64;
+        let played = |r: &str| r.chars().filter(|c| *c != '.').count() as u64;
+        self.progress(id, played(&kept), Some(total));
+        let stop = || self.should_stop(id);
+        let done = |i: usize, game: bragd_library::library::NewGame, results: &str| {
+            if let Err(e) = lib.lock().unwrap_or_else(|e| e.into_inner()).add(&game, crate::matches::SOURCE, &format!("{id}:{i}")) {
+                crate::note(format_args!("match {id}: Game {i} could not be kept in {}: {e}", setup.library.display()));
+            }
+            let mut st = self.lock();
+            if let Some(j) = st.jobs.iter_mut().find(|j| j.id == id) {
+                j.done = played(results);
+                j.report.get_or_insert_with(Report::default).results = Some(results.to_string());
+            }
+            self.save(&st);
+        };
+        let results = crate::matches::play(setup, kept, &stop, &done)?;
+        Ok(played(&results))
     }
 
     /// The Library a Route names: `main` is the main Library, other names sit beside it.
@@ -700,7 +738,19 @@ impl Jobs {
             if !ran {
                 // Under the lock, so a job added or a stop since is not missed.
                 let st = self.lock();
-                if !self.quit.load(Ordering::Relaxed) && !st.jobs.iter().any(|j| j.status == Status::Queued) {
+                if !self.quit.load(Ordering::Relaxed) && !st.jobs.iter().any(|j| j.status == Status::Queued && !matches!(j.work, Work::Match { .. })) {
+                    let _ = self.wake.wait_timeout(st, Duration::from_secs(60));
+                }
+            }
+        }
+    }
+
+    /// The worker for matches, beside `work`: one match at a time, until `stop`.
+    pub fn work_matches(self: Arc<Self>) {
+        while !self.quit.load(Ordering::Relaxed) {
+            if !self.run_first(true) {
+                let st = self.lock();
+                if !self.quit.load(Ordering::Relaxed) && !st.jobs.iter().any(|j| j.status == Status::Queued && matches!(j.work, Work::Match { .. })) {
                     let _ = self.wake.wait_timeout(st, Duration::from_secs(60));
                 }
             }
@@ -758,6 +808,42 @@ pub(crate) mod tests {
 
     fn count(lib: &Path) -> u64 {
         Library::open(lib).unwrap().count().unwrap()
+    }
+
+    /// A match between two engines added by their path (shell scripts that never name a
+    /// move, `0000`): each loses the Game it starts, both Games go into the Library, and the
+    /// job keeps the results. It runs beside the other jobs, never taken by their worker.
+    #[cfg(unix)]
+    #[test]
+    fn a_match_plays_its_games_into_a_library() {
+        use bragd_engines::matches::{Kind, Setup};
+        let d = crate::tests::Dir::new("match");
+        let script = "while read l; do case \"$l\" in uci) echo 'id name Fake'; echo uciok;; isready) echo readyok;; go*) echo 'bestmove 0000';; quit) exit 0;; esac; done";
+        let mut keys = vec![];
+        for k in ["fake-a", "fake-b"] {
+            let p = d.0.join(k);
+            let mut sh = std::process::Command::new("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(&p).stdin(std::process::Stdio::piped()).spawn().unwrap();
+            std::io::Write::write_all(&mut sh.stdin.take().unwrap(), format!("#!/bin/sh\n{script}\n").as_bytes()).unwrap();
+            assert!(sh.wait().unwrap().success());
+            Config::save_value(&["engines", "added", k], "chess".into()).unwrap();
+            Config::save_value(&["engines", "paths", k], p.display().to_string().as_str().into()).unwrap();
+            keys.push(k.to_string());
+        }
+        let library = d.0.join("lib/matches.bragd");
+        let setup = Setup { variant: "chess".into(), engines: keys, kind: Kind::Gauntlet, rounds: 1, limit: bragd_engines::Limit::Time(100), parallel: 2, book: None, book_depth: 8, adjudication: Default::default(), library: library.clone(), seed: 7 };
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
+        let id = jobs.add(Work::Match { setup });
+        assert!(!jobs.run_next(), "the other jobs' worker leaves a match alone");
+        assert!(jobs.run_first(true));
+        let j = jobs.list().into_iter().find(|j| j.id == id).unwrap();
+        assert_eq!((j.status, j.error.clone(), j.done, j.total), (Status::Done, None, 2, Some(2)));
+        assert_eq!(j.report.unwrap().results.as_deref(), Some("00"));
+        // Two Games of no moves are one Game, as a Library keeps Duplicates: both its Sources stay.
+        assert_eq!(count(&library), 1);
+        let lib = Library::open(&library).unwrap();
+        assert_eq!(lib.sources(1).unwrap().len(), 2);
+        let g = lib.stored(1).unwrap();
+        assert_eq!((g.result.as_str(), g.headers["Termination"].as_str()), ("0-1", Some("no move")));
     }
 
     #[test]

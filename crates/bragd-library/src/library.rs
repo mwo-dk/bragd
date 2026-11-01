@@ -280,6 +280,19 @@ impl NewGame {
     }
 }
 
+impl NewGame {
+    /// A Game Bragd played itself (an engine match): its moves as a Player writes them and the
+    /// position before the first and after each (`positions`, one more than `moves`), in the
+    /// Family's notation. A chess position's key is its Polyglot key, as an imported chess game
+    /// has it; any other's is a hash of its text.
+    pub fn played(family: &str, variant: &str, start: Option<String>, moves: Vec<String>, positions: &[String], headers: Vec<(String, String)>, result: &str) -> NewGame {
+        let key = |p: &String| if family == "chess" { pgn::board(p).map_or_else(|| text_key(p), |b| polyglot::key(&b)) } else { text_key(p) };
+        let mut keys: Vec<u64> = positions.iter().map(key).collect();
+        let start_key = if keys.is_empty() { 0 } else { keys.remove(0) };
+        NewGame { family: family.into(), variant: variant.into(), headers, moves, start, result: result.into(), start_key, keys }
+    }
+}
+
 /// How an import is going, and how it ended.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Progress {
@@ -1008,6 +1021,29 @@ pub(crate) mod tests {
         let mut s: String = tags.iter().map(|(k, v)| format!("[{k} \"{v}\"]\n")).collect();
         s.push_str(&format!("[Result \"{result}\"]\n\n{moves} {result}\n\n"));
         s
+    }
+
+    /// A chess Game an engine match played is the same Game as its PGN imported: one Duplicate.
+    #[test]
+    fn a_played_game_is_the_imported_one() {
+        let sans = ["e4", "e5", "Nf3", "Nc6"];
+        let mut b = pgn::board(pgn::START).unwrap();
+        let mut fens = vec![pgn::fen(&b)];
+        for s in sans {
+            b = b.make_move(pgn::san_move(&b, s).unwrap());
+            fens.push(pgn::fen(&b));
+        }
+        let played = NewGame::played("chess", "chess", None, sans.map(String::from).to_vec(), &fens, vec![("White".into(), "A".into())], "1/2-1/2");
+        let imported = NewGame::from_chess(&pgn::parse(&pgn(&[("White", "A")], "1. e4 e5 2. Nf3 Nc6", "1/2-1/2")));
+        assert_eq!(played.chain(), imported.chain());
+        let d = Dir::new("played");
+        let mut lib = Library::open(&d.0.join("m.bragd")).unwrap();
+        lib.add(&played, "match", "1").unwrap();
+        lib.add(&imported, "pgn", "x").unwrap();
+        assert_eq!(lib.count().unwrap(), 1);
+        // Another Family keys its positions by their text.
+        let go = NewGame::played("go", "go-9", None, vec!["e5".into()], &["a".into(), "b".into()], vec![], "W+7.5");
+        assert_eq!((go.start_key, go.keys.clone()), (text_key("a"), vec![text_key("b")]));
     }
 
     fn import(lib: &mut Library, path: &Path, source: &str) -> Progress {

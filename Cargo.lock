@@ -417,6 +417,7 @@ dependencies = [
  "bragd-clubs",
  "bragd-core",
  "bragd-engines",
+ "bragd-games",
  "bragd-library",
  "getrandom 0.4.3",
  "libc",

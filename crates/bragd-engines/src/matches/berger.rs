@@ -5,7 +5,32 @@
 /// Side, second Side), as the Berger table for `n` (or `n + 1` when `n` is odd, the extra one
 /// being the bye, whose pairs are left out) has them.
 pub fn rounds(n: usize) -> Vec<Vec<(usize, usize)>> {
-    todo!()
+    if n == 0 {
+        return Vec::new();
+    }
+
+    let m = n + n % 2;
+    let fixed = m - 1;
+    let half = m / 2;
+
+    (0..fixed)
+        .map(|r| {
+            let p = (r * half) % fixed;
+            let mut pairs = Vec::with_capacity(half);
+            let fixed_pair = if r % 2 == 0 { (p, fixed) } else { (fixed, p) };
+            if fixed_pair.0 < n && fixed_pair.1 < n {
+                pairs.push(fixed_pair);
+            }
+
+            for k in 1..half {
+                let pair = ((p + k) % fixed, (p + fixed - k) % fixed);
+                if pair.0 < n && pair.1 < n {
+                    pairs.push(pair);
+                }
+            }
+            pairs
+        })
+        .collect()
 }
 
 #[cfg(test)]

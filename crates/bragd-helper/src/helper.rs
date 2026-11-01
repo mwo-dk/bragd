@@ -267,6 +267,10 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
         let jobs = jobs.clone();
         std::thread::spawn(move || jobs.work())
     };
+    let match_worker = {
+        let jobs = jobs.clone();
+        std::thread::spawn(move || jobs.work_matches())
+    };
     let (clients, quit, last) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicBool::new(false)), Arc::new(Mutex::new(Instant::now())));
     {
         let (jobs, clients, quit, last) = (jobs.clone(), clients.clone(), quit.clone(), last.clone());
@@ -295,6 +299,7 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     }
     jobs.stop();
     let _ = worker.join();
+    let _ = match_worker.join();
     let _ = std::fs::remove_file(addr_file);
     Ok(if quit.load(Ordering::SeqCst) { Ended::Asked } else { Ended::Idle })
 }
