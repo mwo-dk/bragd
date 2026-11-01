@@ -118,6 +118,24 @@ impl Position {
         self.ko
     }
 
+    /// Its Zobrist key ([`crate::zobrist`]): the stones, the side to move and the ko point.
+    pub fn zobrist(&self) -> u64 {
+        let size = self.size();
+        // The key numbers rows from the top, as a game record does.
+        let mut stones = Vec::with_capacity(self.board.intersections());
+        for row in (0..size).rev() {
+            for column in 0..size {
+                stones.push(match self.board.at(Point::at(column, row)) {
+                    None => 0,
+                    Some(Colour::Black) => 1,
+                    Some(Colour::White) => 2,
+                });
+            }
+        }
+        let ko = self.ko.map(|p| (p.column(), size - 1 - p.row()));
+        crate::zobrist::key(size, size, &stones, self.to_move == Colour::Black, ko)
+    }
+
     /// How many stones of each colour have been taken off, indexed by
     /// [`Colour::index`] — **the colour of the stone taken**, not of the player
     /// who took it. Japanese scoring wants the other reading, and adding the

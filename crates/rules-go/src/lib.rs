@@ -39,6 +39,7 @@ pub mod position;
 pub mod record;
 pub mod ruleset;
 pub mod score;
+pub mod zobrist;
 
 pub use board::{Board, Chain, Colour, MAX_SIZE, Point, SIZES, plays};
 pub use game::{Available, Entry, Game, MoveError, Outcome, Proposal, State};

@@ -489,6 +489,44 @@ impl Game {
         Position { width: w, height: h, stones: board.stones, captures: board.captures, last, black_next, number }
     }
 
+    /// The main line's position keys (`rules_go::zobrist`): before the first move, then after
+    /// each move, played out as `position` plays them.
+    pub fn keys(&self) -> (u64, Vec<u64>) {
+        let (w, h) = (self.info.width, self.info.height);
+        let mut board = Record::new(w, h);
+        let handicap = self.info.handicap.trim().parse::<u32>().unwrap_or(0);
+        let (mut black_next, mut ko) = (true, None);
+        let (mut start, mut keys) = (None, vec![]);
+        let mut at = (!self.nodes.is_empty()).then_some(0usize);
+        while let Some(i) = at {
+            let node = &self.nodes[i];
+            for &(c, x, y) in &node.setup {
+                board.set(x, y, c);
+            }
+            if node.parent.is_none() && handicap > 1 && node.setup.iter().any(|s| s.0 == 1) {
+                black_next = false;
+            }
+            if let Some(m) = node.mv {
+                start.get_or_insert_with(|| rules_go::zobrist::key(w, h, &board.stones, black_next, None));
+                ko = None;
+                if let Some((x, y)) = m.at {
+                    let before = board.stones.clone();
+                    board.play(m.black, x, y);
+                    ko = rules_go::zobrist::ko_after(w, h, &before, &board.stones);
+                }
+                black_next = !m.black;
+            }
+            if let Some(b) = node.player {
+                black_next = b;
+            }
+            if node.mv.is_some() {
+                keys.push(rules_go::zobrist::key(w, h, &board.stones, black_next, ko));
+            }
+            at = node.children.first().map(|&c| c as usize);
+        }
+        (start.unwrap_or_else(|| rules_go::zobrist::key(w, h, &board.stones, black_next, None)), keys)
+    }
+
     /// The moves that go on from node `at` when there is more than one: each with its letter's
     /// place (0 = A) and its node.
     pub fn branches(&self, at: u32) -> Vec<u32> {
