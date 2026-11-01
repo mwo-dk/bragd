@@ -117,14 +117,19 @@ How engines run:
 - **Phase 1:** play on Lichess, Lishogi, pychess.org and OGS.
   - Sign-in is per server over OAuth. Tokens are kept in the OS keychain.
   - Analysis is locked while a rated game against a person is live.
-- **Phase 2:** our own Rust game server, as a container on our host, for the Families nobody else hosts. It brings ratings and tournaments, and Bragd's rules crates are authoritative on it.
+- **Phase 2:** the Bragd server (*Playing together*), for the Families nobody else hosts. It brings ratings and tournaments, and Bragd's rules crates are authoritative on it.
 - **Chat on Lichess (1.0.0):** a Lichess Game's chat, through the Lichess API, with Lichess's own rules. Lichess Games get no Call: the opponent may not be using Bragd.
 
 ## Playing together (1.1.0)
 
 Two Bragd players on the Bragd server can Chat and Call during a Game.
 
-- **Bragd server:** a docker compose of its own with Caddy on the Hetzner host, not the pine-z instance. It holds accounts and Friends, runs Games between Bragd players, and brings Calls together with a signalling service and STUN/TURN (coturn).
+- **Bragd server:** two parts (`docs/adr/0005-bragd-server-on-hosted-supabase.md`).
+  - **Supabase**, hosted on the free plan in an EU region: Postgres, accounts (Supabase Auth), Friends, Chat, presence, and Call signalling over Realtime. Row-level security enforces Friends, blocks and Clubs.
+  - **The game service**, in Rust on the Hetzner host as a container of its own (not the pine-z one): the referee for Games between Bragd players, using Bragd's rules crates and the same Postgres. It also runs STUN/TURN (coturn) for Calls.
+  - Large files (Games, PGN, Parquet) go on the Storage Box, not in Postgres.
+  - The privacy page names Supabase Inc as a processor. Online play stays opt-in.
+  - When the free plan's limits are reached (500 MB, 200 Realtime connections, pausing after a quiet week), Bragd moves to the Pro plan or to self-hosting. It is plain Postgres, so that move is a dump and restore.
 - **Media:** a Call's voice and camera go directly between the two machines, encrypted end to end (WebRTC, DTLS-SRTP). When no direct path exists, TURN relays the encrypted packets and cannot read them.
 - **Consent:** Chat, voice and camera each open only when both Players say yes.
   - All are off by default. Settings holds a default for each: *Ask me* or *Off*.
