@@ -33,7 +33,7 @@ pub struct Known {
 #[derive(Serialize)]
 pub struct ListView {
     id: &'static str,
-    name: &'static str,
+    name: String,
     /// Players imported; none before the first fetch.
     players: Option<u64>,
     at: Option<u64>,
@@ -64,11 +64,14 @@ fn remember(path: &Path) {
 
 fn rating_lists() -> Vec<ListView> {
     let imported = lists::path().and_then(|p| lists::lists(&p).ok()).unwrap_or_default();
+    let tags = bragd_core::i18n::locale_tags();
+    // FIDE's, the user's own federation's and any already fetched; the rest are under More lists
+    // on chess's Sources page.
     lists::LISTS
         .iter()
-        .map(|l| {
+        .filter_map(|l| {
             let i = imported.iter().find(|i| i.list == l.id);
-            ListView { id: l.id, name: l.name, players: i.map(|i| i.players), at: i.map(|i| i.at) }
+            (i.is_some() || l.suggested(&tags)).then(|| ListView { id: l.id, name: l.title(), players: i.map(|i| i.players), at: i.map(|i| i.at) })
         })
         .collect()
 }
@@ -180,10 +183,12 @@ pub fn club_take_over(by: i64, held: State<'_, Held>) -> Res<club::View> {
     with(&held, |c| c.take_over(by))
 }
 
-/// A player found in a rating list, with the list's name.
+/// A player found in a rating list, with the list's name, and whether it is FIDE's (its ID is
+/// then a FIDE ID).
 #[derive(Serialize)]
 pub struct Found {
-    list: &'static str,
+    list: String,
+    fide: bool,
     #[serde(flatten)]
     player: lists::Player,
 }
@@ -195,6 +200,9 @@ pub fn rating_search(query: String) -> Res<Vec<Found>> {
     Ok(lists::search(&db, &query)
         .map_err(|e| e.to_string())?
         .into_iter()
-        .map(|f| Found { list: lists::LISTS.iter().find(|l| l.id == f.list).map_or("?", |l| l.name), player: f.player })
+        .map(|f| {
+            let list = lists::LISTS.iter().find(|l| l.id == f.list);
+            Found { list: list.map_or("?".into(), |l| l.title()), fide: list.is_some_and(|l| l.region.is_empty()), player: f.player }
+        })
         .collect())
 }

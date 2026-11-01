@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use bragd_clubs::club::{self, Club};
 use bragd_clubs::export;
 use bragd_clubs::tiebreak::Tiebreak;
-use bragd_clubs::tournament::{self, Handicap, Outcome, Player, Status, Tournament, Warning};
+use bragd_clubs::tournament::{self, Handicap, Outcome, Player, Status, TeamScore, Tournament, Warning};
 use bragd_core::t;
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -54,6 +54,21 @@ pub struct View {
     blocked: Option<String>,
     /// The Variant played, by name.
     variant: String,
+    /// A knockout's players through to the next Round by bye, for each Round.
+    through: Vec<Vec<usize>>,
+    /// A Scheveningen's team score: each Round's, then the total. Empty for other systems.
+    teams: Vec<TeamRow>,
+}
+
+/// A Scheveningen Round's team score, team 1 then team 2, written out.
+#[derive(Serialize)]
+pub struct TeamRow {
+    boards: [String; 2],
+    matches: [u32; 2],
+}
+
+fn team_row(s: TeamScore) -> TeamRow {
+    TeamRow { boards: s.board_points.map(tournament::half_text), matches: s.match_points }
 }
 
 /// A Variant a Tournament can be played in: those of the Families and Variants turned on.
@@ -90,6 +105,12 @@ fn view(id: i64, t: Tournament) -> View {
         all: Tiebreak::ALL.iter().map(|&tb| named(tb)).collect(),
         blocked: t.can_pair().err().map(|e| e.to_string()),
         variant: t!(&format!("variant.{}", t.variant)),
+        through: (0..t.played.len()).map(|r| t.through(r)).collect(),
+        teams: {
+            let rounds = t.team_scores();
+            let total = (!rounds.is_empty()).then(|| TeamScore::total(&rounds));
+            rounds.into_iter().chain(total).map(team_row).collect()
+        },
         tournament: t,
     }
 }

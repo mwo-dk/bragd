@@ -62,9 +62,9 @@ The Swiss systems take late entries and pair whoever is checked in. A round-robi
 
 **Monrad.** The draw is made when you press **Pair Round 1**. A late entry gets the next number.
 
-**Knockout.** Each board is a match. When a match ends ½-½, or neither played, choose its **Play-off winner** beside the result once the play-off games are over. The next Round cannot be paired until every match has a winner. After that, a match's winner cannot change: a correction that would put someone else through is refused.
+**Knockout.** Each board is a match. When a match ends ½-½, or neither played, choose its **Play-off winner** beside the result once the play-off games are over. The next Round cannot be paired until every match has a winner. After that, a match's winner cannot change: a correction that would put someone else through is refused. A player the bracket sends straight to the next Round is listed under the Round's boards, and on the second screen, as *through to the next Round by bye*.
 
-**Scheveningen.** The **Team** column on the Players tab puts each player in team 1 or team 2, until Round 1 is paired. The two teams need the same number of players. Within a team, players are ordered by rating. Players in no team do not play.
+**Scheveningen.** The **Team** column on the Players tab puts each player in team 1 or team 2, until Round 1 is paired. The two teams need the same number of players. Within a team, players are ordered by rating. Players in no team do not play. The Standings tab shows the **Team score**: each team's board points per Round and in total, with match points in brackets (2 for a match won, 1 for a draw), given once every result of the Round is in.
 
 **Drop-in.** Choose **Standings by** when you set it up:
 

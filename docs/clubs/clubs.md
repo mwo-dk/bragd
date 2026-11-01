@@ -2,7 +2,7 @@
 
 # Clubs
 
-A Club keeps its members, each with a role and their FIDE, national and Lichess IDs, and a rating the Club keeps for each of them. The rating is Glicko-2 or Elo, chosen per Club. Every rating a director sets by hand goes into an audit log: who, when, the old value, the new value and why. A Club is one file. Copy the file to share the Club. While a Club is open, a lock tells anyone else who opens the same file that someone is working on it. In F1 → Features this is the entry `clubs`.
+A Club keeps its members, each with a role and their FIDE, national and Lichess IDs, a rating the Club keeps for each of them, its [Tournaments](tournaments.md) and its team [Leagues](leagues.md). The rating is Glicko-2 or Elo, chosen per Club. Every rating a director sets by hand goes into an audit log: who, when, the old value, the new value and why. A Club is one file. Copy the file to share the Club. While a Club is open, a lock tells anyone else who opens the same file that someone is working on it. In F1 → Features this is the entry `clubs`.
 
 ![The Clubs page with a Club open: its name and file, Acting as with a director chosen, the members table with roles, IDs and ratings, and its Tournaments below](../screenshots/clubs-1100.png)
 *The Clubs page with a Club open.*
@@ -75,7 +75,7 @@ The lock is a file of its own, so a copy of the Club file carries no lock.
 
 When you add a member, **Find in rating lists** searches the lists Bragd has fetched, by name or by ID. Words of a name can come in any order, each word can be just its start, and accents do not matter: `moller` finds Møller, and `carl mag` finds Carlsen, Magnus. Click a player to fill in the name, the IDs and, for a new member, the starting rating.
 
-The lists are Sources: FIDE, the Danish Chess Union (DSU), the English Chess Federation (ECF), the Chess Federation of Canada (CFC), the Finnish Chess Federation (SShL) and the New Zealand Chess Federation (NZCF). Each is off until you tick it in the install wizard's Knowledge step or turn it on under chess's **Databases** → Sources. The Helper then fetches it once a month in the background. Its size shows before anything is downloaded. Where each list comes from, its terms, and why other federations' lists are missing: [Rating lists](../reference/rating-lists.md).
+The lists are Sources: the International Chess Federation (FIDE), the Danish Chess Union (DSU), the English Chess Federation (ECF), the Chess Federation of Canada (CFC), the Finnish Chess Federation (SShL) and the New Zealand Chess Federation (NZCF). FIDE's list and your own federation's come first. Bragd finds your federation from its language and your system's region: Danish or Denmark gives the DSU, and `en_NZ` gives the NZCF. The other lists wait under **More lists**, and the Clubs page's *Rating lists* panel names only the first ones and any list you have fetched. Each is off until you tick it in the install wizard's Knowledge step or turn it on under chess's **Databases** → Sources. The Helper then fetches it once a month in the background. Its size shows before anything is downloaded. Where each list comes from, its terms, and why other federations' lists are missing: [Rating lists](../reference/rating-lists.md).
 
 ## What it needs
 

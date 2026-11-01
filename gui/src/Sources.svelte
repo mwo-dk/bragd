@@ -106,99 +106,109 @@
   }
 </script>
 
+{#snippet source(/** @type {any} */ s)}
+  <article class="panel source" class:off={!s.fetchable}>
+    <div class="head">
+      <label class="check">
+        <input type="checkbox" checked={s.options.enabled} disabled={!s.fetchable} onchange={(e) => save(s.id, { ...s.options, enabled: e.currentTarget.checked })} />
+        <strong>{s.name}</strong>
+      </label>
+      <span class="meta">{s.familyName} · {s.size} · {t("source.last", { when: s.last })}</span>
+      <button onclick={() => expand(s)} aria-expanded={open === s.id} disabled={!s.fetchable}>{open === s.id ? t("source.less") : t("source.more")}</button>
+      <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.fetchable || !s.options.enabled}>{t("source.fetch_now")}</button>
+      {#if s.custom}<button onclick={() => (removing = s.id)}>{t("source.remove")}</button>{/if}
+    </div>
+    {#if removing === s.id}
+      <div class="notice" role="alertdialog" aria-label={t("source.remove")}>
+        <p>{t("source.remove_confirm", { name: s.name })}</p>
+        <button onclick={() => remove(s)}>{t("source.remove")}</button>
+        <button class="primary" onclick={() => (removing = null)}>{t("common.cancel")}</button>
+      </div>
+    {/if}
+    {#if s.notice}<p class="notice">{s.notice}</p>{/if}
+    {#if s.error}<p class="error">{s.error}</p>{/if}
+    {#if s.paused}<p class="notice">{t("source.paused")}</p>{/if}
+    {#if s.tooBig}
+      <p class="notice">{s.tooBig} <button onclick={() => start(s.id, k.sourceAllow(s.id))}>{t("source.allow")}</button></p>
+    {/if}
+    <small class="url">{s.url}</small>
+
+    {#if open === s.id && draft}
+      <div class="options">
+        <label
+          >{t("source.schedule")}
+          <Picker value={draft.schedule} choices={page.schedules} label={t("source.schedule")} onchange={(v) => draft && (draft.schedule = v)} />
+        </label>
+        <label class="check"><input type="checkbox" bind:checked={draft.only_unmetered} /> {t("source.only_unmetered")}</label>
+        <label>{t("source.disk_cap")} <input type="text" bind:value={cap} placeholder={t("disk.no_limit")} size="10" /></label>
+        <label>{t("source.max_download")} <input type="text" bind:value={maxDownload} placeholder={s.maxDownloadDefault} size="10" /></label>
+        {#if !s.ratingList}
+          <label
+            >{t("source.after_import_label")}
+            <Picker value={draft.after_import} choices={page.afterImport} label={t("source.after_import_label")} onchange={(v) => draft && (draft.after_import = v)} />
+          </label>
+        {/if}
+        {#if s.custom}
+          <label class="wide">{t("source.url")} <input type="text" bind:value={draft.url} /></label>
+        {/if}
+      </div>
+      {#if s.ratingList}
+        <p class="hint">{t("source.rating_list_hint")}</p>
+      {:else}
+      <section class="routes">
+        <h4>{t("source.routes")}</h4>
+        <p class="hint">{t("source.routes_hint")}</p>
+        {#each draft.routes as r, i}
+          <div class="route">
+            <div class="bar">
+              <label
+                >{t("source.route_library", { n: i + 1 })}
+                <Picker
+                  value={page.libraries.includes(r.library) ? r.library : NEW}
+                  choices={[...page.libraries.map((/** @type {string} */ l) => ({ value: l, label: l })), { value: NEW, label: t("source.route_new") }]}
+                  label={t("source.route_library", { n: i + 1 })}
+                  onchange={(v) => (r.library = v === NEW ? "" : v)}
+                />
+              </label>
+              {#if !page.libraries.includes(r.library)}
+                <label>{t("source.route_new_name")} <input type="text" bind:value={r.library} size="14" /></label>
+              {/if}
+              <button onclick={() => (r.strip = emptyRule())}>{t("strip.clear")}</button>
+              <button onclick={() => draft.routes.splice(i, 1)} disabled={draft.routes.length < 2}>{t("source.route_remove")}</button>
+            </div>
+            <StripEditor rule={r.strip} {page} />
+          </div>
+        {/each}
+        <button onclick={() => draft.routes.push({ library: "", strip: emptyRule() })}>{t("source.route_add")}</button>
+      </section>
+      {/if}
+      <div class="bar">
+        <button class="primary" onclick={() => save(s.id, draft, cap, maxDownload)}>{t("source.save")}</button>
+        {#if !s.ratingList}
+        <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, true)))} title={t("strip.preview_hint")}>{t("strip.preview")}</button>
+        <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, false)))} title={t("strip.apply_hint")}>{t("strip.apply")}</button>
+        {/if}
+      </div>
+    {/if}
+    {#if jobs[s.id] !== undefined}<JobLine id={jobs[s.id]} ondone={load} />{/if}
+  </article>
+{/snippet}
+
 <div class="sources">
   <p class="hint">{t("source.intro")}</p>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
   {#if message}<p role="status">{message}</p>{/if}
   {#if !page && !error}<p class="hint">{t("helper.connecting")}</p>{/if}
 
-  {#each shown as s (s.id)}
-    <article class="panel source" class:off={!s.fetchable}>
-      <div class="head">
-        <label class="check">
-          <input type="checkbox" checked={s.options.enabled} disabled={!s.fetchable} onchange={(e) => save(s.id, { ...s.options, enabled: e.currentTarget.checked })} />
-          <strong>{s.name}</strong>
-        </label>
-        <span class="meta">{s.familyName} · {s.size} · {t("source.last", { when: s.last })}</span>
-        <button onclick={() => expand(s)} aria-expanded={open === s.id} disabled={!s.fetchable}>{open === s.id ? t("source.less") : t("source.more")}</button>
-        <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.fetchable || !s.options.enabled}>{t("source.fetch_now")}</button>
-        {#if s.custom}<button onclick={() => (removing = s.id)}>{t("source.remove")}</button>{/if}
-      </div>
-      {#if removing === s.id}
-        <div class="notice" role="alertdialog" aria-label={t("source.remove")}>
-          <p>{t("source.remove_confirm", { name: s.name })}</p>
-          <button onclick={() => remove(s)}>{t("source.remove")}</button>
-          <button class="primary" onclick={() => (removing = null)}>{t("common.cancel")}</button>
-        </div>
-      {/if}
-      {#if s.notice}<p class="notice">{s.notice}</p>{/if}
-      {#if s.error}<p class="error">{s.error}</p>{/if}
-      {#if s.paused}<p class="notice">{t("source.paused")}</p>{/if}
-      {#if s.tooBig}
-        <p class="notice">{s.tooBig} <button onclick={() => start(s.id, k.sourceAllow(s.id))}>{t("source.allow")}</button></p>
-      {/if}
-      <small class="url">{s.url}</small>
-
-      {#if open === s.id && draft}
-        <div class="options">
-          <label
-            >{t("source.schedule")}
-            <Picker value={draft.schedule} choices={page.schedules} label={t("source.schedule")} onchange={(v) => draft && (draft.schedule = v)} />
-          </label>
-          <label class="check"><input type="checkbox" bind:checked={draft.only_unmetered} /> {t("source.only_unmetered")}</label>
-          <label>{t("source.disk_cap")} <input type="text" bind:value={cap} placeholder={t("disk.no_limit")} size="10" /></label>
-          <label>{t("source.max_download")} <input type="text" bind:value={maxDownload} placeholder={s.maxDownloadDefault} size="10" /></label>
-          {#if !s.ratingList}
-            <label
-              >{t("source.after_import_label")}
-              <Picker value={draft.after_import} choices={page.afterImport} label={t("source.after_import_label")} onchange={(v) => draft && (draft.after_import = v)} />
-            </label>
-          {/if}
-          {#if s.custom}
-            <label class="wide">{t("source.url")} <input type="text" bind:value={draft.url} /></label>
-          {/if}
-        </div>
-        {#if s.ratingList}
-          <p class="hint">{t("source.rating_list_hint")}</p>
-        {:else}
-        <section class="routes">
-          <h4>{t("source.routes")}</h4>
-          <p class="hint">{t("source.routes_hint")}</p>
-          {#each draft.routes as r, i}
-            <div class="route">
-              <div class="bar">
-                <label
-                  >{t("source.route_library", { n: i + 1 })}
-                  <Picker
-                    value={page.libraries.includes(r.library) ? r.library : NEW}
-                    choices={[...page.libraries.map((/** @type {string} */ l) => ({ value: l, label: l })), { value: NEW, label: t("source.route_new") }]}
-                    label={t("source.route_library", { n: i + 1 })}
-                    onchange={(v) => (r.library = v === NEW ? "" : v)}
-                  />
-                </label>
-                {#if !page.libraries.includes(r.library)}
-                  <label>{t("source.route_new_name")} <input type="text" bind:value={r.library} size="14" /></label>
-                {/if}
-                <button onclick={() => (r.strip = emptyRule())}>{t("strip.clear")}</button>
-                <button onclick={() => draft.routes.splice(i, 1)} disabled={draft.routes.length < 2}>{t("source.route_remove")}</button>
-              </div>
-              <StripEditor rule={r.strip} {page} />
-            </div>
-          {/each}
-          <button onclick={() => draft.routes.push({ library: "", strip: emptyRule() })}>{t("source.route_add")}</button>
-        </section>
-        {/if}
-        <div class="bar">
-          <button class="primary" onclick={() => save(s.id, draft, cap, maxDownload)}>{t("source.save")}</button>
-          {#if !s.ratingList}
-          <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, true)))} title={t("strip.preview_hint")}>{t("strip.preview")}</button>
-          <button onclick={() => save(s.id, draft, cap, maxDownload).then(() => start(s.id, k.sourceStrip(s.id, false)))} title={t("strip.apply_hint")}>{t("strip.apply")}</button>
-          {/if}
-        </div>
-      {/if}
-      {#if jobs[s.id] !== undefined}<JobLine id={jobs[s.id]} ondone={load} />{/if}
-    </article>
-  {/each}
+  {#each shown.filter((/** @type {any} */ s) => !s.ratingList) as s (s.id)}{@render source(s)}{/each}
+  {#if shown.some((/** @type {any} */ s) => s.ratingList)}<h3>{t("clubs.lists")}</h3>{/if}
+  {#each shown.filter((/** @type {any} */ s) => s.ratingList && !s.more) as s (s.id)}{@render source(s)}{/each}
+  {#if shown.some((/** @type {any} */ s) => s.more)}
+    <details class="more">
+      <summary>{t("source.more_lists")}</summary>
+      {#each shown.filter((/** @type {any} */ s) => s.more) as s (s.id)}{@render source(s)}{/each}
+    </details>
+  {/if}
 
   <section class="panel add">
     <h3>{t("source.add_title")}</h3>
@@ -217,6 +227,9 @@
     flex-direction: column;
     gap: 0.6rem;
     max-width: 52rem;
+  }
+  details.more > :global(article) {
+    margin-top: 0.6rem;
   }
   .source {
     display: flex;

@@ -238,6 +238,24 @@ impl Round {
     }
 }
 
+/// A Scheveningen Round's score, team 1 then team 2: board points in halves, and match
+/// points (2 for a match won, 1 drawn) once every result of the Round is in.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct TeamScore {
+    pub board_points: [u32; 2],
+    pub match_points: [u32; 2],
+}
+
+impl TeamScore {
+    /// The Rounds added up.
+    pub fn total(rounds: &[TeamScore]) -> TeamScore {
+        rounds.iter().fold(TeamScore::default(), |a, r| TeamScore {
+            board_points: [a.board_points[0] + r.board_points[0], a.board_points[1] + r.board_points[1]],
+            match_points: [a.match_points[0] + r.match_points[0], a.match_points[1] + r.match_points[1]],
+        })
+    }
+}
+
 /// What one player had in one Round.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Slot {
@@ -946,6 +964,49 @@ impl Tournament {
         Ok(())
     }
 
+    /// A knockout's players who go to the next Round without a game in Round `r` (from 0), in
+    /// seed order: those the bracket gives a bye. Empty for every other system.
+    pub fn through(&self, r: usize) -> Vec<usize> {
+        if self.system != System::Knockout || r >= self.played.len() {
+            return vec![];
+        }
+        let on_board = |k: usize, p: usize| self.played[k].games.iter().any(|g| g.white == p || g.black == p);
+        let mut alive: Vec<usize> = self.seeds.clone();
+        for k in 0..r {
+            alive.retain(|&p| !on_board(k, p) || self.played[k].games.iter().any(|g| g.winner() == Some(p)));
+        }
+        alive.retain(|&p| !on_board(r, p));
+        alive
+    }
+
+    /// A Scheveningen's score by Round, team 1 against team 2. Empty for every other system.
+    pub fn team_scores(&self) -> Vec<TeamScore> {
+        if !matches!(self.system, System::Scheveningen { .. }) {
+            return vec![];
+        }
+        self.played
+            .iter()
+            .enumerate()
+            .map(|(r, round)| {
+                let mut s = TeamScore::default();
+                for p in 0..self.players.len() {
+                    if let team @ 1..=2 = self.players[p].team {
+                        s.board_points[team as usize - 1] += self.slot(r, p).points();
+                    }
+                }
+                if round.complete() {
+                    let [a, b] = s.board_points;
+                    s.match_points = match a.cmp(&b) {
+                        std::cmp::Ordering::Greater => [2, 0],
+                        std::cmp::Ordering::Less => [0, 2],
+                        std::cmp::Ordering::Equal => [1, 1],
+                    };
+                }
+                s
+            })
+            .collect()
+    }
+
     /// The standings after the Rounds with every result in, by points then the tiebreaks.
     pub fn standings(&self) -> Vec<Standing> {
         tiebreak::standings(self)
@@ -1358,6 +1419,48 @@ mod tests {
         assert_eq!(t.set_playoff("Mette", 0, 0, Some(d), "wrong sheet"), Err(Error::Invalid("tournaments.error.knockout_settled")));
         assert_eq!(t.set_result("Mette", 0, 0, Some(Outcome::White), "x").is_ok(), t.played[0].games[0].white == e, "only a result keeping Eva through stands");
         assert_eq!(Tournament::new("K", System::Knockout, 0, "").unwrap().tiebreaks, []);
+    }
+
+    #[test]
+    fn a_knockout_lists_the_players_through_by_bye_in_their_round() {
+        let mut t = field(System::Knockout, 0, &[("Anna", 2400, 0), ("Bo", 2300, 0), ("Carl", 2200, 0), ("Dan", 2100, 0), ("Eva", 2000, 0)]);
+        assert_eq!(t.through(0), Vec::<usize>::new(), "nothing paired yet");
+        t.pair_next().unwrap();
+        let [a, b, c, e] = ["Anna", "Bo", "Carl", "Eva"].map(|n| by_name(&t, n));
+        assert_eq!(t.through(0), [a, b, c], "seeds 1-3 go straight to Round 2");
+        let g = t.played[0].games[0];
+        t.set_result("Mette", 0, 0, Some(if g.white == e { Outcome::White } else { Outcome::Black }), "").unwrap();
+        t.pair_next().unwrap();
+        assert_eq!(t.through(1), Vec::<usize>::new(), "four left, all on a board");
+        let mut sw = field(System::Dutch { baku: false }, 3, &FOUR);
+        sw.pair_next().unwrap();
+        assert_eq!(sw.through(0), Vec::<usize>::new(), "only a knockout has players through");
+    }
+
+    #[test]
+    fn a_scheveningen_scores_each_team_in_board_and_match_points() {
+        let mut t = field(System::Scheveningen { double: false }, 0, &FOUR);
+        assert_eq!(t.team_scores(), Vec::<TeamScore>::new());
+        t.pair_next().unwrap();
+        // Board 1 a win for White, board 2 a draw: White's team on board 1 wins 1½-½.
+        t.set_result("Mette", 0, 0, Some(Outcome::White), "").unwrap();
+        let first = t.players[t.played[0].games[0].white].team as usize - 1;
+        assert_eq!(t.team_scores()[0].match_points, [0, 0], "no match points before every result is in");
+        t.set_result("Mette", 0, 1, Some(Outcome::Draw), "").unwrap();
+        let mut boards = [1, 1];
+        boards[first] = 3;
+        let mut matches = [0, 0];
+        matches[first] = 2;
+        assert_eq!(t.team_scores()[0], TeamScore { board_points: boards, match_points: matches });
+        t.pair_next().unwrap();
+        t.set_result("Mette", 1, 0, Some(Outcome::Draw), "").unwrap();
+        t.set_result("Mette", 1, 1, Some(Outcome::Draw), "").unwrap();
+        let s = t.team_scores();
+        assert_eq!(s[1], TeamScore { board_points: [2, 2], match_points: [1, 1] });
+        assert_eq!(TeamScore::total(&s), TeamScore { board_points: [boards[0] + 2, boards[1] + 2], match_points: [matches[0] + 1, matches[1] + 1] });
+        let mut sw = field(System::Dutch { baku: false }, 3, &FOUR);
+        sw.pair_next().unwrap();
+        assert_eq!(sw.team_scores(), Vec::<TeamScore>::new(), "only a Scheveningen has teams");
     }
 
     #[test]

@@ -164,19 +164,34 @@
         {/each}
       {:else if current?.id === "knowledge"}
         <p class="lead">{t("wizard.knowledge")}</p>
+        {#snippet offer(/** @type {any} */ o)}
+          <li>
+            <label>
+              <input type="checkbox" checked={chosen.includes(o.id)} onchange={(e) => tick(o.id, e.currentTarget.checked)} />
+              <b>{o.name}</b>
+              {#if o.recommended}<span class="badge">{t("wizard.recommended")}</span>{/if}
+              <span class="dim">{o.size}</span>
+            </label>
+            {#if o.note}<p class:warn={o.big} class="note">{o.note}</p>{/if}
+          </li>
+        {/snippet}
         <ul class="offers">
-          {#each data.offers as o (o.id)}
-            <li>
-              <label>
-                <input type="checkbox" checked={chosen.includes(o.id)} onchange={(e) => tick(o.id, e.currentTarget.checked)} />
-                <b>{o.name}</b>
-                {#if o.recommended}<span class="badge">{t("wizard.recommended")}</span>{/if}
-                <span class="dim">{o.size}</span>
-              </label>
-              {#if o.note}<p class:warn={o.big} class="note">{o.note}</p>{/if}
-            </li>
-          {/each}
+          {#each data.offers.filter((/** @type {any} */ o) => !o.list) as o (o.id)}{@render offer(o)}{/each}
         </ul>
+        {#if data.offers.some((/** @type {any} */ o) => o.list)}
+          <h4>{t("clubs.lists")}</h4>
+          <ul class="offers">
+            {#each data.offers.filter((/** @type {any} */ o) => o.list && !o.more) as o (o.id)}{@render offer(o)}{/each}
+          </ul>
+        {/if}
+        {#if data.offers.some((/** @type {any} */ o) => o.more)}
+          <details>
+            <summary>{t("source.more_lists")}</summary>
+            <ul class="offers">
+              {#each data.offers.filter((/** @type {any} */ o) => o.more) as o (o.id)}{@render offer(o)}{/each}
+            </ul>
+          </details>
+        {/if}
         {#if data.coming}<p class="dim">{data.coming}</p>{/if}
         {#if info}
           <p><b>{info.totals.text}</b></p>

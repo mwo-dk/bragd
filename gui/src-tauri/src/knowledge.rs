@@ -391,6 +391,8 @@ pub fn position_key(family: String, fen: String) -> Res<String> {
 pub struct SourceView {
     /// A rating list: its players go to the rating lists, not to a Library.
     pub rating_list: bool,
+    /// A rating list of another country's federation, not turned on: it waits under More lists.
+    pub more: bool,
     pub id: String,
     pub name: String,
     pub family: String,
@@ -460,9 +462,15 @@ fn sources_of(k: &Knowledge) -> Res<Vec<(sources::About, Options, sources::Memo)
 #[tauri::command(async)]
 pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<SourcesPage> {
     let now = bragd_core::fs::now();
+    let tags = bragd_core::i18n::locale_tags();
     let sources = sources_of(&k)?
         .into_iter()
-        .map(|(a, o, m)| SourceView {
+        .map(|(a, o, m)| {
+            let list = bragd_clubs::lists::LISTS.iter().find(|l| l.id == a.id);
+            (a, o, m, list)
+        })
+        .map(|(a, o, m, list)| SourceView {
+            more: list.is_some_and(|l| !l.suggested(&tags)) && !o.enabled,
             family_name: if a.family.is_empty() { t!("source.any_family") } else { t!(&format!("family.{}", a.family)) },
             size: if a.size == 0 { t!("source.size_unknown") } else { t!("source.size", "size" => bragd_core::i18n::bytes(a.size)) },
             notice: a.notice.as_deref().map(|n| t!(n, "source" => a.name)).unwrap_or_default(),
@@ -476,7 +484,7 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
             max_download_default: bragd_core::i18n::bytes(sources::MAX_DOWNLOAD),
             too_big: m.too_big.map(|size| t!("source.too_big", "size" => bragd_core::i18n::bytes(size), "cap" => bragd_core::i18n::bytes(sources::cap(&o, &m)))).unwrap_or_default(),
             id: a.id,
-            name: a.name,
+            name: list.map_or(a.name, |l| l.title()),
             family: a.family,
             url: a.url,
             fetchable: a.fetchable,

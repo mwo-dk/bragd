@@ -31,18 +31,18 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `kgs` | KGS archive | go | 100 MB | Monthly | Not yet |
 | `pychess` | pychess exports | chess | 500 MB | Monthly | Not yet |
 | `lishogi` | Lishogi exports | shogi | 500 MB | Monthly | Not yet |
-| `fide-ratings` | FIDE rating list | chess | 45 MB | Monthly | Yes |
-| `dsu-ratings` | DSU rating list | chess | 0.5 MB | Monthly | Yes |
-| `ecf-ratings` | ECF rating list | chess | 4.5 MB | Monthly | Yes |
-| `cfc-ratings` | CFC rating list | chess | 5.4 MB | Monthly | Yes |
-| `sshl-ratings` | SShL rating list | chess | 0.75 MB | Monthly | Yes |
-| `nzcf-ratings` | NZCF rating list | chess | 0.9 MB | Monthly | Yes |
+| `fide-ratings` | International Chess Federation (FIDE) | chess | 45 MB | Monthly | Yes |
+| `dsu-ratings` | Danish Chess Union (DSU) | chess | 0.5 MB | Monthly | Yes |
+| `ecf-ratings` | English Chess Federation (ECF) | chess | 4.5 MB | Monthly | Yes |
+| `cfc-ratings` | Chess Federation of Canada (CFC) | chess | 5.4 MB | Monthly | Yes |
+| `sshl-ratings` | Finnish Chess Federation (SShL) | chess | 0.75 MB | Monthly | Yes |
+| `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly | Yes |
 
 The Sources marked *Not yet* are listed so you know they are coming. They are greyed out, and a notice says this version cannot fetch them.
 
 **TWIC.** The first fetch takes only the newest issue. Each later fetch takes the new issues in order, at most 26 at a time. The zips are imported as they are, without unpacking.
 
-**Rating lists.** FIDE, DSU, ECF, CFC, SShL and NZCF are rating lists, not Games. Each fetch downloads the whole list, and its players replace the list's players from before in `rating-lists.sqlite`, where the [Clubs](../clubs/clubs.md) page finds them by name or ID. They have no Routes and no *After import*. Where each comes from and on what terms: [Rating lists](../reference/rating-lists.md).
+**Rating lists.** FIDE, DSU, ECF, CFC, SShL and NZCF are rating lists, not Games. Each fetch downloads the whole list, and its players replace the list's players from before in `rating-lists.sqlite`, where the [Clubs](../clubs/clubs.md) page finds them by name or ID. They have no Routes and no *After import*. FIDE's list and your own federation's show first, found from Bragd's language and your system's region (Danish or Denmark: the DSU). The others are folded under **More lists** until you turn one on. Where each comes from and on what terms: [Rating lists](../reference/rating-lists.md).
 
 **Custom URL.** The address must start with `http://` or `https://` and name a PGN, SGF, KIF, CSA or PDN file, or a zip of them. Each Family's page names only its own: SGF on Go's, KIF or CSA on Shogi's. The whole file is downloaded again on each fetch, since it may have grown.
 

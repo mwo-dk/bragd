@@ -108,14 +108,18 @@ pub struct Open {
 
 /// The Helper's Sources, as the wizard weighs them.
 fn helper_sources() -> Vec<wizard::Source> {
+    let tags = bragd_core::i18n::locale_tags();
     sources::builtin()
         .iter()
         .map(|s| {
             let a = s.about();
+            let list = bragd_clubs::lists::LISTS.iter().find(|l| l.id == a.id);
             wizard::Source {
+                list: list.is_some(),
+                more: list.is_some_and(|l| !l.suggested(&tags)),
                 schedule: serde_json::to_value(a.schedule).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default(),
+                name: list.map_or(a.name, |l| l.title()),
                 id: a.id,
-                name: a.name,
                 family: a.family,
                 size: a.size,
                 fetchable: a.fetchable,
