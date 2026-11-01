@@ -17,6 +17,20 @@ pub struct Translation {
     pub time: i64,
 }
 
+/// The store's format (`PRAGMA user_version`).
+pub const FORMAT: bragd_core::format::Sqlite = bragd_core::format::Sqlite { file: "translations.sqlite", first: 1, schema: SCHEMA, migrations: &[] };
+
+const SCHEMA: &str = "
+CREATE TABLE IF NOT EXISTS translations (
+    original TEXT NOT NULL,
+    lang TEXT NOT NULL,
+    text TEXT NOT NULL,
+    model TEXT NOT NULL,
+    time INTEGER NOT NULL,
+    PRIMARY KEY (original, lang)
+) WITHOUT ROWID;
+";
+
 pub struct Translations {
     conn: Connection,
 }
@@ -32,17 +46,8 @@ impl Translations {
         if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
             std::fs::create_dir_all(dir).map_err(|_| rusqlite::Error::InvalidPath(dir.to_path_buf()))?;
         }
-        let conn = Connection::open(path)?;
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS translations (
-                original TEXT NOT NULL,
-                lang TEXT NOT NULL,
-                text TEXT NOT NULL,
-                model TEXT NOT NULL,
-                time INTEGER NOT NULL,
-                PRIMARY KEY (original, lang)
-            ) WITHOUT ROWID;",
-        )?;
+        let mut conn = Connection::open(path)?;
+        FORMAT.open(&mut conn)?;
         Ok(Translations { conn })
     }
 

@@ -39,14 +39,14 @@ pub struct AppState {
     pub upgraded_from: String,
     /// The Club files opened or made here, for the Clubs page's list.
     pub clubs: Vec<PathBuf>,
-    /// What a newer Bragd keeps here that this one does not know: saved as it was, so going
-    /// back to an older version and forward again loses none of it.
-    #[serde(flatten)]
-    pub newer: serde_json::Map<String, serde_json::Value>,
-    /// The file is there but could not be read (no permission, say): it is never saved over.
+    /// The file is there but could not be read (no permission, say), or a newer Bragd wrote
+    /// it: it is never saved over.
     #[serde(skip)]
     pub unreadable: bool,
 }
+
+/// state.json's format: its `format` key.
+pub const FORMAT: crate::format::Json = crate::format::Json { file: "state.json", migrations: &[] };
 
 impl AppState {
     pub fn path() -> Option<PathBuf> {
@@ -55,7 +55,8 @@ impl AppState {
 
     /// Missing file = defaults. A corrupt file is moved aside to `state.json.bad`
     /// (`state.json.<time>.bad` when that is taken) so saving the defaults never destroys it.
-    /// One that cannot be read gives defaults that are never saved over it.
+    /// One that cannot be read, or one from a newer Bragd, gives defaults that are never saved
+    /// over it.
     pub fn load_from(path: &Path) -> AppState {
         let bytes = match std::fs::read(path) {
             Ok(b) => b,
@@ -67,14 +68,24 @@ impl AppState {
                 };
             }
         };
-        serde_json::from_slice(&bytes).unwrap_or_else(|_| {
-            let mut bad = path.with_extension("json.bad");
-            if bad.exists() {
-                bad = path.with_extension(format!("json.{}.bad", crate::fs::now()));
-            }
-            let _ = std::fs::rename(path, bad);
-            AppState::default()
-        })
+        let mut v: serde_json::Value = match serde_json::from_slice(&bytes) {
+            Ok(v) => v,
+            Err(_) => return AppState::set_aside(path),
+        };
+        if FORMAT.upgrade(&mut v).is_err() {
+            return AppState { unreadable: true, ..AppState::default() };
+        }
+        serde_json::from_value(v).unwrap_or_else(|_| AppState::set_aside(path))
+    }
+
+    /// A corrupt file moved aside: defaults.
+    fn set_aside(path: &Path) -> AppState {
+        let mut bad = path.with_extension("json.bad");
+        if bad.exists() {
+            bad = path.with_extension(format!("json.{}.bad", crate::fs::now()));
+        }
+        let _ = std::fs::rename(path, bad);
+        AppState::default()
     }
 
     pub fn save_to(&self, path: &Path) -> io::Result<()> {
@@ -87,7 +98,9 @@ impl AppState {
                 ),
             ));
         }
-        crate::fs::replace(path, &serde_json::to_vec_pretty(self)?, true)
+        let mut v = serde_json::to_value(self)?;
+        FORMAT.stamp(&mut v);
+        crate::fs::replace(path, &serde_json::to_vec_pretty(&v)?, true)
     }
 
     pub fn load() -> AppState {
@@ -120,22 +133,24 @@ mod tests {
     }
 
     #[test]
-    fn state_keeps_what_a_newer_version_wrote() {
+    fn a_state_from_a_newer_bragd_is_never_saved_over() {
         let p = fresh("state-newer");
         std::fs::create_dir_all(p.parent().unwrap()).unwrap();
-        std::fs::write(
-            &p,
-            r#"{"seen_version":"9.0.0","ratings":{"go":1800},"guide_seen":true}"#,
-        )
-        .unwrap();
-        let mut st = AppState::load_from(&p);
-        assert_eq!(st.seen_version, "9.0.0");
-        st.hints_shown.insert("sidebar".into(), 1);
-        st.save_to(&p).unwrap();
+        let newer = format!(r#"{{"format":{},"seen_version":"9.0.0"}}"#, FORMAT.version() + 1);
+        std::fs::write(&p, &newer).unwrap();
+        let st = AppState::load_from(&p);
+        assert_eq!((st.unreadable, st.seen_version.as_str()), (true, ""));
+        assert!(st.save_to(&p).is_err());
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), newer);
+    }
+
+    #[test]
+    fn state_is_saved_with_its_format() {
+        let p = fresh("state-format");
+        AppState { seen_version: "1.0.0".into(), ..AppState::default() }.save_to(&p).unwrap();
         let back: serde_json::Value = serde_json::from_slice(&std::fs::read(&p).unwrap()).unwrap();
-        assert_eq!(back["ratings"]["go"], 1800);
-        assert_eq!(back["hints_shown"]["sidebar"], 1);
-        assert_eq!(AppState::load_from(&p), st);
+        assert_eq!((back["format"].as_i64(), back["seen_version"].as_str()), (Some(FORMAT.version()), Some("1.0.0")));
+        assert_eq!(AppState::load_from(&p).seen_version, "1.0.0");
     }
 
     #[test]

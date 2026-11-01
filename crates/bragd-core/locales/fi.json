@@ -1615,5 +1615,7 @@
  "feature.online.tip": "Pelaa shakkia Lichessissä Bragdin laudalta: Pelaa → Pelaa verkossa.",
  "tour.online.title": "Pelaa Lichessissä",
  "tour.online.text": "Pelaa → Pelaa verkossa kirjaa sinut Lichessiin selaimessasi. Etsi peli tai vastaa haasteeseen ja pelaa sitä Bragdin laudalla. Chat on pois päältä, kunnes kytket sen päälle.",
- "wizard.online_later": "Kirjautuminen pelaamaan verkossa tulee myöhemmässä Bragdin versiossa."
+ "wizard.online_later": "Kirjautuminen pelaamaan verkossa tulee myöhemmässä Bragdin versiossa.",
+ "format.newer": "{file} on kirjoittanut uudempi Bragd. Päivitä Bragd, jotta voit avata sen. Tiedosto jätetään ennalleen.",
+ "format.unknown": "{file} on muodossa, jota tämä Bragd ei osaa lukea (versio {version}). Tiedosto jätetään ennalleen."
 }

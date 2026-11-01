@@ -44,6 +44,11 @@ const COLUMNS: [(&str, &str, &str); 21] = [
     ("v.line2", "NULL", "optional binary line2 (STRING)"),
 ];
 
+/// The export's format, in the file's key-value metadata under `bragd.format`. A file without
+/// it is version 1. A newer one is refused; reading an older one is `from_parquet`'s to do.
+pub const FORMAT: i64 = 1;
+const FORMAT_KEY: &str = "bragd.format";
+
 /// Rows in one row group.
 const ROWS: usize = 64 * 1024;
 
@@ -75,7 +80,12 @@ pub fn to_parquet(store: &Store, out: &Path) -> Result<u64> {
 fn write_parquet(store: &Store, out: &Path) -> Result<u64> {
     let fields: Vec<&str> = COLUMNS.iter().map(|c| c.2).collect();
     let schema = Arc::new(parse_message_type(&format!("message evaluations {{ {}; }}", fields.join("; ")))?);
-    let props = Arc::new(WriterProperties::builder().set_compression(Compression::SNAPPY).build());
+    let props = Arc::new(
+        WriterProperties::builder()
+            .set_compression(Compression::SNAPPY)
+            .set_key_value_metadata(Some(vec![parquet::file::metadata::KeyValue::new(FORMAT_KEY.into(), FORMAT.to_string())]))
+            .build(),
+    );
     let mut writer = SerializedFileWriter::new(File::create(out)?, schema, props)?;
     let select = |i: fn(&(&'static str, &'static str, &'static str)) -> &'static str| COLUMNS.iter().map(i).collect::<Vec<_>>().join(", ");
     let mut st = store.conn().prepare(&format!(
@@ -142,6 +152,12 @@ fn write_group(writer: &mut SerializedFileWriter<File>, batch: &[Vec<Value>]) ->
 /// one transaction: nothing is merged when a row cannot be read.
 pub fn from_parquet(store: &mut Store, path: &Path) -> Result<Merged> {
     let reader = SerializedFileReader::new(File::open(path)?)?;
+    let version = reader.metadata().file_metadata().key_value_metadata().and_then(|kv| kv.iter().find(|k| k.key == FORMAT_KEY)).map_or(Some(1), |k| k.value.as_deref()?.parse().ok());
+    match version {
+        Some(v) if v > FORMAT => return Err(Error::Format(bragd_core::format::Error::Newer { file: "*.parquet", version: v })),
+        Some(v) if v >= 1 => {}
+        v => return Err(Error::Format(bragd_core::format::Error::Unknown { file: "*.parquet", version: v.unwrap_or(0) })),
+    }
     let (mut evaluations, mut annotations) = (vec![], vec![]);
     for row in reader.get_row_iter(None)? {
         let row = row?;
@@ -154,19 +170,18 @@ pub fn from_parquet(store: &mut Store, path: &Path) -> Result<Merged> {
     store.merge(&evaluations, &annotations)
 }
 
-/// An optional column: None when its value is NULL or the file has no such column; any other
-/// read error is an error.
+/// An optional column: None when its value is NULL; any other read error is an error.
 fn optional(row: &Row, i: usize) -> Result<Option<String>> {
     match row.get_column_iter().nth(i) {
-        None | Some((_, Field::Null)) => Ok(None),
+        Some((_, Field::Null)) => Ok(None),
         _ => row.get_string(i).map(|s| Some(s.clone())).map_err(Error::from),
     }
 }
 
-/// An optional double: 0.0 when NULL or the file has no such column; any other read error is an error.
+/// An optional double: 0.0 when NULL; any other read error is an error.
 fn optional_double(row: &Row, i: usize) -> Result<f64> {
     match row.get_column_iter().nth(i) {
-        None | Some((_, Field::Null)) => Ok(0.0),
+        Some((_, Field::Null)) => Ok(0.0),
         _ => row.get_double(i).map_err(Error::from),
     }
 }
@@ -249,29 +264,16 @@ mod tests {
     }
 
     #[test]
-    fn old_files_without_the_second_choice_still_import() {
-        let d = dir("parquet-old");
-        let out = d.join("old.parquet");
-        let fields: Vec<&str> = COLUMNS[..17].iter().map(|c| c.2).collect();
+    fn a_file_from_a_newer_bragd_is_refused() {
+        let d = dir("parquet-newer");
+        let out = d.join("newer.parquet");
+        let fields: Vec<&str> = COLUMNS.iter().map(|c| c.2).collect();
         let schema = Arc::new(parse_message_type(&format!("message evaluations {{ {}; }}", fields.join("; "))).unwrap());
-        let props = Arc::new(WriterProperties::builder().set_compression(Compression::SNAPPY).build());
-        let mut writer = SerializedFileWriter::new(File::create(&out).unwrap(), schema, props).unwrap();
-        let edition = sf("Stockfish 17");
-        let values = vec![
-            Value::Text("chess".into()), Value::Text("chess".into()), Value::Integer(1),
-            Value::Text(edition.id()), Value::Text(edition.engine), Value::Text(edition.version),
-            Value::Null, Value::Null, Value::Text("cp".into()), Value::Real(25.0), Value::Real(0.0),
-            Value::Integer(12), Value::Text("e2e4".into()), Value::Integer(100),
-            Value::Null, Value::Null, Value::Null,
-        ];
-        write_group(&mut writer, &[values]).unwrap();
-        writer.close().unwrap();
-
-        let mut store = Store::open(&d.join("fresh.sqlite")).unwrap();
-        assert_eq!(from_parquet(&mut store, &out).unwrap(), Merged { read: 1, changed: 1 });
-        let imported = store.all().unwrap();
-        assert_eq!(imported.len(), 1);
-        assert_eq!(imported[0].second, None);
+        let kv = parquet::file::metadata::KeyValue::new(FORMAT_KEY.into(), (FORMAT + 1).to_string());
+        let props = Arc::new(WriterProperties::builder().set_key_value_metadata(Some(vec![kv])).build());
+        SerializedFileWriter::new(File::create(&out).unwrap(), schema, props).unwrap().close().unwrap();
+        let mut store = Store::open(&d.join("s.sqlite")).unwrap();
+        assert!(matches!(from_parquet(&mut store, &out), Err(Error::Format(bragd_core::format::Error::Newer { .. }))));
     }
 
     /// An import is a merge: a deeper row in the store stays, a deeper row in the file wins.

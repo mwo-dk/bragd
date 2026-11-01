@@ -1,0 +1,9 @@
+format = 1
+
+[KataGo]
+rules = "japanese"
+
+[Stockfish]
+Hash = 256
+Threads = 4
+UCI_ShowWDL = true

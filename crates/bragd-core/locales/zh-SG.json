@@ -1605,5 +1605,7 @@
  "feature.online.tip": "在 Bragd 的棋盘上与 Lichess 下棋：下棋 → 在线对弈。",
  "tour.online.title": "在 Lichess 上对弈",
  "tour.online.text": "国际象棋中的 下棋 → 在线对弈 会在浏览器中让你登录 Lichess。寻找对局或应战挑战，然后在 Bragd 的棋盘上下棋。聊天默认关闭，直到你开启它。",
- "wizard.online_later": "在线对弈的登录功能将在 Bragd 的后续版本中提供。"
+ "wizard.online_later": "在线对弈的登录功能将在 Bragd 的后续版本中提供。",
+ "format.newer": "{file} 由较新版本的 Bragd 写入。请更新 Bragd 后再打开。该文件保持原样。",
+ "format.unknown": "{file} 的格式当前的 Bragd 无法读取（版本 {version}）。该文件保持原样。"
 }

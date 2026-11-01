@@ -136,41 +136,49 @@ pub struct State {
 /// Finished jobs kept for the list.
 const KEEP: usize = 100;
 
+/// `state.json`'s format: its `format` key.
+pub const FORMAT: bragd_core::format::Json = bragd_core::format::Json { file: "helper/state.json", migrations: &[] };
+
 impl State {
     /// Missing: empty. Unreadable or broken: moved aside to `state.json.bad` (or
     /// `state.json.<time>.bad` when that is taken) and started empty, so a broken file never
-    /// stops the Helper, and saving never writes over it.
-    fn load(path: &Path) -> State {
+    /// stops the Helper, and saving never writes over it. From a newer Bragd: started empty
+    /// and never saved over (false).
+    pub fn load(path: &Path) -> (State, bool) {
         let read = std::fs::read(path).map_err(|e| e.to_string());
         if read.as_ref().is_err_and(|_| !path.exists()) {
-            return State::default();
+            return (State::default(), true);
         }
-        read.and_then(|b| serde_json::from_slice(&b).map_err(|e| e.to_string()))
-            .and_then(|v| serde_json::from_value(upgrade(v)).map_err(|e| e.to_string()))
-            .unwrap_or_else(|e| {
-            let mut bad = path.with_extension("json.bad");
-            if bad.exists() {
-                bad = path.with_extension(format!("json.{}.bad", bragd_core::fs::now()));
-            }
-            crate::note(format_args!("{} could not be read ({e}): set aside as {}", path.display(), bad.display()));
-            let _ = std::fs::rename(path, bad);
-            State::default()
-        })
+        let mut v = match read.and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).map_err(|e| e.to_string())) {
+            Ok(v) => v,
+            Err(e) => return (State::set_aside(path, &e), true),
+        };
+        if let Err(e) = FORMAT.upgrade(&mut v) {
+            crate::note(format_args!("{}: {e}", path.display()));
+            return (State::default(), false);
+        }
+        match serde_json::from_value(v) {
+            Ok(st) => (st, true),
+            Err(e) => (State::set_aside(path, &e.to_string()), true),
+        }
     }
-}
 
-/// `state.json` as an older Helper wrote it, made current: a Source's one Strip rule (`strip`)
-/// becomes one Route to the main Library with that rule.
-fn upgrade(mut v: serde_json::Value) -> serde_json::Value {
-    let sources = v.get_mut("sources").and_then(|s| s.as_object_mut());
-    for kept in sources.into_iter().flat_map(|s| s.values_mut()) {
-        let Some(o) = kept.get_mut("options").and_then(|o| o.as_object_mut()) else { continue };
-        if !o.contains_key("routes") {
-            let strip = o.remove("strip").unwrap_or(serde_json::Value::Null);
-            o.insert("routes".into(), serde_json::json!([{ "strip": strip, "library": sources::MAIN }]));
+    fn set_aside(path: &Path, why: &str) -> State {
+        let mut bad = path.with_extension("json.bad");
+        if bad.exists() {
+            bad = path.with_extension(format!("json.{}.bad", bragd_core::fs::now()));
         }
+        crate::note(format_args!("{} could not be read ({why}): set aside as {}", path.display(), bad.display()));
+        let _ = std::fs::rename(path, bad);
+        State::default()
     }
-    v
+
+    /// As `state.json` holds it.
+    pub fn to_json(&self) -> Vec<u8> {
+        let mut v = serde_json::to_value(self).unwrap_or_default();
+        FORMAT.stamp(&mut v);
+        serde_json::to_vec_pretty(&v).unwrap_or_default()
+    }
 }
 
 /// `knowledge.max_unpack_ratio`, read at each job so a change in Settings needs no restart.
@@ -188,6 +196,8 @@ fn folder_name(id: &str) -> String {
 /// The jobs and the Sources, shared by the connections and the worker.
 pub struct Jobs {
     dir: PathBuf,
+    /// False when `state.json` is from a newer Bragd: it is left as it is.
+    keep: bool,
     state: Mutex<State>,
     wake: Condvar,
     net: Box<dyn Fetcher>,
@@ -210,7 +220,7 @@ impl Jobs {
     /// The jobs kept in `dir`, the ones that were running queued again. Sources go into
     /// `library`, merged by `priority`. `images`: the engine images Bragd pulled, for Disk watch.
     pub fn open(dir: &Path, net: Box<dyn Fetcher>, library: PathBuf, priority: Vec<String>, battery: Box<dyn Fn() -> bool + Send + Sync>, images: Box<dyn Fn() -> Vec<(String, u64)> + Send + Sync>) -> Arc<Jobs> {
-        let mut state = State::load(&dir.join("state.json"));
+        let (mut state, keep) = State::load(&dir.join("state.json"));
         for j in state.jobs.iter_mut().filter(|j| j.status == Status::Running) {
             crate::note(format_args!("job {} was stopped while it ran: it starts again", j.id));
             j.status = Status::Queued;
@@ -218,6 +228,7 @@ impl Jobs {
         }
         let jobs = Arc::new(Jobs {
             dir: dir.to_path_buf(),
+            keep,
             state: Mutex::new(state),
             wake: Condvar::new(),
             net,
@@ -240,7 +251,10 @@ impl Jobs {
     }
 
     fn save(&self, st: &State) {
-        let text = serde_json::to_vec_pretty(st).unwrap_or_default();
+        if !self.keep {
+            return;
+        }
+        let text = st.to_json();
         if let Err(e) = bragd_core::fs::replace(&self.dir.join("state.json"), &text, true) {
             crate::note(format_args!("state.json could not be saved: {e}"));
         }
@@ -1095,9 +1109,9 @@ pub(crate) mod tests {
         let d = crate::tests::Dir::new("state-bad");
         let path = d.0.join("state.json");
         std::fs::write(&path, "first {").unwrap();
-        State::load(&path);
+        let _ = State::load(&path);
         std::fs::write(&path, "second {").unwrap();
-        State::load(&path);
+        let _ = State::load(&path);
         let mut kept: Vec<String> = std::fs::read_dir(&d.0).unwrap().map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap()).collect();
         kept.sort();
         assert_eq!(kept, ["first {", "second {"], "both kept, neither written over");
@@ -1107,9 +1121,19 @@ pub(crate) mod tests {
             let d = crate::tests::Dir::new("state-unreadable");
             let path = d.0.join("state.json");
             std::fs::create_dir(&path).unwrap();
-            State::load(&path);
+            let _ = State::load(&path);
             assert!(!path.exists(), "moved aside");
         }
+    }
+
+    #[test]
+    fn a_state_from_a_newer_bragd_is_never_saved_over() {
+        let d = crate::tests::Dir::new("state-newer");
+        let newer = format!(r#"{{"format":{},"next_id":9}}"#, FORMAT.version() + 1);
+        std::fs::write(d.0.join("state.json"), &newer).unwrap();
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
+        jobs.add(Work::Fetch { source: "twic".into() });
+        assert_eq!(std::fs::read_to_string(d.0.join("state.json")).unwrap(), newer);
     }
 
     #[test]
@@ -1218,7 +1242,7 @@ pub(crate) mod tests {
         assert_eq!(list[1].status, Status::Failed);
         assert!(list[1].error.as_deref().unwrap().contains("gone.pgn"));
         // And all of it is in state.json for the next Helper.
-        assert_eq!(State::load(&d.0.join("state.json")).jobs, list);
+        assert_eq!(State::load(&d.0.join("state.json")).0.jobs, list);
     }
 
     #[test]
@@ -1559,30 +1583,5 @@ pub(crate) mod tests {
             o.routes = bad.clone();
             assert!(jobs.set_source(&a.id, o.clone()).is_err(), "{bad:?}");
         }
-    }
-
-    /// A `state.json` from before Routes: the Source's one Strip rule becomes one Route to the
-    /// main Library, and a Source with no rule gets a Route that keeps everything.
-    #[test]
-    fn an_old_strip_rule_becomes_one_route_to_the_main_library() {
-        let d = crate::tests::Dir::new("routes-upgrade");
-        let old = serde_json::json!({
-            "next_id": 0,
-            "jobs": [],
-            "sources": {
-                "twic": { "options": { "enabled": true, "schedule": "weekly", "strip": { "min_rating": 2200 } }, "memo": {} },
-                "custom:club": { "options": { "enabled": false, "schedule": "weekly", "url": "https://example.org/a.pgn" }, "memo": {} }
-            }
-        });
-        std::fs::write(d.0.join("state.json"), old.to_string()).unwrap();
-        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
-        let routes = |id: &str| jobs.sources().into_iter().find(|(a, _, _)| a.id == id).unwrap().1.routes;
-        assert_eq!(routes("twic"), [sources::Route { strip: Some(StripRule { min_rating: Some(2200), ..Default::default() }), library: "main".into() }]);
-        assert_eq!(routes("custom:club"), [sources::Route::main()]);
-        assert!(!d.0.join("state.json.bad").exists());
-        // Written back in the new form.
-        let saved: serde_json::Value = serde_json::from_slice(&std::fs::read(d.0.join("state.json")).unwrap()).unwrap();
-        assert!(saved["sources"]["twic"]["options"].get("strip").is_none());
-        assert_eq!(saved["sources"]["twic"]["options"]["routes"][0]["library"], "main");
     }
 }

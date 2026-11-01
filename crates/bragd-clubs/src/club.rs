@@ -22,8 +22,9 @@ use crate::tournament::{self, Tournament};
 
 /// A Club file's extension.
 pub const EXT: &str = "bragd-club";
-/// The file format this Bragd writes (`PRAGMA user_version`). A newer one is not opened.
-const FORMAT: i64 = 1;
+/// A Club file's format (`PRAGMA user_version`). Its lock file and the Tournaments and Leagues
+/// it keeps as JSON are part of it.
+pub const FORMAT: bragd_core::format::Sqlite = bragd_core::format::Sqlite { file: "*.bragd-club", first: 1, schema: SCHEMA, migrations: &[] };
 
 /// A member's role in the Club.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -177,6 +178,15 @@ impl fmt::Display for Error {
 impl From<rusqlite::Error> for Error {
     fn from(e: rusqlite::Error) -> Error {
         Error::Db(e.to_string())
+    }
+}
+
+impl From<bragd_core::format::Error> for Error {
+    fn from(e: bragd_core::format::Error) -> Error {
+        match e {
+            bragd_core::format::Error::Newer { .. } => Error::Newer,
+            e => Error::Db(e.to_string()),
+        }
     }
 }
 
@@ -355,9 +365,8 @@ impl Club {
         // A stale lock beside a file that is gone is nobody's.
         let _ = std::fs::remove_file(lock_path(path));
         take_lock(path, &me)?;
-        let db = Connection::open(path)?;
-        db.execute_batch(SCHEMA)?;
-        db.pragma_update(None, "user_version", FORMAT)?;
+        let mut db = Connection::open(path)?;
+        FORMAT.open(&mut db)?;
         db.execute("INSERT INTO club (key, value) VALUES ('name', ?1), ('system', ?2)", params![name.trim(), system_id(system)])?;
         let club = Club { path: path.into(), db, me, held_by: None };
         club.insert(&Details { name: director.trim().into(), role: Some(Role::Director), ..Details::default() }, Rating::default())?;
@@ -370,16 +379,15 @@ impl Club {
         if !path.is_file() {
             return Err(Error::Io(t!("clubs.error.missing", "path" => path.display())));
         }
-        let db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
-        let version: i64 = db.pragma_query_value(None, "user_version", |r| r.get(0))?;
-        if version > FORMAT {
-            return Err(Error::Newer);
-        }
+        let mut db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
+        let version = FORMAT.check(&db)?;
         let me = Holder::me();
         let held_by = take_lock(path, &me)?;
-        if held_by.is_none() {
-            // A Club from before Tournaments gets their table.
-            db.execute_batch(SCHEMA)?;
+        match &held_by {
+            None => FORMAT.open(&mut db)?,
+            // Brought up to date only by whoever has it open; until then it cannot be read.
+            Some(h) if version < FORMAT.version() => return Err(Error::ReadOnly(h.clone())),
+            Some(_) => {}
         }
         Ok(Club { path: path.into(), db, me, held_by })
     }
@@ -438,11 +446,6 @@ impl Club {
 
     /// The Club's Tournaments, newest first.
     pub fn tournaments(&self) -> Result<Vec<Listed>> {
-        // A Club from before Tournaments, open read-only, has no table for them.
-        let has: bool = self.db.query_row("SELECT count(*) > 0 FROM sqlite_master WHERE name = 'tournaments'", [], |r| r.get(0))?;
-        if !has {
-            return Ok(vec![]);
-        }
         let mut q = self.db.prepare("SELECT id, data FROM tournaments ORDER BY id DESC")?;
         let rows = q.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
         let mut out = vec![];
@@ -509,11 +512,6 @@ impl Club {
     /// Deletes a Tournament; only a director may.
     /// The Club's Leagues, newest first.
     pub fn leagues(&self) -> Result<Vec<LeagueListed>> {
-        // A Club from before Leagues, open read-only, has no table for them.
-        let has: bool = self.db.query_row("SELECT count(*) > 0 FROM sqlite_master WHERE name = 'leagues'", [], |r| r.get(0))?;
-        if !has {
-            return Ok(vec![]);
-        }
         let mut q = self.db.prepare("SELECT id, data FROM leagues ORDER BY id DESC")?;
         let rows = q.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
         let mut out = vec![];
@@ -971,16 +969,6 @@ mod tests {
     }
 
     #[test]
-    fn a_club_from_before_tournaments_opens_read_only_without_them() {
-        let d = Tmp::new("old");
-        let c = Club::create(&d.club(), "K", System::Glicko2, "Mette").unwrap();
-        drop(c);
-        Connection::open(d.club()).unwrap().execute_batch("DROP TABLE tournaments").unwrap();
-        someone_else(&d.club());
-        assert_eq!(Club::open(&d.club()).unwrap().tournaments().unwrap(), []);
-    }
-
-    #[test]
     fn a_copy_of_a_club_carries_no_lock_and_a_newer_file_is_not_opened() {
         let d = Tmp::new("copy");
         let c = Club::create(&d.club(), "K", System::Glicko2, "Mette").unwrap();
@@ -988,7 +976,7 @@ mod tests {
         std::fs::copy(d.club(), &copy).unwrap();
         assert!(!lock_path(&copy).exists());
         drop(c);
-        Connection::open(&copy).unwrap().pragma_update(None, "user_version", FORMAT + 1).unwrap();
+        Connection::open(&copy).unwrap().pragma_update(None, "user_version", FORMAT.version() + 1).unwrap();
         assert_eq!(Club::open(&copy).err(), Some(Error::Newer));
     }
 }

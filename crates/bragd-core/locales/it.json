@@ -1625,5 +1625,7 @@
  "feature.online.tip": "Gioca a scacchi su Lichess dalla scacchiera di Bragd: Gioca → Gioca online.",
  "tour.online.title": "Gioca su Lichess",
  "tour.online.text": "Gioca → Gioca online ti fa accedere a Lichess nel browser. Cerca una partita o rispondi a una sfida e giocala sulla scacchiera di Bragd. La chat resta disattivata finché non la attivi.",
- "wizard.online_later": "L'accesso per giocare online arriverà in una versione futura di Bragd."
+ "wizard.online_later": "L'accesso per giocare online arriverà in una versione futura di Bragd.",
+ "format.newer": "{file} è stato scritto da una versione più recente di Bragd. Aggiorna Bragd per aprirlo. Il file resta invariato.",
+ "format.unknown": "{file} ha un formato che questo Bragd non sa leggere (versione {version}). Il file resta invariato."
 }

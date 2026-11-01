@@ -112,6 +112,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Every setting](reference/settings.md) | Every item in Settings, by area, with the key it writes |
 | [Command line](reference/command-line.md) | `bragd-gui` and `bragd-helper`, their flags and environment variables |
 | [Files on disk](reference/files.md) | Where config, data, Libraries, the Helper, tablebases and the cache are kept |
+| [File formats](reference/file-formats.md) | Each file's format and version, and what happens to a file from a newer Bragd |
 | [Privacy](reference/privacy.md) | What leaves the machine, when, and how to stop it |
 | [Rating lists](reference/rating-lists.md) | FIDE's and each federation's list: where, format, terms, rhythm, and which Bragd fetches |
 | [Swiss pairing](reference/swiss-pairing.md) | How Bragd pairs a Swiss round under the FIDE Dutch rules, and how that was tested |

@@ -39,6 +39,8 @@ pub enum Error {
     Io(io::Error),
     Sql(rusqlite::Error),
     Parquet(parquet::errors::ParquetError),
+    /// A Library from a newer Bragd, or of a version no migration leads from: left as it is.
+    Format(bragd_core::format::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -47,6 +49,7 @@ impl std::fmt::Display for Error {
             Error::Io(e) => e.fmt(f),
             Error::Sql(e) => e.fmt(f),
             Error::Parquet(e) => e.fmt(f),
+            Error::Format(e) => e.fmt(f),
         }
     }
 }
@@ -65,6 +68,15 @@ impl From<rusqlite::Error> for Error {
     }
 }
 
+impl From<bragd_core::format::Error> for Error {
+    fn from(e: bragd_core::format::Error) -> Self {
+        match e {
+            bragd_core::format::Error::Sql(e) => Error::Sql(e),
+            e => Error::Format(e),
+        }
+    }
+}
+
 impl From<parquet::errors::ParquetError> for Error {
     fn from(e: parquet::errors::ParquetError) -> Self {
         Error::Parquet(e)
@@ -72,6 +84,9 @@ impl From<parquet::errors::ParquetError> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+/// A Library's format (`PRAGMA user_version`).
+pub const FORMAT: bragd_core::format::Sqlite = bragd_core::format::Sqlite { file: "lib.name", first: 1, schema: SCHEMA, migrations: &[] };
 
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS games (
@@ -100,7 +115,7 @@ CREATE TABLE IF NOT EXISTS games (
     zobrist_chain_hash INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS games_chain ON games (zobrist_chain_hash);
--- What Slices filter on. Made on open, so an older Library gets them once, the first time.
+-- What Slices filter on.
 CREATE INDEX IF NOT EXISTS games_white ON games (white);
 CREATE INDEX IF NOT EXISTS games_black ON games (black);
 CREATE INDEX IF NOT EXISTS games_eco ON games (eco);
@@ -574,15 +589,11 @@ pub struct Library {
 impl Library {
     /// Opens the Library at `path`, made with its tables when it is new.
     pub fn open(path: &Path) -> Result<Library> {
-        let conn = Connection::open(path)?;
-        // A new Library gives the pages of Games pruned back to the disk (`compact`); an
-        // older one stays as it was made.
+        let mut conn = Connection::open(path)?;
+        // A new Library gives the pages of Games pruned back to the disk (`compact`). Set
+        // before its first table, or it does nothing.
         conn.execute_batch("PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
-        conn.execute_batch(SCHEMA)?;
-        // A Library made before Notes were kept gets their column; its Games have none until imported again.
-        if conn.prepare("SELECT notes FROM game_sources LIMIT 0").is_err() {
-            conn.execute_batch("ALTER TABLE game_sources ADD COLUMN notes TEXT")?;
-        }
+        FORMAT.open(&mut conn)?;
         Ok(Library { conn, path: path.to_path_buf(), priority: DEFAULT_PRIORITY.map(String::from).to_vec(), batch: DEFAULT_BATCH, max_ratio: bragd_core::config::MAX_UNPACK_RATIO })
     }
 
@@ -1176,8 +1187,7 @@ pub(crate) mod tests {
         assert_eq!(lichess.notes, [note(2, "Sharp reply.", &[])]);
     }
 
-    /// A Duplicate keeps the Notes of the Source ranked first that has any, never a mix; a file
-    /// imported again brings Notes into a Library made before they were kept.
+    /// A Duplicate keeps the Notes of the Source ranked first that has any, never a mix.
     #[test]
     fn a_duplicates_notes_come_from_one_source() {
         let d = Dir::new("notes-dup");
@@ -1192,18 +1202,6 @@ pub(crate) mod tests {
         assert_eq!(lib.stored(1).unwrap().notes[0].comment, "Gespielt in der Oper.");
         lib.add(&other, "twic", "c").unwrap();
         assert_eq!(lib.stored(1).unwrap().notes, other.notes, "twic is ranked first");
-        // A Library from before: no column, so no Notes; the same file again fills them in.
-        let old = d.0.join("old.bragd");
-        drop(Library::open(&old).unwrap());
-        let c = Connection::open(&old).unwrap();
-        c.execute_batch("ALTER TABLE game_sources DROP COLUMN notes").unwrap();
-        c.execute("INSERT INTO games (family, variant, headers, result, moves, ply_count, zobrist_final, zobrist_chain_hash) VALUES ('chess', 'chess', '{}', '1-0', ?, 7, 0, ?)", params![bare.moves.join(" "), *bare.chain().last().unwrap() as i64]).unwrap();
-        c.execute("INSERT INTO game_sources (game_id, source, source_ref, fetched_at, headers) VALUES (1, 'mine', 'a', 0, '{}')", []).unwrap();
-        drop(c);
-        let mut lib = Library::open(&old).unwrap();
-        assert_eq!(lib.stored(1).unwrap().notes, []);
-        lib.add(&NewGame::from_chess(&pgn::parse(ANNOTATED)), "mine", "a").unwrap();
-        assert_eq!((lib.count().unwrap(), lib.stored(1).unwrap().notes.len()), (1, 3));
     }
 
     /// A go Game played and its SGF have the same position keys, ko point included, and the

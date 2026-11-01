@@ -16,14 +16,14 @@ Every choice you make in Settings is written to one file, `config.toml`, in Brag
 
 | Where | What to do |
 |---|---|
-| Settings | *Settings → Overview* → **Open config.toml** opens it in your system's editor. When there is no file yet, Bragd makes an empty one first |
+| Settings | *Settings → Overview* → **Open config.toml** opens it in your system's editor. When there is no file yet, Bragd makes one first, holding only `format = 1` |
 | By hand | Edit the file in any editor. Bragd reads it when it starts |
 
 A change made in Settings is written at once. Bragd changes only that key and keeps your comments and layout.
 
 ## Every key
 
-Keys are written dotted here: `look.theme` is `theme` under `[look]`.
+Keys are written dotted here: `look.theme` is `theme` under `[look]`. The top-level key `format` is the file's format version, not a setting: Bragd writes it, and a file without it is version 1 ([File formats](file-formats.md)).
 
 | Key | Default | What it does |
 |---|---|---|

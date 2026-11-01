@@ -1625,5 +1625,7 @@
  "feature.online.tip": "שחקו שחמט ב-Lichess מלוח Bragd: משחק → שחקו און-ליין.",
  "tour.online.title": "שחקו ב-Lichess",
  "tour.online.text": "משחק → שחקו און-ליין מכניס אתכם ל-Lichess בדפדפן. חפשו משחק או השיבו לאתגר, ושחקו אותו על לוח Bragd. הצ'אט כבוי עד שתפעילו אותו.",
- "wizard.online_later": "כניסה כדי לשחק באינטרנט תגיע בגרסה מאוחרת של Bragd."
+ "wizard.online_later": "כניסה כדי לשחק באינטרנט תגיע בגרסה מאוחרת של Bragd.",
+ "format.newer": "{file} נכתב בגרסה חדשה יותר של Bragd. עדכנו את Bragd כדי לפתוח אותו. הקובץ נשאר ללא שינוי.",
+ "format.unknown": "{file} הוא בפורמט ש-Bragd הזה אינו יכול לקרוא (גרסה {version}). הקובץ נשאר ללא שינוי."
 }

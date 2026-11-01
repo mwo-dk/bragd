@@ -1,0 +1,31 @@
+{
+  "clubs": [
+    "/home/anna/Skakklubben K.bragd-club"
+  ],
+  "feature_uses": {
+    "analyse": 5
+  },
+  "format": 1,
+  "guide_seen": true,
+  "hints_shown": {
+    "sidebar": 2
+  },
+  "images_checked": 1800000002,
+  "images_used": {
+    "ghcr.io/example/stockfish:17": 1800000001
+  },
+  "latest_from": "github",
+  "latest_version": "1.0.1",
+  "notices_dismissed": [
+    "containers-off"
+  ],
+  "seen_version": "1.0.0",
+  "tip_last": "analyse",
+  "tip_shown": 1800000003,
+  "tips_silenced": [
+    "clubs"
+  ],
+  "update_checked": 1800000000,
+  "upgraded": 1800000004,
+  "upgraded_from": "0.9.0"
+}

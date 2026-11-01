@@ -1615,5 +1615,7 @@
  "feature.online.tip": "Spill sjakk på Lichess fra Bragds brett: Spill → Spill på nett.",
  "tour.online.title": "Spill på Lichess",
  "tour.online.text": "Sjakkens Spill → Spill på nett logger deg inn på Lichess i nettleseren. Søk etter et parti eller svar på en utfordring, og spill det på Bragds brett. Chat er av til du slår den på.",
- "wizard.online_later": "Innlogging for å spille på nett kommer i en senere versjon av Bragd."
+ "wizard.online_later": "Innlogging for å spille på nett kommer i en senere versjon av Bragd.",
+ "format.newer": "{file} ble skrevet av en nyere Bragd. Oppdater Bragd for å åpne den. Filen er uendret.",
+ "format.unknown": "{file} har et format denne Bragd-versjonen ikke kan lese (versjon {version}). Filen er uendret."
 }

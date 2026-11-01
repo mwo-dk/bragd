@@ -323,6 +323,9 @@ fn take<T: DeserializeOwned>(
     }
 }
 
+/// config.toml's format: its top-level `format` key.
+pub const FORMAT: crate::format::Toml = crate::format::Toml { file: "config.toml", migrations: &[] };
+
 impl Config {
     /// The tablebase folder: the one set, else `tablebases` in Bragd's data folder.
     pub fn tablebase_folder(&self) -> Option<PathBuf> {
@@ -335,10 +338,10 @@ impl Config {
     }
 
     /// The user's config, the defaults when there is no file. A mistake costs only its area
-    /// (`lenient`); only a file that cannot be read at all is an error.
+    /// (`lenient`); only a file that cannot be read at all, or one from a newer Bragd, is an error.
     pub fn load() -> Result<Config, String> {
         match Config::path().map(std::fs::read_to_string) {
-            Some(Ok(text)) => Ok(Config::lenient(&text)),
+            Some(Ok(text)) => FORMAT.upgrade(&text).map(|t| Config::lenient(&t)).map_err(|e| e.to_string()),
             Some(Err(e)) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("config: {e}")),
             _ => Ok(Config::default()),
         }
@@ -461,6 +464,7 @@ impl Config {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
             Err(e) => return Err(format!("config: {e}")),
         };
+        let old = FORMAT.upgrade(&old).map_err(|e| e.to_string())?;
         let new = Config::edit(&old, keys, value)?;
         let cfg = Config::parse_saved(&old, &new)?;
         crate::fs::replace(path, new.as_bytes(), false).map_err(|e| format!("config: {e}"))?;
@@ -475,7 +479,7 @@ impl Config {
     }
 
     pub fn remove_value_at(path: &std::path::Path, keys: &[&str]) -> Result<Config, String> {
-        let old = std::fs::read_to_string(path).unwrap_or_default();
+        let old = FORMAT.upgrade(&std::fs::read_to_string(path).unwrap_or_default()).map_err(|e| e.to_string())?;
         let mut doc: toml_edit::DocumentMut = old.parse().map_err(|e| format!("config: {e}"))?;
         let (last, parents) = keys.split_last().ok_or("config: no key")?;
         let mut table: Option<&mut dyn toml_edit::TableLike> = Some(doc.as_table_mut());
@@ -554,7 +558,7 @@ mod tests {
         let c2 = Config::remove_value_at(&p, &["engines", "paths", "mine"]).unwrap();
         assert!(c.engines.added.is_empty() && c.engines.paths.contains_key("mine"));
         assert_eq!(c2.engines.paths.keys().collect::<Vec<_>>(), ["other"]);
-        assert!(std::fs::read_to_string(&p).unwrap().starts_with("# mine"));
+        assert!(std::fs::read_to_string(&p).unwrap().starts_with("format = 1\n# mine"));
         Config::remove_value_at(&p, &["nothing", "here"]).unwrap();
         std::fs::remove_dir_all(&d).unwrap();
     }

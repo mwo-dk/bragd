@@ -1625,5 +1625,7 @@
  "feature.online.tip": "Žaiskite Lichess šachmatus iš Bragd lentos: Žaisti → Žaisti internetu.",
  "tour.online.title": "Žaisti Lichess",
  "tour.online.text": "Šachmatų Žaisti → Žaisti internetu prijungia prie Lichess naršyklėje. Ieškokite partijos arba atsakykite į iššūkį ir žaiskite Bragd lentoje. Pokalbis išjungtas, kol jo neįjungsite.",
- "wizard.online_later": "Prisijungimas žaisti internetu bus vėlesnėje Bragd versijoje."
+ "wizard.online_later": "Prisijungimas žaisti internetu bus vėlesnėje Bragd versijoje.",
+ "format.newer": "{file} įrašė naujesnė Bragd versija. Atnaujinkite Bragd, kad jį atvertumėte. Failas paliekamas nepakeistas.",
+ "format.unknown": "{file} yra formato, kurio šis Bragd negali skaityti (versija {version}). Failas paliekamas nepakeistas."
 }

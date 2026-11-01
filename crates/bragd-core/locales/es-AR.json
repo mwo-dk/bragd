@@ -1622,5 +1622,7 @@
  "feature.online.tip": "Jugá al ajedrez en Lichess desde el tablero de Bragd: Jugar → Jugar en línea.",
  "tour.online.title": "Jugar en Lichess",
  "tour.online.text": "Jugar → Jugar en línea te conecta a Lichess en tu navegador. Buscá una partida o respondé un desafío, y jugala en el tablero de Bragd. El chat está desactivado hasta que lo actives.",
- "wizard.online_later": "Iniciar sesión para jugar en línea llega en una versión posterior de Bragd."
+ "wizard.online_later": "Iniciar sesión para jugar en línea llega en una versión posterior de Bragd.",
+ "format.newer": "{file} lo escribió un Bragd más nuevo. Actualizá Bragd para abrirlo. El archivo queda como está.",
+ "format.unknown": "{file} tiene un formato que este Bragd no puede leer (versión {version}). El archivo queda como está."
 }
