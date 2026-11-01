@@ -1615,5 +1615,7 @@
  "feature.online.tip": "Jokatu xakea Lichess-en Bragd-en taulatik: Jokatu → Jokatu lineaz.",
  "tour.online.title": "Jokatu Lichess-en",
  "tour.online.text": "Jokatu → Jokatu lineaz aukerak Lichess-en hasten du saioa zure nabigatzailean. Bilatu partida bat edo erantzun erronka bati, eta jokatu Bragd-en taulan. Txata desaktibatuta dago aktibatu arte.",
- "wizard.online_later": "Lineaz jokatzeko saioa hasteko aukera Bragd-en etorkizuneko bertsio batean etorriko da."
+ "wizard.online_later": "Lineaz jokatzeko saioa hasteko aukera Bragd-en etorkizuneko bertsio batean etorriko da.",
+ "format.newer": "{file} Bragd berriago batek idatzi du. Eguneratu Bragd irekitzeko. Fitxategia ez da aldatu.",
+ "format.unknown": "{file}-k Bragd honek irakurri ezin duen formatua du (bertsioa {version}). Fitxategia ez da aldatu."
 }

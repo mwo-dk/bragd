@@ -1625,5 +1625,7 @@
  "feature.online.tip": "Hrajte šachy na Lichessu z šachovnice Bragdu: Hra → Hrát online.",
  "tour.online.title": "Hrát na Lichessu",
  "tour.online.text": "Hra → Hrát online vás přihlásí na Lichess v prohlížeči. Hledejte partii nebo odpovězte na výzvu a hrajte ji na šachovnici Bragdu. Chat je vypnutý, dokud ho nezapnete.",
- "wizard.online_later": "Přihlašování pro hru online přijde v pozdější verzi Bragdu."
+ "wizard.online_later": "Přihlašování pro hru online přijde v pozdější verzi Bragdu.",
+ "format.newer": "{file} zapsal novější Bragd. Pro otevření aktualizujte Bragd. Soubor zůstane beze změny.",
+ "format.unknown": "{file} má formát, který tento Bragd nedokáže číst (verze {version}). Soubor zůstane beze změny."
 }

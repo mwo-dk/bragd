@@ -1,0 +1,90 @@
+{
+  "arbiter": "",
+  "date": "2026-11-05",
+  "format": 1,
+  "handicap": null,
+  "log": [],
+  "match_to": null,
+  "name": "Autumn Swiss",
+  "place": "Aarhus",
+  "played": [
+    {
+      "bye": 1,
+      "games": [
+        {
+          "black": 2,
+          "handicap": 0,
+          "playoff": null,
+          "result": "draw",
+          "white": 0
+        }
+      ],
+      "half": []
+    },
+    {
+      "bye": 2,
+      "games": [
+        {
+          "black": 0,
+          "handicap": 0,
+          "playoff": null,
+          "result": "white_forfeit",
+          "white": 1
+        }
+      ],
+      "half": []
+    }
+  ],
+  "players": [
+    {
+      "federation": "",
+      "fide_id": "1401234",
+      "joined": 0,
+      "member": null,
+      "name": "Anna Berg",
+      "national_id": "",
+      "rating": 2100,
+      "status": "here",
+      "team": 0,
+      "title": ""
+    },
+    {
+      "federation": "",
+      "fide_id": "",
+      "joined": 0,
+      "member": null,
+      "name": "Bo",
+      "national_id": "",
+      "rating": 1900,
+      "status": "here",
+      "team": 0,
+      "title": ""
+    },
+    {
+      "federation": "",
+      "fide_id": "",
+      "joined": 0,
+      "member": null,
+      "name": "Carl",
+      "national_id": "",
+      "rating": 2000,
+      "status": "here",
+      "team": 0,
+      "title": ""
+    }
+  ],
+  "rated": false,
+  "rounds": 3,
+  "seeds": [],
+  "system": {
+    "baku": false,
+    "kind": "dutch"
+  },
+  "tiebreaks": [
+    "BH-C2",
+    "BH-C1",
+    "BH"
+  ],
+  "variant": "chess",
+  "white_first": true
+}

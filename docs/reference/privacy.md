@@ -89,4 +89,4 @@ Only what playing needs: your moves, seeks, challenges, offers, and chat lines w
 No. It listens on a socket in your own data folder, readable by you only. On Windows it listens on a loopback port with a token, which only this machine can reach.
 
 ---
-[← Previous: Files on disk](files.md) · [Next: Rating lists →](rating-lists.md)
+[← Previous: File formats](file-formats.md) · [Next: Rating lists →](rating-lists.md)

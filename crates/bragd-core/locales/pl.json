@@ -1635,5 +1635,7 @@
  "feature.online.tip": "Graj w szachy na Lichess z planszy Bragda: Gra → Gra online.",
  "tour.online.title": "Gra na Lichess",
  "tour.online.text": "W szachach Gra → Gra online loguje cię na Lichess w przeglądarce. Szukaj partii lub odpowiadaj na wyzwanie i graj na planszy Bragda. Czat jest wyłączony, dopóki go nie włączysz.",
- "wizard.online_later": "Logowanie do gry online pojawi się w późniejszej wersji Bragda."
+ "wizard.online_later": "Logowanie do gry online pojawi się w późniejszej wersji Bragda.",
+ "format.newer": "{file}: zapis pochodzi z nowszego Bragda. Zaktualizuj Bragda, aby to otworzyć. Pozostaje bez zmian.",
+ "format.unknown": "{file}: ten Bragd nie potrafi odczytać tego formatu (wersja {version}). Pozostaje bez zmian."
 }

@@ -1615,5 +1615,7 @@
  "feature.online.tip": "Mängi malet Lichessis Bragdi laualt: Mängi → Mängi võrgus.",
  "tour.online.title": "Mängi Lichessis",
  "tour.online.text": "Mängi → Mängi võrgus logib sind brauseris Lichessi sisse. Otsi partiid või vasta väljakutsele ja mängi seda Bragdi laual. Vestlus on väljas, kuni sa selle sisse lülitad.",
- "wizard.online_later": "Võrgus mängimiseks sisselogimine tuleb Bragdi hilisemas versioonis."
+ "wizard.online_later": "Võrgus mängimiseks sisselogimine tuleb Bragdi hilisemas versioonis.",
+ "format.newer": "{file} kirjutas uuem Bragd. Avamiseks uuenda Bragd. Fail jääb muutmata.",
+ "format.unknown": "{file} on vormingus, mida see Bragd ei oska lugeda (versioon {version}). Fail jääb muutmata."
 }

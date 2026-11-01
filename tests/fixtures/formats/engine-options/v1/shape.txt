@@ -1,0 +1,8 @@
+. object
+.KataGo object
+.KataGo.rules string
+.Stockfish object
+.Stockfish.Hash int
+.Stockfish.Threads int
+.Stockfish.UCI_ShowWDL bool
+.format int

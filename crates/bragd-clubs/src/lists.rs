@@ -6,7 +6,7 @@
 use std::io::{self, BufRead, BufReader, Read, Seek};
 use std::path::{Path, PathBuf};
 
-use rusqlite::{Connection, OpenFlags, params};
+use rusqlite::{Connection, params};
 use serde::Serialize;
 
 /// A player as a rating list has them.
@@ -313,6 +313,9 @@ pub fn path() -> Option<PathBuf> {
     Some(bragd_core::dirs::app_data()?.join("rating-lists.sqlite"))
 }
 
+/// The rating lists file's format (`PRAGMA user_version`).
+pub const FORMAT: bragd_core::format::Sqlite = bragd_core::format::Sqlite { file: "rating-lists.sqlite", first: 1, schema: SCHEMA, migrations: &[] };
+
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS players (
     list TEXT NOT NULL,
@@ -340,9 +343,9 @@ fn open(path: &Path) -> rusqlite::Result<Connection> {
     if let Some(dir) = path.parent() {
         let _ = std::fs::create_dir_all(dir);
     }
-    let db = Connection::open(path)?;
+    let mut db = Connection::open(path)?;
     db.busy_timeout(std::time::Duration::from_secs(30))?;
-    db.execute_batch(SCHEMA)?;
+    FORMAT.open(&mut db)?;
     Ok(db)
 }
 
@@ -418,7 +421,7 @@ pub fn lists(path: &Path) -> rusqlite::Result<Vec<Imported>> {
     if !path.exists() {
         return Ok(vec![]);
     }
-    let db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let db = open(path)?;
     let mut q = db.prepare("SELECT list, players, at FROM lists ORDER BY list")?;
     let rows = q.query_map([], |r| Ok(Imported { list: r.get(0)?, players: r.get::<_, i64>(1)? as u64, at: r.get::<_, i64>(2)? as u64 }))?;
     rows.collect()
@@ -434,7 +437,7 @@ pub fn search(path: &Path, query: &str) -> rusqlite::Result<Vec<Found>> {
     if q.is_empty() || !path.exists() {
         return Ok(vec![]);
     }
-    search_on(&Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?, q)
+    search_on(&open(path)?, q)
 }
 
 fn search_on(db: &Connection, q: &str) -> rusqlite::Result<Vec<Found>> {

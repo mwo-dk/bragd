@@ -264,24 +264,11 @@ mod tests {
         assert!(lib.frequent(&[], 10).unwrap().is_empty());
     }
 
-    /// A Library made before the Slice indexes gets them when it is opened, and a Slice's
-    /// filters use them.
+    /// A Slice's filters use the Library's indexes.
     #[test]
-    fn slice_filters_are_indexed_in_old_libraries_too() {
+    fn slice_filters_use_their_indexes() {
         let d = Dir::new("slice-index");
-        let path = d.0.join("lib.bragd");
-        let names = ["games_white", "games_black", "games_eco", "games_date", "games_white_elo", "games_black_elo"];
-        {
-            let lib = library(&d);
-            for n in names {
-                lib.conn().execute_batch(&format!("DROP INDEX {n}")).unwrap();
-            }
-        }
-        let lib = Library::open(&path).unwrap();
-        let have: Vec<String> = lib.conn().prepare("SELECT name FROM sqlite_master WHERE type = 'index'").unwrap().query_map([], |r| r.get(0)).unwrap().map(|r| r.unwrap()).collect();
-        for n in names {
-            assert!(have.iter().any(|h| h == n), "{n} missing: {have:?}");
-        }
+        let lib = library(&d);
         let plan = |q: Query| {
             let (cond, args) = condition(&q);
             let mut st = lib.conn().prepare(&format!("EXPLAIN QUERY PLAN SELECT id FROM games WHERE {cond}")).unwrap();

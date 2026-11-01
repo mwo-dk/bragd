@@ -1615,5 +1615,7 @@
  "feature.online.tip": "Spielen Sie Schach auf Lichess über das Brett von Bragd: Spielen → Online spielen.",
  "tour.online.title": "Auf Lichess spielen",
  "tour.online.text": "Spielen → Online spielen meldet Sie im Browser bei Lichess an. Suchen Sie eine Partie oder antworten Sie auf eine Herausforderung und spielen Sie sie auf dem Brett von Bragd. Der Chat ist aus, bis Sie ihn einschalten.",
- "wizard.online_later": "Die Anmeldung zum Online-Spiel kommt in einer späteren Version von Bragd."
+ "wizard.online_later": "Die Anmeldung zum Online-Spiel kommt in einer späteren Version von Bragd.",
+ "format.newer": "{file} wurde von einer neueren Bragd-Version geschrieben. Aktualisieren Sie Bragd, um die Datei zu öffnen. Die Datei bleibt unverändert.",
+ "format.unknown": "{file} hat ein Format, das diese Bragd-Version nicht lesen kann (Version {version}). Die Datei bleibt unverändert."
 }

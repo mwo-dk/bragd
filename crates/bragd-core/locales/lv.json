@@ -1625,5 +1625,7 @@
  "feature.online.tip": "Spēlējiet Lichess šahu uz Bragd dēļa: Spēlēt → Spēlēt tiešsaistē.",
  "tour.online.title": "Spēlēt Lichess",
  "tour.online.text": "Šaha Spēlēt → Spēlēt tiešsaistē pierakstās Lichess pārlūkā. Meklējiet partiju vai atbildiet uz izaicinājumu un spēlējiet uz Bragd dēļa. Tērzēšana ir izslēgta, kamēr to neieslēdzat.",
- "wizard.online_later": "Pierakstīšanās, lai spēlētu tiešsaistē, nāks vēlākā Bragd versijā."
+ "wizard.online_later": "Pierakstīšanās, lai spēlētu tiešsaistē, nāks vēlākā Bragd versijā.",
+ "format.newer": "{file} ir rakstījis jaunāks Bragd. Lai to atvērtu, atjauniniet Bragd. Fails paliek nemainīts.",
+ "format.unknown": "{file} ir formātā, ko šis Bragd nevar nolasīt (versija {version}). Fails paliek nemainīts."
 }

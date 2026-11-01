@@ -79,12 +79,12 @@ pub async fn update_check(ctx: tauri::State<'_, Ctx>) -> Result<Vec<Notice>, Str
     .map_err(|e| e.to_string())
 }
 
-/// config.toml in the system's editor, made empty first when it is not there yet.
+/// config.toml in the system's editor, made first with its format alone when it is not there yet.
 #[tauri::command]
 pub fn open_config(app: tauri::AppHandle) -> Result<(), String> {
     let path = Config::path().ok_or_else(|| t!("config.no_folder"))?;
     if !path.exists() {
-        bragd_core::fs::replace(&path, b"", true).map_err(|e| e.to_string())?;
+        bragd_core::fs::replace(&path, format!("format = {}\n", bragd_core::config::FORMAT.version()).as_bytes(), true).map_err(|e| e.to_string())?;
     }
     app.opener()
         .open_path(path.display().to_string(), None::<&str>)

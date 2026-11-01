@@ -302,10 +302,16 @@ pub fn pairings_html(t: &Tournament, round: usize) -> String {
     page(t, "big", &t.name, &body)
 }
 
+/// The format of a bundle's `tournament.json`, a Tournament as JSON. A Club keeps its
+/// Tournaments in the same form, under the Club file's own version.
+pub const FORMAT: bragd_core::format::Json = bragd_core::format::Json { file: "tournament.json", migrations: &[] };
+
 /// Writes the bundle: `tournament.json` (what reads back), `tournament.trf`, `games.pgn` and
 /// `standings.html`.
 pub fn bundle(t: &Tournament, path: &Path) -> Result<()> {
-    let json = serde_json::to_vec_pretty(t).map_err(|e| Error::Io(e.to_string()))?;
+    let mut v = serde_json::to_value(t).map_err(|e| Error::Io(e.to_string()))?;
+    FORMAT.stamp(&mut v);
+    let json = serde_json::to_vec_pretty(&v).map_err(|e| Error::Io(e.to_string()))?;
     bragd_core::fs::replace_with(path, false, |f| {
         let mut z = zip::ZipWriter::new(f);
         let opts = zip::write::SimpleFileOptions::default();
@@ -330,7 +336,9 @@ pub fn read_bundle(path: &Path) -> Result<Tournament> {
     if json.len() as u64 > MAX_JSON {
         return Err(bad());
     }
-    let t: Tournament = serde_json::from_slice(&json).map_err(|_| bad())?;
+    let mut v: serde_json::Value = serde_json::from_slice(&json).map_err(|_| bad())?;
+    FORMAT.upgrade(&mut v).map_err(|e| Error::Io(e.to_string()))?;
+    let t: Tournament = serde_json::from_value(v).map_err(|_| bad())?;
     t.sound().then_some(t).ok_or_else(bad)
 }
 

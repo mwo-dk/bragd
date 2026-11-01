@@ -71,7 +71,7 @@ Yes. Set *Library folder* in *Settings → Knowledge*. Disk watch then also chec
 
 #### What if state.json is damaged?
 
-Bragd moves it aside as `state.json.bad` and starts with defaults. A file it cannot read at all is never written over.
+Bragd moves it aside as `state.json.bad` and starts with defaults. A file it cannot read at all, or one a newer Bragd wrote, is never written over ([File formats](file-formats.md)).
 
 #### Does Bragd write next to my PGN files?
 
@@ -82,4 +82,4 @@ No, unless you choose *Save as…* there. A Foreign database is read in place an
 Installers remove the program, not your settings and Libraries. Delete the folders above to remove them too.
 
 ---
-[← Previous: Command line](command-line.md) · [Next: Privacy →](privacy.md)
+[← Previous: Command line](command-line.md) · [Next: File formats →](file-formats.md)

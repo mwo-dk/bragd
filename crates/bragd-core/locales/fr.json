@@ -1625,5 +1625,7 @@
  "feature.online.tip": "Jouez aux échecs sur Lichess depuis l’échiquier de Bragd : Jouer → Jouer en ligne.",
  "tour.online.title": "Jouer sur Lichess",
  "tour.online.text": "Le menu Jouer → Jouer en ligne vous connecte à Lichess dans votre navigateur. Cherchez une partie ou répondez à un défi, et jouez-la sur l’échiquier de Bragd. Le chat reste désactivé tant que vous ne l’activez pas.",
- "wizard.online_later": "La connexion pour jouer en ligne arrivera dans une version ultérieure de Bragd."
+ "wizard.online_later": "La connexion pour jouer en ligne arrivera dans une version ultérieure de Bragd.",
+ "format.newer": "{file} a été écrit par une version plus récente de Bragd. Mettez Bragd à jour pour l’ouvrir. Le fichier est laissé tel quel.",
+ "format.unknown": "{file} a un format que ce Bragd ne peut pas lire (version {version}). Le fichier est laissé tel quel."
 }

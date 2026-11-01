@@ -1,0 +1,10 @@
+. array
+[] object
+[].addr string
+[].key string
+[].name string
+[].paired int
+[].seen int
+[].seen null
+[].version null
+[].version string

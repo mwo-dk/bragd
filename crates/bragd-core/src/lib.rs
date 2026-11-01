@@ -3,6 +3,7 @@
 pub mod config;
 pub mod dirs;
 pub mod features;
+pub mod format;
 pub mod fs;
 pub mod i18n;
 pub mod notices;

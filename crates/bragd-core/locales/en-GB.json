@@ -1615,5 +1615,7 @@
  "feature.online.tip": "Play chess on Lichess from Bragd's board: Play → Play online.",
  "tour.online.title": "Play on Lichess",
  "tour.online.text": "Chess's Play → Play online signs you in to Lichess in your browser. Seek a Game or answer a challenge, and play it on Bragd's board. Chat is off until you turn it on.",
- "wizard.online_later": "Signing in to play online comes in a later version of Bragd."
+ "wizard.online_later": "Signing in to play online comes in a later version of Bragd.",
+ "format.newer": "{file} was written by a newer Bragd. Update Bragd to open it. The file is left as it is.",
+ "format.unknown": "{file} has a format this Bragd cannot read (version {version}). The file is left as it is."
 }

@@ -1,0 +1,23 @@
+format = 1
+# Bragd's settings, as a user might keep them.
+language = "da"
+
+[look]
+theme = "Night"
+board_theme = "walnut"
+
+[families]
+family = { go = false }
+variant = { checkers = false }
+
+[engines]
+containers = true
+paths = { stockfish = "/opt/stockfish/stockfish" }
+default = { chess = "stockfish" }
+
+[disk]
+total = 50000000000
+items = { "library:main.bragd" = 20000000000 }
+
+[themes.Night]
+bg = "#101418"

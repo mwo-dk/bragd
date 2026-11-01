@@ -1605,5 +1605,7 @@
  "feature.online.tip": "Bragd の盤で Lichess のチェスを指すには: 対局 → オンラインで対局。",
  "tour.online.title": "Lichess で対局",
  "tour.online.text": "チェスの「対局 → オンラインで対局」で、ブラウザーから Lichess にサインインします。対局を探すか挑戦に応じて、Bragd の盤で指せます。チャットは、オンにするまでオフです。",
- "wizard.online_later": "オンラインでサインインして対局する機能は、Bragd の後のバージョンで提供されます。"
+ "wizard.online_later": "オンラインでサインインして対局する機能は、Bragd の後のバージョンで提供されます。",
+ "format.newer": "{file} は新しい Bragd で書かれました。開くには Bragd を更新してください。ファイルはそのまま残されます。",
+ "format.unknown": "{file} は、この Bragd では読めない形式です（バージョン {version}）。ファイルはそのまま残されます。"
 }

@@ -1,0 +1,1 @@
+| **Files from a newer Bragd are left alone.** Every file Bragd writes now carries a format version. Settings, Libraries, Club files, the Position store and the rest are brought up to date when a later Bragd opens them, and an older Bragd refuses a file from a newer one with a message instead of changing it. | [Docs](reference/file-formats.md#a-file-from-a-newer-bragd) |

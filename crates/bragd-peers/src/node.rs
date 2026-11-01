@@ -205,6 +205,10 @@ impl std::fmt::Display for Failed {
     }
 }
 
+/// `peers.json`'s format: a list of Peers is version 1. A later version is an object with its
+/// `format`, which this one refuses, leaving the file as it is.
+pub const FORMAT: bragd_core::format::Json = bragd_core::format::Json { file: "peers.json", migrations: &[] };
+
 pub struct Node {
     dir: PathBuf,
     me: Identity,
@@ -229,7 +233,11 @@ impl Node {
         let me = Identity::load_or_make(dir)?;
         let certified = me.certified()?;
         let peers = match std::fs::read(dir.join("peers.json")) {
-            Ok(b) => serde_json::from_slice(&b).map_err(io::Error::other)?,
+            Ok(b) => {
+                let mut v: serde_json::Value = serde_json::from_slice(&b).map_err(io::Error::other)?;
+                FORMAT.upgrade(&mut v).map_err(|e| io::Error::other(e.to_string()))?;
+                serde_json::from_value(v).map_err(io::Error::other)?
+            }
             Err(e) if e.kind() == io::ErrorKind::NotFound => vec![],
             Err(e) => return Err(e),
         };

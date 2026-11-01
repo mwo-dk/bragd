@@ -1625,5 +1625,7 @@
  "feature.online.tip": "Juga a escacs a Lichess des del tauler de Bragd: Juga → Juga en línia.",
  "tour.online.title": "Juga a Lichess",
  "tour.online.text": "Juga → Juga en línia et connecta a Lichess al navegador. Busca una partida o respon a un repte, i juga-la al tauler de Bragd. El xat està desactivat fins que l'activis.",
- "wizard.online_later": "Iniciar sessió per jugar en línia arribarà en una versió posterior de Bragd."
+ "wizard.online_later": "Iniciar sessió per jugar en línia arribarà en una versió posterior de Bragd.",
+ "format.newer": "{file} l'ha escrit un Bragd més nou. Actualitza el Bragd per obrir-lo. El fitxer es deixa tal com està.",
+ "format.unknown": "{file} té un format que aquest Bragd no pot llegir (versió {version}). El fitxer es deixa tal com està."
 }

@@ -164,11 +164,19 @@ pub type Pairs = Vec<(String, String)>;
 /// Not offered by this engine.
 const UNKNOWN: &str = "this engine has no such option.";
 
+/// engine-options.toml's format: its top-level `format` key, beside the engines' tables.
+pub const FORMAT: bragd_core::format::Toml = bragd_core::format::Toml { file: "engine-options.toml", migrations: &[] };
+
 impl OptionStore {
-    /// The store at `path`; empty when there is none yet.
+    /// The store at `path`; empty when there is none yet. One from a newer Bragd is refused.
     pub fn load(path: &Path) -> Result<OptionStore, String> {
         match std::fs::read_to_string(path) {
-            Ok(text) => toml::from_str(&text).map_err(|e| format!("{}: {e}", path.display())),
+            Ok(text) => {
+                let text = FORMAT.upgrade(&text).map_err(|e| e.to_string())?;
+                let mut table: toml::Table = toml::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
+                table.remove("format");
+                toml::Value::Table(table).try_into().map_err(|e| format!("{}: {e}", path.display()))
+            }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(OptionStore::default()),
             Err(e) => Err(format!("{}: {e}", path.display())),
         }
@@ -176,7 +184,7 @@ impl OptionStore {
 
     /// Written whole to a file beside `path`, then moved over it: a crash never leaves half.
     pub fn save(&self, path: &Path) -> Result<(), String> {
-        let text = toml::to_string(self).map_err(|e| e.to_string())?;
+        let text = format!("format = {}\n\n{}", FORMAT.version(), toml::to_string(self).map_err(|e| e.to_string())?);
         bragd_core::fs::replace(path, text.as_bytes(), false).map_err(|e| format!("{}: {e}", path.display()))
     }
 

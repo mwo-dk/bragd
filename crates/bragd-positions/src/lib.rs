@@ -41,8 +41,8 @@ pub enum Error {
     Sql(rusqlite::Error),
     Parquet(::parquet::errors::ParquetError),
     Io(std::io::Error),
-    /// A store written by a newer Bragd: left as it is.
-    Newer(i64),
+    /// A store from a newer Bragd, or of a version no migration leads from: left as it is.
+    Format(bragd_core::format::Error),
     /// A row that is not an Evaluation (a score that is not a number, a kind not known).
     Bad(String),
 }
@@ -53,7 +53,7 @@ impl std::fmt::Display for Error {
             Error::Sql(e) => write!(f, "{e}"),
             Error::Parquet(e) => write!(f, "{e}"),
             Error::Io(e) => write!(f, "{e}"),
-            Error::Newer(v) => write!(f, "the Position store was written by a newer Bragd (schema {v})"),
+            Error::Format(e) => write!(f, "{e}"),
             Error::Bad(why) => write!(f, "not an Evaluation: {why}"),
         }
     }
@@ -64,6 +64,15 @@ impl std::error::Error for Error {}
 impl From<rusqlite::Error> for Error {
     fn from(e: rusqlite::Error) -> Error {
         Error::Sql(e)
+    }
+}
+
+impl From<bragd_core::format::Error> for Error {
+    fn from(e: bragd_core::format::Error) -> Error {
+        match e {
+            bragd_core::format::Error::Sql(e) => Error::Sql(e),
+            e => Error::Format(e),
+        }
     }
 }
 
@@ -184,12 +193,11 @@ pub struct Size {
     pub bytes: u64,
 }
 
-/// The store's schema version (`PRAGMA user_version`): 2 added Annotations, 3 the second
-/// choice. Commentary comes as version 4, keyed the same way: (family, variant, key) and its own
-/// columns.
-const VERSION: i64 = 3;
+/// The store's format (`PRAGMA user_version`). Its 1.0 baseline is 3. Commentary comes as a
+/// migration, keyed the same way: (family, variant, key) and its own columns.
+pub const FORMAT: bragd_core::format::Sqlite = bragd_core::format::Sqlite { file: "positions.sqlite", first: 3, schema: SCHEMA, migrations: &[] };
 
-const SCHEMA_1: &str = "
+const SCHEMA: &str = "
 CREATE TABLE editions (
     n INTEGER PRIMARY KEY,
     -- `Edition::id`, the same on every machine; `n` is this store's own.
@@ -199,6 +207,8 @@ CREATE TABLE editions (
     network TEXT,
     image TEXT
 );
+-- The second choice is '' and 0 when there is none, not NULL, so the merge rule's row values
+-- always compare.
 CREATE TABLE evaluations (
     family TEXT NOT NULL,
     variant TEXT NOT NULL,
@@ -210,11 +220,12 @@ CREATE TABLE evaluations (
     depth INTEGER NOT NULL,
     line TEXT NOT NULL,
     time INTEGER NOT NULL,
+    kind2 TEXT NOT NULL DEFAULT '' CHECK (kind2 IN ('', 'cp', 'mate', 'winrate', 'equity')),
+    score2 REAL NOT NULL DEFAULT 0,
+    lead2 REAL NOT NULL DEFAULT 0,
+    line2 TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (family, variant, key, edition)
 ) WITHOUT ROWID;
-";
-
-const SCHEMA_2: &str = "
 CREATE TABLE annotations (
     family TEXT NOT NULL,
     variant TEXT NOT NULL,
@@ -231,14 +242,6 @@ CREATE TABLE annotations (
     time INTEGER NOT NULL,
     PRIMARY KEY (family, variant, key, move, edition)
 ) WITHOUT ROWID;
-";
-
-// Not NULL when there is none, so the merge rule's row values always compare.
-const SCHEMA_3: &str = "
-ALTER TABLE evaluations ADD COLUMN kind2 TEXT NOT NULL DEFAULT '' CHECK (kind2 IN ('', 'cp', 'mate', 'winrate', 'equity'));
-ALTER TABLE evaluations ADD COLUMN score2 REAL NOT NULL DEFAULT 0;
-ALTER TABLE evaluations ADD COLUMN lead2 REAL NOT NULL DEFAULT 0;
-ALTER TABLE evaluations ADD COLUMN line2 TEXT NOT NULL DEFAULT '';
 ";
 
 /// How long a write waits for another connection's.
@@ -275,35 +278,12 @@ impl Store {
     }
 
     fn open_once(path: &Path) -> Result<Store> {
-        let conn = Connection::open(path)?;
+        let mut conn = Connection::open(path)?;
         conn.busy_timeout(BUSY)?;
         conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
-        let version = |c: &Connection| c.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0));
-        let mut v = version(&conn)?;
-        if v < VERSION {
-            // Another process (a window, the Helper) may be making it at the same moment: the
-            // schema is made under the write lock, by whichever gets it first.
-            let mut conn = conn;
-            let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-            v = version(&tx)?;
-            if v > VERSION {
-                return Err(Error::Newer(v));
-            }
-            if v < VERSION {
-                if v < 1 {
-                    tx.execute_batch(SCHEMA_1)?;
-                }
-                if v < 2 {
-                    tx.execute_batch(SCHEMA_2)?;
-                }
-                tx.execute_batch(&format!("{SCHEMA_3} PRAGMA user_version = {VERSION};"))?;
-            }
-            tx.commit()?;
-            return Ok(Store { conn });
-        }
-        if v > VERSION {
-            return Err(Error::Newer(v));
-        }
+        // Another process (a window, the Helper) may be making it at the same moment: it is
+        // made under the write lock, by whichever gets it first.
+        FORMAT.open(&mut conn)?;
         Ok(Store { conn })
     }
 
@@ -712,9 +692,9 @@ pub(crate) mod tests {
         let p = d.join("positions.sqlite");
         drop(Store::open(&p).unwrap());
         Connection::open(&p).unwrap().execute_batch("PRAGMA user_version = 99").unwrap();
-        assert!(matches!(Store::open(&p), Err(Error::Newer(99))));
+        assert!(matches!(Store::open(&p), Err(Error::Format(bragd_core::format::Error::Newer { version: 99, .. }))));
         // Opened again at the same version, nothing is made twice.
-        Connection::open(&p).unwrap().execute_batch(&format!("PRAGMA user_version = {VERSION}")).unwrap();
+        Connection::open(&p).unwrap().execute_batch(&format!("PRAGMA user_version = {}", FORMAT.version())).unwrap();
         Store::open(&p).unwrap();
     }
 
@@ -727,45 +707,6 @@ pub(crate) mod tests {
         for t in all {
             t.join().unwrap().unwrap();
         }
-    }
-
-    #[test]
-    fn a_store_of_schema_1_gains_annotations_and_keeps_its_evaluations() {
-        let d = dir("schema1");
-        let p = d.join("positions.sqlite");
-        let c = Connection::open(&p).unwrap();
-        c.execute_batch(&format!("{SCHEMA_1} PRAGMA user_version = 1")).unwrap();
-        drop(c);
-        let mut s = Store::open(&p).unwrap();
-        s.put(&eval(1, sf("Stockfish 17"), 20, 100, Score::Cp(30))).unwrap();
-        drop(s);
-        let mut s = Store::open(&p).unwrap();
-        assert_eq!(s.all().unwrap().len(), 1);
-        assert!(s.put_annotation(&note(1, "e2e4", sf("Stockfish 17"), 20, 1, None)).unwrap());
-    }
-
-    /// A store of schema 2 gains the second choice: its rows read back without one, and a
-    /// row with one replaces an equal row without.
-    #[test]
-    fn a_store_of_schema_2_gains_the_second_choice() {
-        let d = dir("schema2");
-        let p = d.join("positions.sqlite");
-        let c = Connection::open(&p).unwrap();
-        c.execute_batch(&format!("{SCHEMA_1} {SCHEMA_2} PRAGMA user_version = 2")).unwrap();
-        c.execute(
-            "INSERT INTO editions (n, id, engine, version, network, image) VALUES (1, ?1, 'stockfish', 'Stockfish 17', NULL, ?2)",
-            params![sf("Stockfish 17").id(), sf("Stockfish 17").image],
-        )
-        .unwrap();
-        c.execute("INSERT INTO evaluations VALUES ('chess', 'chess', 1, 1, 'cp', 30, 0, 20, 'e2e4 d20', 100)", []).unwrap();
-        drop(c);
-        let mut s = Store::open(&p).unwrap();
-        let old = eval(1, sf("Stockfish 17"), 20, 100, Score::Cp(30));
-        assert_eq!(s.all().unwrap(), std::slice::from_ref(&old));
-        let with = Evaluation { second: Some(Second { score: Score::Cp(-150), line: "d2d4".into() }), ..old };
-        assert!(s.put(&with).unwrap());
-        drop(s);
-        assert_eq!(Store::open(&p).unwrap().all().unwrap(), [with]);
     }
 
     #[test]
