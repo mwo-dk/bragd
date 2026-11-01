@@ -38,7 +38,7 @@ Bragd is free, and the builds are not signed with a paid certificate, so your sy
 ```sh
 git clone https://github.com/mwo-dk/bragd.git
 cd bragd
-./install/install.sh          # Linux or macOS
+./install/install.sh          # Linux, macOS or FreeBSD
 ```
 
 On Windows:

@@ -25,11 +25,11 @@ Desktop tarballs for FreeBSD, NetBSD and OpenBSD are planned, but not yet availa
 
 ### Any system
 
-`install/install.sh` (Linux and macOS) and `install/install.ps1` (Windows) build Bragd from the source tree. They ask before they install Rust, Node.js or the system libraries the window needs (WebKitGTK on Linux), and `--yes` (`-Yes` in PowerShell) answers yes to every question.
+`install/install.sh` (Linux, macOS and FreeBSD) and `install/install.ps1` (Windows) build Bragd from the source tree. They ask before they install Rust, Node.js or the system libraries the window needs (WebKitGTK on Linux), and `--yes` (`-Yes` in PowerShell) answers yes to every question. On FreeBSD, install what the build needs first, as root: `pkg install bash rust node24 npm-node24 pkgconf webkit2-gtk_41`.
 
 | Script | Installs to |
 |---|---|
-| `./install/install.sh` | `~/.local/bin/bragd-gui`, `~/.local/bin/bragd-helper` and a menu entry on Linux (`PREFIX` changes the folder); `~/Applications/Bragd.app` on macOS, with `bragd-helper` inside it and both linked from `~/.local/bin` |
+| `./install/install.sh` | `~/.local/bin/bragd-gui`, `~/.local/bin/bragd-helper` and a menu entry on Linux and FreeBSD (`PREFIX` changes the folder); `~/Applications/Bragd.app` on macOS, with `bragd-helper` inside it and both linked from `~/.local/bin` |
 | `install\install.ps1` | `bragd-gui.exe` and `bragd-helper.exe` in `%LOCALAPPDATA%\Programs\Bragd`, on your user `PATH`, with a Start Menu shortcut. Entries such as `%USERPROFILE%\bin` in your `PATH` stay as they were |
 
 The window starts the Helper from beside its own program, so the scripts put `bragd-helper` next to `bragd-gui`.

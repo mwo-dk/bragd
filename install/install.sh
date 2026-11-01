@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Build and install Bragd from source on Linux or macOS.
+# Build and install Bragd from source on Linux, macOS or FreeBSD.
 #
 #   ./install/install.sh             build and install
 #   ./install/install.sh --yes       answer yes to every question
 #
 # Installs into $PREFIX (default ~/.local): bin/bragd-gui, bin/bragd-helper and a menu entry on
-# Linux. On macOS the app, with the Helper inside, goes to ~/Applications/Bragd.app.
+# Linux and FreeBSD. On macOS the app, with the Helper inside, goes to ~/Applications/Bragd.app.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -141,7 +141,9 @@ if [ "$OS" = Darwin ]; then
   ln -sf "$HOME/Applications/Bragd.app/Contents/MacOS/bragd-helper" "$PREFIX/bin/bragd-helper"
   info "Installed ~/Applications/Bragd.app, with bragd-helper inside"
 else
-  (cd gui && npx tauri build --no-bundle)
+  # Plain cargo, not the Tauri CLI: the CLI ships no binary for the BSDs.
+  (cd gui && npm run build)
+  cargo build --release --locked -p bragd-gui
   mkdir -p "$PREFIX/bin"
   install -m 755 target/release/bragd-gui "$PREFIX/bin/bragd-gui"
   install -m 755 target/release/bragd-helper "$PREFIX/bin/bragd-helper"
