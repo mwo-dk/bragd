@@ -454,6 +454,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bragd-positions"
+version = "0.1.0"
+dependencies = [
+ "bragd-core",
+ "parquet",
+ "rusqlite",
+ "serde",
+]
+
+[[package]]
 name = "brotli"
 version = "9.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

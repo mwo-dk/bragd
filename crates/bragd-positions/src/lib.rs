@@ -1,0 +1,406 @@
+//! The Position store: one SQLite file per machine that keeps Evaluations by position, for
+//! every Library, Foreign database and Game played (ADR 0004). Deleting a Library does not
+//! touch it.
+//!
+//! A row is keyed by Family, Variant, position key and Edition. The position key is the
+//! Family's own: the Polyglot key for chess, a hash of the FEN or SFEN for draughts, xiangqi and
+//! shogi, and `rules_go::zobrist` for go. Callers compute it; the store only keeps it.
+//!
+//! **Every row is a fact about one Edition.** Merging two stores (an import, and Peers from
+//! 0.5.0) never conflicts: for one position and one Edition the store keeps the row that is
+//! greater by `(depth, time, kind, score, lead, line)`, so the deeper one wins. That order is
+//! total, so a merge gives the same store in any order and any number of times (`put`).
+//!
+//! What is shown for a position and an Engine is its newest Edition's row, then the deepest,
+//! then the latest (`shown`). A new Edition never re-queues anything by itself.
+
+pub mod edition;
+pub mod parquet;
+
+use std::cmp::Ordering;
+use std::path::{Path, PathBuf};
+
+use rusqlite::{Connection, params};
+use serde::{Deserialize, Serialize};
+
+pub use edition::Edition;
+
+#[derive(Debug)]
+pub enum Error {
+    Sql(rusqlite::Error),
+    Parquet(::parquet::errors::ParquetError),
+    Io(std::io::Error),
+    /// A store written by a newer Bragd: left as it is.
+    Newer(i64),
+    /// A row that is not an Evaluation (a score that is not a number, a kind not known).
+    Bad(String),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Sql(e) => write!(f, "{e}"),
+            Error::Parquet(e) => write!(f, "{e}"),
+            Error::Io(e) => write!(f, "{e}"),
+            Error::Newer(v) => write!(f, "the Position store was written by a newer Bragd (schema {v})"),
+            Error::Bad(why) => write!(f, "not an Evaluation: {why}"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl From<rusqlite::Error> for Error {
+    fn from(e: rusqlite::Error) -> Error {
+        Error::Sql(e)
+    }
+}
+
+impl From<::parquet::errors::ParquetError> for Error {
+    fn from(e: ::parquet::errors::ParquetError) -> Error {
+        Error::Parquet(e)
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Error {
+        Error::Io(e)
+    }
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+/// A score, from the first Side's view (White, Red; Black in shogi and go), as engines report it.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum Score {
+    /// Centipawns (chess, xiangqi, shogi; draughts in hundredths of a man).
+    Cp(i32),
+    /// Mate in so many moves; minus: the other side mates.
+    Mate(i32),
+    /// Go: the chance to win, 0 to 1, and the lead in points.
+    WinRate { win: f64, lead: f64 },
+    /// Backgammon: the equity, in points per game.
+    Equity(f64),
+}
+
+impl Score {
+    /// How the store writes it: its kind, its number, and go's lead (0 for the others).
+    fn columns(self) -> (&'static str, f64, f64) {
+        match self {
+            Score::Cp(c) => ("cp", c as f64, 0.0),
+            Score::Mate(m) => ("mate", m as f64, 0.0),
+            Score::WinRate { win, lead } => ("winrate", win, lead),
+            Score::Equity(e) => ("equity", e, 0.0),
+        }
+    }
+
+    fn from_columns(kind: &str, score: f64, lead: f64) -> Result<Score> {
+        if !score.is_finite() || !lead.is_finite() {
+            return Err(Error::Bad(format!("{kind} {score} {lead}")));
+        }
+        Ok(match kind {
+            "cp" => Score::Cp(score as i32),
+            "mate" => Score::Mate(score as i32),
+            "winrate" => Score::WinRate { win: score, lead },
+            "equity" => Score::Equity(score),
+            other => return Err(Error::Bad(format!("score kind {other:?}"))),
+        })
+    }
+}
+
+/// One Edition's verdict on one position.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Evaluation {
+    pub family: String,
+    pub variant: String,
+    /// The position's key in its Family.
+    pub key: u64,
+    pub edition: Edition,
+    pub score: Score,
+    pub depth: u32,
+    /// The best line, its moves in the engine's notation, separated by spaces.
+    pub line: String,
+    /// When it was reached, in seconds since 1970.
+    pub time: i64,
+}
+
+/// What a merge did.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct Merged {
+    /// Rows read.
+    pub read: u64,
+    /// Rows that were new, or deeper than the store's.
+    pub changed: u64,
+}
+
+/// The store's schema version (`PRAGMA user_version`). Annotations and Commentary come as
+/// version 2 and on, keyed the same way: (family, variant, key) and their own columns.
+const VERSION: i64 = 1;
+
+const SCHEMA_1: &str = "
+CREATE TABLE editions (
+    n INTEGER PRIMARY KEY,
+    -- `Edition::id`, the same on every machine; `n` is this store's own.
+    id TEXT NOT NULL UNIQUE,
+    engine TEXT NOT NULL,
+    version TEXT NOT NULL,
+    network TEXT,
+    image TEXT
+);
+CREATE TABLE evaluations (
+    family TEXT NOT NULL,
+    variant TEXT NOT NULL,
+    key INTEGER NOT NULL,
+    edition INTEGER NOT NULL REFERENCES editions (n),
+    kind TEXT NOT NULL CHECK (kind IN ('cp', 'mate', 'winrate', 'equity')),
+    score REAL NOT NULL,
+    lead REAL NOT NULL,
+    depth INTEGER NOT NULL,
+    line TEXT NOT NULL,
+    time INTEGER NOT NULL,
+    PRIMARY KEY (family, variant, key, edition)
+) WITHOUT ROWID;
+";
+
+/// The Position store.
+pub struct Store {
+    conn: Connection,
+}
+
+impl Store {
+    /// Where the store lives: `positions.sqlite` in Bragd's data folder.
+    pub fn path() -> Option<PathBuf> {
+        Some(bragd_core::dirs::app_data()?.join("positions.sqlite"))
+    }
+
+    /// Opens the store at `path`, making it if it is not there. A store written by a newer
+    /// Bragd is refused and left as it is.
+    pub fn open(path: &Path) -> Result<Store> {
+        if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
+            std::fs::create_dir_all(dir)?;
+        }
+        let conn = Connection::open(path)?;
+        conn.busy_timeout(std::time::Duration::from_secs(10))?;
+        conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
+        let v: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+        if v > VERSION {
+            return Err(Error::Newer(v));
+        }
+        if v < 1 {
+            conn.execute_batch(&format!("BEGIN; {SCHEMA_1} PRAGMA user_version = {VERSION}; COMMIT;"))?;
+        }
+        Ok(Store { conn })
+    }
+
+    pub(crate) fn conn(&self) -> &Connection {
+        &self.conn
+    }
+
+    /// Merges `e` into the store: kept if the store has no row for its position and Edition,
+    /// or if it is greater than that row (deeper, else later, else by its score and line).
+    /// True when the store changed.
+    pub fn put(&mut self, e: &Evaluation) -> Result<bool> {
+        let tx = self.conn.transaction()?;
+        let changed = put(&tx, e)?;
+        tx.commit()?;
+        Ok(changed)
+    }
+
+    /// Merges many in one transaction.
+    pub fn put_all<'a>(&mut self, all: impl IntoIterator<Item = &'a Evaluation>) -> Result<Merged> {
+        let tx = self.conn.transaction()?;
+        let mut m = Merged::default();
+        for e in all {
+            m.read += 1;
+            m.changed += u64::from(put(&tx, e)?);
+        }
+        tx.commit()?;
+        Ok(m)
+    }
+
+    /// Every Edition's Evaluation of one position.
+    pub fn evaluations(&self, family: &str, variant: &str, key: u64) -> Result<Vec<Evaluation>> {
+        self.select("WHERE v.family = ?1 AND v.variant = ?2 AND v.key = ?3", params![family, variant, key as i64])
+    }
+
+    /// What Bragd shows for a position and an Engine: its newest Edition's Evaluation, the
+    /// deepest of the equally new, then the latest.
+    pub fn shown(&self, family: &str, variant: &str, key: u64, engine: &str) -> Result<Option<Evaluation>> {
+        let all = self.evaluations(family, variant, key)?;
+        Ok(all
+            .into_iter()
+            .filter(|e| e.edition.engine == engine)
+            .max_by(|a, b| a.edition.newer(&b.edition).unwrap_or(Ordering::Equal).then(a.depth.cmp(&b.depth)).then(a.time.cmp(&b.time))))
+    }
+
+    /// Every Evaluation in the store, by position and Edition id.
+    pub fn all(&self) -> Result<Vec<Evaluation>> {
+        self.select("ORDER BY v.family, v.variant, v.key, d.id", [])
+    }
+
+    fn select(&self, rest: &str, p: impl rusqlite::Params) -> Result<Vec<Evaluation>> {
+        let mut st = self.conn.prepare(&format!(
+            "SELECT v.family, v.variant, v.key, d.engine, d.version, d.network, d.image, v.kind, v.score, v.lead, v.depth, v.line, v.time \
+             FROM evaluations v JOIN editions d ON d.n = v.edition {rest}"
+        ))?;
+        let rows = st.query_map(p, |r| {
+            Ok((
+                Evaluation {
+                    family: r.get(0)?,
+                    variant: r.get(1)?,
+                    key: r.get::<_, i64>(2)? as u64,
+                    edition: Edition { engine: r.get(3)?, version: r.get(4)?, network: r.get(5)?, image: r.get(6)? },
+                    score: Score::Cp(0),
+                    depth: r.get(10)?,
+                    line: r.get(11)?,
+                    time: r.get(12)?,
+                },
+                r.get::<_, String>(7)?,
+                r.get::<_, f64>(8)?,
+                r.get::<_, f64>(9)?,
+            ))
+        })?;
+        rows.map(|row| {
+            let (mut e, kind, score, lead) = row?;
+            e.score = Score::from_columns(&kind, score, lead)?;
+            Ok(e)
+        })
+        .collect()
+    }
+}
+
+/// The merge rule, in one place: insert, or replace a row that is less by
+/// `(depth, time, kind, score, lead, line)`.
+fn put(tx: &Connection, e: &Evaluation) -> Result<bool> {
+    let (kind, score, lead) = e.score.columns();
+    if !score.is_finite() || !lead.is_finite() {
+        return Err(Error::Bad(format!("{kind} {score} {lead}")));
+    }
+    let d = &e.edition;
+    tx.prepare_cached("INSERT INTO editions (id, engine, version, network, image) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT (id) DO NOTHING")?
+        .execute(params![d.id(), d.engine, d.version, d.network, d.image])?;
+    let n: i64 = tx.prepare_cached("SELECT n FROM editions WHERE id = ?1")?.query_row([d.id()], |r| r.get(0))?;
+    let changed = tx
+        .prepare_cached(
+            "INSERT INTO evaluations (family, variant, key, edition, kind, score, lead, depth, line, time) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) \
+             ON CONFLICT (family, variant, key, edition) DO UPDATE SET \
+             kind = excluded.kind, score = excluded.score, lead = excluded.lead, depth = excluded.depth, line = excluded.line, time = excluded.time \
+             WHERE (excluded.depth, excluded.time, excluded.kind, excluded.score, excluded.lead, excluded.line) \
+                 > (evaluations.depth, evaluations.time, evaluations.kind, evaluations.score, evaluations.lead, evaluations.line)",
+        )?
+        .execute(params![e.family, e.variant, e.key as i64, n, kind, score, lead, e.depth, e.line, e.time])?;
+    Ok(changed > 0)
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    /// A fresh folder of its own for a test, under the system's temporary folder.
+    pub(crate) fn dir(name: &str) -> PathBuf {
+        static N: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let d = std::env::temp_dir().join(format!("bragd-positions-{name}-{}-{}", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    pub(crate) fn sf(version: &str) -> Edition {
+        Edition { engine: "stockfish".into(), version: version.into(), network: None, image: Some("sha256:fc7eee4aada2ef3e3debd59b4bbfb1e3907380062973a2863829410d0c1aa340".into()) }
+    }
+
+    pub(crate) fn eval(key: u64, edition: Edition, depth: u32, time: i64, score: Score) -> Evaluation {
+        Evaluation { family: "chess".into(), variant: "chess".into(), key, edition, score, depth, line: format!("e2e4 d{depth}"), time }
+    }
+
+    fn store(name: &str) -> (PathBuf, Store) {
+        let d = dir(name);
+        let s = Store::open(&d.join("positions.sqlite")).unwrap();
+        (d, s)
+    }
+
+    #[test]
+    fn the_deeper_row_wins_and_editions_are_kept_apart() {
+        let (_d, mut s) = store("deeper");
+        assert!(s.put(&eval(1, sf("Stockfish 17"), 20, 100, Score::Cp(30))).unwrap());
+        assert!(!s.put(&eval(1, sf("Stockfish 17"), 18, 200, Score::Cp(10))).unwrap(), "shallower, though later");
+        assert!(s.put(&eval(1, sf("Stockfish 17"), 24, 50, Score::Mate(5))).unwrap());
+        assert!(s.put(&eval(1, sf("Stockfish 17.1"), 12, 10, Score::Cp(-5))).unwrap());
+        let all = s.evaluations("chess", "chess", 1).unwrap();
+        assert_eq!(all.len(), 2);
+        let old = all.iter().find(|e| e.edition.version == "Stockfish 17").unwrap();
+        assert_eq!((old.depth, old.score), (24, Score::Mate(5)));
+        // Shown: the newest Edition, though it is shallower.
+        assert_eq!(s.shown("chess", "chess", 1, "stockfish").unwrap().unwrap().edition.version, "Stockfish 17.1");
+        assert_eq!(s.shown("chess", "chess", 1, "lc0").unwrap(), None);
+        assert!(s.evaluations("chess", "chess", 2).unwrap().is_empty());
+        assert!(s.evaluations("go", "chess", 1).unwrap().is_empty());
+    }
+
+    /// Peers merge stores in whatever order rows arrive: every order, and every row twice,
+    /// gives the same store.
+    #[test]
+    fn a_merge_is_the_same_in_any_order_and_any_number_of_times() {
+        let rows = [
+            eval(7, sf("Stockfish 17"), 20, 100, Score::Cp(30)),
+            eval(7, sf("Stockfish 17"), 20, 100, Score::Cp(31)),
+            eval(7, sf("Stockfish 17"), 20, 90, Score::Cp(40)),
+            eval(7, sf("Stockfish 17"), 22, 80, Score::Mate(-3)),
+            eval(7, sf("Stockfish 17.1"), 15, 80, Score::Cp(0)),
+            eval(8, sf("Stockfish 17"), 1, 1, Score::Cp(1)),
+            Evaluation { family: "go".into(), variant: "go-19".into(), key: 7, edition: Edition { engine: "katago".into(), version: "KataGo 1.18.2".into(), network: Some("abc".into()), image: None }, score: Score::WinRate { win: 0.6, lead: 2.5 }, depth: 400, line: "Q16 D4".into(), time: 5 },
+            Evaluation { family: "backgammon".into(), variant: "backgammon".into(), key: 7, edition: Edition { engine: "gnubg".into(), version: "GNU Backgammon 1.08.003".into(), network: None, image: None }, score: Score::Equity(-0.25), depth: 2, line: "24/18 13/11".into(), time: 5 },
+        ];
+        let mut want = None;
+        // Every rotation and its reverse: each row comes first and last at least once.
+        for start in 0..rows.len() {
+            for reverse in [false, true] {
+                let mut order: Vec<&Evaluation> = rows.iter().cycle().skip(start).take(rows.len()).collect();
+                if reverse {
+                    order.reverse();
+                }
+                let (_d, mut s) = store("merge");
+                s.put_all(order.iter().copied()).unwrap();
+                let once = s.all().unwrap();
+                assert_eq!(s.put_all(order.iter().copied()).unwrap().changed, 0, "a second merge changes nothing");
+                assert_eq!(s.all().unwrap(), once);
+                match &want {
+                    None => want = Some(once),
+                    Some(w) => assert_eq!(&once, w, "order {start} {reverse}"),
+                }
+            }
+        }
+        let want = want.unwrap();
+        assert_eq!(want.len(), 5);
+        let sf17 = want.iter().find(|e| e.key == 7 && e.edition.version == "Stockfish 17").unwrap();
+        assert_eq!((sf17.depth, sf17.score), (22, Score::Mate(-3)));
+        assert!(want.contains(&rows[6]) && want.contains(&rows[7]));
+    }
+
+    #[test]
+    fn a_score_that_is_not_a_number_is_refused() {
+        let (_d, mut s) = store("nan");
+        assert!(matches!(s.put(&eval(1, sf("Stockfish 17"), 1, 1, Score::Equity(f64::NAN))), Err(Error::Bad(_))));
+        assert!(s.all().unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_store_from_a_newer_bragd_is_left_alone() {
+        let d = dir("newer");
+        let p = d.join("positions.sqlite");
+        drop(Store::open(&p).unwrap());
+        Connection::open(&p).unwrap().execute_batch("PRAGMA user_version = 99").unwrap();
+        assert!(matches!(Store::open(&p), Err(Error::Newer(99))));
+        // Opened again at the same version, nothing is made twice.
+        Connection::open(&p).unwrap().execute_batch("PRAGMA user_version = 1").unwrap();
+        Store::open(&p).unwrap();
+    }
+
+    #[test]
+    fn the_store_lives_in_the_data_folder() {
+        let p = Store::path().unwrap();
+        assert!(p.starts_with(bragd_core::dirs::app_data().unwrap()));
+        assert_eq!(p.file_name().unwrap(), "positions.sqlite");
+    }
+}
