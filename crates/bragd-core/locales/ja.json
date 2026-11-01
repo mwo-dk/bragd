@@ -1013,5 +1013,21 @@
  "tournaments.tb.tpr": "パフォーマンスレーティング",
  "tournaments.tb.rtng": "レーティング",
  "tournaments.error.damaged": "クラブファイル内のこの大会は壊れています。対局か不戦勝に、そこにいない選手が含まれています。",
- "tournaments.error.rated": "クラブのレーティングは、この大会の対局をすでに計算に含んでいます。"
+ "tournaments.error.rated": "クラブのレーティングは、この大会の対局をすでに計算に含んでいます。",
+ "tournaments.error.bundle": "Bragd の大会パッケージではないか、破損しています。",
+ "tournaments.system.dutch": "スイス式（FIDE オランダ式）",
+ "tournaments.system.round_robin": "総当たり戦",
+ "tournaments.system.double_round_robin": "二重総当たり戦",
+ "tournaments.standings": "順位表",
+ "tournaments.crosstable": "クロステーブル",
+ "tournaments.rank": "順位",
+ "tournaments.number": "番号",
+ "tournaments.player": "選手",
+ "tournaments.points": "得点",
+ "tournaments.round_n": "ラウンド {n}",
+ "tournaments.board": "盤",
+ "tournaments.white": "白",
+ "tournaments.black": "黒",
+ "tournaments.result": "結果",
+ "tournaments.print": "印刷"
 }

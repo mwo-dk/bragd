@@ -1013,5 +1013,21 @@
  "tournaments.tb.tpr": "表现等级分",
  "tournaments.tb.rtng": "等级分",
  "tournaments.error.damaged": "俱乐部文件中的该赛事已损坏：某盘对局或轮空中提到了不存在的选手。",
- "tournaments.error.rated": "俱乐部等级分已计入本赛事的对局。"
+ "tournaments.error.rated": "俱乐部等级分已计入本赛事的对局。",
+ "tournaments.error.bundle": "这不是 Bragd 赛事包，或文件已损坏。",
+ "tournaments.system.dutch": "瑞士制 (FIDE Dutch)",
+ "tournaments.system.round_robin": "循环赛",
+ "tournaments.system.double_round_robin": "双循环赛",
+ "tournaments.standings": "排名",
+ "tournaments.crosstable": "交叉表",
+ "tournaments.rank": "名次",
+ "tournaments.number": "编号",
+ "tournaments.player": "选手",
+ "tournaments.points": "积分",
+ "tournaments.round_n": "第 {n} 轮",
+ "tournaments.board": "棋盘",
+ "tournaments.white": "白方",
+ "tournaments.black": "黑方",
+ "tournaments.result": "结果",
+ "tournaments.print": "打印"
 }

@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Performance rating",
  "tournaments.tb.rtng": "Rating",
  "tournaments.error.damaged": "This Tournament in the Club file is damaged: a game or bye names a player who is not there.",
- "tournaments.error.rated": "The Club's ratings already count this Tournament's games."
+ "tournaments.error.rated": "The Club's ratings already count this Tournament's games.",
+ "tournaments.error.bundle": "This is not a Bragd Tournament bundle, or it is damaged.",
+ "tournaments.system.dutch": "Swiss (FIDE Dutch)",
+ "tournaments.system.round_robin": "Round-robin",
+ "tournaments.system.double_round_robin": "Double round-robin",
+ "tournaments.standings": "Standings",
+ "tournaments.crosstable": "Crosstable",
+ "tournaments.rank": "Place",
+ "tournaments.number": "No.",
+ "tournaments.player": "Player",
+ "tournaments.points": "Points",
+ "tournaments.round_n": "Round {n}",
+ "tournaments.board": "Board",
+ "tournaments.white": "White",
+ "tournaments.black": "Black",
+ "tournaments.result": "Result",
+ "tournaments.print": "Print"
 }

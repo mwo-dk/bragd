@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "შედეგის რეიტინგი",
  "tournaments.tb.rtng": "რეიტინგი",
  "tournaments.error.damaged": "ეს ტურნირი კლუბის ფაილში დაზიანებულია: პარტია ან თავისუფალი ტური მოთამაშეს ასახელებს, რომელიც არ არის.",
- "tournaments.error.rated": "კლუბის რეიტინგები უკვე ითვლის ამ ტურნირის თამაშებს."
+ "tournaments.error.rated": "კლუბის რეიტინგები უკვე ითვლის ამ ტურნირის თამაშებს.",
+ "tournaments.error.bundle": "ეს Bragd-ის ტურნირის პაკეტი არ არის, ან ის დაზიანებულია.",
+ "tournaments.system.dutch": "შვეიცარული (FIDE ჰოლანდიური)",
+ "tournaments.system.round_robin": "ყველა ყველას წინააღმდეგ",
+ "tournaments.system.double_round_robin": "ორმაგი ყველა ყველას წინააღმდეგ",
+ "tournaments.standings": "ცხრილი",
+ "tournaments.crosstable": "ჯვარედინი ცხრილი",
+ "tournaments.rank": "ადგილი",
+ "tournaments.number": "№",
+ "tournaments.player": "მოთამაშე",
+ "tournaments.points": "ქულა",
+ "tournaments.round_n": "ტური {n}",
+ "tournaments.board": "დაფა",
+ "tournaments.white": "თეთრი",
+ "tournaments.black": "შავი",
+ "tournaments.result": "შედეგი",
+ "tournaments.print": "ბეჭდვა"
 }

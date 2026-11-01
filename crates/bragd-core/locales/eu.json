@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Errendimendu puntuazioa",
  "tournaments.tb.rtng": "Puntuazioa",
  "tournaments.error.damaged": "Txapelketa hau klubaren fitxategian hondatuta dago: partida batek edo bye batek ez dagoen jokalari bat aipatzen du.",
- "tournaments.error.rated": "Klubaren puntuazioek txapelketa honetako partidak jada zenbatzen dituzte."
+ "tournaments.error.rated": "Klubaren puntuazioek txapelketa honetako partidak jada zenbatzen dituzte.",
+ "tournaments.error.bundle": "Hau ez da Bragd txapelketa-paketerik, edo hondatuta dago.",
+ "tournaments.system.dutch": "Suitzarra (FIDE, holandarra)",
+ "tournaments.system.round_robin": "Denak denen kontra",
+ "tournaments.system.double_round_robin": "Bikoitza denak denen kontra",
+ "tournaments.standings": "Sailkapena",
+ "tournaments.crosstable": "Gurutz-taula",
+ "tournaments.rank": "Postua",
+ "tournaments.number": "Zk.",
+ "tournaments.player": "Jokalaria",
+ "tournaments.points": "Puntuak",
+ "tournaments.round_n": "{n}. txanda",
+ "tournaments.board": "Taula",
+ "tournaments.white": "Zuriak",
+ "tournaments.black": "Beltzak",
+ "tournaments.result": "Emaitza",
+ "tournaments.print": "Inprimatu"
 }

@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Prestatierating",
  "tournaments.tb.rtng": "Rating",
  "tournaments.error.damaged": "Dit toernooi in het clubbestand is beschadigd: een partij of bye noemt een speler die er niet is.",
- "tournaments.error.rated": "De clubratings tellen de partijen van dit toernooi al mee."
+ "tournaments.error.rated": "De clubratings tellen de partijen van dit toernooi al mee.",
+ "tournaments.error.bundle": "Dit is geen Bragd-toernooibundel, of hij is beschadigd.",
+ "tournaments.system.dutch": "Zwitsers (FIDE Dutch)",
+ "tournaments.system.round_robin": "Round-robin",
+ "tournaments.system.double_round_robin": "Dubbele round-robin",
+ "tournaments.standings": "Stand",
+ "tournaments.crosstable": "Kruistabel",
+ "tournaments.rank": "Plaats",
+ "tournaments.number": "Nr.",
+ "tournaments.player": "Speler",
+ "tournaments.points": "Punten",
+ "tournaments.round_n": "Ronde {n}",
+ "tournaments.board": "Bord",
+ "tournaments.white": "Wit",
+ "tournaments.black": "Zwart",
+ "tournaments.result": "Uitslag",
+ "tournaments.print": "Afdrukken"
 }

@@ -1016,5 +1016,21 @@
  "tournaments.tb.tpr": "Prestationsrating",
  "tournaments.tb.rtng": "Rating",
  "tournaments.error.damaged": "Den här turneringen i klubbfilen är skadad: en partie eller frilott nämner en spelare som inte finns.",
- "tournaments.error.rated": "Klubbens ratingar räknar redan partierna i den här turneringen."
+ "tournaments.error.rated": "Klubbens ratingar räknar redan partierna i den här turneringen.",
+ "tournaments.error.bundle": "Det här är inte en Bragd-turneringsbunt, eller så är den skadad.",
+ "tournaments.system.dutch": "Schweizarsystem (FIDE Dutch)",
+ "tournaments.system.round_robin": "Rundturnering",
+ "tournaments.system.double_round_robin": "Dubbel rundturnering",
+ "tournaments.standings": "Ställning",
+ "tournaments.crosstable": "Korstabell",
+ "tournaments.rank": "Placering",
+ "tournaments.number": "Nr",
+ "tournaments.player": "Spelare",
+ "tournaments.points": "Poäng",
+ "tournaments.round_n": "Rond {n}",
+ "tournaments.board": "Bräde",
+ "tournaments.white": "Vit",
+ "tournaments.black": "Svart",
+ "tournaments.result": "Resultat",
+ "tournaments.print": "Skriv ut"
 }

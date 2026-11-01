@@ -1022,5 +1022,21 @@
  "tournaments.tb.tpr": "Ranking wydajności",
  "tournaments.tb.rtng": "Ranking",
  "tournaments.error.damaged": "Ten turniej w pliku klubu jest uszkodzony: partia lub wolny los wskazuje gracza, którego nie ma.",
- "tournaments.error.rated": "Rankingi klubu już uwzględniają partie tego turnieju."
+ "tournaments.error.rated": "Rankingi klubu już uwzględniają partie tego turnieju.",
+ "tournaments.error.bundle": "To nie jest pakiet turnieju Bragd albo jest uszkodzony.",
+ "tournaments.system.dutch": "Szwajcarski (FIDE Dutch)",
+ "tournaments.system.round_robin": "Każdy z każdym",
+ "tournaments.system.double_round_robin": "Dwukrotnie każdy z każdym",
+ "tournaments.standings": "Tabela",
+ "tournaments.crosstable": "Tabela krzyżowa",
+ "tournaments.rank": "Miejsce",
+ "tournaments.number": "Nr",
+ "tournaments.player": "Gracz",
+ "tournaments.points": "Punkty",
+ "tournaments.round_n": "Runda {n}",
+ "tournaments.board": "Szachownica",
+ "tournaments.white": "Białe",
+ "tournaments.black": "Czarne",
+ "tournaments.result": "Wynik",
+ "tournaments.print": "Drukuj"
 }
