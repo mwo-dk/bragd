@@ -384,7 +384,6 @@ jobs:
       - name: Helper
         shell: bash
         run: bash packaging/helper-sidecar.sh ${{ matrix.args }}
-      # The .msi in British English (WiX culture en-GB), whatever tauri.conf.json says.
       - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -393,7 +392,7 @@ jobs:
           releaseId: ${{ needs.draft.outputs.id }}
           # GitHub's upload API answers a 500 now and then: try an upload again.
           retryAttempts: 3
-          args: ${{ matrix.args }} --config '{"bundle":{"resources":["THIRD-PARTY-NOTICES.md"],"externalBin":["binaries/bragd-helper"],"windows":{"wix":{"language":"en-GB"}}}}'
+          args: ${{ matrix.args }} --config '{"bundle":{"resources":["THIRD-PARTY-NOTICES.md"],"externalBin":["binaries/bragd-helper"]}}'
 
   # The Flatpak bundle the Flatpak workflow built and started in this run, as a release file.
   flatpak:

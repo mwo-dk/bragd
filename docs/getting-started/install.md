@@ -45,7 +45,7 @@ The window starts the Helper from beside its own program, so the scripts put `br
 
 | Channel | File or command |
 |---|---|
-| GitHub release | `Bragd_X.Y.Z_x64-setup.exe` or `Bragd_X.Y.Z_x64_en-GB.msi`, and the same for `arm64` |
+| GitHub release | `Bragd_X.Y.Z_x64-setup.exe` or `Bragd_X.Y.Z_x64_en-US.msi`, and the same for `arm64` |
 | WinGet | `winget install mwo-dk.Bragd` |
 
 ## What it needs

@@ -1,0 +1,1 @@
+| **The Windows `.msi` installers build again, on x64 and on ARM.** The installer is named `_en-US.msi`, since the Windows installer tool has no British English; Bragd itself still speaks British English. | [Docs](getting-started/install.md#windows) |

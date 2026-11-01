@@ -39,9 +39,6 @@
       "deb": { "desktopTemplate": "bragd.desktop" },
       "rpm": { "desktopTemplate": "bragd.desktop" }
     },
-    "windows": {
-      "wix": { "language": "en-GB" }
-    },
     "macOS": {
       "signingIdentity": "-"
     }

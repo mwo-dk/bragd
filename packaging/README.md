@@ -5,7 +5,7 @@ every channel, or it does not go out (CLAUDE.md, Shipping).
 
 | Channel | What | Made by | Secret |
 |---|---|---|---|
-| GitHub release | `.deb`, `.rpm`, AppImage (x64, arm64); `.dmg` (Apple Silicon, x64); NSIS `.exe` and `.msi` (en-GB; x64, arm64); the Flatpak bundle; SBOM, CBOM, notices | `release.yml` | none |
+| GitHub release | `.deb`, `.rpm`, AppImage (x64, arm64); `.dmg` (Apple Silicon, x64); NSIS `.exe` and `.msi` (x64, arm64); the Flatpak bundle; SBOM, CBOM, notices | `release.yml` | none |
 | Homebrew | the `bragd` cask in [mwo-dk/homebrew-bragd](https://github.com/mwo-dk/homebrew-bragd): the `.dmg` on macOS, the AppImage on Linux (`taps/generate.sh`) | `release.yml`, job `taps` | `TAP_TOKEN` |
 | WinGet | `mwo-dk.Bragd` in [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs), the NSIS installers, by Komac; the first version by hand from [winget/](winget/README.md) | `winget.yml`, Mondays | `WINGET_TOKEN` |
 | Flatpak | `io.github.mwo_dk.Bragd` (`flatpak/`), built, linted and started by `flatpak.yml`; its bundle is a release file. Not on Flathub. | `flatpak.yml` in `release.yml` | none |
