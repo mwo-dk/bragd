@@ -1173,6 +1173,7 @@ pub(crate) mod tests {
     }
 
     /// Jobs with a data folder of their own: a machine of their own for Peers' tests.
+    #[cfg(unix)]
     pub fn jobs_in_data(dir: &Path, data: &Path, net: Recorded) -> Arc<Jobs> {
         jobs_with(dir, data, net, Arc::default())
     }
