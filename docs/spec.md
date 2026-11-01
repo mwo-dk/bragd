@@ -245,7 +245,7 @@ The same position turns up in thousands of Games. Bragd judges it once and keeps
 ## Peers and Commentary (0.5.0)
 
 - **Peers:** your own machines, paired in Settings → Peers.
-  - One machine shows a 6-digit code, and you type it on the other. Each keeps the other's public key.
+  - One machine shows a 6-digit code, and you type it on the other. Each keeps the other's public key. SPAKE2 turns the code into a key; a code lasts two minutes and five tries, and works once ([ADR 0006](adr/0006-peers-pair-by-spake2-and-pin-keys-in-tls.md)).
   - They talk only TLS with those pinned keys. They find each other on the home network (mDNS), or by an address you type, such as a Tailscale name.
   - Either side can unpair.
   - Peers share only the Position store and the queue. Libraries, Slices and Settings stay on each machine. A job carries its positions, so a Peer can work on a Slice it does not have.

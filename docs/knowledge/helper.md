@@ -94,4 +94,4 @@ Only to fetch the Sources you turned on, and never on a metered connection for a
 No. Each user has their own, in their own data folder.
 
 ---
-[← Previous: Language model](language-model.md) · [Next: Engines →](../engines/README.md)
+[← Previous: Language model](language-model.md) · [Next: Peers →](../peers/README.md)

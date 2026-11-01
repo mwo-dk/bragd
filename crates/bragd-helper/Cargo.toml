@@ -22,6 +22,8 @@ bragd-engines = { path = "../bragd-engines" }
 bragd-positions = { path = "../bragd-positions" }
 # Engine matches are played out in its rules.
 bragd-games = { path = "../bragd-games" }
+# Peers: the user's other machines, paired with a code.
+bragd-peers = { path = "../bragd-peers" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # The connection token, from the system's random source.

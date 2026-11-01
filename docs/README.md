@@ -54,6 +54,14 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Language model](knowledge/language-model.md) | Translate a Game's comments with a model on this machine or one you choose |
 | [The Helper](knowledge/helper.md) | The background process, its jobs, *Start with my session*, battery |
 
+## [Peers](peers/README.md)
+
+| Page | What it covers |
+|---|---|
+| [Peers](peers/README.md) | The area's pages |
+| [Pairing your machines](peers/peers.md) | Turning Peers on, showing and typing a code, finding a machine, unpairing |
+| [How Peers talk](peers/protocol.md) | The pairing code, SPAKE2, TLS with pinned keys, mDNS and the messages |
+
 ## [Engines](engines/README.md)
 
 | Page | What it covers |

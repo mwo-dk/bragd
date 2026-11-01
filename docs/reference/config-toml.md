@@ -56,6 +56,8 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`.
 | `analysis.from_hour` | `0` | Background analysis runs from this hour, local time |
 | `analysis.until_hour` | `24` | … until this hour; the same as `analysis.from_hour` is any hour |
 | `analysis.on_battery` | `false` | Background analysis runs on the battery too |
+| `peers.on` | `false` | The Helper listens for your other machines and announces itself on the home network ([Pairing your machines](../peers/peers.md)) |
+| `peers.interface` | `""` | The interface the Helper listens on for Peers. Empty: the home network's private addresses |
 | `themes` | none | Your own Themes, one table `[themes.<name>]` each. A colour not given is Racing green's. A name like a built-in one replaces it ([Themes](../look/themes.md)) |
 
 ## An example

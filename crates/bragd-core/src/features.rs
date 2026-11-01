@@ -40,6 +40,7 @@ pub const FEATURES: &[Feature] = &[
     f("disk", "knowledge/disk-watch.md", "settings:knowledge"),
     f("positions", "knowledge/position-store.md", "settings:knowledge"),
     f("model", "knowledge/language-model.md", "settings:model"),
+    f("peers", "peers/peers.md", "settings:peers"),
     f("helper", "knowledge/helper.md", "settings:knowledge"),
     f("engines", "engines/engines.md", "item:engines"),
     f("analyse", "engines/analyse.md", "item:analyse"),

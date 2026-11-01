@@ -8,6 +8,7 @@
   import SettingsExtras from "./SettingsExtras.svelte";
   import DiskUse from "./DiskUse.svelte";
   import LanguageModel from "./LanguageModel.svelte";
+  import Peers from "./Peers.svelte";
 
   /** @type {{ snap: any, save: (name: string, value: any) => Promise<any> }} */
   let { snap, save } = $props();
@@ -44,6 +45,10 @@
 
       {#if area === "model"}
         <LanguageModel {snap} {save} />
+      {/if}
+
+      {#if area === "peers"}
+        <Peers {snap} {save} />
       {/if}
 
       {#if area === "families"}
