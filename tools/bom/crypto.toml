@@ -71,6 +71,10 @@ crate = "hkdf"
 provides = ["hkdf-sha-256"]
 
 [[library]]
+crate = "hmac"
+provides = ["hmac-sha-256"]
+
+[[library]]
 crate = "dbus-secret-service"
 provides = ["dh-modp-1024"]
 
@@ -288,6 +292,15 @@ type = "algorithm"
 primitive = "kdf"
 functions = ["keyderive"]
 purpose = "The Secret Service session key, from the Diffie-Hellman secret"
+
+[[asset]]
+ref = "hmac-sha-256"
+name = "HMAC-SHA-256"
+type = "algorithm"
+primitive = "mac"
+oid = "1.2.840.113549.2.9"
+functions = ["tag"]
+purpose = "Inside HKDF-SHA-256, for the Secret Service session key"
 
 [[asset]]
 ref = "dh-modp-1024"
