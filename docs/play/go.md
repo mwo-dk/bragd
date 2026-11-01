@@ -8,6 +8,7 @@ Go on three boards, under Chinese rules: area scoring with a komi of 7.5. Black 
 
 *Go 9×9.*
 
+<!-- screenshot: play-go-19-1100.png: Go 19×19 in Play, the bar's button reading Play on OGS -->
 ![Go 19×19 in Play: the full board with its nine star points](../screenshots/play-go-19-1100.png)
 
 *Go 19×19.*

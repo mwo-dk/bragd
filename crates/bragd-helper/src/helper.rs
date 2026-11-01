@@ -88,6 +88,9 @@ pub enum Request {
     PeersLook,
     /// Take what is new from every Peer now, in the background: Peers as they stand.
     PeersSync,
+    /// A window says whether its rated online Game against a person is on (`fairplay`), every
+    /// few seconds.
+    FairPlay { window: String, locked: bool },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -103,6 +106,8 @@ pub enum Reply {
     Disk { report: crate::disk::Report },
     Peers { peers: crate::peers::View },
     Found { found: Vec<bragd_peers::find::Found> },
+    /// Another window's rated online Game against a person is on.
+    FairPlay { others: bool },
     Done,
     Error { error: String },
 }
@@ -513,6 +518,7 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, mut
                 Ok(found) => Reply::Found { found },
                 Err(error) => Reply::Error { error },
             },
+            Request::FairPlay { window, locked } => Reply::FairPlay { others: jobs.fairplay.beat(&window, locked, Instant::now()) },
         };
         send(&mut out, &reply)?;
     }
@@ -774,6 +780,24 @@ mod tests {
         drop((c, c2));
         assert_eq!(h.join().unwrap().unwrap(), Ended::Idle, "left with the silent ones still open");
         drop(silent);
+    }
+
+    /// One window's rated Game locks engine help in another window of the same Helper.
+    #[test]
+    fn fairplay_one_windows_game_locks_the_others() {
+        let d = crate::tests::Dir::new("fairplay");
+        let h = start(OURS, &d.0, Duration::from_millis(300));
+        let (Dialled::Line(mut a), Dialled::Line(mut b)) = (line(&d.0, OURS), line(&d.0, OURS)) else { panic!() };
+        let tell = |c: &mut Conn, window: &str, locked| match c.ask(&Request::FairPlay { window: window.into(), locked }) {
+            Ok(Reply::FairPlay { others }) => others,
+            r => panic!("{r:?}"),
+        };
+        assert!(!tell(&mut a, "a", true));
+        assert!(tell(&mut b, "b", false), "b sees a's Game");
+        assert!(!tell(&mut a, "a", false));
+        assert!(!tell(&mut b, "b", false), "over in a: b is free");
+        drop((a, b));
+        assert_eq!(h.join().unwrap().unwrap(), Ended::Idle);
     }
 
     #[test]

@@ -46,7 +46,7 @@
     for (const [name, value] of s.appearance.vars) root.style.setProperty(name, value);
     // A page whose Family was just turned off goes back to Settings.
     if (page.kind === "item" && !s.families.find((/** @type {any} */ f) => f.id === page.family)?.shown) page = { kind: "settings" };
-    if (page.kind === "online" && !s.families.find((/** @type {any} */ f) => f.id === "chess")?.shown) page = { kind: "settings" };
+    if (page.kind === "online" && !s.families.find((/** @type {any} */ f) => f.id === page.family)?.shown) page = { kind: "settings" };
   }
 
   api.snapshot().then((s) => {
@@ -87,8 +87,8 @@
     if (window.innerWidth < 760) collapsed = true;
   }
 
-  /** Online play is on Lichess, for chess. */
-  const chess = $derived(snap?.families.find((/** @type {any} */ f) => f.id === "chess"));
+  /** Online play is on a server, for one of its Families: the one whose Play opened it. */
+  const onlineFamily = $derived(page.kind === "online" ? snap?.families.find((/** @type {any} */ f) => f.id === page.family) : null);
   const family = $derived(page.kind === "item" ? snap?.families.find((/** @type {any} */ f) => f.id === page.family) : null);
 </script>
 
@@ -117,8 +117,10 @@
         <WhatsNew />
       {:else if page.kind === "clubs"}
         <Clubs {snap} {go} />
-      {:else if page.kind === "online" && chess?.shown}
-        <PlayOnline family={chess} {save} />
+      {:else if page.kind === "online" && onlineFamily?.shown}
+        {#key page.server}
+          <PlayOnline server={page.server} family={onlineFamily} {save} />
+        {/key}
       {:else if family && page.item === "play"}
         {#key family.id}
           <Play {family} {go} />

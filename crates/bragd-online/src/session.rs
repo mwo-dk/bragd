@@ -1,7 +1,7 @@
-//! Playing on Lichess: the signed-in account, its event stream (Games starting, challenges), the
-//! Game being played and its own stream, a seek waiting for an opponent, and the Game's chat.
-//! Each stream reads on a thread of its own; the page asks for a [`View`] a few times a second.
-//! No request is made while the lock is held.
+//! Playing on a Board API server (Lichess, Lishogi): the signed-in account, its event stream
+//! (Games starting, challenges), the Game being played and its own stream, a seek waiting for an
+//! opponent, and the Game's chat. Each stream reads on a thread of its own; the page asks for a
+//! [`View`] a few times a second. No request is made while the lock is held.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -12,27 +12,15 @@ use bragd_games::State;
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::Play;
+use crate::board::{self, Account, Challenge, Client, Dialect, Time};
 use crate::game::{self, GameFull, GameState, Live};
-use crate::lichess::{self, Account, Challenge, Client};
 use crate::oauth;
 
 /// The token's place in the OS keychain: this service, the server's address as the account.
 pub const SERVICE: &str = "bragd-online";
 /// How long the browser has for the sign-in.
 const SIGN_IN: Duration = Duration::from_secs(300);
-
-/// The server Bragd plays on: Lichess, or `BRAGD_LICHESS_URL` for a fake one in tests and
-/// screenshots.
-pub fn base() -> String {
-    std::env::var("BRAGD_LICHESS_URL").ok().filter(|u| !u.trim().is_empty()).unwrap_or_else(|| lichess::LICHESS.to_string())
-}
-
-/// The token kept for `base`. `BRAGD_LICHESS_TOKEN` stands in for the keychain only for a server
-/// on this machine (the screenshots' fake, whose sandbox has no keychain).
-fn token(base: &str) -> Option<String> {
-    let fake = std::env::var("BRAGD_LICHESS_TOKEN").ok().filter(|_| lichess::on_this_machine(base));
-    fake.or_else(|| bragd_model::key::get_in(SERVICE, base))
-}
 
 /// A line of a Game's chat.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -53,7 +41,7 @@ pub struct ChallengeView {
     pub variant: Option<&'static str>,
     pub variant_name: String,
     pub rated: bool,
-    /// `10+5`, or Lichess's own word for a correspondence Game.
+    /// `10+5`, or the server's own word for a correspondence Game.
     pub time: String,
 }
 
@@ -67,12 +55,17 @@ pub struct GameView {
     pub variant_name: String,
     pub rated: bool,
     pub against_person: bool,
-    /// White's and Black's names, with ratings.
+    /// The first and the second seat's names, with ratings.
     pub names: [String; 2],
     /// The user's seat: 0 White, 1 Black.
     pub seat: Option<u8>,
-    /// White's and Black's time left, in milliseconds.
+    /// The first and the second seat's time left, in milliseconds.
     pub clocks: [u64; 2],
+    /// Seconds of byoyomi a move once the main time is spent; 0 for none.
+    pub byoyomi: u64,
+    /// The first and the second seat's byoyomi periods left, when more than one is played
+    /// (OGS); 0 otherwise.
+    pub periods: [u64; 2],
     pub running: Option<u8>,
     pub over: bool,
     /// How it ended, worded; empty while it is on.
@@ -87,6 +80,8 @@ pub struct GameView {
     pub state: Option<State>,
     pub initial: Option<String>,
     pub entries: Vec<String>,
+    /// While a go Game's score is counted: the stones the server marks dead.
+    pub dead: Option<Vec<String>>,
 }
 
 /// Everything the page shows.
@@ -121,7 +116,7 @@ struct Inner {
     chat: Vec<ChatLine>,
     error: Option<String>,
     /// The kept token was tried: the page's view, asked a few times a second, tries it once,
-    /// and then only Reconnect or a sign-in asks Lichess again.
+    /// and then only Reconnect or a sign-in asks the server again.
     tried: bool,
 }
 
@@ -133,9 +128,10 @@ impl Inner {
     }
 }
 
-/// Lichess for this window. Clones share it.
+/// A Board API server for this window. Clones share it.
 #[derive(Clone)]
 pub struct Online {
+    dialect: &'static Dialect,
     base: String,
     inner: Arc<Mutex<Inner>>,
 }
@@ -144,8 +140,8 @@ fn s(v: &Value) -> String {
     v.as_str().unwrap_or_default().to_string()
 }
 
-fn named(p: &game::Player) -> String {
-    let name = if let Some(level) = p.ai_level { t!("online.lichess_ai", "level" => level) } else if p.name.is_empty() { p.id.clone() } else { p.name.clone() };
+fn named(server: &str, p: &game::Player) -> String {
+    let name = if let Some(level) = p.ai_level { t!("online.server_ai", "server" => server, "level" => level) } else if p.name.is_empty() { p.id.clone() } else { p.name.clone() };
     match (&p.title, p.rating) {
         (Some(title), Some(r)) => format!("{title} {name} ({r})"),
         (None, Some(r)) => format!("{name} ({r})"),
@@ -154,25 +150,38 @@ fn named(p: &game::Player) -> String {
     }
 }
 
-/// How a Game over ended, worded.
-fn result(g: &Live) -> String {
+/// How a Game over ended, worded, its seats named by `colours`.
+fn result(g: &Live, colours: [&str; 2]) -> String {
     if !g.over() {
         return String::new();
     }
     let why = match g.state.status.as_str() {
-        s @ ("aborted" | "mate" | "resign" | "stalemate" | "timeout" | "draw" | "outoftime" | "noStart" | "variantEnd") => t!(&format!("online.status.{s}")),
+        s @ ("aborted" | "mate" | "resign" | "stalemate" | "timeout" | "draw" | "outoftime" | "noStart" | "variantEnd" | "impasse27" | "perpetualCheck" | "repetition" | "tryRule") => {
+            t!(&format!("online.status.{s}"))
+        }
         _ => t!("online.status.other"),
     };
+    let side = |c: &str| t!("play.wins", "side" => t!(&format!("side.{c}")));
     match g.state.winner.as_deref() {
-        Some("white") => format!("{} · {why}", t!("play.wins", "side" => t!("side.white"))),
-        Some("black") => format!("{} · {why}", t!("play.wins", "side" => t!("side.black"))),
+        Some("white") => format!("{} · {why}", side(colours[0])),
+        Some("black") => format!("{} · {why}", side(colours[1])),
         _ => why,
     }
 }
 
 impl Online {
-    pub fn new(base: &str) -> Online {
-        Online { base: base.to_string(), inner: Arc::default() }
+    /// The server of `dialect` at `base`: its real address, or a fake one in tests.
+    pub fn new(dialect: &'static Dialect, base: &str) -> Online {
+        Online { dialect, base: base.trim_end_matches('/').to_string(), inner: Arc::default() }
+    }
+
+    /// The server of `dialect` at the address Bragd plays at ([`crate::server::Server::base`]).
+    pub fn of(dialect: &'static Dialect) -> Online {
+        Online::new(dialect, &dialect.server.base())
+    }
+
+    fn name(&self) -> &'static str {
+        self.dialect.server.name
     }
 
     fn lock(&self) -> MutexGuard<'_, Inner> {
@@ -181,8 +190,8 @@ impl Online {
 
     fn fail(&self, e: String) -> String {
         let mut i = self.lock();
-        if e == t!("online.error.signed_out") {
-            // The token is gone or was taken back on Lichess: a new sign-in is needed.
+        if e == t!("online.error.signed_out", "server" => self.name()) {
+            // The token is gone or was taken back on the server: a new sign-in is needed.
             let _ = bragd_model::key::set_in(SERVICE, &self.base, "");
             i.stop_all();
             i.client = None;
@@ -193,98 +202,20 @@ impl Online {
     }
 
     fn client(&self) -> Result<Arc<Client>, String> {
-        self.lock().client.clone().ok_or_else(|| t!("online.error.not_signed_in"))
+        self.lock().client.clone().ok_or_else(|| t!("online.error.not_signed_in", "server" => self.name()))
     }
 
-    /// Everything the page shows, now.
-    pub fn view(&self) -> View {
-        let i = self.lock();
-        let me = i.me.as_ref().map(|m| m.id.to_lowercase());
-        let challenges = i
-            .challenges
-            .iter()
-            .map(|c| {
-                let incoming = c.challenger.as_ref().is_none_or(|p| Some(p.id.to_lowercase()) != me);
-                let other = if incoming { c.challenger.as_ref() } else { c.dest_user.as_ref() };
-                ChallengeView {
-                    id: c.id.clone(),
-                    incoming,
-                    who: other.map(named).unwrap_or_else(|| t!("online.open_challenge")),
-                    variant: game::variant(&c.variant.key),
-                    variant_name: c.variant.name.clone(),
-                    rated: c.rated,
-                    time: if c.time_control.show.is_empty() { c.speed.clone() } else { c.time_control.show.clone() },
-                }
-            })
-            .collect();
-        let game = i.game.as_ref().map(|(g, since)| {
-            let entries = g.entries();
-            let state = g.variant.and_then(|v| bragd_games::replay(v, g.initial.as_deref(), &entries).ok());
-            GameView {
-                id: g.id.clone(),
-                url: format!("{}/{}", self.base, g.id),
-                variant: g.variant,
-                variant_name: g.variant_name.clone(),
-                rated: g.rated,
-                against_person: g.against_person(),
-                names: [named(&g.white), named(&g.black)],
-                seat: g.seat,
-                clocks: g.clocks(since.elapsed().as_millis() as u64),
-                running: g.running(),
-                over: g.over(),
-                result: result(g),
-                offered: g.offered(),
-                offering: g.offering(),
-                opponent_gone: i.opponent_gone,
-                state,
-                initial: g.initial.clone(),
-                entries,
-            }
-        });
-        View {
-            signed_in: i.me.as_ref().map(|m| m.username.clone()),
-            signing_in: i.signing_in.is_some(),
-            connected: i.events.is_some(),
-            seeking: i.seek.is_some(),
-            challenges,
-            game,
-            chat: if i.chat_on { i.chat.clone() } else { vec![] },
-            error: i.error.clone(),
-        }
+    fn time(&self, time: &str) -> Result<Time, String> {
+        Time::parse(time).filter(|_| self.dialect.times.contains(&time)).ok_or_else(|| t!("online.error.time", "server" => self.name()))
     }
 
-    /// The Game being played is rated, against a person, and on: engine help is locked.
-    pub fn live(&self) -> Option<(bool, bool, bool)> {
-        self.lock().game.as_ref().map(|(g, _)| (g.rated, g.against_person(), g.over()))
+    fn variant(&self, variant: &str) -> Result<&'static str, String> {
+        game::server_variant(self.dialect.variants, variant).ok_or_else(|| t!("online.error.variant", "site" => self.dialect.server.site))
     }
 
-    /// Opens the account and its event stream when a token is kept and it is not open yet.
-    pub fn open(&self) -> Result<(), String> {
-        {
-            let mut i = self.lock();
-            if i.client.is_some() || i.tried {
-                return Ok(());
-            }
-            i.tried = true;
-        }
-        let Some(token) = token(&self.base) else { return Ok(()) };
-        self.connect(&token)
-    }
-
-    /// Reconnects after the connection was lost.
-    pub fn reconnect(&self) -> Result<(), String> {
-        {
-            let mut i = self.lock();
-            i.stop_all();
-            i.client = None;
-            i.error = None;
-            i.tried = false;
-        }
-        self.open()
-    }
 
     fn connect(&self, token: &str) -> Result<(), String> {
-        let client = Arc::new(Client::new(&self.base, token).map_err(|e| self.fail(e))?);
+        let client = Arc::new(Client::new(self.dialect.server, &self.base, token).map_err(|e| self.fail(e))?);
         let me = client.account().map_err(|e| self.fail(e))?;
         let stop = Arc::new(AtomicBool::new(false));
         {
@@ -296,17 +227,24 @@ impl Online {
         }
         let this = self.clone();
         std::thread::spawn(move || {
-            let r = client.stream("/api/stream/event", None, &stop, |v| this.event(&v));
+            let r = client.stream("/api/stream/event", None, &stop, |mut v| {
+                (this.dialect.normalise)(&mut v);
+                this.event(&v)
+            });
             let mut i = this.lock();
             if !stop.load(Ordering::Relaxed) {
                 i.events = None;
-                i.error = Some(r.err().unwrap_or_else(|| t!("online.error.lost", "why" => "-")));
+                i.error = Some(r.err().unwrap_or_else(|| t!("online.error.lost", "server" => this.name(), "why" => "-")));
             }
         });
         self.refresh().map_err(|e| self.fail(e))
     }
 
     fn refresh(&self) -> Result<(), String> {
+        if !self.dialect.challenge_list {
+            // The event stream brings the challenges as it opens.
+            return Ok(());
+        }
         let (incoming, outgoing) = self.client()?.challenges()?;
         self.lock().challenges = incoming.into_iter().chain(outgoing).collect();
         Ok(())
@@ -359,13 +297,16 @@ impl Online {
         };
         let this = self.clone();
         std::thread::spawn(move || {
-            let r = client.stream(&format!("/api/board/game/stream/{id}"), None, &stop, |v| this.game_line(&v));
+            let r = client.stream(&format!("/api/board/game/stream/{id}"), None, &stop, |mut v| {
+                (this.dialect.normalise)(&mut v);
+                this.game_line(&v)
+            });
             let mut i = this.lock();
             let over = i.game.as_ref().is_none_or(|(g, _)| g.over());
             if !stop.load(Ordering::Relaxed) {
                 i.game_id = None;
                 if !over {
-                    i.error = Some(r.err().unwrap_or_else(|| t!("online.error.lost", "why" => "-")));
+                    i.error = Some(r.err().unwrap_or_else(|| t!("online.error.lost", "server" => this.name(), "why" => "-")));
                 }
             }
         });
@@ -377,7 +318,7 @@ impl Online {
             Some("gameFull") => {
                 if let Ok(full) = serde_json::from_value::<GameFull>(v.clone()) {
                     let me = i.me.as_ref().map(|m| m.id.clone()).unwrap_or_default();
-                    i.game = Some((Live::from_full(full, &me), Instant::now()));
+                    i.game = Some((Live::from_full(full, &me, self.dialect.variants), Instant::now()));
                 }
             }
             Some("gameState") => {
@@ -395,9 +336,123 @@ impl Online {
         }
     }
 
-    /// Signs in in the browser: `open` shows Lichess's page, which comes back to Bragd with a
-    /// code that is swapped for a token. The token goes into the OS keychain only.
-    pub fn sign_in(&self, open: impl FnOnce(&str) -> Result<(), String>) -> Result<(), String> {
+    fn game_path(&self, rest: &str) -> Result<(Arc<Client>, String), String> {
+        let i = self.lock();
+        let (g, _) = i.game.as_ref().ok_or_else(|| t!("online.error.no_game"))?;
+        let c = i.client.clone().ok_or_else(|| t!("online.error.not_signed_in", "server" => self.name()))?;
+        Ok((c, format!("/api/board/game/{}/{rest}", g.id)))
+    }
+}
+
+impl Play for Online {
+    fn server(&self) -> &'static crate::server::Server {
+        self.dialect.server
+    }
+
+    fn variants(&self) -> Vec<&'static str> {
+        game::bragd_variants(self.dialect.variants)
+    }
+
+    fn times(&self) -> Vec<(String, String)> {
+        self.dialect.times.iter().filter_map(|t| Some((t.to_string(), Time::parse(t)?.label()))).collect()
+    }
+
+    fn colours(&self) -> [&'static str; 2] {
+        self.dialect.colours
+    }
+
+    fn can(&self) -> crate::Can {
+        crate::Can { takeback: self.dialect.takeback, cancel: self.dialect.challenge_list, abort: true, draw: true }
+    }
+
+    fn view(&self) -> View {
+        let server = self.name();
+        let i = self.lock();
+        let me = i.me.as_ref().map(|m| m.id.to_lowercase());
+        let challenges = i
+            .challenges
+            .iter()
+            .map(|c| {
+                let incoming = c.challenger.as_ref().is_none_or(|p| Some(p.id.to_lowercase()) != me);
+                let other = if incoming { c.challenger.as_ref() } else { c.dest_user.as_ref() };
+                ChallengeView {
+                    id: c.id.clone(),
+                    incoming,
+                    who: other.map(|p| named(server, p)).unwrap_or_else(|| t!("online.open_challenge")),
+                    variant: game::variant(self.dialect.variants, &c.variant.key),
+                    variant_name: c.variant.name.clone(),
+                    rated: c.rated,
+                    time: if c.time_control.show.is_empty() { c.speed.clone() } else { c.time_control.show.clone() },
+                }
+            })
+            .collect();
+        let game = i.game.as_ref().map(|(g, since)| {
+            let entries = g.entries();
+            let state = g.variant.and_then(|v| bragd_games::replay(v, g.initial.as_deref(), &entries).ok());
+            GameView {
+                id: g.id.clone(),
+                url: format!("{}/{}", self.base, g.id),
+                variant: g.variant,
+                variant_name: g.variant_name.clone(),
+                rated: g.rated,
+                against_person: g.against_person(),
+                names: [named(server, &g.white), named(server, &g.black)],
+                seat: g.seat,
+                clocks: g.clocks(since.elapsed().as_millis() as u64),
+                byoyomi: g.state.byo / 1000,
+                periods: [0, 0],
+                running: g.running(),
+                over: g.over(),
+                result: result(g, self.dialect.colours),
+                offered: g.offered(),
+                offering: g.offering(),
+                opponent_gone: i.opponent_gone,
+                state,
+                initial: g.initial.clone(),
+                entries,
+                dead: None,
+            }
+        });
+        View {
+            signed_in: i.me.as_ref().map(|m| m.username.clone()),
+            signing_in: i.signing_in.is_some(),
+            connected: i.events.is_some(),
+            seeking: i.seek.is_some(),
+            challenges,
+            game,
+            chat: if i.chat_on { i.chat.clone() } else { vec![] },
+            error: i.error.clone(),
+        }
+    }
+
+    fn live(&self) -> Option<(bool, bool, bool)> {
+        self.lock().game.as_ref().map(|(g, _)| (g.rated, g.against_person(), g.over()))
+    }
+
+    fn open(&self) -> Result<(), String> {
+        {
+            let mut i = self.lock();
+            if i.client.is_some() || i.tried {
+                return Ok(());
+            }
+            i.tried = true;
+        }
+        let Some(token) = self.dialect.server.token(&self.base) else { return Ok(()) };
+        self.connect(&token)
+    }
+
+    fn reconnect(&self) -> Result<(), String> {
+        {
+            let mut i = self.lock();
+            i.stop_all();
+            i.client = None;
+            i.error = None;
+            i.tried = false;
+        }
+        self.open()
+    }
+
+    fn sign_in(&self, open: &dyn Fn(&str) -> Result<(), String>) -> Result<(), String> {
         let stop = Arc::new(AtomicBool::new(false));
         {
             let mut i = self.lock();
@@ -408,14 +463,15 @@ impl Online {
             i.error = None;
         }
         let r = (|| {
-            if bragd_core::offline() && !lichess::on_this_machine(&self.base) {
-                return Err(t!("online.error.offline"));
+            if bragd_core::offline() && !board::on_this_machine(&self.base) {
+                return Err(t!("online.error.offline", "server" => self.name()));
             }
+            let o = &self.dialect.oauth;
             let pkce = oauth::Pkce::new();
-            let lb = oauth::Loopback::bind()?;
-            open(&oauth::authorize_url(&self.base, &lb.redirect, &pkce))?;
-            let code = lb.wait(&pkce.state, &stop, SIGN_IN)?;
-            let token = oauth::exchange(&lichess::agent(), &self.base, &code, &pkce, &lb.redirect)?;
+            let lb = oauth::Loopback::bind(0)?;
+            open(&oauth::authorize_url(o, &self.base, &lb.redirect, &pkce))?;
+            let code = lb.wait(self.name(), &pkce.state, &stop, SIGN_IN)?;
+            let token = oauth::exchange(self.dialect.server, o, &board::agent(), &self.base, &code, &pkce, &lb.redirect)?;
             bragd_model::key::set_in(SERVICE, &self.base, &token)?;
             Ok(token)
         })();
@@ -426,14 +482,13 @@ impl Online {
         }
     }
 
-    pub fn cancel_sign_in(&self) {
+    fn cancel_sign_in(&self) {
         if let Some(s) = self.lock().signing_in.take() {
             s.store(true, Ordering::Relaxed);
         }
     }
 
-    /// Signs out: the token is taken back from Lichess and removed from the keychain.
-    pub fn sign_out(&self) -> Result<(), String> {
+    fn sign_out(&self) -> Result<(), String> {
         let client = {
             let mut i = self.lock();
             i.stop_all();
@@ -447,10 +502,9 @@ impl Online {
         bragd_model::key::set_in(SERVICE, &self.base, "")
     }
 
-    /// Seeks a Game: `variant` (Bragd's key), `minutes` + `increment` seconds, rated or casual.
-    /// The seek waits on its own thread until someone takes it or it is cancelled.
-    pub fn seek(&self, variant: &str, minutes: u32, increment: u32, rated: bool) -> Result<(), String> {
-        let v = game::lichess_variant(variant).ok_or_else(|| t!("online.error.variant"))?;
+    fn seek(&self, variant: &str, time: &str, rated: bool) -> Result<(), String> {
+        let v = self.variant(variant)?;
+        let time = self.time(time)?;
         let client = self.client()?;
         let stop = Arc::new(AtomicBool::new(false));
         {
@@ -462,8 +516,10 @@ impl Online {
         }
         let this = self.clone();
         std::thread::spawn(move || {
-            let (time, inc) = (minutes.to_string(), increment.to_string());
-            let form = [("rated", if rated { "true" } else { "false" }), ("time", &time), ("increment", &inc), ("variant", v)];
+            let mut form = vec![("rated", if rated { "true" } else { "false" }.to_string())];
+            form.extend(time.seek_form());
+            form.push(("variant", v.to_string()));
+            let form: Vec<(&str, &str)> = form.iter().map(|(k, v)| (*k, v.as_str())).collect();
             let r = client.stream("/api/board/seek", Some(&form), &stop, |_| {});
             let mut i = this.lock();
             if i.seek.as_ref().is_some_and(|s| Arc::ptr_eq(s, &stop)) {
@@ -476,49 +532,45 @@ impl Online {
         Ok(())
     }
 
-    pub fn seek_cancel(&self) {
+    fn seek_cancel(&self) {
         if let Some(s) = self.lock().seek.take() {
             s.store(true, Ordering::Relaxed);
         }
     }
 
-    /// Challenges `user` to a Game; `color` is `white`, `black` or `random`.
-    pub fn challenge(&self, user: &str, variant: &str, minutes: u32, increment: u32, rated: bool, color: &str) -> Result<(), String> {
-        let v = game::lichess_variant(variant).ok_or_else(|| t!("online.error.variant"))?;
+    fn challenge(&self, user: &str, variant: &str, time: &str, rated: bool, color: &str) -> Result<(), String> {
+        let v = self.variant(variant)?;
+        let time = self.time(time)?;
         let user = user.trim();
         if user.is_empty() || !user.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
-            return Err(t!("online.error.user"));
+            return Err(t!("online.error.user", "server" => self.name()));
         }
-        let (limit, inc) = ((minutes * 60).to_string(), increment.to_string());
-        let form = [("rated", if rated { "true" } else { "false" }), ("clock.limit", &limit), ("clock.increment", &inc), ("color", color), ("variant", v)];
+        if color != "random" && !self.dialect.colours.contains(&color) {
+            return Err(t!("online.error.reply", "server" => self.name()));
+        }
+        let mut form = vec![("rated", if rated { "true" } else { "false" }.to_string())];
+        form.extend(time.challenge_form());
+        form.extend([("color", color.to_string()), ("variant", v.to_string())]);
+        let form: Vec<(&str, &str)> = form.iter().map(|(k, v)| (*k, v.as_str())).collect();
         self.client()?.post(&format!("/api/challenge/{user}"), &form).map_err(|e| self.fail(e))?;
         self.refresh().map_err(|e| self.fail(e))
     }
 
-    /// Accepts, declines or cancels the challenge `id`: `what` is `accept`, `decline` or
-    /// `cancel`.
-    pub fn answer(&self, id: &str, what: &str) -> Result<(), String> {
-        if !matches!(what, "accept" | "decline" | "cancel") || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
-            return Err(t!("online.error.reply"));
+    fn answer(&self, id: &str, what: &str) -> Result<(), String> {
+        let cancel = what == "cancel" && self.dialect.challenge_list;
+        if !(matches!(what, "accept" | "decline") || cancel) || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
+            return Err(t!("online.error.reply", "server" => self.name()));
         }
         self.client()?.post(&format!("/api/challenge/{id}/{what}"), &[]).map_err(|e| self.fail(e))?;
         self.lock().challenges.retain(|c| c.id != id);
         Ok(())
     }
 
-    fn game_path(&self, rest: &str) -> Result<(Arc<Client>, String), String> {
-        let i = self.lock();
-        let (g, _) = i.game.as_ref().ok_or_else(|| t!("online.error.no_game"))?;
-        let c = i.client.clone().ok_or_else(|| t!("online.error.not_signed_in"))?;
-        Ok((c, format!("/api/board/game/{}/{rest}", g.id)))
-    }
-
-    /// Plays `entry`, once Bragd's rules have found it legal and it is the user's turn.
-    pub fn play(&self, entry: &str) -> Result<(), String> {
+    fn play(&self, entry: &str) -> Result<(), String> {
         {
             let i = self.lock();
             let (g, _) = i.game.as_ref().ok_or_else(|| t!("online.error.no_game"))?;
-            let variant = g.variant.ok_or_else(|| t!("online.error.variant"))?;
+            let variant = g.variant.ok_or_else(|| t!("online.error.variant", "site" => self.dialect.server.site))?;
             let entries = g.entries();
             let mine = g.seat.is_some_and(|s| entries.len() % 2 == s as usize);
             if g.over() || !mine {
@@ -530,30 +582,30 @@ impl Online {
         c.post(&path, &[]).map(|_| ()).map_err(|e| self.fail(e))
     }
 
-    /// Offers or accepts a draw (`yes`), or declines one.
-    pub fn draw(&self, yes: bool) -> Result<(), String> {
+    fn draw(&self, yes: bool) -> Result<(), String> {
         let (c, path) = self.game_path(if yes { "draw/yes" } else { "draw/no" })?;
         c.post(&path, &[]).map(|_| ()).map_err(|e| self.fail(e))
     }
 
-    /// Asks for or accepts a takeback (`yes`), or declines one.
-    pub fn takeback(&self, yes: bool) -> Result<(), String> {
+    fn takeback(&self, yes: bool) -> Result<(), String> {
+        if !self.dialect.takeback {
+            return Err(t!("online.error.no_takeback", "server" => self.name()));
+        }
         let (c, path) = self.game_path(if yes { "takeback/yes" } else { "takeback/no" })?;
         c.post(&path, &[]).map(|_| ()).map_err(|e| self.fail(e))
     }
 
-    pub fn resign(&self) -> Result<(), String> {
+    fn resign(&self) -> Result<(), String> {
         let (c, path) = self.game_path("resign")?;
         c.post(&path, &[]).map(|_| ()).map_err(|e| self.fail(e))
     }
 
-    pub fn abort(&self) -> Result<(), String> {
+    fn abort(&self) -> Result<(), String> {
         let (c, path) = self.game_path("abort")?;
         c.post(&path, &[]).map(|_| ()).map_err(|e| self.fail(e))
     }
 
-    /// Back to the lobby from a Game that is over.
-    pub fn leave(&self) {
+    fn leave(&self) {
         let mut i = self.lock();
         if i.game.as_ref().is_some_and(|(g, _)| g.over()) {
             i.game = None;
@@ -564,9 +616,7 @@ impl Online {
         }
     }
 
-    /// Turns the chat on or off. Off, no line is kept or shown and none can be sent; on, the
-    /// Game's chat so far is fetched. Nothing happens when it is already so.
-    pub fn set_chat(&self, on: bool) -> Result<(), String> {
+    fn set_chat(&self, on: bool) -> Result<(), String> {
         {
             let mut i = self.lock();
             if i.chat_on == on {
@@ -585,8 +635,7 @@ impl Online {
         Ok(())
     }
 
-    /// Says `text` in the Game's chat, to the opponent.
-    pub fn say(&self, text: &str) -> Result<(), String> {
+    fn say(&self, text: &str) -> Result<(), String> {
         let text = text.trim();
         if !self.lock().chat_on {
             return Err(t!("online.error.chat_off"));
@@ -594,7 +643,7 @@ impl Online {
         if text.is_empty() {
             return Ok(());
         }
-        // Lichess takes at most 140 characters a line.
+        // Lichess and Lishogi take at most 140 characters a line.
         let text: String = text.chars().take(140).collect();
         let (c, path) = self.game_path("chat")?;
         c.post(&path, &[("room", "player"), ("text", &text)]).map(|_| ()).map_err(|e| self.fail(e))
@@ -605,6 +654,7 @@ impl Online {
 mod tests {
     use super::*;
     use crate::fake;
+    use crate::board::LICHESS;
 
     /// Waits for `what` to hold; the limit only guards against a hang.
     fn until(online: &Online, what: impl Fn(&View) -> bool) -> View {
@@ -636,8 +686,8 @@ mod tests {
     fn signed_in() -> (fake::Fake, Online) {
         bragd_model::key::mock();
         let f = fake::lichess();
-        let online = Online::new(&f.url);
-        online.sign_in(browser).unwrap();
+        let online = Online::new(&LICHESS, &f.url);
+        online.sign_in(&browser).unwrap();
         (f, online)
     }
 
@@ -655,7 +705,7 @@ mod tests {
         assert!(c.incoming && c.rated && c.variant == Some("chess"));
         assert_eq!((c.who.as_str(), c.time.as_str()), ("Anna (1712)", "10+5"));
         // A second window's Online finds the token kept.
-        let other = Online::new(&f.url);
+        let other = Online::new(&LICHESS, &f.url);
         other.open().unwrap();
         assert_eq!(other.view().signed_in.as_deref(), Some("BragdTester"));
         online.sign_out().unwrap();
@@ -669,13 +719,13 @@ mod tests {
         bragd_model::key::mock();
         let f = fake::lichess();
         bragd_model::key::set_in(SERVICE, &f.url, "lip_wrong").unwrap();
-        let online = Online::new(&f.url);
+        let online = Online::new(&LICHESS, &f.url);
         online.open().unwrap_err();
         for _ in 0..4 {
             online.open().unwrap();
         }
         assert_eq!(f.seen().len(), 1, "the page's polling does not hammer Lichess");
-        assert_eq!(online.view().error, Some(t!("online.error.signed_out")));
+        assert_eq!(online.view().error, Some(t!("online.error.signed_out", "server" => "Lichess")));
         assert_eq!(bragd_model::key::get_in(SERVICE, &f.url), None, "a token Lichess refuses is dropped");
     }
 
@@ -683,7 +733,7 @@ mod tests {
     fn online_without_a_token_asks_nothing() {
         bragd_model::key::mock();
         let f = fake::lichess();
-        let online = Online::new(&f.url);
+        let online = Online::new(&LICHESS, &f.url);
         online.open().unwrap();
         assert_eq!(online.view(), View::default());
         assert!(f.seen().is_empty());
@@ -721,8 +771,9 @@ mod tests {
     fn online_seek_starts_a_game_and_only_known_variants_are_sought() {
         let (f, online) = signed_in();
         until(&online, |v| v.connected);
-        assert_eq!(online.seek("shogi", 10, 5, false).unwrap_err(), t!("online.error.variant"));
-        online.seek("chess", 10, 5, false).unwrap();
+        assert_eq!(online.seek("shogi", "10+5", false).unwrap_err(), t!("online.error.variant", "site" => "lichess.org"));
+        assert_eq!(online.seek("chess", "3+0", false).unwrap_err(), t!("online.error.time", "server" => "Lichess"), "only the times offered");
+        online.seek("chess", "10+5", false).unwrap();
         let v = until(&online, |v| v.game.is_some() && !v.seeking);
         assert!(!v.game.unwrap().rated);
         let seek = f.seen().into_iter().find(|r| r.path == "/api/board/seek").unwrap();
@@ -750,9 +801,55 @@ mod tests {
     #[test]
     fn online_challenge_names_only_a_lichess_user() {
         let (f, online) = signed_in();
-        assert_eq!(online.challenge("anna/../x", "chess", 10, 5, false, "random").unwrap_err(), t!("online.error.user"));
-        online.challenge("anna", "chess960", 15, 10, true, "white").unwrap();
+        assert_eq!(online.challenge("anna/../x", "chess", "10+5", false, "random").unwrap_err(), t!("online.error.user", "server" => "Lichess"));
+        online.challenge("anna", "chess960", "15+10", true, "white").unwrap();
         let r = f.seen().into_iter().find(|r| r.path == "/api/challenge/anna").unwrap();
         assert_eq!(r.body, "rated=true&clock.limit=900&clock.increment=10&color=white&variant=chess960");
+    }
+
+    fn signed_in_lishogi() -> (fake::Fake, Online) {
+        bragd_model::key::mock();
+        let f = fake::lishogi();
+        let online = Online::new(&crate::board::LISHOGI, &f.url);
+        online.sign_in(&browser).unwrap();
+        (f, online)
+    }
+
+    #[test]
+    fn lishogi_challenge_comes_on_the_stream_and_the_game_is_shogi() {
+        let (f, online) = signed_in_lishogi();
+        let v = until(&online, |v| !v.challenges.is_empty());
+        assert!(!f.seen().iter().any(|r| r.path == "/api/challenge"), "Lishogi has no list to ask for");
+        let c = &v.challenges[0];
+        assert_eq!((c.variant, c.who.as_str()), (Some("shogi"), "Anna (1712)"));
+        assert_eq!(online.answer("c1anna", "cancel").unwrap_err(), t!("online.error.reply", "server" => "Lishogi"), "Lishogi cancels only on its website");
+        online.answer("c1anna", "accept").unwrap();
+        let g = until(&online, |v| v.game.is_some()).game.unwrap();
+        assert_eq!((g.seat, g.byoyomi, g.names[1].as_str()), (Some(0), 30, "Anna (1712)"), "the user plays sente");
+        assert_eq!(online.live(), Some((true, true, false)), "locked");
+        assert!(online.play("7g7e").is_err(), "refused by Bragd's shogi rules");
+        online.play("7g7f").unwrap();
+        let g = until(&online, |v| v.game.as_ref().is_some_and(|g| g.entries.len() == 2)).game.unwrap();
+        assert_eq!(g.entries, ["7g7f", "3c3d"]);
+        assert_eq!(g.state.unwrap().variant, bragd_games::Variant::Shogi);
+        assert_eq!(online.takeback(true).unwrap_err(), t!("online.error.no_takeback", "server" => "Lishogi"));
+        online.resign().unwrap();
+        let g = until(&online, |v| v.game.as_ref().is_some_and(|g| g.over)).game.unwrap();
+        assert_eq!(g.result, format!("{} · {}", t!("play.wins", "side" => t!("side.gote")), t!("online.status.resign")));
+    }
+
+    #[test]
+    fn lishogi_seek_sends_byoyomi_and_challenge_names_sente() {
+        let (f, online) = signed_in_lishogi();
+        until(&online, |v| v.connected);
+        assert_eq!(online.seek("shogi", "10+5", true).unwrap_err(), t!("online.error.time", "server" => "Lishogi"));
+        online.seek("shogi", "10|30", true).unwrap();
+        until(&online, |v| v.game.is_some() && !v.seeking);
+        let seek = f.seen().into_iter().find(|r| r.path == "/api/board/seek").unwrap();
+        assert_eq!(seek.body, "rated=true&time=10&increment=0&byoyomi=30&periods=1&variant=standard");
+        assert_eq!(online.challenge("anna", "shogi", "15|30", false, "white").unwrap_err(), t!("online.error.reply", "server" => "Lishogi"), "Lishogi's colours are sente and gote");
+        online.challenge("anna", "shogi", "15|30", false, "gote").unwrap();
+        let r = f.seen().into_iter().find(|r| r.path == "/api/challenge/anna").unwrap();
+        assert_eq!(r.body, "rated=false&clock.limit=900&clock.increment=0&clock.byoyomi=30&clock.periods=1&color=gote&variant=standard");
     }
 }

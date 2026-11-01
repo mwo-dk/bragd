@@ -41,7 +41,7 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`. The top-le
 | `engines.books` | `[]` | Polyglot opening books for chess, by path ([Opening books](../engines/opening-books.md)) |
 | `tablebases.path` | `""` | The Syzygy folder. Empty: `tablebases` in Bragd's data folder ([Tablebases](../engines/tablebases.md)) |
 | `tablebases.online` | `true` | Ask the Lichess tablebase API for a position your tables do not cover |
-| `online.chat` | `false` | Read and write a Lichess Game's chat in Bragd ([Playing online](../online/playing-online.md#chat)) |
+| `online.chat` | `false` | Read and write an online Game's chat in Bragd, on Lichess, Lishogi and OGS ([Playing online](../online/playing-online.md#chat)) |
 | `knowledge.library` | `""` | Where Libraries are kept. Empty: `libraries` in Bragd's data folder ([Libraries](../knowledge/libraries.md)) |
 | `knowledge.source_priority` | `["twic", "lichess-db"]` | Sources in order: the first wins a header conflict between Duplicates ([Duplicates](../knowledge/duplicates.md)) |
 | `knowledge.max_unpack_ratio` | `50` | How many times its own size a packed game file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) may unpack to. Past it the import stops, and so does reading it as a Foreign database ([Sources](../knowledge/sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |

@@ -283,6 +283,8 @@ pub struct Jobs {
     declined: Mutex<HashSet<(u64, String)>>,
     /// The shared queue, once Peers are on.
     pub peers: OnceLock<Arc<dyn Peers>>,
+    /// The windows whose rated online Game against a person is on.
+    pub fairplay: crate::fairplay::Board,
 }
 
 impl Jobs {
@@ -321,6 +323,7 @@ impl Jobs {
             cancelled: Mutex::default(),
             declined: Mutex::default(),
             peers: OnceLock::new(),
+            fairplay: Default::default(),
         });
         jobs.save(&jobs.lock());
         jobs

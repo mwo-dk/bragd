@@ -4,10 +4,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Bragd online: play on Lichess through its Board API, signed in over OAuth with the token in the OS keychain"
+description = "Bragd online: play on Lichess and Lishogi through their Board API and on OGS through its realtime socket, signed in over OAuth with the token in the OS keychain"
 
 [features]
-# The fake Lichess on 127.0.0.1 (`fake`), for tests and the screenshots' `fake-lichess`.
+# The fake servers on 127.0.0.1 (`fake`), for tests and the screenshots' `fake-online`.
 fake = []
 
 [dependencies]
@@ -16,6 +16,10 @@ bragd-core = { path = "../bragd-core" }
 # A Lichess Game replayed by Bragd's own rules: the board, the legal moves and a move checked
 # before it is sent.
 bragd-games = { path = "../bragd-games" }
+# Go points by name (`d4`, which skips the letter i), for OGS's coordinates.
+rules-go = { path = "../rules-go" }
+# OGS's realtime API: a WebSocket, over TLS with the system's certificates.
+tungstenite = { version = "0.30", default-features = false, features = ["handshake", "rustls-tls-native-roots"] }
 # The OS keychain, set up once there (`key::get_in`): the token is kept nowhere else.
 bragd-model = { path = "../bragd-model" }
 # The system's certificate store, as the update check.
@@ -33,5 +37,5 @@ bragd-core = { path = "../bragd-core", features = ["test-home"] }
 bragd-model = { path = "../bragd-model", features = ["mock-keychain"] }
 
 [[example]]
-name = "fake-lichess"
+name = "fake-online"
 required-features = ["fake"]

@@ -350,6 +350,7 @@ fn main() {
         .manage(tablebases::Held::default())
         .setup(|app| {
             knowledge::start(app.handle());
+            online::start_fairplay(app.handle());
             let mut window = app.config().app.windows.first().cloned().ok_or("no window in the config")?;
             if let Some((w, h)) = window_size() {
                 (window.width, window.height) = (w, h);
@@ -379,6 +380,7 @@ fn main() {
             model::comment_view,
             model::comment_translate,
             online::online_view,
+            online::online_servers,
             online::online_sign_in,
             online::online_cancel_sign_in,
             online::online_sign_out,

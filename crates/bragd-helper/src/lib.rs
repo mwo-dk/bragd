@@ -8,6 +8,7 @@
 pub mod analysis;
 pub mod battery;
 pub mod disk;
+pub mod fairplay;
 pub mod helper;
 pub mod jobs;
 pub mod matches;

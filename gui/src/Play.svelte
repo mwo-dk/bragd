@@ -31,6 +31,9 @@
   let skill = $state(20);
   /** The Engines there to run, and whether more could be got. @type {{engines: {key: string, name: string}[], more: boolean, sides: string[]}} */
   let choices = $state({ engines: [], more: false, sides: [] });
+  /** The servers that play the Families that are on (Play online). @type {any[]} */
+  let online = $state([]);
+  api.onlineServers().then((o) => (online = o));
   let engineKey = $state("");
   let thinking = $state(false);
 
@@ -258,8 +261,10 @@
         <label class="skill">{t("play.strength")} <input type="range" min="0" max="20" bind:value={skill} /></label>
       {/if}
     {/if}
-    {#if !analyse && family.id === "chess"}
-      <button onclick={() => go({ kind: "online" })}>{t("online.play_online")}</button>
+    {#if !analyse}
+      {#each online.filter((/** @type {any} */ o) => o.family === family.id) as o}
+        <button onclick={() => go({ kind: "online", server: o.id, family: family.id })}>{t("online.play_on", { server: o.name })}</button>
+      {/each}
     {/if}
     {#if !analyse && choices.more}
       <button class="link" onclick={moreEngines}>{t("engines.get_more")}</button>

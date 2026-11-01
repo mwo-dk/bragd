@@ -34,6 +34,19 @@ provides = ["aes-128-gcm", "aes-256-gcm", "chacha20-poly1305", "sha-256", "sha-3
 crate = "sha2"
 provides = ["sha-256"]
 
+# The WebSocket handshake (RFC 6455) of OGS's realtime socket, through tungstenite: the
+# server proves it speaks WebSocket by the SHA-1 of the client's key. Nothing of the user's is
+# hashed, and the socket's security is the TLS under it.
+[[library]]
+crate = "sha1"
+provides = ["sha-1"]
+
+# The masking keys a WebSocket client puts on each frame it sends (RFC 6455), from tungstenite's
+# `rand`, a ChaCha20 generator. Masking is not secrecy: TLS carries that.
+[[library]]
+crate = "chacha20"
+provides = ["chacha20-rng"]
+
 # BLAKE3: every Syzygy tablebase file is checked against the sum that comes with Bragd.
 [[library]]
 crate = "blake3"
@@ -339,3 +352,23 @@ curve = "ed25519"
 functions = ["keygen", "keyderive"]
 purpose = "Pairing Peers: a 6-digit code becomes a key shared by the two machines, bound to their TLS keys, which no recording lets anyone guess the code from offline (Ed25519 group)"
 found = [{ file = "crates/bragd-peers/src/node.rs", pattern = "Spake2::<Ed25519Group>::start_a" }]
+
+[[asset]]
+ref = "sha-1"
+name = "SHA-1"
+type = "algorithm"
+primitive = "hash"
+oid = "1.3.14.3.2.26"
+param_set = "160"
+functions = ["digest"]
+purpose = "The WebSocket handshake's Sec-WebSocket-Accept (RFC 6455) on OGS's realtime socket; not used for security"
+found = [{ file = "crates/bragd-online/src/fake.rs", pattern = "derive_accept_key(key.as_bytes())" }]
+
+[[asset]]
+ref = "chacha20-rng"
+name = "ChaCha20"
+type = "algorithm"
+primitive = "drbg"
+param_set = "256"
+functions = ["generate"]
+purpose = "The WebSocket client's frame masking keys (RFC 6455) on OGS's realtime socket; not used for secrecy"

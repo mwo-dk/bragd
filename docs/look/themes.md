@@ -9,6 +9,7 @@ The brand colours (`#00301b` `#004225` `#0b5c39` `#4f9d76` `#e9f0ea`) stay the s
 ![Settings at Look: the Language, Theme, Look and Board theme lists, each with its one-line hint](../screenshots/settings-look-1100.png)
 *Settings → Look.*
 
+<!-- screenshot: play-chess-nord-1100.png: chess Play in the Nord Theme, the bar's button reading Play on Lichess -->
 ![The chess board in the Nord Theme: a dark blue-grey sidebar and page, light text, the board in its Racing green colours](../screenshots/play-chess-nord-1100.png)
 *Play in the Nord Theme. The board keeps its own colours.*
 

@@ -19,4 +19,4 @@ The facts to look up: every `config.toml` key, every item in Settings, the comma
 | [Drop-in tournament](drop-in.md) | Club evenings where whoever turns up is paired, and the season's standings |
 
 ---
-[← Previous: Playing online](../online/playing-online.md) · [Next: config.toml →](config-toml.md)
+[← Previous: pychess.org](../online/pychess.md) · [Next: config.toml →](config-toml.md)
