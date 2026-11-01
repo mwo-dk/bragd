@@ -111,17 +111,6 @@ pub fn size(path: &Path) -> u64 {
     std::fs::read_dir(path).into_iter().flatten().flatten().map(|e| size(&e.path())).sum()
 }
 
-/// `n` bytes as shown: `1.5 GB`, in powers of 1000 as disks are sold.
-pub fn bytes(n: u64) -> String {
-    let units = ["B", "kB", "MB", "GB", "TB"];
-    let (mut v, mut u) = (n as f64, 0);
-    while v >= 1000.0 && u + 1 < units.len() {
-        v /= 1000.0;
-        u += 1;
-    }
-    if u == 0 { format!("{n} B") } else { format!("{v:.1} {}", units[u]) }
-}
-
 /// The report for `places`, against `limits`; `images` are the engine images Bragd pulled, with
 /// their sizes; `free` tells the free space under a folder.
 pub fn report(places: &Places, limits: &DiskConfig, images: &[(String, u64)], free: &dyn Fn(&Path) -> Option<u64>) -> Report {
@@ -156,11 +145,11 @@ pub fn report(places: &Places, limits: &DiskConfig, images: &[(String, u64)], fr
     let total = items.iter().filter(|i| !i.external).map(|i| i.bytes).sum();
     let mut crossed = vec![];
     for i in items.iter().filter(|i| i.limit.is_some_and(|l| i.bytes > l)) {
-        let args = [("item", i.label()), ("size", bytes(i.bytes)), ("limit", bytes(i.limit.unwrap_or(0)))];
+        let args = [("item", i.label()), ("size", bragd_core::i18n::bytes(i.bytes)), ("limit", bragd_core::i18n::bytes(i.limit.unwrap_or(0)))];
         crossed.push(Crossed { id: format!("disk:item:{}", i.id), item: Some(i.id.clone()), key: "notice.disk_item_over".into(), args: args.map(|(k, v)| (k.into(), v)).to_vec() });
     }
     if limits.total > 0 && total > limits.total {
-        let args = [("size", bytes(total)), ("limit", bytes(limits.total))];
+        let args = [("size", bragd_core::i18n::bytes(total)), ("limit", bragd_core::i18n::bytes(limits.total))];
         crossed.push(Crossed { id: "disk:total".into(), item: None, key: "notice.disk_total_over".into(), args: args.map(|(k, v)| (k.into(), v)).to_vec() });
     }
     let mut folders = vec![places.data.clone()];
@@ -169,7 +158,7 @@ pub fn report(places: &Places, limits: &DiskConfig, images: &[(String, u64)], fr
     }
     let free: Vec<Free> = folders.into_iter().map(|path| Free { bytes: free(&path), path }).collect();
     for f in free.iter().filter(|f| limits.free_below > 0 && f.bytes.is_some_and(|b| b < limits.free_below)) {
-        let args = [("free", bytes(f.bytes.unwrap_or(0))), ("path", f.path.display().to_string()), ("limit", bytes(limits.free_below))];
+        let args = [("free", bragd_core::i18n::bytes(f.bytes.unwrap_or(0))), ("path", f.path.display().to_string()), ("limit", bragd_core::i18n::bytes(limits.free_below))];
         crossed.push(Crossed { id: format!("disk:free:{}", f.path.display()), item: None, key: "notice.disk_free_low".into(), args: args.map(|(k, v)| (k.into(), v)).to_vec() });
     }
     Report { items, total, limits: limits.clone(), free, crossed }
@@ -275,8 +264,6 @@ pub(crate) mod tests {
     fn free_space_and_sizes() {
         let d = crate::tests::Dir::new("free");
         assert!(free_space(&d.0.join("not/there/yet")).is_some_and(|b| b > 0), "the nearest folder that is there");
-        assert_eq!(bytes(999), "999 B");
-        assert_eq!(bytes(1_500_000_000), "1.5 GB");
         std::fs::write(d.0.join("a"), [0u8; 10]).unwrap();
         assert_eq!(size(&d.0), 10);
     }

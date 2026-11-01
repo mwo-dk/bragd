@@ -22,18 +22,21 @@ pub enum Area {
     Knowledge,
     /// Servers to play on, and what is asked of them.
     Online,
+    /// How often a Tip may show.
+    Tips,
     /// The update check, and everything that can leave the machine.
     Privacy,
 }
 
 impl Area {
-    pub const ALL: [Area; 7] = [
+    pub const ALL: [Area; 8] = [
         Area::Overview,
         Area::Families,
         Area::Look,
         Area::Engines,
         Area::Knowledge,
         Area::Online,
+        Area::Tips,
         Area::Privacy,
     ];
 
@@ -46,6 +49,7 @@ impl Area {
             Area::Engines => "engines",
             Area::Knowledge => "knowledge",
             Area::Online => "online",
+            Area::Tips => "tips",
             Area::Privacy => "privacy",
         }
     }
@@ -75,6 +79,16 @@ impl Opt {
     /// Listed in its area of Settings. Families and Disk use draw their own options.
     pub fn listed(&self) -> bool {
         self.area != Families && !self.name.starts_with("disk_")
+    }
+
+    /// The Game family it concerns, if only one: it leaves its area while that Family is off.
+    pub fn family(&self) -> Option<&'static str> {
+        self.name.starts_with("tablebases_").then_some("chess")
+    }
+
+    /// Listed in its area for the user of `cfg`: [`Opt::listed`], and its Family shows.
+    pub fn listed_for(&self, cfg: &Config) -> bool {
+        self.listed() && self.family().is_none_or(|f| cfg.family_shown(f))
     }
 
     /// Its explanation, or empty.
@@ -119,7 +133,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 16] = [
+const OTHER_OPTS: [Opt; 17] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -178,6 +192,7 @@ const OTHER_OPTS: [Opt; 16] = [
         Online,
         "setting.tablebases_online",
     ),
+    opt("tips", &["tips", "frequency"], Tips, "setting.tips"),
     opt(
         "check_updates",
         &["updates", "check"],
@@ -228,6 +243,22 @@ pub fn turn_on(cfg: &Config, id: &str) -> Vec<(String, Value)> {
     if family.variants().all(|v| cfg.families.variant.get(v.key) == Some(&false)) {
         out.extend(family.variants().map(|v| (format!("variant_{}", v.key), Value::Bool(true))));
     }
+    out
+}
+
+/// The switches to save, in order, so only the Family `id` shows: it (with its Variants when
+/// every one was off) on, and every other Family off. *Only chess* in the wizard.
+pub fn only(cfg: &Config, id: &str) -> Vec<(String, Value)> {
+    if Family::from_key(id).is_none() {
+        return Vec::new();
+    }
+    let mut out = turn_on(cfg, id);
+    out.extend(
+        Family::ALL
+            .iter()
+            .filter(|f| f.key() != id && cfg.family_on(f.key()))
+            .map(|f| (format!("family_{}", f.key()), Value::Bool(false))),
+    );
     out
 }
 
@@ -395,6 +426,21 @@ mod tests {
     }
 
     #[test]
+    fn only_one_family_turns_the_others_off() {
+        let cfg = Config::parse("[families.family]\ngo = false\nchess = false\n").unwrap();
+        let switches = only(&cfg, "chess");
+        assert_eq!(switches[0], ("family_chess".to_string(), Value::Bool(true)));
+        let off: Vec<&str> = switches[1..].iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(off.len(), Family::ALL.len() - 2, "chess on, go already off: {off:?}");
+        assert!(!off.contains(&"family_go") && switches[1..].iter().all(|(_, v)| *v == Value::Bool(false)));
+        assert!(only(&cfg, "nope").is_empty());
+        // Tablebase settings leave Settings with chess.
+        let tb = find("tablebases_path").unwrap();
+        assert!(tb.listed_for(&Config::default()) && !tb.listed_for(&cfg));
+        assert!(find("theme").unwrap().listed_for(&cfg));
+    }
+
+    #[test]
     fn settings_values_read_every_option() {
         let cfg =
             Config::parse("[families.family]\ngo = false\n[look]\ntheme = \"nord\"\n").unwrap();
@@ -404,6 +450,7 @@ mod tests {
         assert_eq!(v["variant_chess960"], Value::Bool(true));
         assert_eq!(v["theme"], "nord");
         assert_eq!(v["check_updates"], true);
+        assert_eq!(v["tips"], "sometimes");
         assert_eq!(v["source_priority"], serde_json::json!(["twic", "lichess"]));
         assert_eq!(v.len(), options().count());
         assert!(v.values().all(|x| !x.is_null()));

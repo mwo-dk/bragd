@@ -12,6 +12,7 @@
   import Analysis from "./Analysis.svelte";
   import Known from "./Known.svelte";
   import { current } from "./current.svelte.js";
+  import { guide } from "./guide.svelte.js";
 
   /** @type {{ family: any, mode?: "play" | "analyse", go: (page: any) => void }} */
   let { family, mode = "play", go } = $props();
@@ -41,6 +42,11 @@
   let array = $state(null);
   /** @type {any} */
   let st = $state(null);
+  // A Game under way keeps Tips away.
+  $effect(() => {
+    guide.live = !analyse && entries.length > 0 && !st?.outcome;
+    return () => (guide.live = false);
+  });
   // The board fits the window's height as well as its width: whatever the height left under
   // the bar and the trays allows, times the board's own width to height.
   let gameH = $state(0);

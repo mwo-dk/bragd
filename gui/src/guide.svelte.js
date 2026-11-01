@@ -8,4 +8,8 @@ export const guide = $state({
   notices: [],
   /** The Settings area to open next, or null. @type {string|null} */
   area: null,
+  /** The Tip on screen (bragd_core::tips::Tip), or null. @type {any} */
+  tip: null,
+  /** A Game is under way on screen: no Tip shows. */
+  live: false,
 });

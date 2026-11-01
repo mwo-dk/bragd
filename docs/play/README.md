@@ -36,4 +36,4 @@ The bar above the board is the same for every Family. Open it from the sidebar: 
 The line above the move list says whose turn it is, by the Variant's names for its Sides: White and Black, Red and Black, Cho and Han, Sente and Gote, Attackers and Defenders, Light and Dark, Evens and Odds.
 
 ---
-[← Previous: What's new](../getting-started/whats-new.md) · [Next: Playing against yourself →](against-yourself.md)
+[← Previous: Tips](../getting-started/tips.md) · [Next: Playing against yourself →](against-yourself.md)

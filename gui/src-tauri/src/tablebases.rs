@@ -9,7 +9,6 @@ use std::sync::{Arc, Mutex};
 use bragd_core::config::Config;
 use bragd_engines::fetch::Http;
 use bragd_engines::syzygy::{self, Plan, Set};
-use bragd_helper::disk;
 use bragd_library::chess::polyglot;
 use serde::Serialize;
 
@@ -87,8 +86,8 @@ pub fn page(cfg: &Config, held: &Held) -> Page {
         folder: folder.display().to_string(),
         online: cfg.tablebases.online,
         offline: offline(),
-        sets: [Set::UpTo5, Set::Six, Set::Seven].into_iter().map(|set| SetView { set, have: count(&folder, set), size: plans.iter().find(|p| p.set == set).map(|p| disk::bytes(p.total)), download: set != Set::Seven }).collect(),
-        progress: format!("{} / {}", disk::bytes(job.done), disk::bytes(job.total)),
+        sets: [Set::UpTo5, Set::Six, Set::Seven].into_iter().map(|set| SetView { set, have: count(&folder, set), size: plans.iter().find(|p| p.set == set).map(|p| bragd_core::i18n::bytes(p.total)), download: set != Set::Seven }).collect(),
+        progress: format!("{} / {}", bragd_core::i18n::bytes(job.done), bragd_core::i18n::bytes(job.total)),
         job,
     }
 }

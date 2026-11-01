@@ -46,6 +46,7 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`.
 | `knowledge.max_unpack_ratio` | `50` | How many times its own size a packed game file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) may unpack to. Past it the import stops, and so does reading it as a Foreign database ([Sources](../knowledge/sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
 | `helper.start_with_session` | `false` | Start the Helper with your session, not only with a window ([The Helper](../knowledge/helper.md)) |
 | `updates.check` | `true` | Ask this copy's channel for a newer version at start and once a day ([Privacy](privacy.md)) |
+| `tips.frequency` | `"sometimes"` | How often a Tip may show: `often` (once a day at most), `sometimes` (once a week at most) or `off` ([Tips](../getting-started/tips.md)) |
 | `disk.total` | `0` | The most, in bytes, that everything Bragd keeps may take together. `0` is no limit ([Disk watch](../knowledge/disk-watch.md)) |
 | `disk.free_below` | `0` | Warn when free space on a disk Bragd uses falls below this many bytes. `0` is no warning |
 | `disk.items` | empty | A table: item id → the most bytes it may take. Ids: `library:main.bragd`, `downloads:twic`, `helper`, `tablebases`, `image:<name>`, `cache` |

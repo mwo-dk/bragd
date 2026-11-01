@@ -553,7 +553,7 @@ impl Jobs {
                 r.crossed.push(Crossed { id: format!("disk:paused:{}", a.id), item: Some(format!("downloads:{}", a.id)), key: "notice.disk_fetch_paused".into(), args: vec![("source".into(), a.name.clone())] });
             }
             if let Some(size) = m.too_big {
-                let args = vec![("source".into(), a.name), ("size".into(), disk::bytes(size)), ("cap".into(), disk::bytes(sources::cap(&o, &m)))];
+                let args = vec![("source".into(), a.name), ("size".into(), bragd_core::i18n::bytes(size)), ("cap".into(), bragd_core::i18n::bytes(sources::cap(&o, &m)))];
                 r.crossed.push(Crossed { id: format!("download:too_big:{}", a.id), item: Some(format!("downloads:{}", a.id)), key: "notice.download_too_big".into(), args });
             }
         }

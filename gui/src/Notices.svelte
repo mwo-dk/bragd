@@ -18,14 +18,42 @@
     guide.area = n.settings;
     go({ kind: "settings" });
   }
+  /** *Show me*: the Settings area, or the sidebar item of the first Family shown that has it. */
+  function showMe(/** @type {any} */ tip) {
+    guide.tip = null;
+    const [kind, what] = tip.open.split(":");
+    if (kind === "settings") {
+      guide.area = what;
+      return go({ kind: "settings" });
+    }
+    const sb = snap.sidebar;
+    const families = sb.kind === "families" ? sb.families : sb.kind === "one" ? [sb.family] : [];
+    const f = families.find((/** @type {any} */ f) => f.items.includes(what));
+    go(f ? { kind: "item", family: f.id, item: what } : { kind: "settings" });
+  }
+  function never(/** @type {any} */ tip) {
+    guide.tip = null;
+    api.tipSilence(tip.id);
+  }
   async function copy(/** @type {any} */ n) {
     await navigator.clipboard?.writeText(n.copy).catch(() => {});
     copied = n.id;
   }
 </script>
 
-{#if guide.notices.length && !guide.wizard && !guide.cards.length}
+{#if (guide.notices.length || guide.tip) && !guide.wizard && !guide.cards.length}
   <aside class="notices" aria-live="polite">
+    {#if guide.tip}
+      {@const tip = guide.tip}
+      <div class="notice panel hintish tip">
+        <p><b>{t("tip.label")}:</b> {tip.text}</p>
+        <div class="actions">
+          <button class="primary" onclick={() => showMe(tip)}>{t("tip.show_me")}</button>
+          <button onclick={() => (guide.tip = null)}>{t("tip.not_now")}</button>
+          <button class="link" onclick={() => never(tip)}>{t("tip.never")}</button>
+        </div>
+      </div>
+    {/if}
     {#each guide.notices as n (n.id)}
       <div class="notice panel" class:hintish={n.id.startsWith("hint:")}>
         <p>{n.text}</p>
@@ -78,7 +106,9 @@
   }
   .actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
+    align-items: center;
     gap: 0.4rem;
   }
   .link {

@@ -2,7 +2,7 @@
 
 # Every setting
 
-Settings has seven areas: Overview, Game families, Look, Engines, Knowledge, Online, and Privacy and updates. Each item is saved to `config.toml` the moment you change it. This page lists every item by area, with the name the app gives it and the key it writes.
+Settings has eight areas: Overview, Game families, Look, Engines, Knowledge, Online, Tips, and Privacy and updates. An item that concerns one Game family only, such as the tablebase items for chess, leaves Settings while that Family is off. Each item is saved to `config.toml` the moment you change it. This page lists every item by area, with the name the app gives it and the key it writes.
 
 ![Settings at Overview: the areas on the left, the line with the version and how many Game families and Variants are on, and the buttons Run the install wizard again, Open config.toml and Suggest a better translation](../screenshots/settings-overview-1100.png)
 *Settings at Overview.*
@@ -19,6 +19,7 @@ Settings has seven areas: Overview, Game families, Look, Engines, Knowledge, Onl
 - [Engines](#engines)
 - [Knowledge](#knowledge)
 - [Online](#online)
+- [Tips](#tips)
 - [Privacy and updates](#privacy-and-updates)
 - [Questions](#questions)
 
@@ -80,16 +81,22 @@ The Engine per Variant, added Engines and their options are on each Family's [En
 | `library` | Library folder | `knowledge.library` | Where your Libraries are kept. Empty: Bragd's data folder |
 | `source_priority` | Source priority | `knowledge.source_priority` | When Duplicates merge, a header conflict goes the way of the Source listed first. Typed as a list with commas |
 | `max_unpack_ratio` | Largest unpacking ratio | `knowledge.max_unpack_ratio` | How many times its own size a packed game file may unpack to before an import, or reading it as a Foreign database, stops. `50` unless set ([Sources](../knowledge/sources.md#why-did-an-import-stop-saying-the-file-unpacks-too-far)) |
-| `tablebases_path` | Tablebase folder | `tablebases.path` | Your Syzygy tables. The folder is passed to every Engine |
+| `tablebases_path` | Tablebase folder | `tablebases.path` | Your Syzygy tables. The folder is passed to every Engine. Shown while chess is on |
 | `start_with_session` | Start with my session | `helper.start_with_session` | The Helper keeps fetching and indexing while no window is open |
 
 ## Online
 
 | Name | Shown as | `config.toml` key | What it does |
 |---|---|---|---|
-| `tablebases_online` | Ask Lichess for tablebase positions | `tablebases.online` | When your tables do not cover a position, that position is sent to the Lichess tablebase API |
+| `tablebases_online` | Ask Lichess for tablebase positions | `tablebases.online` | When your tables do not cover a position, that position is sent to the Lichess tablebase API. Shown while chess is on |
 
 Signing in to servers comes later ([Playing online](../online/playing-online.md)).
+
+## Tips
+
+| Name | Shown as | `config.toml` key | What it does |
+|---|---|---|---|
+| `tips` | Tips | `tips.frequency` | *Often* (at most once a day), *Now and then* (at most once a week, the default) or *Off* ([Tips](../getting-started/tips.md)) |
 
 ## Privacy and updates
 

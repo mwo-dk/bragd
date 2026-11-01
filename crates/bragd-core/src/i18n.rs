@@ -290,6 +290,31 @@ fn digits_in(lang: &str, s: String) -> String {
         .collect()
 }
 
+/// `n` bytes as shown, in powers of 1000 as disks are sold, with the current language's
+/// decimal mark: `1.5 GB`, `1,5 GB`.
+pub fn bytes(n: u64) -> String {
+    bytes_in(language(), n)
+}
+
+fn bytes_in(lang: &str, n: u64) -> String {
+    let units = ["B", "kB", "MB", "GB", "TB"];
+    let (mut v, mut u) = (n as f64, 0);
+    while v >= 1000.0 && u + 1 < units.len() {
+        v /= 1000.0;
+        u += 1;
+    }
+    if u == 0 {
+        return digits_in(lang, format!("{n} B"));
+    }
+    // shortcut: the decimal mark by language, as CLDR has it for these; take ICU data if
+    // grouping or other marks are ever needed.
+    let point = lang.starts_with("en")
+        || lang.starts_with("zh")
+        || matches!(lang, "he" | "ja" | "ko" | "de-CH" | "it-CH" | "es-MX" | "es-PR" | "es-DO" | "es-GT" | "es-HN" | "es-NI" | "es-PA" | "es-SV");
+    let mark = if lang == "fa" { "\u{066B}" } else if point { "." } else { "," };
+    digits_in(lang, format!("{v:.1} {}", units[u]).replacen('.', mark, 1))
+}
+
 pub const REFERENCE: &str = "en-GB";
 
 fn source(code: &str) -> &'static str {
@@ -798,6 +823,20 @@ mod tests {
         assert!(is_rtl("fa") && is_rtl("he") && !is_rtl("hy") && !is_rtl("nope"));
         assert_eq!(digits_in("fa", "2026-10-06".into()), "۲۰۲۶-۱۰-۰۶");
         assert_eq!(digits_in("ka", "2026".into()), "2026");
+    }
+
+    #[test]
+    fn i18n_sizes_in_each_languages_numbers() {
+        assert_eq!(bytes_in("en-GB", 999), "999 B");
+        assert_eq!(bytes_in("en-GB", 1_500_000_000), "1.5 GB");
+        assert_eq!(bytes_in("da", 1_500_000_000), "1,5 GB");
+        assert_eq!(bytes_in("de-AT", 2_260_000), "2,3 MB");
+        assert_eq!(bytes_in("de-CH", 1_500_000_000), "1.5 GB", "Swiss German writes a point");
+        assert_eq!(bytes_in("es-MX", 1_500_000_000), "1.5 GB");
+        assert_eq!(bytes_in("es-AR", 1_500_000_000), "1,5 GB");
+        assert_eq!(bytes_in("ja", 1_500_000_000), "1.5 GB");
+        assert_eq!(bytes_in("fa", 1_500_000_000), "۱٫۵ GB");
+        assert_eq!(bytes_in("fr", 3_000_000_000_000), "3,0 TB");
     }
 
     #[test]

@@ -9,6 +9,7 @@ pub mod notices;
 pub mod settings;
 pub mod state;
 pub mod themes;
+pub mod tips;
 pub mod tour;
 pub mod update;
 pub mod wizard;

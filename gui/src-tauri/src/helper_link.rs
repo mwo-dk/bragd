@@ -140,14 +140,14 @@ pub fn report(r: &Report) -> String {
         let (kept, stripped) = r.files.iter().fold((0, 0), |(k, s), f| (k + f.kept, s + f.stripped));
         let before: u64 = r.files.iter().map(|f| f.bytes_before).sum();
         let after: u64 = r.files.iter().map(|f| f.bytes_after).sum();
-        out.push(t!("job.report_files", "files" => r.files.len(), "kept" => kept, "stripped" => stripped, "before" => disk::bytes(before), "after" => disk::bytes(after)));
+        out.push(t!("job.report_files", "files" => r.files.len(), "kept" => kept, "stripped" => stripped, "before" => bragd_core::i18n::bytes(before), "after" => bragd_core::i18n::bytes(after)));
     }
     if !r.removed.is_empty() {
         let bytes: u64 = r.removed.iter().map(|(_, b)| b).sum();
-        out.push(t!("job.report_removed", "files" => r.removed.len(), "bytes" => disk::bytes(bytes)));
+        out.push(t!("job.report_removed", "files" => r.removed.len(), "bytes" => bragd_core::i18n::bytes(bytes)));
     }
     if let Some(l) = &r.library {
-        out.push(t!("job.report_library", "games" => l.games, "of" => l.of, "bytes" => disk::bytes(l.bytes)));
+        out.push(t!("job.report_library", "games" => l.games, "of" => l.of, "bytes" => bragd_core::i18n::bytes(l.bytes)));
     }
     if out.is_empty() {
         out.push(t!("job.report_nothing"));

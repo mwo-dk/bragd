@@ -33,6 +33,12 @@ export const wizardChosen = (/** @type {string[]} */ chosen) => invoke("wizard_c
 export const wizardDone = (/** @type {string[]} */ chosen) => invoke("wizard_done", { chosen });
 export const wizardSeen = () => invoke("wizard_seen");
 export const tourSeen = () => invoke("tour_seen");
+/** Only the Family `family` shows: the wizard's *Only chess*. @returns {Promise<any>} */
+export const familiesOnly = (/** @type {string} */ family) => invoke("families_only", { family });
+/** The Tip due now, if any, counted as shown; `busy` when a live Game or the wizard is on screen. @returns {Promise<any|null>} */
+export const tipNext = (/** @type {boolean} */ busy) => invoke("tip_next", { busy });
+/** *Don't suggest this again* for the Tip `id`. */
+export const tipSilence = (/** @type {string} */ id) => invoke("tip_silence", { id });
 /** @returns {Promise<[string, any[]][]>} */
 export const whatsNew = () => invoke("whats_new");
 /** @returns {Promise<any[]>} */
