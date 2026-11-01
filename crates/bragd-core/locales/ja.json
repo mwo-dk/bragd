@@ -913,11 +913,11 @@
  "matches.alpha": "誤った H1 の確率 (α)",
  "matches.beta": "誤った H0 の確率 (β)",
  "matches.adjudication": "判定",
- "matches.resign_cp": "このセンチポーン以上負けたら投了",
- "matches.resign_moves": "この手数の間、連続して",
- "matches.draw_cp": "このセンチポーン以内なら引き分け",
- "matches.draw_after": "この手から",
- "matches.draw_moves": "各エンジンのこの手数の間",
+ "matches.resign_cp": "センチポーン以上の劣勢",
+ "matches.resign_moves": "連続する手数",
+ "matches.draw_cp": "互角からのセンチポーン差 (上限)",
+ "matches.draw_after": "手数から",
+ "matches.draw_moves": "各エンジンの手数",
  "matches.max_moves": "最長の対局 (手数)",
  "matches.tablebases": "終盤はテーブルベースで決着させる",
  "matches.library": "ライブラリー",
@@ -948,5 +948,7 @@
  "feature.matches.a3": "はい。対局はヘルパーで動きます。ヘルパーが止まっても、再び起動したときに止まった所から続きます。",
  "feature.matches.tip": "どちらのエンジンが強いか確かめる: サイドバーの エンジン対局。",
  "tour.matches.title": "エンジン対局",
- "tour.matches.text": "サイドバーのエンジン対局では、ヘルパーでエンジン同士が対局します。総当たり戦、ガントレット、または SPRT が決まるまでの 2 エンジン。定跡から始まり、負けや引き分けの対局は判定され、すべての対局はライブラリーに入ります。"
+ "tour.matches.text": "サイドバーのエンジン対局では、ヘルパーでエンジン同士が対局します。総当たり戦、ガントレット、または SPRT が決まるまでの 2 エンジン。定跡から始まり、負けや引き分けの対局は判定され、すべての対局はライブラリーに入ります。",
+ "matches.resign": "負けている対局で投了",
+ "matches.draw": "互角の対局を引き分けと判定"
 }

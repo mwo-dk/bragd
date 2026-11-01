@@ -919,11 +919,11 @@
  "matches.alpha": "Probabilità di un falso H1 (α)",
  "matches.beta": "Probabilità di un falso H0 (β)",
  "matches.adjudication": "Adjudicazione",
- "matches.resign_cp": "Abbandona quando si è sotto di questo numero di centipawn",
- "matches.resign_moves": "per questo numero di mosse di fila",
- "matches.draw_cp": "Patta quando si è entro questo numero di centipawn",
- "matches.draw_after": "dalla mossa",
- "matches.draw_moves": "per questo numero di mosse di ciascun motore",
+ "matches.resign_cp": "Centipawn di svantaggio",
+ "matches.resign_moves": "Mosse di fila",
+ "matches.draw_cp": "Centipawn dalla parità, al massimo",
+ "matches.draw_after": "Dalla mossa",
+ "matches.draw_moves": "Mosse di ciascun motore",
  "matches.max_moves": "Partita più lunga (mosse)",
  "matches.tablebases": "Concludi i finali con le tablebase",
  "matches.library": "Biblioteca",
@@ -954,5 +954,7 @@
  "feature.matches.a3": "Sì. La sfida gira nell'assistente. Se l'assistente si ferma, la sfida riprende da dove era quando l'assistente riparte.",
  "feature.matches.tip": "Scopri quale motore è più forte: Sfide tra motori nella barra laterale.",
  "tour.matches.title": "Sfide tra motori",
- "tour.matches.text": "Le sfide tra motori nella barra laterale fanno giocare i motori tra loro nell'assistente: un round robin, un gauntlet o due motori finché la SPRT non decide. Le aperture vengono da un libro, le partite perse o patte vengono giudicate, e ogni partita va in una biblioteca."
+ "tour.matches.text": "Le sfide tra motori nella barra laterale fanno giocare i motori tra loro nell'assistente: un round robin, un gauntlet o due motori finché la SPRT non decide. Le aperture vengono da un libro, le partite perse o patte vengono giudicate, e ogni partita va in una biblioteca.",
+ "matches.resign": "Abbandona una partita persa",
+ "matches.draw": "Dichiara patta una partita pari"
 }

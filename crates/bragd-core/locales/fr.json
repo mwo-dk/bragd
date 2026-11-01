@@ -919,11 +919,11 @@
  "matches.alpha": "Risque d’un faux H1 (α)",
  "matches.beta": "Risque d’un faux H0 (β)",
  "matches.adjudication": "Adjudication",
- "matches.resign_cp": "Abandon quand on est en retard de ce nombre de centipions",
- "matches.resign_moves": "pendant autant de coups de suite",
- "matches.draw_cp": "Nulle quand l’écart est d’au plus ce nombre de centipions",
- "matches.draw_after": "à partir de ce coup",
- "matches.draw_moves": "pendant autant de coups de chaque moteur",
+ "matches.resign_cp": "Centipions de retard",
+ "matches.resign_moves": "Coups d’affilée",
+ "matches.draw_cp": "Écart maximal en centipions",
+ "matches.draw_after": "À partir du coup",
+ "matches.draw_moves": "Coups de chaque moteur",
  "matches.max_moves": "Partie la plus longue (coups)",
  "matches.tablebases": "Terminer les finales par les tables de finales",
  "matches.library": "Bibliothèque",
@@ -954,5 +954,7 @@
  "feature.matches.a3": "Oui. Le match tourne dans l’assistant. Si l’assistant s’arrête, le match reprend là où il en était quand l’assistant redémarre.",
  "feature.matches.tip": "Découvrez quel moteur est le plus fort : Matchs de moteurs dans la barre latérale.",
  "tour.matches.title": "Matchs de moteurs",
- "tour.matches.text": "Les matchs de moteurs, dans la barre latérale, font jouer les moteurs entre eux dans l’assistant : un tournoi toutes rondes, un gauntlet, ou deux moteurs jusqu’à ce que le SPRT décide. Les ouvertures viennent d’un livre, les parties perdues ou nulles sont adjugées, et chaque partie va dans une bibliothèque."
+ "tour.matches.text": "Les matchs de moteurs, dans la barre latérale, font jouer les moteurs entre eux dans l’assistant : un tournoi toutes rondes, un gauntlet, ou deux moteurs jusqu’à ce que le SPRT décide. Les ouvertures viennent d’un livre, les parties perdues ou nulles sont adjugées, et chaque partie va dans une bibliothèque.",
+ "matches.resign": "Abandonner une partie perdue",
+ "matches.draw": "Déclarer nulle une partie égale"
 }

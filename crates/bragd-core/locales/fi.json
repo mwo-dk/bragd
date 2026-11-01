@@ -916,11 +916,11 @@
  "matches.alpha": "Väärän H1:n todennäköisyys (α)",
  "matches.beta": "Väärän H0:n todennäköisyys (β)",
  "matches.adjudication": "Tuomitseminen",
- "matches.resign_cp": "Luovuta, kun jäljessä on näin monta centipawnia",
- "matches.resign_moves": "näin monta siirtoa peräkkäin",
- "matches.draw_cp": "Tasapeli, kun ero on enintään näin monta centipawnia",
- "matches.draw_after": "tästä siirrosta alkaen",
- "matches.draw_moves": "näin monen siirron ajan kummallakin enginellä",
+ "matches.resign_cp": "Centipawnia jäljessä",
+ "matches.resign_moves": "Siirtoa peräkkäin",
+ "matches.draw_cp": "Centipawnia tasasta enintään",
+ "matches.draw_after": "Siirrosta alkaen",
+ "matches.draw_moves": "Kunkin enginen siirtoa",
  "matches.max_moves": "Pisin peli (siirtoja)",
  "matches.tablebases": "Päätä loppupelit loppupelitaulukoilla",
  "matches.library": "Kirjasto",
@@ -951,5 +951,7 @@
  "feature.matches.a3": "Kyllä. Ottelu käy Apurissa. Jos Apuri pysähtyy, ottelu jatkuu siitä, mihin se jäi, kun Apuri käynnistyy uudelleen.",
  "feature.matches.tip": "Selvitä, kumpi engine on vahvempi: Engine-ottelut sivupalkissa.",
  "tour.matches.title": "Engine-ottelut",
- "tour.matches.text": "Engine-ottelut sivupalkissa antavat enginejen pelata keskenään Apurissa: kaikki vastaan kaikki, gauntlet tai kaksi enginea, kunnes SPRT päättää. Avaukset tulevat kirjasta, häviöt ja tasapelit tuomitaan, ja jokainen peli menee Kirjastoon."
+ "tour.matches.text": "Engine-ottelut sivupalkissa antavat enginejen pelata keskenään Apurissa: kaikki vastaan kaikki, gauntlet tai kaksi enginea, kunnes SPRT päättää. Avaukset tulevat kirjasta, häviöt ja tasapelit tuomitaan, ja jokainen peli menee Kirjastoon.",
+ "matches.resign": "Luovuta hävittävä peli",
+ "matches.draw": "Tuomitse tasainen peli tasapeliksi"
 }

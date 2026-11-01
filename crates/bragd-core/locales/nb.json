@@ -916,11 +916,11 @@
  "matches.alpha": "Sjanse for falsk H1 (α)",
  "matches.beta": "Sjanse for falsk H0 (β)",
  "matches.adjudication": "Adjudikering",
- "matches.resign_cp": "Gi seg når så mange centipawn bak",
- "matches.resign_moves": "i så mange trekk på rad",
- "matches.draw_cp": "Remis når innenfor så mange centipawn",
- "matches.draw_after": "fra dette trekket",
- "matches.draw_moves": "i så mange trekk for hver motor",
+ "matches.resign_cp": "Centipawn bak",
+ "matches.resign_moves": "Trekk på rad",
+ "matches.draw_cp": "Centipawn fra likt, høyst",
+ "matches.draw_after": "Fra trekk",
+ "matches.draw_moves": "Trekk for hver motor",
  "matches.max_moves": "Lengste parti (trekk)",
  "matches.tablebases": "Avslutt sluttspill med tabellbasene",
  "matches.library": "Bibliotek",
@@ -951,5 +951,7 @@
  "feature.matches.a3": "Ja. Kampen går i hjelperen. Stopper hjelperen, fortsetter kampen der den var når hjelperen starter igjen.",
  "feature.matches.tip": "Finn ut hvilken motor som er sterkest: Motorkamper i sidepanelet.",
  "tour.matches.title": "Motorkamper",
- "tour.matches.text": "Motorkamper i sidepanelet lar motorer spille mot hverandre i hjelperen: en rundturnering, en gauntlet, eller to motorer til SPRT avgjør. Åpninger hentes fra en bok, tapte eller uavgjorte partier adjudikeres, og hvert parti havner i et bibliotek."
+ "tour.matches.text": "Motorkamper i sidepanelet lar motorer spille mot hverandre i hjelperen: en rundturnering, en gauntlet, eller to motorer til SPRT avgjør. Åpninger hentes fra en bok, tapte eller uavgjorte partier adjudikeres, og hvert parti havner i et bibliotek.",
+ "matches.resign": "Gi opp en tapt partie",
+ "matches.draw": "Gi remis i en jevn partie"
 }

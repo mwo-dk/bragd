@@ -2,7 +2,7 @@
 
 # The Helper
 
-The Helper is a background process, `bragd-helper`, shared by every Bragd window. It fetches Sources, imports files into Libraries, finds Duplicates, applies Strip rules and runs Disk watch, so the windows stay quick. One Helper serves all windows of one user. In F1 this is the `helper` entry.
+The Helper is a background process, `bragd-helper`, shared by every Bragd window. It fetches Sources, imports files into Libraries, finds Duplicates, applies Strip rules, runs Disk watch and plays [Engine matches](../engines/matches.md), so the windows stay quick. One Helper serves all windows of one user. In F1 this is the `helper` entry.
 
 ![The Jobs page: the Helper's jobs with what each does, its progress and its status, and Cancel on the running one](../screenshots/jobs-1100.png)
 *The Jobs page, opened from the Helper line in the sidebar.*
@@ -25,7 +25,7 @@ You never start the Helper yourself. A window that finds none starts the `bragd-
 - It does not leave while a job runs, unless the job is paused on battery.
 - The registration is what `bragd-helper --service on` writes too: a systemd user unit on Linux, an XDG autostart entry on the BSDs and in the Flatpak, a LaunchAgent on macOS, or a Run entry on Windows. `bragd-helper --service off` takes it away, and `bragd-helper --service` prints `on` or `off`. See [Command line](../reference/command-line.md).
 
-Jobs run one at a time, in the order asked. While the machine runs on its battery, downloads, imports and merges pause until it is plugged in again. The BSDs and illumos always count as on mains.
+Jobs run one at a time, in the order asked. Engine matches run beside them, one match at a time, so a long match never holds up a Source. While the machine runs on its battery, downloads, imports, merges and matches pause until it is plugged in again. The BSDs and illumos always count as on mains.
 
 ## Versions
 

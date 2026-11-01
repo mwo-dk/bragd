@@ -229,7 +229,36 @@ def clubs():
             st.write_text(json.dumps({k: v for k, v in json.loads(st.read_text()).items() if k != "clubs"}))
 
 
-ALL = {"clubs": clubs, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes}
+def matches():
+    """matches-chess-390.png and matches-chess-1100.png: Chess → Engine matches, an SPRT match
+    between two stand-ins (fake-uci as Stockfish and as Fruit) played a few Games in the Helper."""
+    config('[engines.paths]\nstockfish = "/home/demo/fake-uci"\nfruit = "/home/demo/fake-uci"\n')
+    lib = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/libraries/matches.bragd"
+    try:
+        with Desktop(size=W1100) as d:
+            nav(d, "chess", "Engine matches")
+            js(d, """for (const l of document.querySelectorAll('main fieldset label.check')) {
+                const t = l.textContent.trim(); const i = l.querySelector('input');
+                if (t === 'Stockfish' || t === 'Fruit' || t === 'SPRT') i.click(); }""")
+            d.wait(0.5)
+            fill(d, "Time per move (ms)", "100")
+            click(d, "Start match", "main")
+            d.wait(12)
+        def page(d):
+            js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+            d.wait(0.4)
+            nav(d, "chess", "Engine matches")
+            d.wait(1)
+            js(d, "document.querySelector('main h2:nth-of-type(2)').scrollIntoView()")
+            d.wait(0.5)
+        widths("matches-chess", page)
+    finally:
+        config("")
+        for p in (lib, lib.with_name(lib.name + "-wal"), lib.with_name(lib.name + "-shm")):
+            p.unlink(missing_ok=True)
+
+
+ALL = {"matches": matches, "clubs": clubs, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

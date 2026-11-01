@@ -3,7 +3,7 @@
 //! each match's standings, Elo and SPRT as it goes. The match itself runs in the Helper
 //! (`bragd_helper::matches`).
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use bragd_core::config::Config;
 use bragd_core::{t, tips};
@@ -11,7 +11,7 @@ use bragd_engines::matches::{self, Kind, Setup};
 use bragd_engines::{Limit, known};
 use bragd_games::Family;
 use bragd_helper::helper::Request;
-use bragd_helper::jobs::{Job, Status, Work};
+use bragd_helper::jobs::{Job, Work};
 use serde::Serialize;
 use tauri::{AppHandle, State};
 
@@ -237,18 +237,13 @@ pub fn match_book_pick(app: AppHandle, ctx: State<'_, Ctx>) -> Res<Option<String
     Ok(files::pick(&app, &ctx.cfg(), &ask)?.into_iter().next().map(|p: PathBuf| p.display().to_string()))
 }
 
-/// Whether the job is a match that is still to end: the page asks again while one is.
-pub fn live(j: &Job) -> bool {
-    matches!(j.work, Work::Match { .. }) && matches!(j.status, Status::Queued | Status::Running)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bragd_helper::jobs::Report;
+    use bragd_helper::jobs::{Report, Status};
 
     fn setup(kind: Kind) -> Setup {
-        Setup { variant: "chess".into(), engines: vec!["stockfish".into(), "fruit".into()], kind, rounds: 10, limit: Limit::Time(100), parallel: 1, book: None, book_depth: 8, adjudication: Default::default(), library: Path::new("/x/matches.bragd").into(), seed: 0 }
+        Setup { variant: "chess".into(), engines: vec!["stockfish".into(), "fruit".into()], kind, rounds: 10, limit: Limit::Time(100), parallel: 1, book: None, book_depth: 8, adjudication: Default::default(), library: "/x/matches.bragd".into(), seed: 0 }
     }
 
     #[test]
@@ -264,7 +259,6 @@ mod tests {
         assert!(v.rows[0].elo.starts_with('+'), "{}", v.rows[0].elo);
         assert!(v.sprt.contains("2.94"), "{}", v.sprt);
         assert!(v.live && v.library == "matches.bragd");
-        assert!(live(&j));
         // A round robin has no SPRT.
         let rr = setup(Kind::RoundRobin);
         assert_eq!(view(&Job { work: Work::Match { setup: rr.clone() }, report: None, ..j }, &rr).sprt, "");

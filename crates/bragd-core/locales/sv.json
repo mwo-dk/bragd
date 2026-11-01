@@ -916,11 +916,11 @@
  "matches.alpha": "Chans för falsk H1 (α)",
  "matches.beta": "Chans för falsk H0 (β)",
  "matches.adjudication": "Adjudicering",
- "matches.resign_cp": "Ge upp när så här många centipawn under",
- "matches.resign_moves": "i så här många drag i rad",
- "matches.draw_cp": "Remi när inom så här många centipawn",
- "matches.draw_after": "från detta drag",
- "matches.draw_moves": "i så här många drag för varje motor",
+ "matches.resign_cp": "Centipawn under",
+ "matches.resign_moves": "Drag i rad",
+ "matches.draw_cp": "Centipawn från jämnt, högst",
+ "matches.draw_after": "Från drag",
+ "matches.draw_moves": "Drag för varje motor",
  "matches.max_moves": "Längsta parti (drag)",
  "matches.tablebases": "Avsluta slutspel med slutspelstabellerna",
  "matches.library": "Bibliotek",
@@ -951,5 +951,7 @@
  "feature.matches.a3": "Ja. Matchen körs i hjälparen. Om hjälparen stannar fortsätter matchen där den var när hjälparen startar igen.",
  "feature.matches.tip": "Ta reda på vilken motor som är starkast: Motormatcher i sidofältet.",
  "tour.matches.title": "Motormatcher",
- "tour.matches.text": "Motormatcher i sidofältet låter motorer spela mot varandra i hjälparen: en rundturnering, en gauntlet eller två motorer tills SPRT avgör. Öppningar kommer från en bok, förlorade eller oavgjorda partier adjudiceras, och varje parti hamnar i ett bibliotek."
+ "tour.matches.text": "Motormatcher i sidofältet låter motorer spela mot varandra i hjälparen: en rundturnering, en gauntlet eller två motorer tills SPRT avgör. Öppningar kommer från en bok, förlorade eller oavgjorda partier adjudiceras, och varje parti hamnar i ett bibliotek.",
+ "matches.resign": "Ge upp en förlorad partie",
+ "matches.draw": "Adjudicera en jämn partie som remi"
 }

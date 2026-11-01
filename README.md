@@ -14,7 +14,7 @@ Status: in early development, with no release yet. See [the specification](docs/
 - **Nine Game families, 25 Variants.** Chess, Chess960, shatranj, chaturanga, King of the Hill, Racing Kings, Seirawan and Capablanca chess; xiangqi and janggi; shogi; go on three boards; four draughts rulesets; four tafl rulesets; backgammon, ur and senet. Each one plays against yourself, and every Family with an outside Engine plays against it. Turn off what you do not play.
 - **Your games, where they are.** PGN, SCID, ChessBase, SGF, KIF, CSA and PDN files open in place. Imports go into a Library, Bragd's own SQLite store, where each Game appears once and remembers every Source it came from.
 - **Sources on a schedule.** The Helper, a background process shared by every window, fetches TWIC and your own URLs, keeps only the Games your Strip rules allow, and holds what Bragd keeps on disk to your limits.
-- **Engines without the setup.** Stockfish, Fairy-Stockfish, Pikafish, YaneuraOu, KataGo, GNU Go, Scan and GNU Backgammon are found when installed, and all but YaneuraOu can be pulled as sealed container images when they are not. Analyse shows their lines on any position, and a review marks the good and bad moves of a Game.
+- **Engines without the setup.** Stockfish, Fairy-Stockfish, Pikafish, YaneuraOu, KataGo, GNU Go, Scan and GNU Backgammon are found when installed, and all but YaneuraOu can be pulled as sealed container images when they are not. Analyse shows their lines on any position, a review marks the good and bad moves of a Game, and Engine matches play Engines against each other until the SPRT decides.
 - **Chess extras.** Syzygy tablebases, with the Lichess tablebase as an opt-in fallback, and Polyglot opening books.
 - **Thirty Themes and four Board themes.** Racing green is the default. The others come from old desktops and home computers, and a Board theme can match the Theme.
 - **In your language.** 55 locales, right to left where the language is.
@@ -58,7 +58,7 @@ Every feature has its own page under [docs/](docs/README.md), grouped by area:
 | [Getting started](docs/getting-started/README.md) | Installing, the install wizard, Game families, the sidebar, F1 and What's new |
 | [Play](docs/play/README.md) | Playing against yourself or an Engine, and each Family's controls |
 | [Knowledge](docs/knowledge/README.md) | Foreign databases, Libraries, Duplicates, Slices, Sources, Strip rules, Disk watch and the Helper |
-| [Engines](docs/engines/README.md) | Engines, container images, Analyse, review, tablebases and opening books |
+| [Engines](docs/engines/README.md) | Engines, container images, Analyse, review, tablebases, opening books and Engine matches |
 | [Look](docs/look/README.md) | Themes, Looks, Board themes and languages |
 | [Online](docs/online/README.md) | Playing online: not yet available |
 | [Reference](docs/reference/README.md) | `config.toml`, every setting, the command line, files on disk and privacy |

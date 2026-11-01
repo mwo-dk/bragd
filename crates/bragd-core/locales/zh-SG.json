@@ -913,11 +913,11 @@
  "matches.alpha": "误判 H1 的概率（α）",
  "matches.beta": "误判 H0 的概率（β）",
  "matches.adjudication": "判定",
- "matches.resign_cp": "落后达到此厘兵数时认输",
- "matches.resign_moves": "连续这么多步内",
- "matches.draw_cp": "在此厘兵范围内则判和",
+ "matches.resign_cp": "落后厘兵数",
+ "matches.resign_moves": "连续步数",
+ "matches.draw_cp": "与均势相差的厘兵数，最多",
  "matches.draw_after": "从此步起",
- "matches.draw_moves": "每个引擎连续这么多步",
+ "matches.draw_moves": "每个引擎的步数",
  "matches.max_moves": "最长对局（步数）",
  "matches.tablebases": "残局以残局库结束",
  "matches.library": "库",
@@ -948,5 +948,7 @@
  "feature.matches.a3": "可以。对战在辅助程序中运行。若辅助程序停止，它重新启动后对战会从停止处继续。",
  "feature.matches.tip": "想知道哪个引擎更强：请看侧边栏的引擎对战。",
  "tour.matches.title": "引擎对战",
- "tour.matches.text": "侧边栏的引擎对战让引擎在辅助程序中互相对弈：循环赛、车轮战，或两个引擎对弈直到 SPRT 作出判定。开局取自开局库，输掉或和棋的对局会被判定，每盘棋都存入库中。"
+ "tour.matches.text": "侧边栏的引擎对战让引擎在辅助程序中互相对弈：循环赛、车轮战，或两个引擎对弈直到 SPRT 作出判定。开局取自开局库，输掉或和棋的对局会被判定，每盘棋都存入库中。",
+ "matches.resign": "认输于落败对局",
+ "matches.draw": "平局判定势均力敌的对局"
 }

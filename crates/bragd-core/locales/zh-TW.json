@@ -913,11 +913,11 @@
  "matches.alpha": "誤判 H1 的機率（α）",
  "matches.beta": "誤判 H0 的機率（β）",
  "matches.adjudication": "判定",
- "matches.resign_cp": "落後達此厘兵數時認輸",
- "matches.resign_moves": "連續這麼多步內",
- "matches.draw_cp": "在此厘兵範圍內則判和",
+ "matches.resign_cp": "落後厘兵數",
+ "matches.resign_moves": "連續步數",
+ "matches.draw_cp": "與均勢相差的厘兵數，最多",
  "matches.draw_after": "從此步起",
- "matches.draw_moves": "每個引擎連續這麼多步",
+ "matches.draw_moves": "每個引擎的步數",
  "matches.max_moves": "最長對局（步數）",
  "matches.tablebases": "殘局以殘局表結束",
  "matches.library": "收藏庫",
@@ -948,5 +948,7 @@
  "feature.matches.a3": "可以。對戰在輔助程式中執行。若輔助程式停止，重新啟動後對戰會從停止處繼續。",
  "feature.matches.tip": "想知道哪個引擎更強：請看側邊欄的引擎對戰。",
  "tour.matches.title": "引擎對戰",
- "tour.matches.text": "側邊欄的引擎對戰讓引擎在輔助程式中互相對弈：循環賽、車輪戰，或兩個引擎對弈直到 SPRT 作出判定。開局取自開局庫，輸掉或和棋的對局會被判定，每盤棋都存入收藏庫。"
+ "tour.matches.text": "側邊欄的引擎對戰讓引擎在輔助程式中互相對弈：循環賽、車輪戰，或兩個引擎對弈直到 SPRT 作出判定。開局取自開局庫，輸掉或和棋的對局會被判定，每盤棋都存入收藏庫。",
+ "matches.resign": "在落敗對局認輸",
+ "matches.draw": "勢均力敵的對局判和"
 }

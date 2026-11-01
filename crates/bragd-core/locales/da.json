@@ -916,11 +916,11 @@
  "matches.alpha": "Chance for falsk H1 (α)",
  "matches.beta": "Chance for falsk H0 (β)",
  "matches.adjudication": "Adjudikation",
- "matches.resign_cp": "Giv op, når så mange centibønder bagud",
- "matches.resign_moves": "i så mange træk i træk",
- "matches.draw_cp": "Remis, når inden for så mange centibønder",
- "matches.draw_after": "fra dette træk",
- "matches.draw_moves": "for så mange træk af hver motor",
+ "matches.resign_cp": "Centibønder bagud",
+ "matches.resign_moves": "Træk i træk",
+ "matches.draw_cp": "Centibønder fra lighed, højst",
+ "matches.draw_after": "Fra træk",
+ "matches.draw_moves": "Træk for hver motor",
  "matches.max_moves": "Længste parti (træk)",
  "matches.tablebases": "Afslut slutspil med slutspilstabeller",
  "matches.library": "Bibliotek",
@@ -951,5 +951,7 @@
  "feature.matches.a3": "Ja. Kampen kører i hjælperen. Hvis hjælperen stopper, fortsætter kampen, hvor den var, når hjælperen starter igen.",
  "feature.matches.tip": "Find ud af hvilken motor der er stærkest: Motorkampe i sidepanelet.",
  "tour.matches.title": "Motorkampe",
- "tour.matches.text": "Motorkampe i sidepanelet lader motorer spille mod hinanden i hjælperen: alle mod alle, en gauntlet, eller to motorer, indtil SPRT afgør det. Åbninger kommer fra en bog, tabte og uafgjorte partier adjudikeres, og hvert parti gemmes i et bibliotek."
+ "tour.matches.text": "Motorkampe i sidepanelet lader motorer spille mod hinanden i hjælperen: alle mod alle, en gauntlet, eller to motorer, indtil SPRT afgør det. Åbninger kommer fra en bog, tabte og uafgjorte partier adjudikeres, og hvert parti gemmes i et bibliotek.",
+ "matches.resign": "Giv op i et tabt parti",
+ "matches.draw": "Adjudiker et jævnt parti som remis"
 }

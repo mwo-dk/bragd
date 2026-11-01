@@ -916,11 +916,11 @@
  "matches.alpha": "H1 faltsua izateko aukera (α)",
  "matches.beta": "H0 faltsua izateko aukera (β)",
  "matches.adjudication": "Adjudikazioa",
- "matches.resign_cp": "Utzi hainbeste centipeoi galtzen duenean",
- "matches.resign_moves": "hainbeste jokaldi segidan",
- "matches.draw_cp": "Berdinketa hainbeste centipeoiren barruan dagoenean",
- "matches.draw_after": "jokaldi honetatik aurrera",
- "matches.draw_moves": "motor bakoitzaren hainbeste jokaldirentzat",
+ "matches.resign_cp": "Centipeoi atzetik",
+ "matches.resign_moves": "Jokaldi segidan",
+ "matches.draw_cp": "Berdintasunetik centipeo, gehienez",
+ "matches.draw_after": "Jokaldi honetatik",
+ "matches.draw_moves": "Motor bakoitzaren jokaldi",
  "matches.max_moves": "Partida luzeena (jokaldiak)",
  "matches.tablebases": "Amaierak amaiera-tauletan bukatu",
  "matches.library": "Liburutegia",
@@ -951,5 +951,7 @@
  "feature.matches.a3": "Bai. Kiroldia laguntzailean dabil. Laguntzailea gelditzen bada, kiroldia zegoen tokitik jarraitzen du laguntzailea berriro hasten denean.",
  "feature.matches.tip": "Jakin zein motor den indartsuagoa: Motor-kiroldiak alboko barran.",
  "tour.matches.title": "Motor-kiroldiak",
- "tour.matches.text": "Alboko barrako Kiroldiak motorrei elkarren kontra jokatzen uzten die laguntzailean: denak denen kontra, gauntlet bat, edo bi motor SPRT-k erabaki arte. Hasierak liburu batetik datoz, galdutako edo berdindutako partidak adjudikatzen dira, eta partida bakoitza liburutegi batera doa."
+ "tour.matches.text": "Alboko barrako Kiroldiak motorrei elkarren kontra jokatzen uzten die laguntzailean: denak denen kontra, gauntlet bat, edo bi motor SPRT-k erabaki arte. Hasierak liburu batetik datoz, galdutako edo berdindutako partidak adjudikatzen dira, eta partida bakoitza liburutegi batera doa.",
+ "matches.resign": "Galdutako partida utzi",
+ "matches.draw": "Partida berdina berdinketatzat jo"
 }

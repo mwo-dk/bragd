@@ -5,6 +5,7 @@
   import * as api from "./api.js";
   import * as k from "./knowledge.js";
   import { t } from "./i18n.svelte.js";
+  import Picker from "./Picker.svelte";
 
   /** @type {{ family: any, go: (page: any) => void }} */
   let { family, go } = $props();
@@ -115,10 +116,8 @@
     <h2>{t("matches.new")}</h2>
     <form class="panel" onsubmit={start}>
       <div class="row">
-        <label for="m-variant">{t("matches.variant")}</label>
-        <select id="m-variant" bind:value={variant}>
-          {#each page.variants as v (v.key)}<option value={v.key}>{v.name}</option>{/each}
-        </select>
+        <span>{t("matches.variant")}</span>
+        <Picker value={variant} choices={page.variants.map((/** @type {any} */ v) => ({ value: v.key, label: v.name }))} label={t("matches.variant")} onchange={(v) => (variant = v)} />
       </div>
       <fieldset>
         <legend>{t("matches.engines")}</legend>
@@ -139,14 +138,14 @@
           <div class="grid">
             <label>{t("matches.elo0")} <input type="number" step="0.5" bind:value={elo0} /></label>
             <label>{t("matches.elo1")} <input type="number" step="0.5" bind:value={elo1} /></label>
-            <label>{t("matches.alpha")} <input type="number" step="0.01" min="0.001" max="0.499" bind:value={alpha} /></label>
-            <label>{t("matches.beta")} <input type="number" step="0.01" min="0.001" max="0.499" bind:value={beta} /></label>
+            <label>{t("matches.alpha")} <input type="number" step="any" min="0.001" max="0.499" bind:value={alpha} /></label>
+            <label>{t("matches.beta")} <input type="number" step="any" min="0.001" max="0.499" bind:value={beta} /></label>
           </div>
         {/if}
       </fieldset>
       <div class="grid">
         <label>{kind === "sprt" ? t("matches.rounds_sprt") : t("matches.rounds")} <input type="number" min="1" bind:value={rounds} /></label>
-        <label>{t("matches.ms")} <input type="number" min="10" step="100" bind:value={ms} /></label>
+        <label>{t("matches.ms")} <input type="number" min="10" step="any" bind:value={ms} /></label>
         <label>{t("matches.parallel")} <input type="number" min="1" max={page.cpus} bind:value={parallel} /></label>
       </div>
       <fieldset>
@@ -160,23 +159,25 @@
       </fieldset>
       <fieldset>
         <legend>{t("matches.adjudication")}</legend>
+        <label class="check wide"><input type="checkbox" bind:checked={resign} /> {t("matches.resign")}</label>
         <div class="grid">
-          <label class="check"><input type="checkbox" bind:checked={resign} /> {t("matches.resign_cp")}</label>
-          <input type="number" min="100" step="50" bind:value={resignCp} disabled={!resign} aria-label={t("matches.resign_cp")} />
+          <label>{t("matches.resign_cp")} <input type="number" min="1" bind:value={resignCp} disabled={!resign} /></label>
           <label>{t("matches.resign_moves")} <input type="number" min="1" bind:value={resignMoves} disabled={!resign} /></label>
-          <label class="check"><input type="checkbox" bind:checked={draw} /> {t("matches.draw_cp")}</label>
-          <input type="number" min="0" bind:value={drawCp} disabled={!draw} aria-label={t("matches.draw_cp")} />
+        </div>
+        <label class="check wide"><input type="checkbox" bind:checked={draw} /> {t("matches.draw")}</label>
+        <div class="grid">
+          <label>{t("matches.draw_cp")} <input type="number" min="0" bind:value={drawCp} disabled={!draw} /></label>
           <label>{t("matches.draw_after")} <input type="number" min="0" bind:value={drawAfter} disabled={!draw} /></label>
           <label>{t("matches.draw_moves")} <input type="number" min="1" bind:value={drawMoves} disabled={!draw} /></label>
-          <label>{t("matches.max_moves")} <input type="number" min="0" bind:value={maxMoves} /></label>
-          {#if page.tablebases}<label class="check"><input type="checkbox" bind:checked={tablebases} /> {t("matches.tablebases")}</label>{/if}
         </div>
+        <div class="grid">
+          <label>{t("matches.max_moves")} <input type="number" min="0" bind:value={maxMoves} /></label>
+        </div>
+        {#if page.tablebases}<label class="check wide"><input type="checkbox" bind:checked={tablebases} /> {t("matches.tablebases")}</label>{/if}
       </fieldset>
       <div class="row">
-        <label for="m-library">{t("matches.library")}</label>
-        <select id="m-library" bind:value={library}>
-          {#each libraries as l (l[0])}<option value={l[0]}>{l[1]}</option>{/each}
-        </select>
+        <span>{t("matches.library")}</span>
+        <Picker value={library} choices={libraries.map((/** @type {any} */ l) => ({ value: l[0], label: l[1] }))} label={t("matches.library")} onchange={(v) => (library = v)} />
       </div>
       <div class="actions">
         <button class="primary" disabled={busy || chosen.length < 2}>{t("matches.start")}</button>
@@ -246,7 +247,8 @@
     gap: 0.4rem 1rem;
     align-items: center;
   }
-  fieldset > p {
+  fieldset > p,
+  .wide {
     flex-basis: 100%;
     margin: 0;
   }
@@ -269,7 +271,7 @@
     gap: 0.4rem;
     align-items: center;
   }
-  .row label {
+  .row > span {
     min-width: 8rem;
   }
   .path {
@@ -291,6 +293,9 @@
     text-align: start;
     padding: 0.15rem 0.6rem 0.15rem 0;
     font-variant-numeric: tabular-nums;
+  }
+  td:last-child {
+    white-space: nowrap;
   }
   th {
     font-weight: normal;

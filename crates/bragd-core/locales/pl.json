@@ -922,11 +922,11 @@
  "matches.alpha": "Szansa na fałszywe H1 (α)",
  "matches.beta": "Szansa na fałszywe H0 (β)",
  "matches.adjudication": "Adjudykacja",
- "matches.resign_cp": "Poddaj się, gdy strata wynosi tyle centypionów",
- "matches.resign_moves": "przez tyle ruchów z rzędu",
- "matches.draw_cp": "Remis, gdy różnica mieści się w tylu centypionach",
- "matches.draw_after": "od tego ruchu",
- "matches.draw_moves": "przez tyle ruchów każdego silnika",
+ "matches.resign_cp": "Centypionów straty",
+ "matches.resign_moves": "Ruchów z rzędu",
+ "matches.draw_cp": "Centypionów od równowagi, najwyżej",
+ "matches.draw_after": "Od ruchu",
+ "matches.draw_moves": "Ruchów każdego silnika",
  "matches.max_moves": "Najdłuższa partia (ruchy)",
  "matches.tablebases": "Kończ końcówki według baz końcówek",
  "matches.library": "Biblioteka",
@@ -957,5 +957,7 @@
  "feature.matches.a3": "Tak. Mecz działa w Pomocniku. Gdy Pomocnik się zatrzyma, mecz wznowi się od miejsca, w którym był, po ponownym uruchomieniu Pomocnika.",
  "feature.matches.tip": "Sprawdź, który silnik jest mocniejszy: Mecze silników w pasku bocznym.",
  "tour.matches.title": "Mecze silników",
- "tour.matches.text": "Mecze silników w pasku bocznym pozwalają silnikom grać ze sobą w Pomocniku: turniej każdy z każdym, gauntlet albo dwa silniki, aż SPRT rozstrzygnie. Debiuty pochodzą z książki, przegrane lub remisowe partie są adjudykowane, a każda partia trafia do biblioteki."
+ "tour.matches.text": "Mecze silników w pasku bocznym pozwalają silnikom grać ze sobą w Pomocniku: turniej każdy z każdym, gauntlet albo dwa silniki, aż SPRT rozstrzygnie. Debiuty pochodzą z książki, przegrane lub remisowe partie są adjudykowane, a każda partia trafia do biblioteki.",
+ "matches.resign": "Poddaj przegraną partię",
+ "matches.draw": "Uznaj wyrównaną partię za remis"
 }

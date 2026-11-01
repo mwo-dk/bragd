@@ -11,4 +11,4 @@ A Club is the people who play together: its members, their roles and IDs, and th
 The rating lists Bragd can fetch, and those it cannot, are in [Rating lists](../reference/rating-lists.md).
 
 ---
-[← Previous: Opening books](../engines/opening-books.md) · [Next: Clubs →](clubs.md)
+[← Previous: Engine matches](../engines/matches.md) · [Next: Clubs →](clubs.md)

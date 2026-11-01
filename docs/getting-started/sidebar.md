@@ -18,7 +18,7 @@ It is always on screen. What it holds:
 |---|---|
 | The wordmark | ᛒᚱᛅᚴᚦ and *Bragd*, Bragd's name in Younger Futhark |
 | A Family (with two or more on) | Click it to fold its items open or shut. The Family of the page you are on stays open |
-| Its items | Play, Analyse, Databases, Engines and Rules. Chess also has Tablebases and Opening books. Tafl, Ur and Senet have only Play, Databases and Rules, as they have no outside Engine |
+| Its items | Play, Analyse, Databases, Engines, Engine matches and Rules. Chess also has Tablebases and Opening books. Tafl, Ur and Senet have only Play, Databases and Rules, as they have no outside Engine |
 | Slices | Each [Slice](../knowledge/slices.md) of the Family shows under Databases. A Slice with no Family shows under every Family |
 | Clubs | Your Clubs, their members and ratings ([Clubs](../clubs/clubs.md)) |
 | Settings | Every setting, by area ([Every setting](../reference/settings.md)) |

@@ -916,11 +916,11 @@
  "matches.alpha": "Chance of a false H1 (α)",
  "matches.beta": "Chance of a false H0 (β)",
  "matches.adjudication": "Adjudication",
- "matches.resign_cp": "Resign when this many centipawns down",
- "matches.resign_moves": "for this many moves in a row",
- "matches.draw_cp": "Draw when within this many centipawns",
- "matches.draw_after": "from this move",
- "matches.draw_moves": "for this many moves of each engine",
+ "matches.resign_cp": "Centipawns down",
+ "matches.resign_moves": "Moves in a row",
+ "matches.draw_cp": "Centipawns from level, at most",
+ "matches.draw_after": "From move",
+ "matches.draw_moves": "Moves of each engine",
  "matches.max_moves": "Longest Game (moves)",
  "matches.tablebases": "End chess endgames by the tablebases",
  "matches.library": "Library",
@@ -951,5 +951,7 @@
  "feature.matches.a3": "Yes. The match runs in the Helper. If the Helper stops, the match goes on where it was when the Helper starts again.",
  "feature.matches.tip": "Find out which engine is stronger: Engine matches in the sidebar.",
  "tour.matches.title": "Engine matches",
- "tour.matches.text": "Engine matches in the sidebar lets engines play each other in the Helper: a round robin, a gauntlet, or two engines until the SPRT decides. Openings come from a book, lost or drawn Games are adjudicated, and every Game goes into a Library."
+ "tour.matches.text": "Engine matches in the sidebar lets engines play each other in the Helper: a round robin, a gauntlet, or two engines until the SPRT decides. Openings come from a book, lost or drawn Games are adjudicated, and every Game goes into a Library.",
+ "matches.resign": "Resign a lost Game",
+ "matches.draw": "Call a level Game a draw"
 }

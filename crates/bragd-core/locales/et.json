@@ -916,11 +916,11 @@
  "matches.alpha": "Vale H1 tõenäosus (α)",
  "matches.beta": "Vale H0 tõenäosus (β)",
  "matches.adjudication": "Adjudikatsioon",
- "matches.resign_cp": "Loovuta, kui on nii palju sentipawni taga",
- "matches.resign_moves": "nii mitme käigu jooksul järjest",
- "matches.draw_cp": "Viik, kui vahe on nii mitme sentipawni piires",
- "matches.draw_after": "sellest käigust alates",
- "matches.draw_moves": "iga Engine'i nii mitme käigu jooksul",
+ "matches.resign_cp": "Sentipawni taga",
+ "matches.resign_moves": "Käiku järjest",
+ "matches.draw_cp": "Sentipawni võrdsusest, kõige rohkem",
+ "matches.draw_after": "Alates käigust",
+ "matches.draw_moves": "Iga Engine'i käike",
  "matches.max_moves": "Pikim partii (käike)",
  "matches.tablebases": "Lõpeta lõpumängud lõpumängutabelitega",
  "matches.library": "Kogu",
@@ -951,5 +951,7 @@
  "feature.matches.a3": "Jah. Vastasseis käib abilises. Kui abiline peatub, läheb vastasseis edasi kohast, kus see oli, kui abiline uuesti käivitub.",
  "feature.matches.tip": "Selgita välja, milline Engine on tugevam: Engine'ite vastasseisud külgribal.",
  "tour.matches.title": "Engine'ite vastasseisud",
- "tour.matches.text": "Vastasseisud külgribal lasevad Engine'idel omavahel mängida abilises: igaüks igaühega, gauntlet või kaks Engine'i kuni SPRT otsuseni. Avamised tulevad raamatust, kaotatud või viigistatud partiid adjudikeeritakse ning iga partii läheb kogusse."
+ "tour.matches.text": "Vastasseisud külgribal lasevad Engine'idel omavahel mängida abilises: igaüks igaühega, gauntlet või kaks Engine'i kuni SPRT otsuseni. Avamised tulevad raamatust, kaotatud või viigistatud partiid adjudikeeritakse ning iga partii läheb kogusse.",
+ "matches.resign": "Loovuta kaotatud partii",
+ "matches.draw": "Lugeda viigiks võrdne partii"
 }

@@ -913,11 +913,11 @@
  "matches.alpha": "잘못된 H1의 확률 (α)",
  "matches.beta": "잘못된 H0의 확률 (β)",
  "matches.adjudication": "판정",
- "matches.resign_cp": "이만큼의 센티폰 뒤처지면 기권",
- "matches.resign_moves": "이만큼의 수 연속으로",
- "matches.draw_cp": "이 센티폰 이내이면 무승부",
+ "matches.resign_cp": "센티폰 뒤질 때",
+ "matches.resign_moves": "연속 수",
+ "matches.draw_cp": "동등에서 센티폰 이내, 최대",
  "matches.draw_after": "이 수부터",
- "matches.draw_moves": "각 엔진이 이만큼 두는 동안",
+ "matches.draw_moves": "각 엔진의 수",
  "matches.max_moves": "최장 대국 (수)",
  "matches.tablebases": "체스 잔국은 테이블베이스로 끝내기",
  "matches.library": "라이브러리",
@@ -948,5 +948,7 @@
  "feature.matches.a3": "네. 대국은 헬퍼에서 돕니다. 헬퍼가 멈추면, 헬퍼가 다시 시작할 때 멈췄던 자리에서 대국이 이어집니다.",
  "feature.matches.tip": "어느 엔진이 강한지 알아보세요: 사이드바의 엔진 대결.",
  "tour.matches.title": "엔진 대결",
- "tour.matches.text": "사이드바의 엔진 대결은 헬퍼에서 엔진끼리 대국하게 합니다. 리그전, 건틀릿, 또는 SPRT가 결정할 때까지 두 엔진이 둡니다. 오프닝은 북에서 가져오고, 진 대국이나 무승부 대국은 판정하며, 모든 대국은 라이브러리에 들어갑니다."
+ "tour.matches.text": "사이드바의 엔진 대결은 헬퍼에서 엔진끼리 대국하게 합니다. 리그전, 건틀릿, 또는 SPRT가 결정할 때까지 두 엔진이 둡니다. 오프닝은 북에서 가져오고, 진 대국이나 무승부 대국은 판정하며, 모든 대국은 라이브러리에 들어갑니다.",
+ "matches.resign": "진 대국 기권",
+ "matches.draw": "동등한 대국 무승부 판정"
 }

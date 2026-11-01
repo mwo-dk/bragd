@@ -919,11 +919,11 @@
  "matches.alpha": "Klaidingo H1 tikimybė (α)",
  "matches.beta": "Klaidingo H0 tikimybė (β)",
  "matches.adjudication": "Rezultato nustatymas",
- "matches.resign_cp": "Pasiduoti, kai atsilieka tiek centipawn’ų",
- "matches.resign_moves": "tiek ėjimų iš eilės",
- "matches.draw_cp": "Remis, kai atotrūkis ne didesnis nei tiek centipawn’ų",
- "matches.draw_after": "nuo šio ėjimo",
- "matches.draw_moves": "tiek kiekvieno variklio ėjimų",
+ "matches.resign_cp": "Centipawn’ų atsilikimas",
+ "matches.resign_moves": "Ėjimų iš eilės",
+ "matches.draw_cp": "Centipawn’ų nuo lygybės, daugiausia",
+ "matches.draw_after": "Nuo ėjimo",
+ "matches.draw_moves": "Kiekvieno variklio ėjimų",
  "matches.max_moves": "Ilgiausia partija (ėjimai)",
  "matches.tablebases": "Galūnes baigti pagal galūnių bazes",
  "matches.library": "Biblioteka",
@@ -954,5 +954,7 @@
  "feature.matches.a3": "Taip. Varžybos vyksta Pagalbininke. Jei Pagalbininkas sustoja, varžybos tęsiasi nuo tos vietos, kur buvo, kai jis vėl paleidžiamas.",
  "feature.matches.tip": "Sužinokite, kuris variklis stipresnis: Variklių varžybos šoninėje juostoje.",
  "tour.matches.title": "Variklių varžybos",
- "tour.matches.text": "Šoninės juostos variklių varžybos leidžia varikliams žaisti tarpusavyje Pagalbininke: visi su visais, gauntletas arba du varikliai, kol SPRT nuspręs. Pradžios ateina iš knygos, pralaimėtos ar lygiosios partijos įvertinamos, o kiekviena partija patenka į biblioteką."
+ "tour.matches.text": "Šoninės juostos variklių varžybos leidžia varikliams žaisti tarpusavyje Pagalbininke: visi su visais, gauntletas arba du varikliai, kol SPRT nuspręs. Pradžios ateina iš knygos, pralaimėtos ar lygiosios partijos įvertinamos, o kiekviena partija patenka į biblioteką.",
+ "matches.resign": "Pasiduoti pralaimimo partijoje",
+ "matches.draw": "Lygią partiją skelbti remisu"
 }

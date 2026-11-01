@@ -919,11 +919,11 @@
  "matches.alpha": "Probabilidad de un H1 falso (α)",
  "matches.beta": "Probabilidad de un H0 falso (β)",
  "matches.adjudication": "Adjudicación",
- "matches.resign_cp": "Abandonar cuando esté esta cantidad de centipeones abajo",
- "matches.resign_moves": "durante esta cantidad de jugadas seguidas",
- "matches.draw_cp": "Tablas cuando esté dentro de esta cantidad de centipeones",
- "matches.draw_after": "desde esta jugada",
- "matches.draw_moves": "durante esta cantidad de jugadas de cada motor",
+ "matches.resign_cp": "Centipeones abajo",
+ "matches.resign_moves": "Jugadas seguidas",
+ "matches.draw_cp": "Centipeones de igualdad, como máximo",
+ "matches.draw_after": "Desde la jugada",
+ "matches.draw_moves": "Jugadas de cada motor",
  "matches.max_moves": "Partida más larga (jugadas)",
  "matches.tablebases": "Terminar los finales con las tablas de finales",
  "matches.library": "Biblioteca",
@@ -954,5 +954,7 @@
  "feature.matches.a3": "Sí. El enfrentamiento corre en el ayudante. Si el ayudante se detiene, el enfrentamiento sigue desde donde estaba cuando el ayudante vuelve a arrancar.",
  "feature.matches.tip": "Descubrí qué motor es más fuerte: Enfrentamientos en la barra lateral.",
  "tour.matches.title": "Enfrentamientos de motores",
- "tour.matches.text": "Enfrentamientos en la barra lateral deja que los motores jueguen entre sí en el ayudante: todos contra todos, un gauntlet, o dos motores hasta que la SPRT decida. Las aperturas salen de un libro, las partidas perdidas o empatadas se adjudican, y cada partida va a una biblioteca."
+ "tour.matches.text": "Enfrentamientos en la barra lateral deja que los motores jueguen entre sí en el ayudante: todos contra todos, un gauntlet, o dos motores hasta que la SPRT decida. Las aperturas salen de un libro, las partidas perdidas o empatadas se adjudican, y cada partida va a una biblioteca.",
+ "matches.resign": "Abandonar una partida perdida",
+ "matches.draw": "Declarar tablas una partida igualada"
 }

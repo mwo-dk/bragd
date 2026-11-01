@@ -919,11 +919,11 @@
  "matches.alpha": "Šance na falešné H1 (α)",
  "matches.beta": "Šance na falešné H0 (β)",
  "matches.adjudication": "Adjudikace",
- "matches.resign_cp": "Vzdát, když je o tolik centipawnů hůř",
- "matches.resign_moves": "tolik tahů po sobě",
- "matches.draw_cp": "Remíza, když je rozdíl do tolika centipawnů",
- "matches.draw_after": "od tohoto tahu",
- "matches.draw_moves": "po tolik tahů každého enginu",
+ "matches.resign_cp": "Centipawnů dole",
+ "matches.resign_moves": "Tahů po sobě",
+ "matches.draw_cp": "Centipawnů od vyrovnání, nejvýše",
+ "matches.draw_after": "Od tahu",
+ "matches.draw_moves": "Tahů každého enginu",
  "matches.max_moves": "Nejdelší partie (tahů)",
  "matches.tablebases": "Dohrát koncovky podle tablebází",
  "matches.library": "Knihovna",
@@ -954,5 +954,7 @@
  "feature.matches.a3": "Ano. Zápas běží v Pomocníkovi. Když se Pomocník zastaví, zápas pokračuje tam, kde byl, až se Pomocník znovu spustí.",
  "feature.matches.tip": "Zjistěte, který engine je silnější: Zápasy v postranním panelu.",
  "tour.matches.title": "Zápasy enginů",
- "tour.matches.text": "Zápasy v postranním panelu nechají enginy hrát proti sobě v Pomocníkovi: každý s každým, gauntlet, nebo dva enginy, dokud SPRT nerozhodne. Zahájení jdou z knihy, prohrané nebo remízové partie se adjudikují a každá partie jde do knihovny."
+ "tour.matches.text": "Zápasy v postranním panelu nechají enginy hrát proti sobě v Pomocníkovi: každý s každým, gauntlet, nebo dva enginy, dokud SPRT nerozhodne. Zahájení jdou z knihy, prohrané nebo remízové partie se adjudikují a každá partie jde do knihovny.",
+ "matches.resign": "Vzdát prohranou partii",
+ "matches.draw": "Uznat vyrovnanou partii za remízu"
 }

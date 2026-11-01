@@ -916,11 +916,11 @@
  "matches.alpha": "Kans op een valse H1 (α)",
  "matches.beta": "Kans op een valse H0 (β)",
  "matches.adjudication": "Adjudicatie",
- "matches.resign_cp": "Opgeven bij zoveel centipawn achterstand",
- "matches.resign_moves": "zoveel zetten achter elkaar",
- "matches.draw_cp": "Remise binnen zoveel centipawn",
- "matches.draw_after": "vanaf deze zet",
- "matches.draw_moves": "zoveel zetten per engine",
+ "matches.resign_cp": "Centipawn achterstand",
+ "matches.resign_moves": "Zetten achter elkaar",
+ "matches.draw_cp": "Centipawn van gelijkstand, hoogstens",
+ "matches.draw_after": "Vanaf zet",
+ "matches.draw_moves": "Zetten per engine",
  "matches.max_moves": "Langste partij (zetten)",
  "matches.tablebases": "Eindspellen beëindigen met de eindspeltabellen",
  "matches.library": "Bibliotheek",
@@ -951,5 +951,7 @@
  "feature.matches.a3": "Ja. De wedstrijd draait in de helper. Stopt de helper, dan gaat de wedstrijd verder waar hij was als de helper weer start.",
  "feature.matches.tip": "Ontdek welke engine sterker is: Enginewedstrijden in de zijbalk.",
  "tour.matches.title": "Enginewedstrijden",
- "tour.matches.text": "Enginewedstrijden in de zijbalk laat engines tegen elkaar spelen in de helper: een round robin, een gauntlet, of twee engines tot de SPRT beslist. Openingen komen uit een boek, verloren of remise partijen worden geadjudiceerd, en elke partij gaat naar een bibliotheek."
+ "tour.matches.text": "Enginewedstrijden in de zijbalk laat engines tegen elkaar spelen in de helper: een round robin, een gauntlet, of twee engines tot de SPRT beslist. Openingen komen uit een boek, verloren of remise partijen worden geadjudiceerd, en elke partij gaat naar een bibliotheek.",
+ "matches.resign": "Opgeven bij een verloren partij",
+ "matches.draw": "Gelijke partij als remise bestempelen"
 }

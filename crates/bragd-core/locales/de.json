@@ -916,11 +916,11 @@
  "matches.alpha": "Wahrscheinlichkeit eines falschen H1 (α)",
  "matches.beta": "Wahrscheinlichkeit eines falschen H0 (β)",
  "matches.adjudication": "Abbruchwertung",
- "matches.resign_cp": "Aufgeben bei so vielen Centipawns Rückstand",
- "matches.resign_moves": "so viele Züge hintereinander",
- "matches.draw_cp": "Remis bei höchstens so vielen Centipawns",
- "matches.draw_after": "ab diesem Zug",
- "matches.draw_moves": "so viele Züge jeder Engine",
+ "matches.resign_cp": "Centipawns Rückstand",
+ "matches.resign_moves": "Züge hintereinander",
+ "matches.draw_cp": "Centipawns Abstand höchstens",
+ "matches.draw_after": "Ab Zug",
+ "matches.draw_moves": "Züge jeder Engine",
  "matches.max_moves": "Längste Partie (Züge)",
  "matches.tablebases": "Schachendspiele nach den Endspieltabellen werten",
  "matches.library": "Bibliothek",
@@ -951,5 +951,7 @@
  "feature.matches.a3": "Ja. Der Wettkampf läuft im Helfer. Hält der Helfer an, geht der Wettkampf beim nächsten Start dort weiter, wo er war.",
  "feature.matches.tip": "Finden Sie heraus, welche Engine stärker ist: Engine-Wettkämpfe in der Seitenleiste.",
  "tour.matches.title": "Engine-Wettkämpfe",
- "tour.matches.text": "Unter Engine-Wettkämpfe in der Seitenleiste spielen Engines im Helfer gegeneinander: ein Rundenturnier, ein Gauntlet oder zwei Engines, bis der SPRT entscheidet. Eröffnungen kommen aus einem Buch, verlorene oder remise Partien werden abgebrochen und gewertet, und jede Partie kommt in eine Bibliothek."
+ "tour.matches.text": "Unter Engine-Wettkämpfe in der Seitenleiste spielen Engines im Helfer gegeneinander: ein Rundenturnier, ein Gauntlet oder zwei Engines, bis der SPRT entscheidet. Eröffnungen kommen aus einem Buch, verlorene oder remise Partien werden abgebrochen und gewertet, und jede Partie kommt in eine Bibliothek.",
+ "matches.resign": "Verlorene Partie aufgeben",
+ "matches.draw": "Ausgeglichene Partie als Remis werten"
 }
