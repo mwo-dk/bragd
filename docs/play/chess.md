@@ -19,14 +19,17 @@ The chess Family has eight Variants on one sidebar item. All use the Cburnett pi
 | Seirawan chess | `seirawan` | 8×8 | A hawk and an elephant in hand, gated in on a vacated back-rank square |
 | Capablanca chess | `capablanca` | 10×8 | Archbishop and chancellor; the king castles three squares |
 
+<!-- screenshot: play-seirawan-1100.png: Seirawan chess in Play, the bar's button reading Play on Lichess -->
 ![Seirawan chess: the hawk and the elephant in each Side's tray above and below the board](../screenshots/play-seirawan-1100.png)
 
 *Seirawan chess: the pieces in hand sit in the trays.*
 
+<!-- screenshot: play-capablanca-1100.png: Capablanca chess in Play, the bar's button reading Play on Lichess -->
 ![Capablanca chess on its ten-file board](../screenshots/play-capablanca-1100.png)
 
 *Capablanca chess, 10×8.*
 
+<!-- screenshot: play-shatranj-1100.png: Shatranj in Play, the bar's button reading Play on Lichess -->
 ![Shatranj with its ferz and alfil](../screenshots/play-shatranj-1100.png)
 
 *Shatranj.*

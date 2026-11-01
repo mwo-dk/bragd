@@ -157,7 +157,10 @@ def screens():
     out += [
         ("analyse-chess", lambda d: item(d, "chess", "Analyse")),
         # Signed out: no server is asked (the sandbox has no keychain and no token).
-        ("online-chess", lambda d: (item(d, "chess", "Play"), tab(d, "Play online"))),
+        ("online-chess", lambda d: (item(d, "chess", "Play"), tab(d, "Play on Lichess"))),
+        ("online-shogi", lambda d: (item(d, "shogi", "Play"), tab(d, "Play on Lishogi"))),
+        # OGS before Bragd is registered with it: the notice and the link instead of the sign-in.
+        ("online-go", lambda d: (item(d, "go", "Play"), tab(d, "Play on OGS"))),
         ("databases", lambda d: item(d, "chess", "Databases")),
         ("libraries", lambda d: (item(d, "chess", "Databases"), tab(d, "Libraries"))),
         ("sources", lambda d: (item(d, "chess", "Databases"), tab(d, "Sources"))),

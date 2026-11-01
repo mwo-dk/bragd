@@ -1,12 +1,17 @@
-//! A Lichess Game as the Board API streams it (`gameFull`, then `gameState` after each move),
-//! turned into what Bragd needs: its Variant, its record as entries, the clocks, the offers and
-//! whether it is over. Pure: no network here.
+//! A Game as the Board API streams it (`gameFull`, then `gameState` after each move), turned
+//! into what Bragd needs: its Variant, its record as entries, the clocks, the offers and whether
+//! it is over. Lichess's words are the model: White is the seat that moves first. Lishogi's
+//! lines are turned into them first ([`from_lishogi`]). Pure: no network here.
 
 use serde::Deserialize;
+use serde_json::Value;
 
-/// Lichess's Variant keys and Bragd's, for the Variants Bragd has the rules of. Lichess's
-/// `fromPosition` is standard chess from a set-up position.
-pub const VARIANTS: [(&str, &str); 5] = [
+/// A server's Variant keys and Bragd's, for the Variants Bragd has the rules of.
+pub type Variants = &'static [(&'static str, &'static str)];
+
+/// Lichess's. `fromPosition` is standard chess from a set-up position. Bragd has no rules for
+/// crazyhouse, atomic, antichess, horde or three-check.
+pub const LICHESS: Variants = &[
     ("standard", "chess"),
     ("chess960", "chess960"),
     ("kingOfTheHill", "kingofthehill"),
@@ -14,19 +19,66 @@ pub const VARIANTS: [(&str, &str); 5] = [
     ("fromPosition", "chess"),
 ];
 
-/// Bragd's Variant key for Lichess's `key`; none where Bragd has no rules for it (crazyhouse,
-/// atomic, antichess, horde, three-check).
-pub fn variant(key: &str) -> Option<&'static str> {
-    VARIANTS.iter().find(|(lichess, _)| *lichess == key).map(|&(_, bragd)| bragd)
+/// Lishogi's. Bragd has no rules for minishogi, chushogi, annanshogi, kyotoshogi, checkshogi or
+/// dobutsu.
+pub const LISHOGI: Variants = &[("standard", "shogi")];
+
+/// Bragd's Variant key for the server's `key`; none where Bragd has no rules for it.
+pub fn variant(variants: Variants, key: &str) -> Option<&'static str> {
+    variants.iter().find(|(theirs, _)| *theirs == key).map(|&(_, bragd)| bragd)
 }
 
-/// Lichess's Variant key for Bragd's `key`, for a seek or a challenge; `fromPosition` is never
-/// asked for.
-pub fn lichess_variant(key: &str) -> Option<&'static str> {
-    VARIANTS.iter().find(|(lichess, bragd)| *bragd == key && *lichess != "fromPosition").map(|&(lichess, _)| lichess)
+/// The server's Variant key for Bragd's `key`, for a seek or a challenge; Lichess's
+/// `fromPosition` is never asked for.
+pub fn server_variant(variants: Variants, key: &str) -> Option<&'static str> {
+    variants.iter().find(|(theirs, bragd)| *bragd == key && *theirs != "fromPosition").map(|&(theirs, _)| theirs)
 }
 
-/// A Player as Lichess names them: an account, or Lichess's own engine (`aiLevel`).
+/// Bragd's Variants the server plays, each once.
+pub fn bragd_variants(variants: Variants) -> Vec<&'static str> {
+    let mut out: Vec<&'static str> = vec![];
+    for &(_, b) in variants {
+        if !out.contains(&b) {
+            out.push(b);
+        }
+    }
+    out
+}
+
+/// A Lishogi line in Lichess's words. Sente moves first, so it is White here; Lishogi's own
+/// `white` and `black` are old names for sente and gote and are replaced. Its `btime` is
+/// sente's, so the two clocks swap, as do the winner and the draw offers (`sdraw`, `gdraw`).
+pub fn from_lishogi(v: &mut Value) {
+    let Some(o) = v.as_object_mut() else { return };
+    for (from, to) in [("sente", "white"), ("gote", "black")] {
+        if let Some(p) = o.remove(from) {
+            o.insert(to.into(), p);
+        }
+    }
+    if let Some(sfen) = o.remove("initialSfen") {
+        o.insert("initialFen".into(), sfen);
+    }
+    if let Some(state) = o.get_mut("state") {
+        from_lishogi(state);
+    }
+    if o.get("type").and_then(Value::as_str) == Some("gameState") {
+        let (sente, gote) = (o.remove("btime"), o.remove("wtime"));
+        sente.map(|t| o.insert("wtime".into(), t));
+        gote.map(|t| o.insert("btime".into(), t));
+        let (s, g) = (o.remove("sdraw"), o.remove("gdraw"));
+        s.map(|d| o.insert("wdraw".into(), d));
+        g.map(|d| o.insert("bdraw".into(), d));
+        if let Some(w) = o.get_mut("winner") {
+            *w = match w.as_str() {
+                Some("sente") => "white".into(),
+                Some("gote") => "black".into(),
+                _ => Value::Null,
+            };
+        }
+    }
+}
+
+/// A Player as the server names them: an account, or the server's own engine (`aiLevel`).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
 #[serde(default)]
 pub struct Player {
@@ -57,6 +109,8 @@ pub struct GameState {
     pub btime: u64,
     pub winc: u64,
     pub binc: u64,
+    /// Lishogi's byoyomi in milliseconds: each move's time once the main time is spent.
+    pub byo: u64,
     /// `created`, `started`, `aborted`, `mate`, `resign`, `stalemate`, `timeout`, `draw`,
     /// `outoftime`, `cheat`, `noStart`, `unknownFinish`, `variantEnd` …
     pub status: String,
@@ -91,7 +145,7 @@ pub struct GameFull {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Live {
     pub id: String,
-    /// Lichess's name of its Variant, for one Bragd has no rules for.
+    /// The server's name of its Variant, for one Bragd has no rules for.
     pub variant_name: String,
     /// Bragd's Variant key; none when Bragd has no rules for it.
     pub variant: Option<&'static str>,
@@ -107,15 +161,16 @@ pub struct Live {
 }
 
 impl Live {
-    /// The Game of `full`, for the user whose Lichess id is `me` (any case).
-    pub fn from_full(full: GameFull, me: &str) -> Live {
+    /// The Game of `full`, for the user whose id is `me` (any case), with the server's
+    /// `variants`.
+    pub fn from_full(full: GameFull, me: &str, variants: Variants) -> Live {
         let is_me = |id: &str| !me.is_empty() && id.eq_ignore_ascii_case(me);
         let seat = if is_me(&full.white.id) { Some(0) } else if is_me(&full.black.id) { Some(1) } else { None };
         let initial = Some(full.initial_fen).filter(|fen| !fen.is_empty() && fen != "startpos");
         Live {
             id: full.id,
             variant_name: full.variant.name,
-            variant: variant(&full.variant.key),
+            variant: variant(variants, &full.variant.key),
             initial,
             rated: full.rated,
             speed: full.speed,
@@ -131,7 +186,8 @@ impl Live {
         self.state = state;
     }
 
-    /// The moves so far, as Bragd's entries (UCI, which Bragd's chess entries are).
+    /// The moves so far, as Bragd's entries: UCI for chess and USI for shogi, which Bragd's
+    /// entries are.
     pub fn entries(&self) -> Vec<String> {
         self.state.moves.split_whitespace().map(str::to_owned).collect()
     }
@@ -205,22 +261,22 @@ mod tests {
 
     #[test]
     fn game_variants_map_both_ways() {
-        assert_eq!(variant("standard"), Some("chess"));
-        assert_eq!(variant("chess960"), Some("chess960"));
-        assert_eq!(variant("kingOfTheHill"), Some("kingofthehill"));
-        assert_eq!(variant("racingKings"), Some("racingkings"));
-        assert_eq!(variant("fromPosition"), Some("chess"));
-        assert_eq!(variant("crazyhouse"), None);
-        assert_eq!(variant("atomic"), None);
-        assert_eq!(lichess_variant("chess"), Some("standard"), "never fromPosition");
-        assert_eq!(lichess_variant("racingkings"), Some("racingKings"));
-        assert_eq!(lichess_variant("shogi"), None);
-        assert_eq!(lichess_variant("seirawan"), None);
+        assert_eq!(variant(LICHESS, "standard"), Some("chess"));
+        assert_eq!(variant(LICHESS, "chess960"), Some("chess960"));
+        assert_eq!(variant(LICHESS, "kingOfTheHill"), Some("kingofthehill"));
+        assert_eq!(variant(LICHESS, "racingKings"), Some("racingkings"));
+        assert_eq!(variant(LICHESS, "fromPosition"), Some("chess"));
+        assert_eq!(variant(LICHESS, "crazyhouse"), None);
+        assert_eq!(variant(LICHESS, "atomic"), None);
+        assert_eq!(server_variant(LICHESS, "chess"), Some("standard"), "never fromPosition");
+        assert_eq!(server_variant(LICHESS, "racingkings"), Some("racingKings"));
+        assert_eq!(server_variant(LICHESS, "shogi"), None);
+        assert_eq!(server_variant(LICHESS, "seirawan"), None);
     }
 
     #[test]
     fn game_full_gives_the_record_seat_and_opponent() {
-        let g = Live::from_full(full(RATED), "BragdTester");
+        let g = Live::from_full(full(RATED), "BragdTester", LICHESS);
         assert_eq!(g.id, "abcd1234");
         assert_eq!(g.variant, Some("chess"));
         assert_eq!(g.initial, None, "startpos is the Variant's own start");
@@ -230,10 +286,10 @@ mod tests {
         assert!(g.rated && g.against_person() && !g.over());
         assert_eq!(g.offered(), (true, false), "White, the opponent, offers a draw");
         assert_eq!(g.offering(), (false, false));
-        let w = Live::from_full(full(RATED), "anna");
+        let w = Live::from_full(full(RATED), "anna", LICHESS);
         assert_eq!((w.seat, w.opponent().name.as_str()), (Some(0), "BragdTester"));
         assert_eq!(w.offering(), (true, false));
-        assert_eq!(Live::from_full(full(RATED), "someoneelse").seat, None);
+        assert_eq!(Live::from_full(full(RATED), "someoneelse", LICHESS).seat, None);
     }
 
     #[test]
@@ -242,28 +298,28 @@ mod tests {
             .replace(r#""key":"standard""#, r#""key":"chess960""#)
             .replace("startpos", "bqnrkrnb/pppppppp/8/8/8/8/PPPPPPPP/BQNRKRNB w KQkq - 0 1")
             .replace("e2e4 c7c5 g1f3", "");
-        let g = Live::from_full(full(&json), "anna");
+        let g = Live::from_full(full(&json), "anna", LICHESS);
         assert_eq!(g.variant, Some("chess960"));
         assert_eq!(g.initial.as_deref(), Some("bqnrkrnb/pppppppp/8/8/8/8/PPPPPPPP/BQNRKRNB w KQkq - 0 1"));
         assert!(g.entries().is_empty(), "no moves: no entries, not one empty entry");
-        let odd = Live::from_full(full(&RATED.replace(r#""key":"standard","name":"Standard""#, r#""key":"crazyhouse","name":"Crazyhouse""#)), "anna");
+        let odd = Live::from_full(full(&RATED.replace(r#""key":"standard","name":"Standard""#, r#""key":"crazyhouse","name":"Crazyhouse""#)), "anna", LICHESS);
         assert_eq!((odd.variant, odd.variant_name.as_str()), (None, "Crazyhouse"));
     }
 
     #[test]
     fn game_against_an_engine_or_a_bot_is_not_against_a_person() {
         let ai = RATED.replace(r#"{"id":"anna","name":"Anna","title":null,"rating":1712,"provisional":false}"#, r#"{"aiLevel":3}"#);
-        let g = Live::from_full(full(&ai), "bragdtester");
+        let g = Live::from_full(full(&ai), "bragdtester", LICHESS);
         assert!(!g.against_person());
         let bot = RATED.replace(r#""title":null"#, r#""title":"BOT""#);
-        assert!(!Live::from_full(full(&bot), "bragdtester").against_person());
+        assert!(!Live::from_full(full(&bot), "bragdtester", LICHESS).against_person());
         let gm = RATED.replace(r#""title":null"#, r#""title":"GM""#);
-        assert!(Live::from_full(full(&gm), "bragdtester").against_person());
+        assert!(Live::from_full(full(&gm), "bragdtester", LICHESS).against_person());
     }
 
     #[test]
     fn game_clock_runs_for_the_side_to_move_after_both_first_moves() {
-        let mut g = Live::from_full(full(RATED), "bragdtester");
+        let mut g = Live::from_full(full(RATED), "bragdtester", LICHESS);
         // Three moves: Black to move, and Black's clock runs.
         assert_eq!(g.running(), Some(1));
         assert_eq!(g.clocks(1500), [590000, 598500]);
@@ -281,9 +337,52 @@ mod tests {
 
     #[test]
     fn game_takeback_offers_by_side() {
-        let mut g = Live::from_full(full(RATED), "bragdtester");
+        let mut g = Live::from_full(full(RATED), "bragdtester", LICHESS);
         g.update(GameState { moves: "e2e4".into(), status: "started".into(), btakeback: true, wtakeback: false, ..Default::default() });
         assert_eq!(g.offering(), (false, true));
         assert_eq!(g.offered(), (false, false));
+    }
+}
+
+#[cfg(test)]
+mod lishogi {
+    use super::*;
+
+    /// Built from Lishogi's code (`BotJsonView`): sente and gote, with the old names `white`
+    /// (sente) and `black` (gote) beside them, `initialSfen`, and sente's clock in `btime`.
+    const FULL: &str = r#"{"id":"abcd1234","variant":{"key":"standard","name":"Standard"},"clock":{"initial":600000,"increment":0,"byoyomi":30000,"periods":1},"speed":"classical","rated":true,
+        "sente":{"id":"alice","name":"Alice","rating":1500},"white":{"id":"alice","name":"Alice","rating":1500},
+        "gote":{"id":"bob","name":"Bob","rating":1480},"black":{"id":"bob","name":"Bob","rating":1480},
+        "initialSfen":"startpos","initialFen":"startpos","type":"gameFull",
+        "state":{"type":"gameState","moves":"7g7f 3c3d 2g2f","btime":598000,"wtime":600000,"binc":0,"winc":0,"byo":30000,"sdraw":false,"gdraw":true,"status":"started"}}"#;
+
+    fn live(json: &str, me: &str) -> Live {
+        let mut v: Value = serde_json::from_str(json).unwrap();
+        from_lishogi(&mut v);
+        Live::from_full(serde_json::from_value(v).unwrap(), me, LISHOGI)
+    }
+
+    #[test]
+    fn lishogi_sente_is_the_first_seat_with_its_own_clock() {
+        let g = live(FULL, "alice");
+        assert_eq!((g.seat, g.variant, g.initial.as_deref()), (Some(0), Some("shogi"), None));
+        assert_eq!(g.entries(), ["7g7f", "3c3d", "2g2f"]);
+        assert_eq!(g.opponent().name, "Bob");
+        assert_eq!((g.state.wtime, g.state.btime, g.state.byo), (598000, 600000, 30000), "sente's clock is the first seat's");
+        assert_eq!(g.offered(), (true, false), "gote offers a draw");
+        assert_eq!(live(FULL, "bob").seat, Some(1));
+    }
+
+    #[test]
+    fn lishogi_winner_and_handicap_start() {
+        let mut st: Value = serde_json::from_str(r#"{"type":"gameState","moves":"","status":"resign","winner":"gote","btime":1,"wtime":2}"#).unwrap();
+        from_lishogi(&mut st);
+        let st: GameState = serde_json::from_value(st).unwrap();
+        assert_eq!((st.winner.as_deref(), st.wtime, st.btime), (Some("black"), 1, 2));
+        let sfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/7R1/LNSGKGSNL w - 1";
+        let g = live(&FULL.replace(r#""initialSfen":"startpos""#, &format!(r#""initialSfen":"{sfen}""#)), "alice");
+        assert_eq!(g.initial.as_deref(), Some(sfen), "a handicap starts from its SFEN");
+        assert_eq!(server_variant(LISHOGI, "shogi"), Some("standard"));
+        assert_eq!(variant(LISHOGI, "minishogi"), None);
     }
 }

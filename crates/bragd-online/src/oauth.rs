@@ -13,10 +13,18 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use bragd_core::t;
 use sha2::{Digest, Sha256};
 
-/// Bragd's name with Lichess, which needs no registration.
-pub const CLIENT_ID: &str = "bragd";
-/// Playing Games through the Board API, and reading and making challenges.
-pub const SCOPES: &str = "board:play challenge:read challenge:write";
+/// How a server signs a client in: its pages, Bragd's name there, and what Bragd asks for.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Oauth {
+    /// The sign-in page, after the server's address: `/oauth`.
+    pub authorize: &'static str,
+    /// Where a code is swapped for a token: `/api/token`.
+    pub token: &'static str,
+    /// Bragd's name there.
+    pub client_id: &'static str,
+    /// What Bragd asks to do, separated by spaces.
+    pub scopes: &'static str,
+}
 
 /// One sign-in's secrets: the verifier, its SHA-256 sent as the challenge, and the state that
 /// ties the browser's answer to this sign-in.
@@ -75,12 +83,14 @@ pub(crate) fn decode(s: &str) -> String {
 }
 
 /// The server's sign-in page for `pkce`, coming back to `redirect`.
-pub fn authorize_url(base: &str, redirect: &str, pkce: &Pkce) -> String {
+pub fn authorize_url(o: &Oauth, base: &str, redirect: &str, pkce: &Pkce) -> String {
     format!(
-        "{}/oauth?response_type=code&client_id={CLIENT_ID}&redirect_uri={}&scope={}&code_challenge_method=S256&code_challenge={}&state={}",
+        "{}{}?response_type=code&client_id={}&redirect_uri={}&scope={}&code_challenge_method=S256&code_challenge={}&state={}",
         base.trim_end_matches('/'),
+        o.authorize,
+        encode(o.client_id),
         encode(redirect),
-        encode(SCOPES),
+        encode(o.scopes),
         pkce.challenge,
         pkce.state
     )
@@ -93,16 +103,19 @@ pub struct Loopback {
 }
 
 impl Loopback {
-    pub fn bind() -> Result<Loopback, String> {
-        let listener = TcpListener::bind(("127.0.0.1", 0)).map_err(|e| t!("online.error.unreachable", "why" => e))?;
-        listener.set_nonblocking(true).map_err(|e| t!("online.error.unreachable", "why" => e))?;
-        let port = listener.local_addr().map_err(|e| t!("online.error.unreachable", "why" => e))?.port();
+    /// Listens on `port`, or on any free one for 0. A server that knows its clients' redirects
+    /// beforehand (OGS) needs the one it was told.
+    pub fn bind(port: u16) -> Result<Loopback, String> {
+        let listener = TcpListener::bind(("127.0.0.1", port)).map_err(|e| t!("online.error.loopback", "why" => e))?;
+        listener.set_nonblocking(true).map_err(|e| t!("online.error.loopback", "why" => e))?;
+        let port = listener.local_addr().map_err(|e| t!("online.error.loopback", "why" => e))?.port();
         Ok(Loopback { listener, redirect: format!("http://127.0.0.1:{port}/") })
     }
 
-    /// The code the browser brings back with `state`, within `limit`. Stops when `stop` is set.
-    /// A request without that state (a favicon, another page) is answered and ignored.
-    pub fn wait(&self, state: &str, stop: &AtomicBool, limit: Duration) -> Result<String, String> {
+    /// The code the browser brings back from `server` with `state`, within `limit`. Stops when
+    /// `stop` is set. A request without that state (a favicon, another page) is answered and
+    /// ignored.
+    pub fn wait(&self, server: &str, state: &str, stop: &AtomicBool, limit: Duration) -> Result<String, String> {
         let end = Instant::now() + limit;
         while Instant::now() < end {
             if stop.load(Ordering::Relaxed) {
@@ -110,12 +123,12 @@ impl Loopback {
             }
             match self.listener.accept() {
                 Ok((conn, _)) => {
-                    if let Some(answer) = answer(conn, state) {
+                    if let Some(answer) = answer(conn, server, state) {
                         return answer;
                     }
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => std::thread::sleep(Duration::from_millis(100)),
-                Err(e) => return Err(t!("online.error.unreachable", "why" => e)),
+                Err(e) => return Err(t!("online.error.loopback", "why" => e)),
             }
         }
         Err(t!("online.error.timeout"))
@@ -124,7 +137,7 @@ impl Loopback {
 
 /// Reads one request from the browser and answers it with a short page. The code when it
 /// carries `state`, the server's refusal when it says so, none for anything else.
-fn answer(conn: TcpStream, state: &str) -> Option<Result<String, String>> {
+fn answer(conn: TcpStream, server: &str, state: &str) -> Option<Result<String, String>> {
     let _ = conn.set_nonblocking(false);
     let _ = conn.set_read_timeout(Some(Duration::from_secs(5)));
     let mut line = String::new();
@@ -137,7 +150,7 @@ fn answer(conn: TcpStream, state: &str) -> Option<Result<String, String>> {
     } else if let Some(code) = param("code").filter(|c| !c.is_empty()) {
         Some(Ok(code))
     } else {
-        Some(Err(t!("online.error.denied")))
+        Some(Err(t!("online.error.denied", "server" => server)))
     };
     let text = match &result {
         Some(Ok(_)) => t!("online.browser_done"),
@@ -154,18 +167,18 @@ fn html(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
-/// The token the server gives for `code`, proven by the verifier.
-pub fn exchange(agent: &ureq::Agent, base: &str, code: &str, pkce: &Pkce, redirect: &str) -> Result<String, String> {
-    let url = format!("{}/api/token", base.trim_end_matches('/'));
+/// The token `server` gives for `code`, proven by the verifier.
+pub fn exchange(server: &'static crate::server::Server, o: &Oauth, agent: &ureq::Agent, base: &str, code: &str, pkce: &Pkce, redirect: &str) -> Result<String, String> {
+    let url = format!("{}{}", base.trim_end_matches('/'), o.token);
     let form = [
         ("grant_type", "authorization_code"),
         ("code", code),
         ("code_verifier", pkce.verifier.as_str()),
         ("redirect_uri", redirect),
-        ("client_id", CLIENT_ID),
+        ("client_id", o.client_id),
     ];
-    let v = crate::lichess::read(agent.post(&url).send_form(form))?;
-    v["access_token"].as_str().filter(|t| !t.is_empty()).map(str::to_string).ok_or_else(|| t!("online.error.reply"))
+    let v = crate::board::read(server, agent.post(&url).send_form(form))?;
+    v["access_token"].as_str().filter(|t| !t.is_empty()).map(str::to_string).ok_or_else(|| t!("online.error.reply", "server" => server.name))
 }
 
 #[cfg(test)]
@@ -186,7 +199,8 @@ mod tests {
     #[test]
     fn oauth_url_names_scopes_and_redirect_encoded() {
         let p = Pkce { verifier: "v".into(), challenge: "ch".into(), state: "st".into() };
-        let u = authorize_url("https://lichess.org/", "http://127.0.0.1:5555/", &p);
+        let o = Oauth { authorize: "/oauth", token: "/api/token", client_id: "bragd", scopes: "board:play challenge:read challenge:write" };
+        let u = authorize_url(&o, "https://lichess.org/", "http://127.0.0.1:5555/", &p);
         assert!(u.starts_with("https://lichess.org/oauth?response_type=code&client_id=bragd&"), "{u}");
         assert!(u.contains("redirect_uri=http%3A%2F%2F127.0.0.1%3A5555%2F"), "{u}");
         assert!(u.contains("scope=board%3Aplay%20challenge%3Aread%20challenge%3Awrite"), "{u}");
@@ -206,24 +220,24 @@ mod tests {
 
     #[test]
     fn oauth_loopback_takes_only_the_code_with_its_state() {
-        let lb = Loopback::bind().unwrap();
+        let lb = Loopback::bind(0).unwrap();
         let r = lb.redirect.clone();
         let t = std::thread::spawn(move || {
             browser(&r, "code=wrong&state=other");
             browser(&r, "code=liu_abc%2B1&state=st")
         });
         let stop = AtomicBool::new(false);
-        assert_eq!(lb.wait("st", &stop, Duration::from_secs(20)).unwrap(), "liu_abc+1");
+        assert_eq!(lb.wait("Lichess", "st", &stop, Duration::from_secs(20)).unwrap(), "liu_abc+1");
         assert!(t.join().unwrap().contains(&t!("online.browser_done")));
     }
 
     #[test]
     fn oauth_loopback_reports_a_refusal_and_stops_when_asked() {
-        let lb = Loopback::bind().unwrap();
+        let lb = Loopback::bind(0).unwrap();
         let r = lb.redirect.clone();
         let t = std::thread::spawn(move || browser(&r, "error=access_denied&state=st"));
-        assert_eq!(lb.wait("st", &AtomicBool::new(false), Duration::from_secs(20)).unwrap_err(), t!("online.error.denied"));
+        assert_eq!(lb.wait("Lichess", "st", &AtomicBool::new(false), Duration::from_secs(20)).unwrap_err(), t!("online.error.denied", "server" => "Lichess"));
         t.join().unwrap();
-        assert_eq!(lb.wait("st", &AtomicBool::new(true), Duration::from_secs(20)).unwrap_err(), t!("online.error.cancelled"));
+        assert_eq!(lb.wait("Lichess", "st", &AtomicBool::new(true), Duration::from_secs(20)).unwrap_err(), t!("online.error.cancelled"));
     }
 }

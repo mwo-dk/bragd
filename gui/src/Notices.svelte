@@ -23,10 +23,11 @@
     guide.area = n.settings;
     go({ kind: "settings" });
   }
-  /** *Show me*: the Settings area, a page of its own (`page:clubs`), or the sidebar item of the first Family shown that has it. */
+  /** *Show me*: the Settings area, a page of its own (`page:clubs`), Play online on a server (`online:ogs:go`), or the sidebar item of the first Family shown that has it. */
   function showMe(/** @type {any} */ tip) {
     guide.tip = null;
-    const [kind, what] = tip.open.split(":");
+    const [kind, what, family] = tip.open.split(":");
+    if (kind === "online") return go({ kind: "online", server: what, family });
     if (kind === "settings") {
       guide.area = what;
       return go({ kind: "settings" });

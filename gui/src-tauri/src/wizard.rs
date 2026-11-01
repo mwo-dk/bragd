@@ -100,8 +100,8 @@ pub struct Open {
     engines: Vec<FamilyEngines>,
     /// The sites the Online step names: those that play a Family that is on.
     servers: Vec<&'static str>,
-    /// Chess is on: Lichess is played in Bragd, and the step offers its sign-in.
-    lichess: bool,
+    /// The servers Bragd plays on for the Families that are on: the step offers their sign-in.
+    online: Vec<crate::online::ServerView>,
     offers: Vec<wizard::Offer>,
     /// "Coming later: …": the Sources that cannot be fetched yet, in one line.
     coming: Option<String>,
@@ -150,12 +150,9 @@ fn engines(cfg: &Config) -> Vec<FamilyEngines> {
         .collect()
 }
 
-/// Where each Family can be played online today, in the browser. Lichess is played in Bragd.
-const SERVERS: &[(&str, &[&str])] = &[
-    ("https://lishogi.org/", &["shogi"]),
-    ("https://www.pychess.org/", &["chess", "xiangqi", "shogi"]),
-    ("https://online-go.com/", &["go"]),
-];
+/// Where each Family can be played online in the browser only. Lichess, Lishogi and OGS are
+/// played in Bragd; pychess.org has no API a client may play through (docs/online/pychess.md).
+const SERVERS: &[(&str, &[&str])] = &[("https://www.pychess.org/", &["chess", "xiangqi", "shogi"])];
 
 fn servers(cfg: &Config) -> Vec<&'static str> {
     SERVERS.iter().filter(|(_, fams)| fams.iter().any(|f| cfg.family_shown(f))).map(|(url, _)| *url).collect()
@@ -172,7 +169,7 @@ pub fn wizard_open(ctx: tauri::State<'_, Ctx>) -> Open {
         boards: wizard::board_swatches(&cfg),
         engines: engines(&cfg),
         servers: servers(&cfg),
-        lichess: cfg.family_shown("chess"),
+        online: crate::online::offered(&cfg),
         ticked: wizard::ticked(&offers),
         coming: wizard::coming(&srcs, &cfg),
         offers,
@@ -293,8 +290,12 @@ mod tests {
             }
             cfg
         };
-        assert_eq!(servers(&only("go")), ["https://online-go.com/"]);
+        assert!(servers(&only("go")).is_empty(), "OGS is played in Bragd");
         assert_eq!(servers(&only("chess")), ["https://www.pychess.org/"], "Lichess is played in Bragd");
+        assert_eq!(servers(&only("xiangqi")), ["https://www.pychess.org/"]);
+        let online = |f| crate::online::offered(&only(f)).iter().map(|s| s.id).collect::<Vec<_>>();
+        assert_eq!((online("go"), online("shogi"), online("chess")), (vec!["ogs"], vec!["lishogi"], vec!["lichess"]));
+        assert!(online("tafl").is_empty());
         assert!(servers(&only("tafl")).is_empty());
         let tafl = engines(&only("tafl"));
         assert_eq!(tafl.len(), 1, "tafl is listed, played by Bragd's own Bot");

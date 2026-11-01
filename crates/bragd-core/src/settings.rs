@@ -91,15 +91,23 @@ impl Opt {
         !matches!(self.area, Families | Model | Peers) && !self.name.starts_with("disk_") && self.name != "source_priority"
     }
 
-    /// The Game family it concerns, if only one: it leaves its area while that Family is off.
-    pub fn family(&self) -> Option<&'static str> {
-        // Online play is on Lichess, for chess, for now.
-        (self.name.starts_with("tablebases_") || self.name.starts_with("online_")).then_some("chess")
+    /// The Game families it concerns; none: every user. It leaves its area while all of them
+    /// are off.
+    pub fn families(&self) -> &'static [&'static str] {
+        if self.name.starts_with("tablebases_") {
+            &["chess"]
+        } else if self.name.starts_with("online_") {
+            // The Families of Lichess, Lishogi and OGS (`bragd_online::server`).
+            &["chess", "shogi", "go"]
+        } else {
+            &[]
+        }
     }
 
-    /// Listed in its area for the user of `cfg`: [`Opt::listed`], and its Family shows.
+    /// Listed in its area for the user of `cfg`: [`Opt::listed`], and one of its Families shows.
     pub fn listed_for(&self, cfg: &Config) -> bool {
-        self.listed() && self.family().is_none_or(|f| cfg.family_shown(f))
+        let f = self.families();
+        self.listed() && (f.is_empty() || f.iter().any(|f| cfg.family_shown(f)))
     }
 
     /// Its explanation, or empty.
@@ -498,13 +506,18 @@ mod tests {
     #[test]
     fn settings_areas_with_nothing_to_show_are_not_listed() {
         assert_eq!(areas(&Config::default()), Area::ALL);
-        let mut go = Config::default();
-        for f in Family::ALL.iter().filter(|f| f.key() != "go") {
-            go.families.family.insert(f.key().into(), false);
-        }
-        let listed = areas(&go);
-        assert!(!listed.contains(&Online), "Online holds only chess settings: {listed:?}");
+        let only = |keep: &str| {
+            let mut c = Config::default();
+            for f in Family::ALL.iter().filter(|f| f.key() != keep) {
+                c.families.family.insert(f.key().into(), false);
+            }
+            c
+        };
+        let listed = areas(&only("tafl"));
+        assert!(!listed.contains(&Online), "Online holds only settings of Families played online: {listed:?}");
         assert!(listed.contains(&Look) && listed.contains(&Families));
+        assert!(areas(&only("go")).contains(&Online), "go is played on OGS");
+        assert!(!find("tablebases_online").unwrap().listed_for(&only("go")), "tablebases are chess's");
     }
 
     #[test]

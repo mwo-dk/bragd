@@ -44,9 +44,13 @@ On Windows, `bragd-helper` is a windowed program, so neither it nor the `reg` co
 
 | Variable | Read by | What it does |
 |---|---|---|
-| `BRAGD_OFFLINE` | `bragd-gui`, `bragd-helper` | Set to anything: nothing is asked online. No update check, no tablebase download or lookup, no engine network download, no Source fetch, no Lichess |
+| `BRAGD_OFFLINE` | `bragd-gui`, `bragd-helper` | Set to anything: nothing is asked online. No update check, no tablebase download or lookup, no engine network download, no Source fetch, no online play |
 | `BRAGD_LICHESS_URL` | `bragd-gui` | Another server in place of `https://lichess.org`, such as the fake one for tests and screenshots ([Playing online](../online/playing-online.md#settings-and-configtoml)) |
 | `BRAGD_LICHESS_TOKEN` | `bragd-gui` | A token in place of the keychain's, used only when `BRAGD_LICHESS_URL` is on this machine |
+| `BRAGD_LISHOGI_URL` | `bragd-gui` | Another server in place of `https://lishogi.org` ([Playing on Lishogi](../online/lishogi.md#what-it-needs)) |
+| `BRAGD_LISHOGI_TOKEN` | `bragd-gui` | A token in place of the keychain's, used only when `BRAGD_LISHOGI_URL` is on this machine |
+| `BRAGD_OGS_URL` | `bragd-gui` | Another server in place of `https://online-go.com`, its socket included ([Playing on OGS](../online/ogs.md#what-it-needs)) |
+| `BRAGD_OGS_TOKEN` | `bragd-gui` | A token in place of the keychain's, used only when `BRAGD_OGS_URL` is on this machine |
 | `BRAGD_DEV_IMAGES` | `bragd-gui` | `1`: also run the engine images `tools/dev/images.sh` built on this machine (`localhost/bragd-<engine>:dev`), which are not pinned ([Engine container images](../engines/container-images.md#images-built-on-your-own-machine)). Without it only pinned images run |
 | `BRAGD_WINDOW_SIZE` | `bragd-gui` | `WxH`, such as `1100x760`: the window's size at start. Used for screenshots |
 

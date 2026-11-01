@@ -1,0 +1,1 @@
+| **Play go on OGS from Bragd's board.** Go's *Play → Play on OGS* seeks a Game under Chinese rules or answers a challenge, passes, and accepts the score OGS counts, with byoyomi clocks and chat. Signing in starts once Bragd is registered with OGS; until then the page says so. | [Playing on OGS](online/ogs.md#how-to-reach-it) | <!-- feature --> <!-- tour: ogs -->

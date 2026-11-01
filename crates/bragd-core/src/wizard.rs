@@ -53,7 +53,7 @@ pub struct StepView {
     pub title: String,
     pub area: Area,
     /// "You can change this later in Settings → Engines."; empty when Settings does not list
-    /// that area for the user's Families (Online without chess).
+    /// that area for the user's Families (Online without chess, shogi or go).
     pub later: String,
 }
 
@@ -343,12 +343,16 @@ mod tests {
         let v = steps(&Config::default());
         assert_eq!(v.len(), 6);
         assert!(v.iter().all(|s| !s.later.is_empty()));
-        let mut go = Config::default();
-        for f in bragd_games::Family::ALL.iter().filter(|f| f.key() != "go") {
-            go.families.family.insert(f.key().into(), false);
-        }
-        let online = steps(&go).into_iter().find(|s| s.id == "online").unwrap();
-        assert!(online.later.is_empty(), "Settings lists no Online area without chess: {}", online.later);
+        let only = |keep: &str| {
+            let mut c = Config::default();
+            for f in bragd_games::Family::ALL.iter().filter(|f| f.key() != keep) {
+                c.families.family.insert(f.key().into(), false);
+            }
+            c
+        };
+        let online = |c: &Config| steps(c).into_iter().find(|s| s.id == "online").unwrap().later;
+        assert!(online(&only("tafl")).is_empty(), "Settings lists no Online area without a Family played online");
+        assert!(!online(&only("go")).is_empty(), "go is played on OGS");
         assert_eq!(
             v.iter().map(|s| s.id).collect::<Vec<_>>(),
             [

@@ -4,6 +4,7 @@
 
 An Engine plays one Side and you play the other. You choose the Engine, its Side, how long it thinks and how strong it plays. In chess, the opening's name and the moves of your opening books show under the turn line.
 
+<!-- screenshot: play-engine-chess-1100.png: chess Play against an Engine, the bar's button reading Play on Lichess -->
 ![Play in chess against an Engine: the bar with Against an engine, the Engine, Engine plays Black, 1 s a move and the Strength slider; the opening's name and book moves beside the board](../screenshots/play-engine-chess-1100.png)
 
 *Chess against an Engine, with the opening's name and book moves.*

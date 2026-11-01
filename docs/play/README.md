@@ -2,7 +2,7 @@
 
 # Play
 
-Every Variant of every Game family can be played on the board in Bragd: against yourself, or against an Engine where the Family has one. Rust holds the rules. The board offers only the moves the rules crate says are legal, so an illegal move cannot be made. Chess can also be played on Lichess from *Play → Play online* ([Playing online](../online/playing-online.md)).
+Every Variant of every Game family can be played on the board in Bragd: against yourself, or against an Engine where the Family has one. Rust holds the rules. The board offers only the moves the rules crate says are legal, so an illegal move cannot be made. Chess can also be played on Lichess, shogi on Lishogi and go on OGS, from *Play → Play on …* ([Playing online](../online/playing-online.md)).
 
 | Page | What it covers |
 |---|---|

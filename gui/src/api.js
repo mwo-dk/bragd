@@ -259,26 +259,29 @@ export const peersLook = () => invoke("peers_look");
 /** Takes what is new from every Peer now, in the background. @returns {Promise<any>} */
 export const peersSync = () => invoke("peers_sync");
 
-// Play online (bragd-online, gui/src-tauri/src/online.rs).
+// Play online (bragd-online, gui/src-tauri/src/online.rs), on the server `server`: lichess,
+// lishogi or ogs.
+/** The servers on offer for the Families that are on. @returns {Promise<any[]>} */
+export const onlineServers = () => invoke("online_servers");
 /** The page: the account, the challenges, the Game and its chat. @returns {Promise<any>} */
-export const onlineView = () => invoke("online_view");
+export const onlineView = (/** @type {string} */ server) => invoke("online_view", { server });
 /** Signs in in the browser; resolves once it came back. @returns {Promise<any>} */
-export const onlineSignIn = () => invoke("online_sign_in");
-export const onlineCancelSignIn = () => invoke("online_cancel_sign_in");
+export const onlineSignIn = (/** @type {string} */ server) => invoke("online_sign_in", { server });
+export const onlineCancelSignIn = (/** @type {string} */ server) => invoke("online_cancel_sign_in", { server });
 /** @returns {Promise<any>} */
-export const onlineSignOut = () => invoke("online_sign_out");
+export const onlineSignOut = (/** @type {string} */ server) => invoke("online_sign_out", { server });
 /** @returns {Promise<any>} */
-export const onlineReconnect = () => invoke("online_reconnect");
+export const onlineReconnect = (/** @type {string} */ server) => invoke("online_reconnect", { server });
+/** `time` is one of the page's `times`. @returns {Promise<any>} */
+export const onlineSeek = (/** @type {string} */ server, /** @type {string} */ variant, /** @type {string} */ time, /** @type {boolean} */ rated) =>
+  invoke("online_seek", { server, variant, time, rated });
+export const onlineSeekCancel = (/** @type {string} */ server) => invoke("online_seek_cancel", { server });
 /** @returns {Promise<any>} */
-export const onlineSeek = (/** @type {string} */ variant, /** @type {number} */ minutes, /** @type {number} */ increment, /** @type {boolean} */ rated) =>
-  invoke("online_seek", { variant, minutes, increment, rated });
-export const onlineSeekCancel = () => invoke("online_seek_cancel");
-/** @returns {Promise<any>} */
-export const onlineChallenge = (/** @type {string} */ user, /** @type {string} */ variant, /** @type {number} */ minutes, /** @type {number} */ increment, /** @type {boolean} */ rated, /** @type {string} */ color) =>
-  invoke("online_challenge", { user, variant, minutes, increment, rated, color });
+export const onlineChallenge = (/** @type {string} */ server, /** @type {string} */ user, /** @type {string} */ variant, /** @type {string} */ time, /** @type {boolean} */ rated, /** @type {string} */ color) =>
+  invoke("online_challenge", { server, user, variant, time, rated, color });
 /** Accepts, declines or cancels a challenge. @returns {Promise<any>} */
-export const onlineAnswer = (/** @type {string} */ id, /** @type {string} */ what) => invoke("online_answer", { id, what });
-export const onlineMove = (/** @type {string} */ entry) => invoke("online_move", { entry });
-/** draw, no_draw, takeback, no_takeback, resign, abort or leave. */
-export const onlineAction = (/** @type {string} */ what) => invoke("online_action", { what });
-export const onlineSay = (/** @type {string} */ text) => invoke("online_say", { text });
+export const onlineAnswer = (/** @type {string} */ server, /** @type {string} */ id, /** @type {string} */ what) => invoke("online_answer", { server, id, what });
+export const onlineMove = (/** @type {string} */ server, /** @type {string} */ entry) => invoke("online_move", { server, entry });
+/** draw, no_draw, takeback, no_takeback, resign, abort, score or leave. */
+export const onlineAction = (/** @type {string} */ server, /** @type {string} */ what) => invoke("online_action", { server, what });
+export const onlineSay = (/** @type {string} */ server, /** @type {string} */ text) => invoke("online_say", { server, text });

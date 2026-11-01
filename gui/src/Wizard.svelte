@@ -23,19 +23,21 @@
   let busy = $state(false);
   // Step 2: the full list of switches instead of one button per Family.
   let several = $state(false);
-  // The Online step's Lichess sign-in (bragd-online): the browser opens Lichess's own page.
-  let signedIn = $state("");
-  let signingIn = $state(false);
+  // The Online step's sign-in to each server for the Families that are on (bragd-online): the
+  // browser opens the server's own page.
+  /** The name signed in as, by server. @type {Record<string, string>} */
+  let signedIn = $state({});
+  let signingIn = $state("");
   let signInError = $state("");
-  async function signIn() {
-    signingIn = true;
+  async function signIn(/** @type {string} */ server) {
+    signingIn = server;
     try {
-      signedIn = (await api.onlineSignIn()).signedIn ?? "";
+      signedIn[server] = (await api.onlineSignIn(server)).signedIn ?? "";
       signInError = "";
     } catch (e) {
       signInError = String(e);
     }
-    signingIn = false;
+    signingIn = "";
   }
   const shownIds = $derived(snap.families.filter((/** @type {any} */ f) => f.shown).map((/** @type {any} */ f) => f.id));
   // One click: that Family alone, then the next step (whose Engines and downloads follow it).
@@ -214,15 +216,17 @@
           {#if info.totals.warning}<p class="warn" role="alert">{info.totals.warning}</p>{/if}
         {/if}
       {:else if current?.id === "online"}
-        <p class="lead">{data.lichess ? t("wizard.online") : t("wizard.online_later")}</p>
-        {#if data.lichess}
-          {#if signedIn}
-            <p>{t("online.signed_in_as", { name: signedIn })}</p>
+        <p class="lead">{data.online.length ? t("wizard.online", { servers: data.online.map((/** @type {any} */ o) => o.name).join(", ") }) : t("wizard.online_none")}</p>
+        {#each data.online as o}
+          {#if !o.ready}
+            <p class="dim">{t("online.error.not_registered", { server: o.name })}</p>
+          {:else if signedIn[o.id]}
+            <p>{o.name}: {t("online.signed_in_as", { name: signedIn[o.id] })}</p>
           {:else}
-            <button onclick={signIn} disabled={signingIn}>{signingIn ? t("online.signing_in") : t("online.sign_in")}</button>
+            <p><button onclick={() => signIn(o.id)} disabled={!!signingIn}>{signingIn === o.id ? t("online.signing_in") : t("online.sign_in", { server: o.name })}</button></p>
           {/if}
-          {#if signInError}<p class="warn" role="alert">{signInError}</p>{/if}
-        {/if}
+        {/each}
+        {#if signInError}<p class="warn" role="alert">{signInError}</p>{/if}
         {#if data.servers.length}<p>{t("wizard.online_sites")}</p>{/if}
         <ul>
           {#each data.servers as url}<li><button class="link" onclick={() => api.openUrl(url)}>{url.replace(/^https:\/\/(www\.)?|\/$/g, "")}</button></li>{/each}

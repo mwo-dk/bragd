@@ -683,46 +683,72 @@ def sharing():
 
 
 def online():
-    """online-sign-in, online-lobby and online-game, each -390.png and -1100.png: Play online
-    against the fake Lichess (`fake-lichess`, built by `cargo build --release -p bragd-online
-    --features fake --example fake-lichess`), never lichess.org. The fake runs on this machine,
-    started and stopped here by its own PID; the app is pointed at it by BRAGD_LICHESS_URL, and
-    BRAGD_LICHESS_TOKEN stands in for the keychain the sandbox does not have."""
+    """Play online against the fake servers (`fake-online`, built by `cargo build --release -p
+    bragd-online --features fake --example fake-online`), never the real ones. Each fake runs on
+    this machine, started and stopped here by its own PID; the app is pointed at it by
+    BRAGD_<SERVER>_URL, and BRAGD_<SERVER>_TOKEN stands in for the keychain the sandbox does not
+    have. Lichess: online-sign-in, online-lobby and online-game; Lishogi: online-lishogi-sign-in
+    and online-lishogi; OGS: online-ogs-sign-in and online-ogs; each -390.png and -1100.png."""
     import subprocess
-    fake = HERE.parent.parent / "target/release/examples/fake-lichess"
+    fake = HERE.parent.parent / "target/release/examples/fake-online"
 
-    def open_page(d):
+    def open_page(d, family, server):
         js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
         d.wait(0.4)
-        nav(d, "chess", "Play")
-        click(d, "Play online", "main")
+        nav(d, family, "Play")
+        click(d, f"Play on {server}", "main")
         d.wait(2)
 
-    for w, h in WIDTHS.items():
-        p = subprocess.Popen([str(fake)], stdout=subprocess.PIPE, text=True)
-        try:
-            url = p.stdout.readline().strip()
-            with Desktop(size=(w, h), env={"BRAGD_LICHESS_URL": url}) as d:
-                open_page(d)
-                d.shot(HERE / f"online-sign-in-{w}.png")
-            config("[online]\nchat = true\n")
-            with Desktop(size=(w, h), env={"BRAGD_LICHESS_URL": url, "BRAGD_LICHESS_TOKEN": "lip_fake"}) as d:
-                open_page(d)
-                d.shot(HERE / f"online-lobby-{w}.png")
-                click(d, "Accept", "main")
-                d.wait(2)
-                for a, b in [("e2", "e4"), ("g1", "f3")]:
-                    move(d, a, b)
-                    d.wait(1.5)
-                js(d, "const i = document.querySelector('main .say input'); i.value = 'Hello, have a good game!'; i.dispatchEvent(new Event('input', {bubbles: true}));")
-                d.wait(0.3)
-                click(d, "Send", "main")
-                d.wait(1.5)
-                d.shot(HERE / f"online-game-{w}.png")
-        finally:
-            config("")
-            p.terminate()
-            p.wait(5)
+    def say(d):
+        js(d, "const i = document.querySelector('main .say input'); i.value = 'Hello, have a good game!'; i.dispatchEvent(new Event('input', {bubbles: true}));")
+        d.wait(0.3)
+        click(d, "Send", "main")
+        d.wait(1.5)
+
+    def lichess(d):
+        click(d, "Accept", "main")
+        d.wait(2)
+        for a, b in [("e2", "e4"), ("g1", "f3")]:
+            move(d, a, b)
+            d.wait(1.5)
+        say(d)
+
+    def lishogi(d):
+        click(d, "Accept", "main")
+        d.wait(2)
+        for a, b in [("7g", "7f"), ("2g", "2f")]:
+            move(d, a, b)
+            d.wait(1.5)
+
+    def ogs(d):
+        click(d, "Accept", "main")
+        d.wait(2.5)
+        cell(d, "d4")
+        d.wait(1.5)
+
+    servers = [("lichess", "chess", "Lichess", "lip_fake", "online-sign-in", lichess, "online-game"),
+               ("lishogi", "shogi", "Lishogi", "lip_fake", "online-lishogi-sign-in", lishogi, "online-lishogi"),
+               ("ogs", "go", "OGS", "ogs_fake", "online-ogs-sign-in", ogs, "online-ogs")]
+    for key, family, server, token, sign_in, play, game in servers:
+        var = f"BRAGD_{key.upper()}"
+        for w, h in WIDTHS.items():
+            p = subprocess.Popen([str(fake), key], stdout=subprocess.PIPE, text=True)
+            try:
+                url = p.stdout.readline().strip()
+                with Desktop(size=(w, h), env={f"{var}_URL": url}) as d:
+                    open_page(d, family, server)
+                    d.shot(HERE / f"{sign_in}-{w}.png")
+                config("[online]\nchat = true\n")
+                with Desktop(size=(w, h), env={f"{var}_URL": url, f"{var}_TOKEN": token}) as d:
+                    open_page(d, family, server)
+                    if key == "lichess":
+                        d.shot(HERE / f"online-lobby-{w}.png")
+                    play(d)
+                    d.shot(HERE / f"{game}-{w}.png")
+            finally:
+                config("")
+                p.terminate()
+                p.wait(5)
 
 
 def sources():
