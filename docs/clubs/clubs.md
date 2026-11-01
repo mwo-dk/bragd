@@ -75,7 +75,7 @@ The lock is a file of its own, so a copy of the Club file carries no lock.
 
 When you add a member, **Find in rating lists** searches the lists Bragd has fetched, by name or by ID. Words of a name can come in any order, each word can be just its start, and accents do not matter: `moller` finds Møller, and `carl mag` finds Carlsen, Magnus. Click a player to fill in the name, the IDs and, for a new member, the starting rating.
 
-The lists are Sources: FIDE, the Danish Chess Union (DSU) and the English Chess Federation (ECF). Each is off until you tick it in the install wizard's Knowledge step or turn it on under chess's **Databases** → Sources. The Helper then fetches it once a month in the background. Its size shows before anything is downloaded. Where each list comes from, its terms, and why other federations' lists are missing: [Rating lists](../reference/rating-lists.md).
+The lists are Sources: FIDE, the Danish Chess Union (DSU), the English Chess Federation (ECF), the Chess Federation of Canada (CFC), the Finnish Chess Federation (SShL) and the New Zealand Chess Federation (NZCF). Each is off until you tick it in the install wizard's Knowledge step or turn it on under chess's **Databases** → Sources. The Helper then fetches it once a month in the background. Its size shows before anything is downloaded. Where each list comes from, its terms, and why other federations' lists are missing: [Rating lists](../reference/rating-lists.md).
 
 ## What it needs
 

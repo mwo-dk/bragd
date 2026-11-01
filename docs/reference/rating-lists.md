@@ -9,6 +9,10 @@ Bragd can download rating lists so you can find players by name or ID at check-i
 - [The lists Bragd fetches](#the-lists-bragd-fetches)
 - [FIDE](#fide)
 - [Denmark (DSU)](#denmark-dsu)
+- [Canada (CFC)](#canada-cfc)
+- [Finland (SShL)](#finland-sshl)
+- [New Zealand (NZCF)](#new-zealand-nzcf)
+- [Lists Bragd does not fetch](#lists-bragd-does-not-fetch)
 - [Other federations](#other-federations)
 - [Questions](#questions)
 
@@ -21,8 +25,11 @@ Each is a Source of its own on the Sources page (chess's Databases item), off un
 | FIDE | `players_list.zip` | 45 MB | FIDE ID, name, federation, title, standard, rapid and blitz ratings, birth year |
 | DSU | the CSV of *Alle medlemmer* | 0.5 MB | DSU number, name, club, title, DSU standard, rapid and blitz ratings, birth year, FIDE ID |
 | ECF | `rating-list/csv` | 4.5 MB | ECF code, name, nation, club, title, revised standard, rapid and blitz ratings, FIDE ID |
+| CFC | `cfc-ratings.csv` | 5.4 MB | CFC ID, name, standard and rapid ratings, FIDE ID |
+| SShL | `selolista.csv` | 0.75 MB | SShL ID, name, nationality, club, title, national standard and rapid ratings, birth year, FIDE ID |
+| NZCF | `nz_ratings.json` | 0.9 MB | NZCF ID, name, federation, club, title, NZCF standard and rapid ratings, birth year, FIDE ID |
 
-The others below are not fetched: their file is not one a program can read on a schedule, their address changes each period, or their terms forbid it or ask for agreement first. Adding them is [issue #126](https://github.com/mwo-dk/bragd/issues/126).
+The others are not fetched, each for the reason in [Lists Bragd does not fetch](#lists-bragd-does-not-fetch).
 
 ## FIDE
 
@@ -124,6 +131,59 @@ Personal data: the file has name, birth year, age and club for every player, whi
 
 The list holds the active members only. The rules say a player whose last rated result is more than three years old leaves the list (see the [rating rules, 24 June 2025](https://love.skak.dk/wp-content/uploads/sites/3/Ratingreglementet-20250624.pdf), 200). The rules also set a minimum of 1200. A rating of a returning player is stored and used again.
 
+## Canada (CFC)
+
+| Item | Value |
+|---|---|
+| URL | [`https://files.chess.ca/data/cfc-ratings.csv`](https://files.chess.ca/data/cfc-ratings.csv), from the Data Files box of the [organisers page](https://www.chess.ca/en/organizers/) |
+| Verified | 2026-11-01, 200 |
+| Size | 5.4 MB, 96,896 rows; 55,750 with a CFC rating, 10,654 with a FIDE ID |
+| Encoding | UTF-8, lines end in CR LF, comma separated, a field holding a comma is quoted |
+| Updated | Not stated; the file was last changed on 30 Oct 2026 |
+| Licence | None stated. `robots.txt` allows every agent |
+
+The header is `cfc_id,name_first,name_last,cfc_expiry,cfc_rating,cfc_rating_rapid,fide_id,city,province,sex`. The second row is not a player: its `cfc_id` is `-100` and its `name_first` holds the list's date. A rating or FIDE ID of `0` means none. Lapsed members stay in the list. The organisers page labels the link `cfc-ratings.zip`, which answers 404; the file is the `.csv` beside it.
+
+## Finland (SShL)
+
+| Item | Value |
+|---|---|
+| URL | [`https://www.shakki.net/selo/selolista.csv`](https://www.shakki.net/selo/selolista.csv), "koko lista CSV-muodossa" on the [rating page](https://www.shakki.net/selo/) |
+| Verified | 2026-11-01, 200 |
+| Size | 740 KB, 12,070 players; 3,527 with a FIDE ID |
+| Encoding | ISO-8859-1 (Latin 1), lines end in CR LF, `;` separated, every line ends in a `;` |
+| Updated | Irregular; the national list was dated 30 Oct 2026, the rapid list 23 Oct 2026 |
+| Licence | None stated |
+
+The header is `id;fide_id;titteli;sukunimi;etunimi;seura;selo;selopelejä;selovuosi;pelo;pelopelejä;pelovuosi;elo;sukupuoli;kansallisuus;syntvuosi;lisenssi;`. `selo` is the national standard rating and `pelo` the rapid one; `elo` is the FIDE rating. `titteli` holds Finnish titles (such as ME and KvM) as well as FIDE's.
+
+## New Zealand (NZCF)
+
+| Item | Value |
+|---|---|
+| URL | [`https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json`](https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json), the file the [ratings page](https://compete.newzealandchess.co.nz/new-zealand-ratings-list/) draws its table from |
+| Verified | 2026-11-01, 200 |
+| Size | 871 KB, 4,036 players; 2,445 with a FIDE ID |
+| Encoding | UTF-8, one line |
+| Updated | Four times a year; the file is replaced in place (last changed 21 Oct 2026) |
+| Licence | None stated. `robots.txt` asks for 10 seconds between requests; Bragd makes one a month |
+
+The file is an array of objects whose values are all strings: `surname`, `name`, `fed`, `year`, `title`, `fide`, `nzcf`, `club`, `nzcf_standard`, `nzcf_rapid`, `fide_standard`, `fide_rapid`. An empty value or `0` means none. The CSV and JSON buttons on the page make their file in the browser from this one. The address names a 2024 upload folder: if the NZCF moves the file, the fetch fails and the Sources page says so.
+
+## Lists Bragd does not fetch
+
+Checked again on 2026-11-01.
+
+- **Germany (DSB):** the README in the zip says publishing the data needs prior agreement with the DWZ referee. Bragd waits for the DSB's agreement.
+- **Australia (ACF):** the terms forbid importing the files into any other database or program.
+- **Catalonia (FCE):** the legal notice allows private download but forbids transforming the content, which an import does.
+- **Sweden (SSF):** the API's terms allow it, but the date is part of the address and a wrong date gives an empty list. Bragd needs to learn the list dates first.
+- **Czechia:** the stable file is an old binary Excel file, which Bragd cannot read.
+- **Austria, Colombia, Japan:** the file name carries the period, and Austria's and Japan's are Excel and PDF.
+- **Armenia:** the download is a form post, with no address to fetch.
+- **Switzerland, Netherlands, Belgium, Norway, Poland, Estonia, Israel, Greece, Georgia, Latvia:** a search page or a JavaScript app only, with no file or documented API.
+- **Lithuania, Chile, Peru, Mexico, South Korea, Iran:** no list found, or the federation's site was not found.
+
 ## Other federations
 
 "FIDE list only" means the federation's own site shows no download that a program can fetch. Where a row says "web page only", a person can look players up but the page has no file or API. "Verified" is the HTTP status of the file or page on 2026-11-01. Federations not listed individually in this table were not searched beyond their home page.
@@ -133,47 +193,48 @@ The list holds the active members only. The rules say a player whose last rated 
 | Germany | DSB (DWZ) | [LV-0-csv.zip](https://www.schachbund.de/download-dwz-daten.html?file=files/wertungsportal/downloads/export/csv/LV-0-csv.zip), the whole DSB, 3.1 MB; one zip per regional association (`LV-1` to `LV-M`) is on the [download page](https://www.schachbund.de/download-dwz-daten.html) | ZIP of `spieler.csv`, `vereine.csv`, `verbaende.csv`, `README.txt`. Comma separated, Windows-1252. Fields: ID, club number, membership number, status (A active, P passive), "Surname,Given name", sex, birth year, last evaluation week, DWZ, index, FIDE rating, title, ID, country, rapid and blitz | The README says: "Eine Veröffentlichung dieser Daten ist nur nach vorheriger Absprache mit dem zuständigen DWZ-Referenten erlaubt!" (publishing needs prior agreement) | Every day at 04:15, DWZ joined with the current FIDE data. 97,712 players on 31 Oct 2026 | 200 (file), 200 (page) |
 | England (UK) | ECF | [rating-list/csv](https://rating.englishchess.org.uk/api/rating-list/csv), 4.5 MB, 45,830 rows; also [json](https://rating.englishchess.org.uk/api/rating-list/json) and [sm](https://rating.englishchess.org.uk/api/rating-list/sm) (Swiss Manager, fewer columns) | CSV with a header: ECF code, name, member number, FIDE ID, sex, nation, original and revised standard, rapid and blitz (also online), club code, club name, title | None stated. The [API page](https://rating.englishchess.org.uk/help/api) says "Subject to change without notice currently" and limits use to 10 minutes of processing per day per class C network | "Original" ratings at month end, "revised" ratings nightly | 200 (csv); API page 200 |
 | Australia | ACF | [rating-lists page](https://auschess.org.au/rating-lists/) with [sepmst26.txt](https://auschess.org.au/wp-content/uploads/2026/09/sepmst26.txt) (master file, 2.4 MB), [sep26act.txt](https://auschess.org.au/wp-content/uploads/2026/09/sep26act.txt) (active, 226 KB), `sep26quick.txt`, and Vega and Swiss Perfect zips ([vegamast.zip](https://auschess.org.au/wp-content/uploads/2026/09/vegamast.zip) 0.9 MB, [acfmast.zip](https://auschess.org.au/wp-content/uploads/2026/09/acfmast.zip) 1.4 MB) | Fixed-width TXT, CR LF: rating (with reliability mark), games, rank and points columns, state, name. Master file starts `ACF Master File for September 2026`; the first column is the ACF ID | Copyright ACF. The page says that by downloading you agree not to modify, extract or reverse engineer the data, or import it into other systems. Bragd must not import it | Per rating period; the page says "Updated September 5th, 2026". File names carry the month, so the URL changes | 200 (page); files 206 on a range request. A plain HEAD request returned 404 |
-| Canada | CFC | [cfcmembers.mde](https://storage.googleapis.com/cfc-public/data/cfcmembers.mde), 9.2 MB | Microsoft Access database (`.mde`) with CFC and FIDE IDs and ratings. Linked from the [Swiss-Manager tools page](https://www.chess.ca/en/organizers/tools/swiss-manager) | None stated | Not stated; the file was last changed on 30 Oct 2026 | 200 |
-| New Zealand | NZCF | [2026-3-Alphabetical-20261020.xlsx](https://compete.newzealandchess.co.nz/wp-content/uploads/2026/10/2026-3-Alphabetical-20261020.xlsx) (429 KB) and [2026-3-Active-20261020.xlsx](https://compete.newzealandchess.co.nz/wp-content/uploads/2026/10/2026-3-Active-20261020.xlsx) (80 KB), from the [ratings page](https://compete.newzealandchess.co.nz/new-zealand-ratings-list/). The page also has CSV and JSON buttons whose URLs were not found | XLSX; the file name carries the period and the date, so the URL changes | None stated | Four times a year (1 Jan, 1 Apr, 1 Jul, 1 Oct, per the rating regulations); the page says "Updated 22/10/2026" | 200 (both) |
-| Czechia | Šachový svaz ČR (LOK) | [20261001_lok_sm_ascii.zip](https://elo.miramal.com/download/20261001_lok_sm_ascii.zip) (1.4 MB), [20261001_lok_sm_cz.zip](https://elo.miramal.com/download/20261001_lok_sm_cz.zip) (1.4 MB, with diacritics), rapid in `..._rapid_lok_sm_cz.zip` | ZIP of one old binary XLS (`lok_sm_ascii.xls`, 4.6 MB), made for Swiss Manager. Columns not read | None stated | Periodic (list dated 1 Oct 2026, "Aktualizováno: 1. říjen 2026"). File names carry the date | 200 |
-| Finland | Suomen Shakkiliitto (tasaselo) | [selolist.txt](http://www.shakki.net/tasaselo/selolist.txt), 784 KB, about 12,000 lines. Page: [shakki.net/tasaselo](https://www.shakki.net/tasaselo/) | Fixed-width TXT, Latin 1, CR LF. Header `Nimi / Seura / Selo / Pelejä / L`. Columns: running number, surname, given name, club, rating, games. No ID | None stated | Irregular; dated 15 Oct 2026 | 200 (the `http` URL redirects once) |
+| Canada | CFC | Fetched: see [Canada (CFC)](#canada-cfc). Also [cfcmembers.mde](https://storage.googleapis.com/cfc-public/data/cfcmembers.mde) (9.2 MB, Microsoft Access) and [tdlist.txt](https://storage.googleapis.com/cfc-public/data/tdlist.txt) (5.3 MB), linked from the [organisers page](https://www.chess.ca/en/organizers/) | CSV | None stated | See its section | 200 |
+| New Zealand | NZCF | Fetched: see [New Zealand (NZCF)](#new-zealand-nzcf). The XLSX files on the [ratings page](https://compete.newzealandchess.co.nz/new-zealand-ratings-list/) carry the period in their names | JSON | None stated | Four times a year | 200 |
+| Czechia | Šachový svaz ČR (LOK) | [lok_sm_cz.xls](https://elo.miramal.com/download/lok_sm_cz.xls) (4.7 MB), overwritten each period; dated zips such as [20261001_lok_sm_cz.zip](https://elo.miramal.com/download/20261001_lok_sm_cz.zip) beside it. [chess.cz](https://www.chess.cz/sachovy-svaz-cr/elo/) links only here and to FIDE | Old binary Excel (BIFF, code page 1250), made for Swiss Manager. Columns: ID_no, Name, ClubName, BirthDay (`00.00.YYYY`), Sex, Rtg_nat, Rtg_int, Title, FIDE_no, Fed, ClubNo, Status | None stated | Classical list each 1 February, rapid each 1 November; the list shown is dated 1 Oct 2026 | 200 |
+| Finland | Suomen Shakkiliitto (SShL) | Fetched: see [Finland (SShL)](#finland-sshl). The older [selolist.txt](http://www.shakki.net/tasaselo/selolist.txt) is fixed-width with no FIDE ID | CSV | None stated | See its section | 200 |
 | Spain | FEDA | [Lista Elo FEDA Diciembre 2023](https://feda.org/feda2k16/wp-content/uploads/2023_12_FEDA.xlsx), 3.4 MB; index page [elo-feda](https://feda.org/feda2k16/elo-feda/) | XLSX, one per month. Older months are zips (`2022-04.zip`, 2.8 MB, with a lookup program) | None stated | Monthly until December 2023. The page has no newer list, and the 2024 and 2026 file names I tried returned 404 | 200 (December 2023 file); 404 for later months |
-| Spain | FCE (Catalonia) | Web view [escacs.cat/index.php/component/fce?op=25](https://escacs.cat/index.php/component/fce?op=25) | Web page only; no file found | None stated | Not stated | 200 |
+| Spain | FCE (Catalonia) | [EloActualStd.xls](https://escacs.cat/arxielo/EloActualStd.xls) and [EloActualRpd.xls](https://escacs.cat/arxielo/EloActualRpd.xls) (580 KB each), linked from [the Elo page](https://escacs.cat/index.php/component/fce?op=25) | Tab-separated text despite the name, Latin 1: FCE code, name, sex, K, Elo, title, category, club. No FIDE ID | The [legal notice](https://escacs.cat/index.php/avis-legal) allows download "pel seu us privat i sense cap finalitat comercial" and forbids "transformació, distribució ... qualsevol altre forma d'explotació" | Monthly (last changed 31 Oct 2026) | 200 |
 | Spain | Basque federation | FIDE list only | Not searched in depth | | | |
-| Austria | ÖSB | [chess-results.com/OesbEloSuche.aspx](https://chess-results.com/OesbEloSuche.aspx) | Web search page only; [chess.at/elo.html](https://www.chess.at/elo.html) links to it. The only download on [chess.at](https://www.chess.at/service/downloads.html) is the Elo rules (PDF) | None stated | Not stated | 200 (page); search page not fetched |
+| Austria | ÖSB | [chess-results.com/OesbEloSuche.aspx](https://chess-results.com/OesbEloSuche.aspx) offers the list as a zipped Excel file, e.g. [Eloliste_20261001.zip](https://chess-results.com/download/elolisten/Eloliste_20261001.zip) | Excel in a zip; the file name carries the date | None stated | Per rating period | 200 |
 | Switzerland | SSB | [Spielersuche](https://swisschess.ch/de/sport/rating-spieler/spielersuche) | Web table only (columns Code, FIDE-ID, Name, Vorname, Liz., Elo, Kat., Sektion). No export | None stated | Not stated | 200 |
-| Armenia | Chess Federation of Armenia | [players-ratings](https://www.chessfed.am/am/players-ratings/) | Page with an "Download in .xlsx" button for national and FIDE ratings. The button URL was not found, so a program cannot use it yet | None stated | International list "as of 01/10/2026" | 200 (page) |
+| Armenia | Chess Federation of Armenia | [players-ratings](https://www.chessfed.am/am/players-ratings/) | The "Download in .xlsx" buttons post a form (`operation=international_xls_export`); there is no address to fetch | None stated | International list "as of 01/10/2026" | 200 (page) |
 | Israel | Israel Chess Federation | [RatingUpdateInfo](https://www.chess.org.il/Players/RatingUpdateInfo.aspx) | Paginated web table only (number, name, rating, change, games) | Site terms page exists; content not read | Update dated 01/10/2026 | 200 |
 | France | FFE | FIDE list only | The home page links only to Elo Rapide and to chess-results pages. No download found | | | home page 200 |
 | Belgium | FRBE / KBSB | no public list found | The site is a JavaScript app; no file link found | | | home page 200 |
 | Netherlands | KNSB | no public list found | The KNSB rules say the rating commissioner compiles a full list "at least four times a year". The viewer site `ratingviewer.nl` is a JavaScript app; no file or API found | | | 200 (viewer home page) |
-| Sweden | SSF | no public list found | `member.schack.se` is a JavaScript app; `www.schack.se` did not answer | | | `www.schack.se` not reachable |
+| Sweden | SSF | Public API, [documented](https://member.schack.se/swagger-ui/index.html): `https://member.schack.se/public/api/v1/ratinglist/federation/date/{YYYY-MM-DD}/ratingtype/{1,6,7}/category/0` | JSON, UTF-8: SSF ID, names, birth year, FIDE ID, club, standard, rapid and blitz ratings | The [terms](https://halvarsson.no-ip.com/wordpressssf/publikt-api/anvandarvillkor/) allow use in other products, commercial use included, if the source is named. The date is part of the address; `2026-11-01` answered with 3,319 players, a date with no list answers `[]` | Monthly | 200 |
 | Norway | NSF | no public list found | No rating page found on the home page | | | home page 200 |
 | Poland | PZSzach | no public list found | The member and club registers are web pages; no ranking file | | | home page 200 |
 | Estonia | Eesti Maleliit | no public list found | The site is a JavaScript app; no file link found | | | home page 200 |
-| Greece | Hellenic Chess Federation | no public list found | `www.chessfed.gr` answered 406 to the check | | | not reachable (406) |
+| Greece | Hellenic Chess Federation | no public list found | [chessfed.gr/elo](https://www.chessfed.gr/elo) is a search page; the earlier 406 came from the checker's user agent | | | 200 |
 | Ukraine | UCF | no public list found | `ucf.org.ua` now redirects to an unrelated site; do not use | | | 200 but wrong site |
 | Italy | FSI | no public list found | Not checked beyond the home page | | | home page 200 |
 | Singapore | Singapore Chess Federation | FIDE list only | Not checked beyond the home page | | | home page 200 |
 | Taiwan | Chinese Taipei Chess Association | FIDE list only | Not checked beyond the home page | | | home page 200 |
-| Iran | Iran Chess Federation | FIDE list only | `chess.org.ir` not reachable; `fcf.ir` answered 200, not searched | | | not reachable |
+| Iran | Iran Chess Federation | no public list found | [fcf.ir](https://fcf.ir/fa) has no rating page; `chess.org.ir` does not resolve | | | 200 |
 | Argentina | FADA | FIDE list only | The address `fada.org.ar` I tried belongs to another sport; not confirmed | | | 200, wrong site |
-| Japan | JCA | FIDE list only | Not reachable by the address tried | | | not reachable |
-| South Korea | Korea Chess Federation | FIDE list only | Not reachable by the address tried | | | not reachable |
-| Georgia | Georgian Chess Federation | FIDE list only | Not reachable by the address tried | | | not reachable |
-| Lithuania | LŠF | FIDE list only | Not reachable by the addresses tried | | | not reachable |
-| Latvia | LŠF | FIDE list only | Not reachable by the address tried | | | not reachable |
+| Japan | JCA | Monthly PDF, e.g. [2026-11-01.pdf](https://japanchess.org/wp-content/uploads/2026/10/2026-11-01.pdf) | PDF; the address carries the month | | Monthly | 200 |
+| South Korea | Korea Chess Federation | no public list found | [kcf.or.kr](https://kcf.or.kr/) has no rating page | | | 200 |
+| Georgia | Georgian Chess Federation | no public list found | [geochess.ge](https://geochess.ge/) has rating pages but no download | | | 200 |
+| Lithuania | LŠF | FIDE list only | `lsf.lt` belongs to another sport; `sachmatai.lt` is "under reconstruction" | | | wrong site |
+| Latvia | LŠF | no public list found | [sahafederacija.lv](https://www.sahafederacija.lv/) is a JavaScript app | | | 200 |
 | Mexico | FEMEXA | FIDE list only | Not reachable by the address tried | | | not reachable |
-| Chile, Colombia, Peru | national federations | FIDE list only | Not reachable by the addresses tried | | | not reachable |
+| Colombia | Federación Colombiana de Ajedrez | [elo-2](https://federacioncolombianadeajedrez.com/elo-2/) lists monthly files, e.g. `ELOOct.csv` (15.3 MB) and `Elo_Nac_COL_octubre_2026.xlsx` | CSV and XLSX; the month is in each name | None stated | Monthly | 200 |
+| Chile, Peru | national federations | FIDE list only | Not reachable: `ajedrezchile.cl` now leads to an unrelated site; the Peruvian addresses tried do not resolve | | | not reachable |
 | Bolivia, Costa Rica, Cuba, Dominican Republic, Ecuador, Guatemala, Honduras, Nicaragua, Panama, Puerto Rico, El Salvador, Uruguay, Venezuela | national federations | FIDE list only | Not searched; no national list known | | | not checked |
 
-Data from the German, English, Australian and Danish rows has names and birth years or member numbers of private people. Bragd keeps any list it downloads on the machine and does not upload it.
+Data from the German, English, Canadian, Finnish, New Zealand, Australian and Danish rows has names and birth years or member numbers of private people. Bragd keeps any list it downloads on the machine and does not upload it.
 
 ## Questions
 
 #### Why is my federation's list missing?
 
-Most small federations only use the FIDE list, and many of the others publish no file, only a search page. A search page is no use to Bragd, which must fetch a list on a schedule and check players offline. Where a federation has a list but its terms forbid use in other software (Australia) or ask for agreement first (Germany), the federation's permission is needed before Bragd can use it.
+Most small federations only use the FIDE list, and many of the others publish no file, only a search page. A search page is no use to Bragd, which must fetch a list on a schedule and check players offline. Where a federation has a list but its terms forbid use in other software (Australia, Catalonia) or ask for agreement first (Germany), the federation's permission is needed before Bragd can use it.
 
 #### Is a downloaded list sent anywhere?
 
@@ -181,7 +242,7 @@ No. It stays in `rating-lists.sqlite` on your machine. Searching it at check-in 
 
 #### How big are the downloads?
 
-The FIDE combined list is 45 MB zipped and 320 MB unzipped, about 1.9 million lines. The standard-only list is 13 MB. The Danish list is 0.5 MB and the English one 4.5 MB. The wizard and the Sources page show each list's size before anything is downloaded.
+The FIDE combined list is 45 MB zipped and 320 MB unzipped, about 1.9 million lines. The standard-only list is 13 MB. The Danish list is 0.5 MB, the Finnish 0.75 MB, the New Zealand 0.9 MB, the English 4.5 MB and the Canadian 5.4 MB. The wizard and the Sources page show each list's size before anything is downloaded.
 
 #### How much disk does a list take, and how fast is a search?
 
@@ -193,7 +254,7 @@ Once a month, once you tick the list in the wizard or turn it on under Sources. 
 
 #### Can I use a list Bragd does not know?
 
-Not yet. Bragd reads only the three lists above. Members a list does not have can be added to a Club by hand, with their IDs ([Clubs](../clubs/clubs.md)).
+Not yet. Bragd reads only the six lists above. Members a list does not have can be added to a Club by hand, with their IDs ([Clubs](../clubs/clubs.md)).
 
 ---
 [← Previous: Privacy](privacy.md) · [Next: Swiss pairing →](swiss-pairing.md)

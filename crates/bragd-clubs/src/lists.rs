@@ -57,6 +57,12 @@ pub enum Format {
     DsuCsv,
     /// The English Chess Federation's rating list: comma-separated, with a header.
     EcfCsv,
+    /// The Chess Federation of Canada's: comma-separated, a header, then a row holding its date.
+    CfcCsv,
+    /// The Finnish Chess Federation's: `;`-separated, Latin-1, each line ending in a `;`.
+    FinCsv,
+    /// The New Zealand Chess Federation's: a JSON array of objects whose values are all strings.
+    NzJson,
 }
 
 /// A rating list Bragd can fetch: its id (the Source's), its name, where it is, the file it is
@@ -77,6 +83,9 @@ pub const LISTS: &[List] = &[
     List { id: "fide-ratings", name: "FIDE", url: "https://ratings.fide.com/download/players_list.zip", file: "players_list.zip", size: 45_000_000, format: Format::FideTxt },
     List { id: "dsu-ratings", name: "DSU", url: "https://turnering.skak.dk/ClubAndMembers/AllMemberReport?memType=ActiveMembersAjax&format=csv", file: "dsu-members.csv", size: 550_000, format: Format::DsuCsv },
     List { id: "ecf-ratings", name: "ECF", url: "https://rating.englishchess.org.uk/api/rating-list/csv", file: "ecf-ratings.csv", size: 4_500_000, format: Format::EcfCsv },
+    List { id: "cfc-ratings", name: "CFC", url: "https://files.chess.ca/data/cfc-ratings.csv", file: "cfc-ratings.csv", size: 5_400_000, format: Format::CfcCsv },
+    List { id: "sshl-ratings", name: "SShL", url: "https://www.shakki.net/selo/selolista.csv", file: "sshl-ratings.csv", size: 750_000, format: Format::FinCsv },
+    List { id: "nzcf-ratings", name: "NZCF", url: "https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json", file: "nzcf-ratings.json", size: 900_000, format: Format::NzJson },
 ];
 
 /// What a parser hands each player to.
@@ -124,6 +133,11 @@ fn number<T: std::str::FromStr + PartialEq + Default>(s: &str) -> Option<T> {
     s.trim().parse().ok().filter(|n| *n != T::default())
 }
 
+/// An ID as a list writes it, none when blank or 0.
+fn id(s: &str) -> String {
+    if s.trim() == "0" { String::new() } else { s.trim().into() }
+}
+
 /// The players in `r`, written as `format`.
 pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> {
     match format {
@@ -161,8 +175,27 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
                 })
             })
         }
-        Format::DsuCsv | Format::EcfCsv => {
-            let sep = if format == Format::DsuCsv { ';' } else { ',' };
+        Format::NzJson => {
+            let rows: Vec<std::collections::HashMap<String, String>> = serde_json::from_reader(r).map_err(io::Error::other)?;
+            for f in rows {
+                let at = |k: &str| f.get(k).map_or("", |s| s.trim());
+                each(Player {
+                    id: at("nzcf").into(),
+                    name: format!("{}, {}", at("surname"), at("name")),
+                    federation: at("fed").into(),
+                    club: at("club").into(),
+                    title: at("title").into(),
+                    rating: number(at("nzcf_standard")),
+                    rapid: number(at("nzcf_rapid")),
+                    blitz: None,
+                    born: number(at("year")),
+                    fide_id: id(at("fide")),
+                })?;
+            }
+            Ok(())
+        }
+        Format::DsuCsv | Format::EcfCsv | Format::CfcCsv | Format::FinCsv => {
+            let sep = if matches!(format, Format::DsuCsv | Format::FinCsv) { ';' } else { ',' };
             let mut head: Vec<String> = vec![];
             lines(r, |line| {
                 let f = fields(line, sep);
@@ -175,9 +208,33 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
                     let i = if last { head.iter().rposition(|h| h == name) } else { head.iter().position(|h| h == name) };
                     i.and_then(|i| f.get(i)).map_or("", |s| s.trim())
                 };
-                each(if format == Format::DsuCsv {
+                each(match format {
+                    // CFC's second row holds the list's date under the ID -100.
+                    Format::CfcCsv if at("cfc_id", false).starts_with('-') => return Ok(()),
+                    Format::CfcCsv => Player {
+                        id: at("cfc_id", false).into(),
+                        name: format!("{}, {}", at("name_last", false), at("name_first", false)),
+                        federation: "CAN".into(),
+                        rating: number(at("cfc_rating", false)),
+                        rapid: number(at("cfc_rating_rapid", false)),
+                        fide_id: id(at("fide_id", false)),
+                        ..Player::default()
+                    },
+                    // `selo` is the national rating and `pelo` the rapid one; `elo` is FIDE's.
+                    Format::FinCsv => Player {
+                        id: at("id", false).into(),
+                        name: format!("{}, {}", at("sukunimi", false), at("etunimi", false)),
+                        federation: at("kansallisuus", false).into(),
+                        club: at("seura", false).into(),
+                        title: at("titteli", false).into(),
+                        rating: number(at("selo", false)),
+                        rapid: number(at("pelo", false)),
+                        blitz: None,
+                        born: number(at("syntvuosi", false)),
+                        fide_id: id(at("fide_id", false)),
+                    },
                     // `Nr` twice: the DSU member number first, the FIDE ID last.
-                    Player {
+                    Format::DsuCsv => Player {
                         id: at("Nr", false).into(),
                         name: at("Navn", false).into(),
                         federation: "DEN".into(),
@@ -188,9 +245,8 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
                         blitz: number(at("Lyn", false)),
                         born: number(at("Født", false)),
                         fide_id: at("Nr", true).into(),
-                    }
-                } else {
-                    Player {
+                    },
+                    Format::EcfCsv | Format::FideTxt | Format::NzJson => Player {
                         id: at("ECF_code", false).into(),
                         name: at("full_name", false).into(),
                         federation: at("nation", false).into(),
@@ -201,7 +257,7 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
                         blitz: number(at("revised_blitz", false)),
                         born: None,
                         fide_id: at("FIDE_no", false).into(),
-                    }
+                    },
                 })
             })
         }
@@ -488,6 +544,44 @@ mod tests {
         let p = &ps[0];
         assert_eq!((p.id.as_str(), p.name.as_str(), p.federation.as_str(), p.club.as_str(), p.title.as_str(), p.fide_id.as_str()), ("100057D", "Kennaugh, Charles W", "ENG", "Atticus", "FM", "400815"));
         assert_eq!((p.rating, p.rapid), (Some(2118), None));
+    }
+
+    #[test]
+    fn the_cfc_list_skips_its_date_row_and_reads_0_as_none() {
+        let csv = "cfc_id,name_first,name_last,cfc_expiry,cfc_rating,cfc_rating_rapid,fide_id,city,province,sex\r\n\
+-100,2026-10-29,,,,,,,,\r\n\
+100027,Philip G.,Haley,2019-01-01,1758,1700,2604442,North York,ON,M\r\n\
+100120,Wilson,Neil,2099-12-01,0,0,0,\"Dallas, TX\",US,M\r\n";
+        let ps = parsed(Format::CfcCsv, csv.as_bytes());
+        assert_eq!(ps.len(), 2);
+        let p = &ps[0];
+        assert_eq!((p.id.as_str(), p.name.as_str(), p.federation.as_str(), p.fide_id.as_str()), ("100027", "Haley, Philip G.", "CAN", "2604442"));
+        assert_eq!((p.rating, p.rapid), (Some(1758), Some(1700)));
+        assert_eq!((ps[1].rating, ps[1].fide_id.as_str()), (None, ""));
+    }
+
+    #[test]
+    fn the_finnish_list_is_read_in_latin_1_with_its_trailing_separator() {
+        let csv = b"id;fide_id;titteli;sukunimi;etunimi;seura;selo;selopelej\xe4;selovuosi;pelo;pelopelej\xe4;pelovuosi;elo;sukupuoli;kansallisuus;syntvuosi;lisenssi;\r\n\
+1;504599;ME;Aakio;Seppo;LauttSSK;2004;954;2026;2099;2629;2026;2017;M;FIN;1954;L;\r\n\
+2;;;\xc4kr\xf6;Erica;KOULU/;1446;7;;;;;;F;FIN;;;\r\n";
+        let ps = parsed(Format::FinCsv, csv);
+        assert_eq!(ps.len(), 2);
+        let p = &ps[0];
+        assert_eq!((p.id.as_str(), p.name.as_str(), p.club.as_str(), p.title.as_str(), p.federation.as_str(), p.fide_id.as_str()), ("1", "Aakio, Seppo", "LauttSSK", "ME", "FIN", "504599"));
+        assert_eq!((p.rating, p.rapid, p.born), (Some(2004), Some(2099), Some(1954)));
+        assert_eq!((ps[1].name.as_str(), ps[1].rapid, ps[1].born), ("Äkrö, Erica", None, None));
+    }
+
+    #[test]
+    fn the_new_zealand_list_is_read_from_its_json() {
+        let json = r#"[{"surname": "Abbott", "name": "Isaac", "fed": "NZL", "year": "2007", "title": "", "fide": "4326350", "nzcf": "20069", "club": "", "nzcf_standard": "1544", "nzcf_rapid": "1410", "fide_standard": "1730", "fide_rapid": "1598"}, {"surname": "Chow", "name": "Marcus", "fed": "NZL", "year": "2014", "title": "", "fide": "0", "nzcf": "20712", "club": "NS", "nzcf_standard": "", "nzcf_rapid": "1144", "fide_standard": "0", "fide_rapid": "1578"}]"#;
+        let ps = parsed(Format::NzJson, json.as_bytes());
+        assert_eq!(ps.len(), 2);
+        let p = &ps[0];
+        assert_eq!((p.id.as_str(), p.name.as_str(), p.federation.as_str(), p.fide_id.as_str()), ("20069", "Abbott, Isaac", "NZL", "4326350"));
+        assert_eq!((p.rating, p.rapid, p.born), (Some(1544), Some(1410), Some(2007)));
+        assert_eq!((ps[1].rating, ps[1].club.as_str(), ps[1].fide_id.as_str()), (None, "NS", ""));
     }
 
     #[test]
