@@ -4,7 +4,7 @@
 
 **F1**, or *Help* in the sidebar, lists every feature: what it does and the questions people ask, with *Show me* opening its page in these docs. The filter finds every word you type, whatever its case or accents: `grunfeld` finds *Grünfeld*.
 
-Notices and hints show in a small area in the bottom corner of the window. A notice (a mistake in `config.toml`, a newer version) shows until you close it. A hint shows on the first three starts, then no more.
+Notices and hints show in a small area in the bottom corner of the window, one at a time: notices first, then hints, then a Tip. Closing one shows the next. A notice (a mistake in `config.toml`, a newer version) shows until you close it. A hint shows on three starts, then no more; one hint comes at a start, and the next one only after you close it.
 
 ![Help (F1): the filter at the top, then one card per feature with its line, its questions and answers, and Show me](../screenshots/help-1100.png)
 *Help (F1): every feature with its questions.*
@@ -72,6 +72,10 @@ Which notices you closed and how often each hint showed are kept in `state.json`
 #### Why do the notices not show while the wizard is open?
 
 The wizard and the What's new cards come first. Notices and hints show once they are closed.
+
+#### Why do I see only one notice at a time?
+
+So they never cover the board. Close the one shown, and the next one waits behind it. A notice that something failed comes before a hint, and a Tip comes last.
 
 #### How do I copy the upgrade command?
 

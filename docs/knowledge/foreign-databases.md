@@ -16,7 +16,7 @@ A Foreign database is a game file in someone else's format. Bragd opens it where
 ## How to reach it
 
 1. In the sidebar, open a Family and choose **Databases**. The *Files* tab is the first.
-2. Press **Open a file…** and choose a file. The dialog shows the game files Bragd reads.
+2. Press **Open a file…** and choose a file. The dialog shows the game files Bragd reads. Before a file is open, the tab names the formats Bragd reads for the page's Family: SGF on Go's page, KIF and CSA on Shogi's.
 3. Click a row, or move to it with **Tab** and press **Enter** or **Space**, to open the Game.
 4. In replay, **←** and **→** step through the moves, **Home** and **End** go to the start and the end.
 

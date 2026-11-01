@@ -4,13 +4,15 @@
   // as another file. The file stays open in Rust while the window runs.
   import * as k from "./knowledge.js";
   import * as api from "./api.js";
-  import { t } from "./i18n.svelte.js";
+  import { t, i18n } from "./i18n.svelte.js";
   import GameList from "./GameList.svelte";
   import Replay from "./Replay.svelte";
   import JobLine from "./JobLine.svelte";
 
-  /** @type {{ onstep: (family: string, step: any) => void, onsnap: (snap: any) => void }} */
-  let { onstep, onsnap } = $props();
+  /** @type {{ family: any, onstep: (family: string, step: any) => void, onsnap: (snap: any) => void }} */
+  let { family, onstep, onsnap } = $props();
+  // The page Family's formats from Rust, joined as the language joins "this or that".
+  const formats = $derived(new Intl.ListFormat(i18n.lang, { type: "disjunction" }).format(family.formats));
   /** @type {any} */
   let file = $state(null);
   let player = $state("");
@@ -131,7 +133,7 @@
       <p class="notice">{t("db.downloaded")}</p>
     {/if}
   {:else}
-    <p class="dim">{t("db.none_hint")}</p>
+    <p class="dim">{family.formats.length ? t("db.none_hint", { formats }) : t("db.no_formats", { family: family.name })}</p>
   {/if}
 
   {#if confirm}

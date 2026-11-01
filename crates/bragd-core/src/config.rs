@@ -145,7 +145,7 @@ impl Default for KnowledgeConfig {
     fn default() -> Self {
         KnowledgeConfig {
             library: String::new(),
-            source_priority: vec!["twic".into(), "lichess".into()],
+            source_priority: vec!["twic".into(), "lichess-db".into()],
             max_unpack_ratio: MAX_UNPACK_RATIO,
         }
     }
@@ -467,7 +467,7 @@ mod tests {
         assert_eq!(c, Config::default());
         assert_eq!(c.look.theme, "racing-green");
         assert_eq!(c.look.board_theme, "racing");
-        assert_eq!(c.knowledge.source_priority, ["twic", "lichess"]);
+        assert_eq!(c.knowledge.source_priority, ["twic", "lichess-db"]);
         assert!(c.updates.check && c.tablebases.online && !c.helper.start_with_session);
         for v in &bragd_games::VARIANTS {
             assert!(c.variant_on(v.key), "{}", v.key);

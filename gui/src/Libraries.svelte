@@ -8,6 +8,7 @@
   import Replay from "./Replay.svelte";
   import JobLine from "./JobLine.svelte";
   import SliceEditor from "./SliceEditor.svelte";
+  import Picker from "./Picker.svelte";
 
   /** @type {{ family: string, variants: any[], slice: any, position: any, onstep: (family: string, step: any) => void, onslices: () => void }} */
   let { family, variants, slice = null, position, onstep, onslices } = $props();
@@ -25,8 +26,8 @@
   let job = $state(null);
   /** The Export to Parquet job. @type {number | null} */
   let exporting = $state(null);
-  /** @type {string[]} */
-  let priority = $state([]);
+  /** The Source priority: the Sources shown, in order, and those that can be added. @type {{list: {id: string, name: string}[], choices: {id: string, name: string}[]}} */
+  let priority = $state({ list: [], choices: [] });
   let newSource = $state("");
   let error = $state("");
   let message = $state("");
@@ -89,7 +90,7 @@
 
   function drop(/** @type {number} */ to) {
     if (dragging === null || dragging === to) return;
-    const list = [...priority];
+    const list = priority.list.map((s) => s.id);
     const [moved] = list.splice(dragging, 1);
     list.splice(to, 0, moved);
     dragging = null;
@@ -98,8 +99,8 @@
 
   function move(/** @type {number} */ i, /** @type {number} */ by) {
     const j = i + by;
-    if (j < 0 || j >= priority.length) return;
-    const list = [...priority];
+    if (j < 0 || j >= priority.list.length) return;
+    const list = priority.list.map((s) => s.id);
     [list[i], list[j]] = [list[j], list[i]];
     saveOrder(list);
   }
@@ -132,7 +133,7 @@
       {#each ["games", "review", "slice"] as v}
         <button class:current={view === v} onclick={() => ((view = v), (game = null), v === "slice" && !slice && (editing = null))}>{t(`lib.tab.${v}`)}</button>
       {/each}
-      {#each lib.slices as s}
+      {#each lib.slices.filter((/** @type {any} */ s) => !s.families.length || s.families.includes(family)) as s}
         <button class:current={view === "slice" && editing?.name === s.name} onclick={() => ((view = "slice"), (editing = s))}>{s.name}{s.materialised ? " ⧉" : ""}</button>
       {/each}
     </nav>
@@ -187,7 +188,7 @@
     <h3>{t("priority.title")}</h3>
     <p class="hint">{t("priority.hint")}</p>
     <ol>
-      {#each priority as s, i (s)}
+      {#each priority.list as s, i (s.id)}
         <li
           draggable="true"
           class:dragging={dragging === i}
@@ -196,17 +197,19 @@
           ondrop={() => drop(i)}
         >
           <span class="grip" aria-hidden="true">⠿</span>
-          <span class="name">{s}</span>
-          <button onclick={() => move(i, -1)} disabled={i === 0} aria-label={t("priority.up", { source: s })}>↑</button>
-          <button onclick={() => move(i, 1)} disabled={i === priority.length - 1} aria-label={t("priority.down", { source: s })}>↓</button>
-          <button onclick={() => saveOrder(priority.filter((x) => x !== s))} aria-label={t("priority.remove", { source: s })}>✕</button>
+          <span class="name">{s.name}</span>
+          <button onclick={() => move(i, -1)} disabled={i === 0} aria-label={t("priority.up", { source: s.name })}>↑</button>
+          <button onclick={() => move(i, 1)} disabled={i === priority.list.length - 1} aria-label={t("priority.down", { source: s.name })}>↓</button>
+          <button onclick={() => saveOrder(priority.list.filter((x) => x.id !== s.id).map((x) => x.id))} aria-label={t("priority.remove", { source: s.name })}>✕</button>
         </li>
       {/each}
     </ol>
-    <div class="bar">
-      <input type="text" bind:value={newSource} placeholder={t("priority.add_hint")} aria-label={t("priority.add_hint")} />
-      <button onclick={() => newSource.trim() && (saveOrder([...priority, newSource]), (newSource = ""))}>{t("priority.add")}</button>
-    </div>
+    {#if priority.choices.length}
+      <div class="bar">
+        <Picker value={newSource || priority.choices[0].id} choices={priority.choices.map((c) => ({ value: c.id, label: c.name }))} label={t("priority.add_hint")} onchange={(v) => (newSource = v)} />
+        <button onclick={() => (saveOrder([...priority.list.map((s) => s.id), newSource || priority.choices[0].id]), (newSource = ""))}>{t("priority.add")}</button>
+      </div>
+    {/if}
     {#if message}<p role="status">{message}</p>{/if}
   </section>
 </div>

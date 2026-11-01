@@ -4,7 +4,7 @@
 
 Bragd keeps Games in two ways. A **Foreign database** is a game file in someone else's format, such as PGN or SGF. Bragd reads it where it is and changes nothing in it. A **Library** is Bragd's own SQLite file, where imports land and each Game appears once. **Sources** such as TWIC bring new Games on a schedule, each through its **Routes** into one Library or several. The **Helper**, a background process shared by every window, does the fetching, importing and Duplicate finding, so the windows stay quick. **Strip rules** and **Disk watch** hold what is stored to the Games you want and the space you allow.
 
-Everything here is reached from the sidebar: a Family, then **Databases**. The page has four tabs: *Files*, *Libraries*, *Sources* and *Disk use*.
+Everything here is reached from the sidebar: a Family, then **Databases**. The page has three tabs: *Files*, *Libraries* and *Sources*. Disk watch concerns every Family, so it is in *Settings → Knowledge*.
 
 | Page | What it covers |
 |---|---|
@@ -15,7 +15,7 @@ Everything here is reached from the sidebar: a Family, then **Databases**. The p
 | [Export to Parquet](parquet-export.md) | A Library as a Parquet file for DuckDB |
 | [Sources](sources.md) | TWIC, custom URLs, the listed big Sources, schedules |
 | [Strip rules](strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
-| [Disk watch](disk-watch.md) | Disk use, limits, warnings and what happens when one is crossed |
+| [Disk watch](disk-watch.md) | What Bragd keeps on disk, limits, warnings and what happens when one is crossed |
 | [The Helper](helper.md) | The background process, its jobs, *Start with my session*, battery |
 
 ---

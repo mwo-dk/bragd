@@ -64,6 +64,8 @@ struct FamilyView {
     shown: bool,
     /// Raced along a track by throws of the dice: backgammon, Ur and senet.
     race: bool,
+    /// The file formats Bragd reads for it: "PGN", "SGF"…
+    formats: &'static [&'static str],
     variants: Vec<VariantView>,
 }
 
@@ -131,19 +133,7 @@ fn choices(name: &str, cfg: &Config) -> Vec<Choice> {
         "language" => std::iter::once(choice("auto", i18n::tr("settings.language_auto", &[]), ""))
             .chain(i18n::LANGUAGES.iter().map(|l| choice(l.code, l.name.to_string(), l.group)))
             .collect(),
-        "file_picker" => vec![
-            choice(
-                "auto",
-                i18n::tr(if files::coxswain().is_some() {
-                    "settings.file_picker_auto_found"
-                } else {
-                    "settings.file_picker_auto"
-                }, &[]),
-                "",
-            ),
-            choice("coxswain", "Coxswain".into(), ""),
-            choice("system", i18n::tr("settings.file_picker_system", &[]), ""),
-        ],
+        "file_picker" => picker_choices(files::coxswain().is_some()),
         "tips" => bragd_core::tips::FREQUENCIES.iter().map(|f| choice(f, i18n::tr(&format!("tips.{f}"), &[]), "")).collect(),
         "engines_runtime" => vec![
             choice("auto", i18n::tr("settings.runtime_auto", &[]), ""),
@@ -152,6 +142,20 @@ fn choices(name: &str, cfg: &Config) -> Vec<Choice> {
         ],
         _ => vec![],
     }
+}
+
+/// The file pickers to choose from. Coxswain's is named only where it is installed; elsewhere
+/// the system's dialog is the one choice, and nothing says what is missing.
+fn picker_choices(coxswain: bool) -> Vec<Choice> {
+    let system = || i18n::tr("settings.file_picker_system", &[]);
+    if !coxswain {
+        return vec![choice("auto", system(), "")];
+    }
+    vec![
+        choice("auto", i18n::tr("settings.file_picker_auto_found", &[]), ""),
+        choice("coxswain", "Coxswain".into(), ""),
+        choice("system", system(), ""),
+    ]
 }
 
 fn snapshot(cfg: &Config) -> Snapshot {
@@ -172,6 +176,7 @@ fn snapshot(cfg: &Config) -> Snapshot {
                 name: i18n::tr(&format!("family.{}", f.key()), &[]),
                 shown: cfg.family_shown(f.key()),
                 race: f.race(),
+                formats: bragd_library::formats(f.key()),
                 variants: f
                     .variants()
                     .map(|v| VariantView {
@@ -182,7 +187,7 @@ fn snapshot(cfg: &Config) -> Snapshot {
                     .collect(),
             })
             .collect(),
-        areas: Area::ALL.iter().map(|a| (*a, a.label())).collect(),
+        areas: settings::areas(cfg).into_iter().map(|a| (a, a.label())).collect(),
         settings: settings::options()
             .map(|o| OptView {
                 name: o.name,
@@ -499,5 +504,16 @@ mod tests {
         assert!(!cfg.helper.start_with_session);
         save_with("check_updates", &Value::Bool(true), |_| panic!("only the session setting registers")).unwrap();
         assert_eq!(asked, [true, true, false]);
+    }
+
+    /// Without Coxswain installed, the file picker offers the system's dialog alone and names
+    /// no other program; with it, Coxswain's picker is a choice.
+    #[test]
+    fn coxswain_is_named_only_where_it_is_installed() {
+        let labels = |found| picker_choices(found).into_iter().map(|c| c.label).collect::<Vec<_>>();
+        let without = labels(false);
+        assert_eq!(without.len(), 1);
+        assert!(without.iter().all(|l| !l.contains("Coxswain")), "{without:?}");
+        assert!(labels(true).iter().any(|l| l == "Coxswain"));
     }
 }

@@ -1,7 +1,7 @@
 <script>
   // Settings, built from bragd-core's option descriptors: each option's area, label, hint, value
   // and choices come from Rust, and each change is saved to config.toml there.
-  import { t } from "./i18n.svelte.js";
+  import { t, tn } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
   import { guide } from "./guide.svelte.js";
   import FamilyToggles from "./FamilyToggles.svelte";
@@ -14,6 +14,10 @@
   // A link elsewhere (the wizard, a notice) names the area to open.
   $effect(() => {
     if (guide.area) [area, guide.area] = [guide.area, null];
+  });
+  // An area Rust no longer lists (its last Family turned off) gives way to Overview.
+  $effect(() => {
+    if (!snap.areas.some((/** @type {any} */ a) => a[0] === area)) area = "overview";
   });
 
   const opts = $derived(snap.settings.filter((/** @type {any} */ o) => o.listed && o.area === area));
@@ -33,7 +37,7 @@
 
     <section>
       {#if area === "overview"}
-        <p>{t("settings.overview", { version: snap.version, families: shown.length, variants: variantsOn })}</p>
+        <p>{t("settings.overview", { version: snap.version, families: tn("settings.families_on", shown.length), variants: tn("settings.variants_on", variantsOn) })}</p>
         <SettingsExtras />
       {/if}
 
@@ -64,7 +68,7 @@
         </div>
       {/each}
       <!-- Disk watch's limits (disk_total, disk_free_below and each item's) are set here. -->
-      {#if area === "privacy"}<DiskUse />{/if}
+      {#if area === "knowledge"}<DiskUse />{/if}
     </section>
   </div>
 </section>

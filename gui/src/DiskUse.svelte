@@ -1,5 +1,5 @@
 <script>
-  // Disk use (Disk watch): everything Bragd keeps on disk, with its size, where it is and its
+  // Disk watch: everything Bragd keeps on disk, with its size, where it is and its
   // limit; the limits for all of it and for the free space; the limits crossed; pruning the
   // Library by the Sources' Strip rules, previewed first; and what Disk watch may do by itself
   // for each Source. Sizes are typed as shown (5 GB); Rust reads them.

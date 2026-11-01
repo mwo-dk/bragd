@@ -4,13 +4,13 @@
 
 Disk watch shows what Bragd keeps on disk and holds it to limits you set: for all of it together, for each item, and for the free space left. A crossed limit gives a notice. Nothing is deleted unless you turn that on for a Source. In F1 this is the `disk` entry.
 
-![The Disk use tab: every item with its size, where it is and its limit, the limits for all together and for free space, Prune now with Preview, and what Disk watch may do by itself for each Source](../screenshots/databases-disk-1100.png)
-*Databases → Disk use.*
+![Settings at Knowledge, with Disk watch below its settings: every item with its size, where it is and its limit, the limits for all together and for free space, Prune now with Preview, and what Disk watch may do by itself for each Source](../screenshots/settings-knowledge-1100.png)
+*Settings → Knowledge → Disk watch.*
 
 ## How to reach it
 
-- In the sidebar, open a Family and choose **Databases**, then **Disk use**.
-- Or *Settings → Privacy and updates*, at the end of the page.
+- *Settings → Knowledge*: Disk watch follows the area's settings. It concerns every Game family, so it has one place, not a tab on each Family's Databases page.
+- *Show me* on the `disk` entry in F1 opens it.
 
 On the page:
 

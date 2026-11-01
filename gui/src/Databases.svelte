@@ -1,12 +1,11 @@
 <script>
   // A Family's Databases: Foreign databases read in place, the Libraries with their Slices,
-  // the Sources and Disk use. The position of the Game last stepped through in replay is kept
+  // and the Sources. Disk watch is in Settings → Knowledge. The position of the Game last stepped through in replay is kept
   // here, for a Slice's "Use current board position".
   import { t } from "./i18n.svelte.js";
   import ForeignDb from "./ForeignDb.svelte";
   import Libraries from "./Libraries.svelte";
   import Sources from "./Sources.svelte";
-  import DiskUse from "./DiskUse.svelte";
 
   /** @type {{ family: any, slice?: any, onslices: () => void, onsnap: (snap: any) => void }} */
   let { family, slice = null, onslices, onsnap } = $props();
@@ -20,7 +19,7 @@
   });
 
   const onstep = (/** @type {string} */ fam, /** @type {any} */ step) => (position = step?.fen ? { family: fam, fen: step.fen } : position);
-  const TABS = ["files", "libraries", "sources", "disk"];
+  const TABS = ["files", "libraries", "sources"];
 </script>
 
 <section class="databases">
@@ -31,13 +30,11 @@
     {/each}
   </div>
   {#if tab === "files"}
-    <ForeignDb {onstep} {onsnap} />
+    <ForeignDb {family} {onstep} {onsnap} />
   {:else if tab === "libraries"}
     <Libraries family={family.id} variants={family.variants} {slice} {position} {onstep} {onslices} />
-  {:else if tab === "sources"}
-    <Sources family={family.id} />
   {:else}
-    <DiskUse />
+    <Sources family={family.id} />
   {/if}
 </section>
 

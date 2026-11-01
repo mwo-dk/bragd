@@ -392,7 +392,7 @@ pub struct LibraryView {
     pub error: String,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SliceView {
     pub library: String,
@@ -401,8 +401,9 @@ pub struct SliceView {
     pub query: Value,
     pub materialised: bool,
     pub path: String,
-    /// The Game family it is about; empty for any.
-    pub family: String,
+    /// The Game families whose Games it can hold: its own, its Variant's, or else those its
+    /// Library holds. Empty: any (an empty Library).
+    pub families: Vec<String>,
 }
 
 /// The most Duplicates and Near-duplicates the review lists.
@@ -423,7 +424,10 @@ pub fn libraries(cfg: &Config) -> Vec<LibraryView> {
                     v.size = bragd_core::i18n::bytes(lib.size());
                     v.duplicates = lib.merged_count().map_or(0, |n| n as usize);
                     v.near_duplicates = lib.near_duplicate_count().map_or(0, |n| n as usize);
-                    v.slices = lib.slices().unwrap_or_default().into_iter().map(|s| slice_view(p, s)).collect();
+                    // The Library's Families, scanned at most once and only when a Slice needs them.
+                    let held = std::cell::OnceCell::new();
+                    let held = || held.get_or_init(|| lib.families().unwrap_or_default()).clone();
+                    v.slices = lib.slices().unwrap_or_default().into_iter().map(|s| slice_view(p, s, held)).collect();
                 }
                 Err(e) => v.error = e.to_string(),
             }
@@ -432,14 +436,24 @@ pub fn libraries(cfg: &Config) -> Vec<LibraryView> {
         .collect()
 }
 
-pub fn slice_view(library: &Path, s: slice::Slice) -> SliceView {
+pub fn slice_view(library: &Path, s: slice::Slice, held: impl FnOnce() -> Vec<String>) -> SliceView {
     SliceView {
         library: library.display().to_string(),
-        family: s.query.family.clone().unwrap_or_default(),
+        families: slice_families(&s.query, held),
         query: query_out(&s.query),
         name: s.name,
         materialised: s.materialised,
         path: s.path.map(|p| p.display().to_string()).unwrap_or_default(),
+    }
+}
+
+/// The Families a Slice of `q` can hold: its Family, else its Variant's, else `held()`, those of
+/// the Games in its Library.
+fn slice_families(q: &slice::Query, held: impl FnOnce() -> Vec<String>) -> Vec<String> {
+    let of_variant = || q.variant.as_deref().and_then(bragd_games::Variant::from_key).map(|v| v.family().key().to_string());
+    match q.family.clone().filter(|f| !f.is_empty()).or_else(of_variant) {
+        Some(f) => vec![f],
+        None => held(),
     }
 }
 
@@ -544,7 +558,13 @@ pub fn all_slices(cfg: &Config) -> BTreeMap<String, Vec<SliceView>> {
     let mut out: BTreeMap<String, Vec<SliceView>> = BTreeMap::new();
     for l in libraries(cfg) {
         for s in l.slices {
-            out.entry(s.family.clone()).or_default().push(s);
+            if s.families.is_empty() {
+                out.entry(String::new()).or_default().push(s);
+                continue;
+            }
+            for f in &s.families {
+                out.entry(f.clone()).or_default().push(s.clone());
+            }
         }
     }
     out
@@ -614,5 +634,16 @@ mod tests {
         let helper = bragd_helper::folder().unwrap().join("sources").join("twic").join("twic1600g.zip");
         assert!(downloaded(&helper));
         assert!(!downloaded(Path::new("/nowhere/games.pgn")));
+    }
+
+    /// A Slice belongs to its Family, else its Variant's, else those its Library holds, which
+    /// are scanned only then.
+    #[test]
+    fn a_slice_shows_under_the_families_it_can_hold() {
+        let q = |family: Option<&str>, variant: Option<&str>| slice::Query { family: family.map(String::from), variant: variant.map(String::from), ..Default::default() };
+        let never = || -> Vec<String> { panic!("no scan when the Slice names its Family") };
+        assert_eq!(slice_families(&q(Some("go"), None), never), ["go"]);
+        assert_eq!(slice_families(&q(None, Some("shogi")), never), ["shogi"]);
+        assert_eq!(slice_families(&q(None, None), || vec!["chess".into()]), ["chess"]);
     }
 }

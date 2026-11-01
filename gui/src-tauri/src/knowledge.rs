@@ -203,21 +203,73 @@ pub fn library_export(app: AppHandle, path: String, k: State<'_, Knowledge>, ctx
     k.link.start(&Request::Start { work: bragd_helper::jobs::Work::Export { library, to } }).map(Some)
 }
 
+/// A Source by id and by the name users know it by.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Named {
+    id: String,
+    name: String,
+}
+
+/// The Source priority as the page shows it: the Sources of the Families that are on, in order,
+/// and the ones that can still be added.
+#[derive(Debug, PartialEq, Serialize)]
+pub struct Priority {
+    list: Vec<Named>,
+    choices: Vec<Named>,
+}
+
+/// The built-in Sources of Games (not rating lists): id, name and Game family.
+fn builtin_sources() -> Vec<(String, String, String)> {
+    sources::builtin().iter().map(|s| s.about()).filter(|a| a.kind == sources::Kind::Games).map(|a| (a.id, a.name, a.family)).collect()
+}
+
+/// `id` named, and whether it shows for `cfg`: a Source of a Family that is off does not; an
+/// id Bragd does not know (a custom URL's) always does, by its own name.
+fn named(id: &str, cfg: &Config, known: &[(String, String, String)]) -> (Named, bool) {
+    match known.iter().find(|(k, ..)| k == id) {
+        Some((_, name, family)) => (Named { id: id.into(), name: name.clone() }, family.is_empty() || cfg.family_shown(family)),
+        None => (Named { id: id.into(), name: id.strip_prefix("custom:").unwrap_or(id).into() }, true),
+    }
+}
+
+fn priority_of(cfg: &Config, known: &[(String, String, String)]) -> Priority {
+    let order = &cfg.knowledge.source_priority;
+    let list = order.iter().map(|id| named(id, cfg, known)).filter(|(_, shown)| *shown).map(|(n, _)| n).collect();
+    let choices = known.iter().filter(|(id, ..)| !order.contains(id)).map(|(id, ..)| named(id, cfg, known)).filter(|(_, shown)| *shown).map(|(n, _)| n).collect();
+    Priority { list, choices }
+}
+
+/// The new order: `shown` as the page put it, then the Sources it does not show (of Families
+/// that are off) in their old order, so turning a Family off and on again loses nothing.
+fn priority_merged(shown: Vec<String>, cfg: &Config, known: &[(String, String, String)]) -> Vec<String> {
+    let mut out: Vec<String> = vec![];
+    for id in shown.into_iter().map(|s| s.trim().to_lowercase()).filter(|s| !s.is_empty()) {
+        if !out.contains(&id) {
+            out.push(id);
+        }
+    }
+    let hidden: Vec<String> = cfg.knowledge.source_priority.iter().filter(|id| !named(id, cfg, known).1 && !out.contains(id)).cloned().collect();
+    out.extend(hidden);
+    out
+}
+
 #[tauri::command(async)]
-pub fn priority_get(ctx: State<'_, Ctx>) -> Res<Vec<String>> {
-    Ok(ctx.cfg().knowledge.source_priority)
+pub fn priority_get(ctx: State<'_, Ctx>) -> Res<Priority> {
+    Ok(priority_of(&ctx.cfg(), &builtin_sources()))
 }
 
 /// Saves the Source priority to `[knowledge] source_priority` and restarts the Helper, which
 /// reads it as it starts; a running job starts again from its beginning, as imports are
-/// idempotent.
+/// idempotent. `list` is the order of the Sources shown.
 #[tauri::command(async)]
-pub fn priority_save(list: Vec<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Res<Vec<String>> {
-    let list: Vec<String> = list.into_iter().map(|s| s.trim().to_lowercase()).filter(|s| !s.is_empty()).collect();
-    let cfg = bragd_core::settings::save("source_priority", &Value::from(list.clone()))?;
+pub fn priority_save(list: Vec<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Res<Priority> {
+    let known = builtin_sources();
+    let list = priority_merged(list, &ctx.cfg(), &known);
+    let cfg = bragd_core::settings::save("source_priority", &Value::from(list))?;
+    let view = priority_of(&cfg, &known);
     *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = cfg;
     let _ = k.link.ask(&Request::Restart);
-    Ok(list)
+    Ok(view)
 }
 
 /// Every Slice, by the Game family it is about (`""` for any).
@@ -570,5 +622,22 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "new");
         assert!(save_confirmed(&from, &to_confirm).is_err());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The Source priority names Sources as users know them, leaves out those of Families that
+    /// are off, and keeps them when the order shown is saved.
+    #[test]
+    fn source_priority_names_sources_and_keeps_the_hidden_ones() {
+        let known = vec![("twic".into(), "The Week in Chess".into(), "chess".into()), ("ogs".into(), "OGS".into(), "go".into()), ("lichess".into(), "Lichess".into(), "chess".into())];
+        let mut cfg = Config::default();
+        cfg.knowledge.source_priority = vec!["twic".into(), "custom:mine".into(), "ogs".into()];
+        let p = priority_of(&cfg, &known);
+        assert_eq!(p.list.iter().map(|n| n.name.as_str()).collect::<Vec<_>>(), ["The Week in Chess", "mine", "OGS"]);
+        assert_eq!(p.choices, [Named { id: "lichess".into(), name: "Lichess".into() }]);
+        cfg.families.family.insert("chess".into(), false);
+        let p = priority_of(&cfg, &known);
+        assert_eq!(p.list.iter().map(|n| n.id.as_str()).collect::<Vec<_>>(), ["custom:mine", "ogs"]);
+        assert!(p.choices.is_empty(), "no chess Source to add: {:?}", p.choices);
+        assert_eq!(priority_merged(vec!["ogs".into(), "custom:mine".into()], &cfg, &known), ["ogs", "custom:mine", "twic"]);
     }
 }

@@ -16,7 +16,7 @@ A Strip rule decides which of a Source's Games are kept, for example rating 2000
 5. **Apply** saves the options and removes what the rules strip.
 6. **Keep everything** empties that Route's rule.
 
-**Prune now** on the *Disk use* tab applies the rule of every Source's Route to the main Library at once ([Disk watch](disk-watch.md)).
+**Prune now** in *Settings → Knowledge → Disk watch* applies the rule of every Source's Route to the main Library at once ([Disk watch](disk-watch.md)).
 
 | Part | What a Game must have to be kept |
 |---|---|

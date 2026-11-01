@@ -18,7 +18,7 @@ pub enum Area {
     Families,
     Look,
     Engines,
-    /// Libraries, Sources, Tablebases and the Helper.
+    /// Libraries, Sources, Tablebases, the Helper and Disk watch.
     Knowledge,
     /// Servers to play on, and what is asked of them.
     Online,
@@ -76,9 +76,10 @@ impl Opt {
         crate::i18n::tr(self.texts, &[])
     }
 
-    /// Listed in its area of Settings. Families and Disk use draw their own options.
+    /// Listed in its area of Settings. Families and Disk watch draw their own options; the
+    /// Source priority is set on Databases → Libraries, where Sources are picked by name.
     pub fn listed(&self) -> bool {
-        self.area != Families && !self.name.starts_with("disk_")
+        self.area != Families && !self.name.starts_with("disk_") && self.name != "source_priority"
     }
 
     /// The Game family it concerns, if only one: it leaves its area while that Family is off.
@@ -199,10 +200,19 @@ const OTHER_OPTS: [Opt; 17] = [
         Privacy,
         "setting.check_updates",
     ),
-    // Disk watch's limits in bytes; each item's own limit is set on the Disk use page.
-    opt("disk_total", &["disk", "total"], Privacy, "setting.disk_total"),
-    opt("disk_free_below", &["disk", "free_below"], Privacy, "setting.disk_free_below"),
+    // Disk watch's limits in bytes, drawn with each item's own by Disk watch in Knowledge.
+    opt("disk_total", &["disk", "total"], Knowledge, "setting.disk_total"),
+    opt("disk_free_below", &["disk", "free_below"], Knowledge, "setting.disk_free_below"),
 ];
+
+/// The areas Settings lists for the user of `cfg`: Overview and Game families always, every other
+/// one only when it has something to show for the Families that are on.
+pub fn areas(cfg: &Config) -> Vec<Area> {
+    Area::ALL
+        .into_iter()
+        .filter(|a| matches!(a, Overview | Families) || options().any(|o| o.area == *a && o.listed_for(cfg)))
+        .collect()
+}
 
 /// Every option: the Families and Variants, then the rest, each in its area's order.
 pub fn options() -> impl Iterator<Item = &'static Opt> {
@@ -369,12 +379,13 @@ mod tests {
 
     #[test]
     fn settings_lists_what_has_no_page_of_its_own() {
-        // Families and Disk use draw their own options; the rest are listed in their area.
+        // Families and Disk watch draw their own options; the rest are listed in their area.
         assert!(!find("family_chess").unwrap().listed());
         assert!(!find("disk_total").unwrap().listed());
+        assert!(!find("source_priority").unwrap().listed(), "no text field of Source ids");
         assert!(find("theme").unwrap().listed());
         let listed = options().filter(|o| o.listed()).count();
-        assert_eq!(listed, OTHER_OPTS.len() - 2);
+        assert_eq!(listed, OTHER_OPTS.len() - 3);
     }
 
     #[test]
@@ -453,10 +464,22 @@ mod tests {
         assert_eq!(v["theme"], "nord");
         assert_eq!(v["check_updates"], true);
         assert_eq!(v["tips"], "sometimes");
-        assert_eq!(v["source_priority"], serde_json::json!(["twic", "lichess"]));
+        assert_eq!(v["source_priority"], serde_json::json!(["twic", "lichess-db"]));
         assert_eq!(v.len(), options().count());
         assert!(v.values().all(|x| !x.is_null()));
         assert_eq!(v["disk_total"], 0);
+    }
+
+    #[test]
+    fn settings_areas_with_nothing_to_show_are_not_listed() {
+        assert_eq!(areas(&Config::default()), Area::ALL);
+        let mut go = Config::default();
+        for f in Family::ALL.iter().filter(|f| f.key() != "go") {
+            go.families.family.insert(f.key().into(), false);
+        }
+        let listed = areas(&go);
+        assert!(!listed.contains(&Online), "Online holds only chess settings: {listed:?}");
+        assert!(listed.contains(&Look) && listed.contains(&Families));
     }
 
     #[test]

@@ -19,7 +19,7 @@ pub fn feature_list(query: String) -> Vec<features::Entry> {
 /// The hints shown at start, a few times each (`notices::hint_due`).
 const HINTS: [&str; 3] = ["sidebar", "features", "wizard"];
 
-/// Every notice still to show; with `start`, the hints due, counted as shown once more.
+/// Every notice still to show; with `start`, the first hint due, counted as shown once more.
 #[tauri::command]
 pub fn notice_list(start: bool, ctx: tauri::State<'_, Ctx>) -> Vec<Notice> {
     list(&ctx.cfg(), start)
@@ -29,24 +29,36 @@ fn list(cfg: &Config, start: bool) -> Vec<Notice> {
     let mut st = AppState::load();
     let mut out = notices::all(cfg, &st);
     if start {
-        let due: Vec<&str> = HINTS.into_iter().filter(|h| notices::hint_due(&mut st, h)).collect();
-        if !due.is_empty() {
-            let _ = st.save();
-        }
-        out.extend(due.into_iter().map(|h| Notice { id: format!("hint:{h}"), text: t!(&format!("hint.{h}")), settings: None, copy: None }));
+        out.extend(hint(cfg, &mut st, None));
     }
     out
 }
 
-/// A notice was closed: a notice is not shown again; a hint only this time.
+/// The hints that apply to the user of `cfg`: the sidebar's Families hint only when it lists
+/// Families (one Family's items are listed at once).
+fn hints(cfg: &Config) -> Vec<&'static str> {
+    let families = matches!(bragd_core::settings::sidebar(cfg), bragd_core::settings::Sidebar::Families { .. });
+    HINTS.into_iter().filter(|h| families || *h != "sidebar").collect()
+}
+
+/// The next hint due (after `after`), saved as shown once more.
+fn hint(cfg: &Config, st: &mut AppState, after: Option<&str>) -> Option<Notice> {
+    let h = notices::next_hint(st, &hints(cfg), after)?;
+    let _ = st.save();
+    Some(Notice { id: format!("hint:{h}"), text: t!(&format!("hint.{h}")), settings: None, copy: None })
+}
+
+/// A notice was closed: a notice is not shown again; a hint only this time, and the next hint
+/// due comes in its place.
 #[tauri::command]
-pub fn notice_dismiss(id: String) {
-    if id.starts_with("hint:") {
-        return;
-    }
+pub fn notice_dismiss(id: String, ctx: tauri::State<'_, Ctx>) -> Option<Notice> {
     let mut st = AppState::load();
+    if let Some(h) = id.strip_prefix("hint:") {
+        return hint(&ctx.cfg(), &mut st, Some(h));
+    }
     notices::dismiss(&mut st, &id);
     let _ = st.save();
+    None
 }
 
 /// Asks for a newer version when due and the check is on (never with BRAGD_OFFLINE), then
@@ -97,4 +109,17 @@ pub fn open_url(url: String, app: tauri::AppHandle) -> Result<(), String> {
 
 fn open(app: &tauri::AppHandle, url: &str) -> Result<(), String> {
     app.opener().open_url(url, None::<&str>).map_err(|e| t!("settings.open_failed", "what" => url, "error" => e))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Someone who plays one game has no Families in the sidebar to click: no hint says to.
+    #[test]
+    fn the_sidebar_hint_is_for_a_sidebar_of_families() {
+        assert!(hints(&Config::default()).contains(&"sidebar"));
+        let only_go = Config::parse("[families.family]\nchess = false\nxiangqi = false\nshogi = false\ndraughts = false\ntafl = false\nbackgammon = false\nur = false\nsenet = false\n").unwrap();
+        assert_eq!(hints(&only_go), ["features", "wizard"]);
+    }
 }

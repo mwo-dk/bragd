@@ -42,9 +42,9 @@ export const libraryDedupe = (/** @type {string} */ path) => invoke("library_ded
 export const libraryExport = (/** @type {string} */ path) => invoke("library_export", { path });
 /** @returns {Promise<number>} */
 export const libraryPrune = (/** @type {boolean} */ dryRun) => invoke("library_prune", { dryRun });
-/** @returns {Promise<string[]>} */
+/** @returns {Promise<{list: {id: string, name: string}[], choices: {id: string, name: string}[]}>} */
 export const priorityGet = () => invoke("priority_get");
-/** @returns {Promise<string[]>} */
+/** @returns {Promise<{list: {id: string, name: string}[], choices: {id: string, name: string}[]}>} */
 export const prioritySave = (/** @type {string[]} */ list) => invoke("priority_save", { list });
 
 /** @returns {Promise<Record<string, any[]>>} */

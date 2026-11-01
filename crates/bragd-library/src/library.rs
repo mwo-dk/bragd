@@ -28,7 +28,7 @@ use crate::strip::StripRule;
 use crate::go;
 
 /// Sources whose headers win a conflict, first first. Sources not named rank after these.
-pub const DEFAULT_PRIORITY: [&str; 2] = ["twic", "lichess"];
+pub const DEFAULT_PRIORITY: [&str; 2] = ["twic", "lichess-db"];
 
 /// Games written in one transaction during an import.
 pub const DEFAULT_BATCH: usize = 1000;
@@ -735,6 +735,14 @@ impl Library {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
+    /// The Game families of the Games it holds, by key. A whole scan: asked only for a Slice
+    /// that names neither a Family nor a Variant.
+    pub fn families(&self) -> Result<Vec<String>> {
+        let mut st = self.conn.prepare("SELECT DISTINCT family FROM games ORDER BY family")?;
+        let rows = st.query_map([], |r| r.get::<_, String>(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
     /// How many Games were merged from more than one Source: every Duplicate, not only the
     /// ones `merged` lists.
     pub fn merged_count(&self) -> Result<u64> {
@@ -1044,6 +1052,9 @@ pub(crate) mod tests {
         // Another Family keys its positions by their text.
         let go = NewGame::played("go", "go-9", None, vec!["e5".into()], &["a".into(), "b".into()], vec![], "W+7.5");
         assert_eq!((go.start_key, go.keys.clone()), (text_key("a"), vec![text_key("b")]));
+        assert_eq!(lib.families().unwrap(), ["chess"]);
+        lib.add(&go, "match", "2").unwrap();
+        assert_eq!(lib.families().unwrap(), ["chess", "go"]);
     }
 
     fn import(lib: &mut Library, path: &Path, source: &str) -> Progress {

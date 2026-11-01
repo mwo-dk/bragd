@@ -243,8 +243,9 @@
     color: var(--dim);
     font-size: 0.85em;
   }
+  /* Room for its line beside the name, or else a full line of its own under it (a phone). */
   .meta {
-    flex: 1;
+    flex: 1 1 18rem;
   }
   .url {
     overflow-wrap: anywhere;

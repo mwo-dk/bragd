@@ -43,6 +43,7 @@ export const tipSilence = (/** @type {string} */ id) => invoke("tip_silence", { 
 export const whatsNew = () => invoke("whats_new");
 /** @returns {Promise<any[]>} */
 export const noticeList = (/** @type {boolean} */ start) => invoke("notice_list", { start });
+/** Closes a notice; for a hint, the next hint due comes back. @returns {Promise<any>} */
 export const noticeDismiss = (/** @type {string} */ id) => invoke("notice_dismiss", { id });
 /** @returns {Promise<any[]>} */
 export const updateCheck = () => invoke("update_check");

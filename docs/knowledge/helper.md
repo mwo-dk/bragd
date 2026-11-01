@@ -47,7 +47,7 @@ The `bragd-helper` program beside `bragd-gui`. Every installer puts it there. No
 |---|---|---|---|
 | Start with my session | `helper.start_with_session` | `false` | The Helper keeps running while no window is open, instead of leaving after ten minutes |
 | Library folder | `knowledge.library` | empty: `<data>/bragd/libraries` | Where Sources and imports land |
-| Source priority | `knowledge.source_priority` | `["twic", "lichess"]` | Read when the Helper starts; saving it restarts the Helper |
+| Source priority | `knowledge.source_priority` | `["twic", "lichess-db"]` | Read when the Helper starts; saving it restarts the Helper |
 
 ## Its folder
 

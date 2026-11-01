@@ -52,11 +52,13 @@ pub struct StepView {
     /// "Engines (3 of 6)".
     pub title: String,
     pub area: Area,
-    /// "You can change this later in Settings → Engines."
+    /// "You can change this later in Settings → Engines."; empty when Settings does not list
+    /// that area for the user's Families (Online without chess).
     pub later: String,
 }
 
-pub fn steps() -> Vec<StepView> {
+pub fn steps(cfg: &Config) -> Vec<StepView> {
+    let listed = crate::settings::areas(cfg);
     STEPS
         .iter()
         .enumerate()
@@ -64,7 +66,7 @@ pub fn steps() -> Vec<StepView> {
             id: s.id,
             title: t!("wizard.title", "step" => t!(&format!("wizard.step{}", i + 1)), "n" => i + 1, "of" => STEPS.len()),
             area: s.area,
-            later: t!("wizard.later", "area" => s.area.label()),
+            later: if listed.contains(&s.area) { t!("wizard.later", "area" => s.area.label()) } else { String::new() },
         })
         .collect()
 }
@@ -156,16 +158,15 @@ pub struct Offer {
     /// "about 1.5 MB every week".
     pub size: String,
     pub recommended: bool,
-    /// False: listed so the user knows it is coming, but it cannot be chosen yet.
-    pub fetchable: bool,
-    /// Why it cannot be chosen, and a warning about its size.
+    /// A warning about its size.
     pub note: Option<String>,
     /// At least `BIG`: the note warns about the disk.
     pub big: bool,
 }
 
-/// The downloads the Knowledge step offers: Syzygy 3–5 and every Source, those of Game families
-/// that are off left out, the recommended ones first. `bytes` writes a size as shown.
+/// The downloads the Knowledge step offers: Syzygy 3–5 and every Source that can be fetched,
+/// those of Game families that are off left out, the recommended ones first. `bytes` writes a
+/// size as shown.
 pub fn offers(sources: &[Source], cfg: &Config, bytes: fn(u64) -> String) -> Vec<Offer> {
     let mut out = vec![];
     if cfg.family_shown("chess") {
@@ -174,39 +175,41 @@ pub fn offers(sources: &[Source], cfg: &Config, bytes: fn(u64) -> String) -> Vec
             name: t!("wizard.syzygy"),
             size: t!("wizard.size_once", "size" => bytes(SYZYGY_SIZE)),
             recommended: true,
-            fetchable: true,
             note: None,
             big: false,
         });
     }
-    for s in sources.iter().filter(|s| cfg.family_shown(&s.family)) {
+    for s in sources.iter().filter(|s| s.fetchable && cfg.family_shown(&s.family)) {
         let big = s.size >= BIG;
-        let notes: Vec<String> = [
-            (!s.fetchable).then(|| t!("notice.source_out_of_scope", "source" => s.name)),
-            big.then(|| t!("wizard.big", "size" => bytes(s.size))),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
         out.push(Offer {
             id: s.id.clone(),
             name: s.name.clone(),
             size: t!(&format!("wizard.size_{}", s.schedule), "size" => bytes(s.size)),
             recommended: RECOMMENDED.contains(&s.id.as_str()),
-            fetchable: s.fetchable,
-            note: (!notes.is_empty()).then(|| notes.join(" ")),
+            note: big.then(|| t!("wizard.big", "size" => bytes(s.size))),
             big,
         });
     }
-    out.sort_by_key(|o| (!o.recommended, !o.fetchable));
+    out.sort_by_key(|o| !o.recommended);
     out
 }
 
-/// What the Knowledge step starts with ticked: the recommended downloads it can fetch.
+/// One line under the offers naming the Sources of the user's Families that this version
+/// cannot fetch yet: "Coming later: KGS, OGS". None when there are none.
+pub fn coming(sources: &[Source], cfg: &Config) -> Option<String> {
+    let names: Vec<&str> = sources
+        .iter()
+        .filter(|s| !s.fetchable && cfg.family_shown(&s.family))
+        .map(|s| s.name.as_str())
+        .collect();
+    (!names.is_empty()).then(|| t!("wizard.coming", "names" => names.join(", ")))
+}
+
+/// What the Knowledge step starts with ticked: the recommended downloads.
 pub fn ticked(offers: &[Offer]) -> Vec<String> {
     offers
         .iter()
-        .filter(|o| o.recommended && o.fetchable)
+        .filter(|o| o.recommended)
         .map(|o| o.id.clone())
         .collect()
 }
@@ -322,8 +325,15 @@ mod tests {
 
     #[test]
     fn wizard_steps_name_their_settings_areas() {
-        let v = steps();
+        let v = steps(&Config::default());
         assert_eq!(v.len(), 6);
+        assert!(v.iter().all(|s| !s.later.is_empty()));
+        let mut go = Config::default();
+        for f in bragd_games::Family::ALL.iter().filter(|f| f.key() != "go") {
+            go.families.family.insert(f.key().into(), false);
+        }
+        let online = steps(&go).into_iter().find(|s| s.id == "online").unwrap();
+        assert!(online.later.is_empty(), "Settings lists no Online area without chess: {}", online.later);
         assert_eq!(
             v.iter().map(|s| s.id).collect::<Vec<_>>(),
             [
@@ -355,24 +365,27 @@ mod tests {
         let cfg = Config::default();
         let o = offers(&sources(), &cfg, b);
         let ids: Vec<&str> = o.iter().map(|o| o.id.as_str()).collect();
-        assert_eq!(ids, ["syzygy", "twic", "custom:x", "lichess-db", "kgs"]);
+        assert_eq!(ids, ["syzygy", "twic", "custom:x"], "what cannot be fetched is not offered");
         assert_eq!(ticked(&o), ["syzygy", "twic"]);
-        assert!(
-            o[3].note.as_deref().unwrap().contains("LICHESS-DB")
-                && o[3].note.as_deref().unwrap().contains("30000000000")
-                && o[3].big,
-            "not fetched yet"
-        );
+        assert!(o.iter().all(|o| !o.big), "no warning on what cannot be chosen");
         assert!(o[1].note.is_none() && o[1].size.contains("1500000"));
+        let later = coming(&sources(), &cfg).unwrap();
+        assert!(later.contains("LICHESS-DB, KGS"), "{later}");
 
         let mut no_chess = Config::default();
         no_chess.families.family.insert("chess".into(), false);
         let o = offers(&sources(), &no_chess, b);
         assert_eq!(
             o.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(),
-            ["custom:x", "kgs"]
+            ["custom:x"]
         );
         assert!(ticked(&o).is_empty());
+        assert!(!coming(&sources(), &no_chess).unwrap().contains("LICHESS"));
+        let mut only_tafl = Config::default();
+        for f in bragd_games::Family::ALL.iter().filter(|f| f.key() != "tafl") {
+            only_tafl.families.family.insert(f.key().into(), false);
+        }
+        assert_eq!(coming(&sources(), &only_tafl), None);
         let p = plan(
             &sources(),
             &["syzygy".into(), "twic".into(), "custom:x".into()],
