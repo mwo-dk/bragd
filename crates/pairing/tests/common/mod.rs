@@ -142,6 +142,7 @@ pub fn settings(t: &Trf) -> Settings {
         win: WIN,
         loss: 0,
         initial_colour: t.initial_colour.expect("XXC"),
+        baku: None,
     }
 }
 
@@ -150,20 +151,48 @@ pub type System = fn(&Settings, &[Player], &[u32]) -> Result<Pairing, pairing::E
 
 /// Pairs `round` from the history before it.
 pub fn pair(t: &Trf, round: usize) -> Pairing {
-    pair_with(dutch::pair, t, round)
+    pair_with(dutch::pair, t, round, false)
 }
 
-pub fn pair_with(system: System, t: &Trf, round: usize) -> Pairing {
-    system(&settings(t), &players(t, round), &paired_in(t, round)).expect("round pairs")
+pub fn pair_with(system: System, t: &Trf, round: usize, baku: bool) -> Pairing {
+    system(
+        &settings_at(t, round, baku),
+        &players(t, round),
+        &paired_in(t, round),
+    )
+    .expect("round pairs")
+}
+
+/// Settings for pairing `round`, with Baku acceleration when `baku`: GA is the
+/// first half, rounded up to even, of those paired in round 1, and its last
+/// player stays the last (C.04.7 1.2-1.3).
+pub fn settings_at(t: &Trf, round: usize, baku: bool) -> Settings {
+    let mut s = settings(t);
+    if !baku {
+        return s;
+    }
+    let mut first: Vec<u32> = t
+        .players
+        .iter()
+        .filter(|p| {
+            let g = cell(t, p.start_rank, 1);
+            g.opponent.is_some() || g.result == 'U'
+        })
+        .map(|p| p.start_rank)
+        .collect();
+    first.sort_unstable();
+    let last = first[pairing::baku_group(first.len() as u32) as usize - 1];
+    s.baku = Some(tpn_at(t, round)[&last]);
+    s
 }
 
 /// Ours against the published one: (equal, a description of the difference).
 pub fn compare(t: &Trf, round: usize) -> (bool, String) {
-    compare_with(dutch::pair, t, round)
+    compare_with(dutch::pair, t, round, false)
 }
 
-pub fn compare_with(system: System, t: &Trf, round: usize) -> (bool, String) {
-    let ours = pair_with(system, t, round);
+pub fn compare_with(system: System, t: &Trf, round: usize, baku: bool) -> (bool, String) {
+    let ours = pair_with(system, t, round, baku);
     let mut mine = ours.boards.clone();
     mine.sort_by_key(|b| (b.white, b.black));
     let (theirs, bye) = published(t, round);
@@ -211,9 +240,13 @@ pub fn compare_with(system: System, t: &Trf, round: usize) -> (bool, String) {
 
 /// The published round judged against the rules.
 pub fn judge(t: &Trf, round: usize) -> dutch::Verdict {
+    judge_with(t, round, false)
+}
+
+pub fn judge_with(t: &Trf, round: usize, baku: bool) -> dutch::Verdict {
     let (boards, _) = published(t, round);
     dutch::assess(
-        &settings(t),
+        &settings_at(t, round, baku),
         &players(t, round),
         &paired_in(t, round),
         &boards,

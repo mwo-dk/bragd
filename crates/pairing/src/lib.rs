@@ -88,6 +88,35 @@ pub struct Settings {
     pub loss: u32,
     /// The colour drawn by lot before round 1 (C.04.3 5.1).
     pub initial_colour: Colour,
+    /// Baku acceleration (C.04.7 1): the TPN of the last participant of group
+    /// GA, who stays the same player as late entries are numbered in (1.3.2).
+    /// `None` for a tournament without acceleration.
+    pub baku: Option<u32>,
+}
+
+impl Settings {
+    /// Virtual points of player `tpn` when round `round` (from 1) is paired
+    /// (C.04.7 1.4): a win's points in the first half (rounded up) of the
+    /// accelerated rounds, half that in the rest, and none after them or
+    /// outside GA. The accelerated rounds are the first half of the
+    /// tournament, rounded up.
+    pub fn virtual_points(&self, tpn: u32, round: u32) -> u32 {
+        let Some(last) = self.baku else { return 0 };
+        let accelerated = self.rounds.div_ceil(2);
+        if tpn > last || round > accelerated {
+            0
+        } else if round <= accelerated.div_ceil(2) {
+            self.win
+        } else {
+            self.win / 2
+        }
+    }
+}
+
+/// The size of group GA before round 1 (C.04.7 1.2): the first half of the
+/// participants, rounded up to an even number.
+pub fn baku_group(participants: u32) -> u32 {
+    2 * participants.div_ceil(4)
 }
 
 /// One board of a pairing.
@@ -234,3 +263,40 @@ impl std::fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn baku(rounds: u32, win: u32) -> Settings {
+        Settings {
+            rounds,
+            win,
+            loss: 0,
+            initial_colour: Colour::White,
+            baku: Some(10),
+        }
+    }
+
+    #[test]
+    fn virtual_points_follow_the_c_04_7_examples() {
+        // 1.4.4: nine rounds, one point in rounds 1-3 and a half in rounds 4-5.
+        let s = baku(9, 2);
+        let v: Vec<u32> = (1..=9).map(|r| s.virtual_points(3, r)).collect();
+        assert_eq!(v, [2, 2, 2, 1, 1, 0, 0, 0, 0]);
+        // 11 rounds, 2 matchpoints a win: two in rounds 1-3, one in rounds 4-6.
+        let s = baku(11, 2);
+        let v: Vec<u32> = (1..=11).map(|r| s.virtual_points(10, r)).collect();
+        assert_eq!(v, [2, 2, 2, 1, 1, 1, 0, 0, 0, 0, 0]);
+        // GB gets none.
+        assert_eq!(s.virtual_points(11, 1), 0);
+    }
+
+    #[test]
+    fn group_a_is_the_first_half_rounded_up_to_even() {
+        // 1.2 note: 161 participants give 82.
+        assert_eq!(baku_group(161), 82);
+        assert_eq!(baku_group(56), 28);
+        assert_eq!(baku_group(10), 6);
+    }
+}
