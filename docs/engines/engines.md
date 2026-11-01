@@ -4,7 +4,9 @@
 
 Each Game family with an Engine has an Engines page. It lists the Engines Bragd knows for the Family, says where each one stands on this machine, and chooses the Engine each Variant is played and analysed with. You can add an Engine by its path and change its options. In F1 → Features this is the entry `engines`.
 
-![The Engines page of chess: the Engine for each Variant at the top, set to Automatic, then a card for Stockfish marked ready with its path, and a card for Fairy-Stockfish saying its image is not yet published, with an install hint](../screenshots/engines-chess-1100.png)
+<!-- screenshot: engines-chess-1100.png: the Engines page of chess with podman installed, Stockfish ready with its path and Fairy-Stockfish showing Get it with its download size -->
+<!-- screenshot: engines-chess-390.png: the same at 390 px -->
+![The Engines page of chess: the Engine for each Variant at the top, set to Automatic, then a card for Stockfish marked ready with its path, and a card for Fairy-Stockfish with Get it and its download size](../screenshots/engines-chess-1100.png)
 *The Engines page of chess at 1100 px.*
 
 ![The same page at 390 px: the Variant list above, the Engine cards one under the other](../screenshots/engines-chess-390.png)
@@ -29,7 +31,7 @@ The page has four parts:
    | *Container image ready.* | Nothing: it runs from Bragd's image |
    | *Container image built on this machine, ready.* | Nothing: it runs from an image you built ([Images built on your own machine](container-images.md#images-built-on-your-own-machine)) |
    | *Its container image can be downloaded: about …* | **Get it (…)** pulls the image; a bar and the runtime's last line show its progress |
-   | *Its container image is not published yet.* | Install the program with your package manager, or **Download page**. Started with `BRAGD_DEV_IMAGES=1`, the card names the command that builds the image here |
+   | *Its container image is not published yet.* | Igel and YaneuraOu, which have no image: install the program with your package manager, or **Download page** |
    | *Its container image needs podman or docker* | Install podman or docker, or the Engine itself. **Settings → Engines** opens the container settings |
    | *Container images are turned off in Settings.* | **Settings → Engines** turns them back on |
 
@@ -59,7 +61,7 @@ The page has four parts:
   | Scan | international draughts | `scan` | <https://hjetten.home.xs4all.nl/scan/scan.html> |
   | GNU Backgammon | backgammon | `gnubg` | <https://www.gnu.org/software/gnubg/> |
 
-- Bragd's own images are not published yet, so today an Engine runs only when it is installed. See [Engine container images](container-images.md).
+- Every Engine above but Igel and YaneuraOu has an image of Bragd's own, pulled when you press **Get it** on its card. See [Engine container images](container-images.md).
 
 ## Settings and config.toml
 

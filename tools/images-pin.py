@@ -119,6 +119,8 @@ def main():
     found = sorted({m.groups() for t in texts.values() for m in PINNED.finditer(t)})
     changed, failed = [], []
     for name, tag, old in found:
+        if old == "sha256:" + "0" * 64:  # a test's placeholder, not a pin
+            continue
         try:
             new = digest(name, tag)
         except Exception as e:  # one registry down does not hold up the others
@@ -139,7 +141,7 @@ def main():
     if changed:
         print("| Image | Old digest | New digest |\n|---|---|---|")
         for name, tag, old, new in changed:
-            print(f"| `{name}:{tag}` | `{old[:19]}…` | `{new[:19]}…` |")
+            print(f"| `{name}:{tag}` | {f'`{old[:19]}…`' if old.startswith('sha256:') else old} | `{new[:19]}…` |")
     for f in failed:
         print(f"::warning title=Digest not read::{f}", file=sys.stderr)
     # Every image failing is the network, not the images: say so with a failure.

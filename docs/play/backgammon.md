@@ -18,7 +18,7 @@ Sidebar → **Backgammon** → **Play**. Backgammon has Play, Analyse, Databases
 
 ## What it needs
 
-Nothing to play against yourself. Against an Engine: GNU Backgammon installed ([Playing against an Engine](against-an-engine.md)).
+Nothing to play against yourself. Against an Engine: GNU Backgammon, installed or from its image ([Playing against an Engine](against-an-engine.md)).
 
 ## Controls
 

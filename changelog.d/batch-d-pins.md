@@ -1,0 +1,1 @@
+| **An Engine that is not installed can be pulled as Bragd's sealed image.** Every Engine but Igel and YaneuraOu has one: its card on the Engines page shows **Get it** with the download size, and nothing is downloaded until you press it. | [Engine container images](engines/container-images.md) | <!-- feature --> <!-- tour: engines -->

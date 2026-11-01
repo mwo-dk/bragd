@@ -31,22 +31,22 @@ fn dev_wanted(value: Option<&str>) -> bool {
     value == Some("1")
 }
 
-// The digests the images are pinned to. None: the image is not published yet, so it is never
-// pulled. TODO(unpublished): set each when `packaging/images/<engine>` is first pushed.
-pub const PIN_STOCKFISH: Option<&str> = None;
-pub const PIN_FAIRY_STOCKFISH: Option<&str> = None;
-pub const PIN_PIKAFISH: Option<&str> = None;
-pub const PIN_KATAGO: Option<&str> = None;
-pub const PIN_GNUGO: Option<&str> = None;
-pub const PIN_LC0: Option<&str> = None;
-pub const PIN_BERSERK: Option<&str> = None;
-pub const PIN_ETHEREAL: Option<&str> = None;
-pub const PIN_RUBICHESS: Option<&str> = None;
-pub const PIN_KOIVISTO: Option<&str> = None;
-pub const PIN_ARASAN: Option<&str> = None;
-pub const PIN_FRUIT: Option<&str> = None;
-pub const PIN_SCAN: Option<&str> = None;
-pub const PIN_GNUBG: Option<&str> = None;
+// The digests the images are pinned to: each version tag's multi-arch index on REGISTRY, set by
+// `python3 tools/images-pin.py` (with `image_size`). None: not published, so never pulled.
+pub const PIN_STOCKFISH: Option<&str> = Some("sha256:fc7eee4aada2ef3e3debd59b4bbfb1e3907380062973a2863829410d0c1aa340");
+pub const PIN_FAIRY_STOCKFISH: Option<&str> = Some("sha256:378317e8ebdea8da6e987d563455554fd8d5fede098e6fbd08d8fb6675fa9796");
+pub const PIN_PIKAFISH: Option<&str> = Some("sha256:9cb3c992c3c29257b113eeb3ec33d60b9f2b0e96aaa9637d995c1cee9e3e67a3");
+pub const PIN_KATAGO: Option<&str> = Some("sha256:2ac0d486ada32aee217828a4a5bc824eb93673fb93e5bb8f6bbdf68e2ac28d22");
+pub const PIN_GNUGO: Option<&str> = Some("sha256:42eb9659b66121cea1803f5cff880321ff8ec443e9b9a2e9c58861ec7846ce05");
+pub const PIN_LC0: Option<&str> = Some("sha256:d277d133443b0179b55ae7989a73bf6847648fd7648e3f41131c2821457684da");
+pub const PIN_BERSERK: Option<&str> = Some("sha256:4797c39117181a3cc5dab12d814798956912ef096d0ff6b99069e62961938fc9");
+pub const PIN_ETHEREAL: Option<&str> = Some("sha256:0828c259414cc4563bc0f6ab001e3765a50dfc4f4dd9f059c7ece29154b7356f");
+pub const PIN_RUBICHESS: Option<&str> = Some("sha256:1f72b1a90380e79ecad8cda438b0812f617f5a82d20c75eb2d246da8f2ae7dfa");
+pub const PIN_KOIVISTO: Option<&str> = Some("sha256:04bf6b6cfc79d93ebb980c34890d1d2cd7c30d55f5ea05fddefdf3070e5a9209");
+pub const PIN_ARASAN: Option<&str> = Some("sha256:e5ff6cf2dc1c1a45b87e1f618dc49e4e769541bca40c67df89c36eab7c5ca63b");
+pub const PIN_FRUIT: Option<&str> = Some("sha256:02a2f8406f6d9a0da1301dbeb98cb842b3260af1a9542630256bbfc907537118");
+pub const PIN_SCAN: Option<&str> = Some("sha256:c2d6ca3c144e6f53cd7fd86b1656078e0490e886f3043076e286be953b42afbd");
+pub const PIN_GNUBG: Option<&str> = Some("sha256:44655c588d9183af80d286f41905c565d31d809c2a806ee49a4e6e783f4f748e");
 
 /// An engine Bragd knows.
 #[derive(Debug, PartialEq)]
@@ -83,16 +83,16 @@ const GO: &[&str] = &["go-9", "go-13", "go-19"];
 /// has no image: it needs AVX2 and cannot be built for arm64. English, Brazilian and Russian
 /// draughts have no engine: Scan plays international draughts.
 pub const KNOWN: &[Known] = &[
-    Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: PIN_STOCKFISH, image_size: 65_244_394, site: "https://stockfishchess.org/download/", syzygy: true },
-    Known { key: "lc0", name: "Leela Chess Zero", programs: &["lc0"], args: &[], variants: CHESS, tag: Some("0.32.1"), pin: PIN_LC0, image_size: 1_548_746, site: "https://lczero.org/play/download/", syzygy: true },
-    Known { key: "berserk", name: "Berserk", programs: &["berserk"], args: &[], variants: CHESS, tag: Some("14"), pin: PIN_BERSERK, image_size: 18_313_378, site: "https://github.com/jhonnold/berserk/releases", syzygy: true },
-    Known { key: "ethereal", name: "Ethereal", programs: &["ethereal", "Ethereal", "ethereal-chess"], args: &[], variants: CHESS, tag: Some("14.00"), pin: PIN_ETHEREAL, image_size: 200_582, site: "https://github.com/AndyGrant/Ethereal", syzygy: true },
-    Known { key: "rubichess", name: "RubiChess", programs: &["rubichess", "RubiChess"], args: &[], variants: CHESS, tag: Some("20240817"), pin: PIN_RUBICHESS, image_size: 22_029_340, site: "https://github.com/Matthies/RubiChess/releases", syzygy: true },
-    Known { key: "koivisto", name: "Koivisto", programs: &["koivisto", "Koivisto"], args: &[], variants: CHESS_ONLY, tag: Some("9.0"), pin: PIN_KOIVISTO, image_size: 9_159_930, site: "https://github.com/Luecx/Koivisto/releases", syzygy: true },
+    Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: PIN_STOCKFISH, image_size: 65_071_892, site: "https://stockfishchess.org/download/", syzygy: true },
+    Known { key: "lc0", name: "Leela Chess Zero", programs: &["lc0"], args: &[], variants: CHESS, tag: Some("0.32.1"), pin: PIN_LC0, image_size: 1_599_535, site: "https://lczero.org/play/download/", syzygy: true },
+    Known { key: "berserk", name: "Berserk", programs: &["berserk"], args: &[], variants: CHESS, tag: Some("14"), pin: PIN_BERSERK, image_size: 17_895_916, site: "https://github.com/jhonnold/berserk/releases", syzygy: true },
+    Known { key: "ethereal", name: "Ethereal", programs: &["ethereal", "Ethereal", "ethereal-chess"], args: &[], variants: CHESS, tag: Some("14.00"), pin: PIN_ETHEREAL, image_size: 199_475, site: "https://github.com/AndyGrant/Ethereal", syzygy: true },
+    Known { key: "rubichess", name: "RubiChess", programs: &["rubichess", "RubiChess"], args: &[], variants: CHESS, tag: Some("20240817"), pin: PIN_RUBICHESS, image_size: 22_060_557, site: "https://github.com/Matthies/RubiChess/releases", syzygy: true },
+    Known { key: "koivisto", name: "Koivisto", programs: &["koivisto", "Koivisto"], args: &[], variants: CHESS_ONLY, tag: Some("9.0"), pin: PIN_KOIVISTO, image_size: 9_025_307, site: "https://github.com/Luecx/Koivisto/releases", syzygy: true },
     Known { key: "igel", name: "Igel", programs: &["igel"], args: &[], variants: CHESS_ONLY, tag: None, pin: None, image_size: 0, site: "https://github.com/vshcherbyna/igel/releases", syzygy: true },
-    Known { key: "arasan", name: "Arasan", programs: &["arasanx-64", "arasanx"], args: &[], variants: CHESS_ONLY, tag: Some("26.1"), pin: PIN_ARASAN, image_size: 14_429_650, site: "https://www.arasanchess.org/", syzygy: true },
+    Known { key: "arasan", name: "Arasan", programs: &["arasanx-64", "arasanx"], args: &[], variants: CHESS_ONLY, tag: Some("26.1"), pin: PIN_ARASAN, image_size: 14_353_722, site: "https://www.arasanchess.org/", syzygy: true },
     // Fruit 2.1 (2005) has no site any more: install it from your system's packages.
-    Known { key: "fruit", name: "Fruit", programs: &["fruit"], args: &[], variants: CHESS_ONLY, tag: Some("2.1"), pin: PIN_FRUIT, image_size: 112_384, site: "", syzygy: false },
+    Known { key: "fruit", name: "Fruit", programs: &["fruit"], args: &[], variants: CHESS_ONLY, tag: Some("2.1"), pin: PIN_FRUIT, image_size: 115_778, site: "", syzygy: false },
     Known {
         key: "fairy-stockfish",
         name: "Fairy-Stockfish",
@@ -101,16 +101,16 @@ pub const KNOWN: &[Known] = &[
         variants: FAIRY,
         tag: Some("14.0.1"),
         pin: PIN_FAIRY_STOCKFISH,
-        image_size: 917_359,
+        image_size: 950_265,
         site: "https://github.com/fairy-stockfish/Fairy-Stockfish/releases",
         syzygy: true,
     },
-    Known { key: "pikafish", name: "Pikafish", programs: &["pikafish"], args: &[], variants: &["xiangqi"], tag: Some("2026-09-06"), pin: PIN_PIKAFISH, image_size: 957_480, site: "https://github.com/official-pikafish/Pikafish/releases", syzygy: false },
+    Known { key: "pikafish", name: "Pikafish", programs: &["pikafish"], args: &[], variants: &["xiangqi"], tag: Some("2026-09-06"), pin: PIN_PIKAFISH, image_size: 989_513, site: "https://github.com/official-pikafish/Pikafish/releases", syzygy: false },
     Known { key: "yaneuraou", name: "YaneuraOu", programs: &["YaneuraOu", "yaneuraou", "YaneuraOu-by-gcc"], args: &[], variants: &["shogi"], tag: None, pin: None, image_size: 0, site: "https://github.com/yaneurao/YaneuraOu/releases", syzygy: false },
-    Known { key: "katago", name: "KataGo", programs: &["katago"], args: &["gtp"], variants: GO, tag: Some("1.18.2-eigen"), pin: PIN_KATAGO, image_size: 51_764_399, site: "https://github.com/lightvector/KataGo/releases", syzygy: false },
-    Known { key: "gnugo", name: "GNU Go", programs: &["gnugo"], args: &["--mode", "gtp"], variants: GO, tag: Some("3.8"), pin: PIN_GNUGO, image_size: 1_459_667, site: "https://www.gnu.org/software/gnugo/", syzygy: false },
-    Known { key: "scan", name: "Scan", programs: &["scan"], args: &["hub"], variants: &["draughts"], tag: Some("3.1"), pin: PIN_SCAN, image_size: 0, site: "https://hjetten.home.xs4all.nl/scan/scan.html", syzygy: false },
-    Known { key: "gnubg", name: "GNU Backgammon", programs: &["gnubg"], args: &["-t", "-q"], variants: &["backgammon"], tag: Some("1.08.003"), pin: PIN_GNUBG, image_size: 0, site: "https://www.gnu.org/software/gnubg/", syzygy: false },
+    Known { key: "katago", name: "KataGo", programs: &["katago"], args: &["gtp"], variants: GO, tag: Some("1.18.2-eigen"), pin: PIN_KATAGO, image_size: 51_866_241, site: "https://github.com/lightvector/KataGo/releases", syzygy: false },
+    Known { key: "gnugo", name: "GNU Go", programs: &["gnugo"], args: &["--mode", "gtp"], variants: GO, tag: Some("3.8"), pin: PIN_GNUGO, image_size: 1_491_608, site: "https://www.gnu.org/software/gnugo/", syzygy: false },
+    Known { key: "scan", name: "Scan", programs: &["scan"], args: &["hub"], variants: &["draughts"], tag: Some("3.1"), pin: PIN_SCAN, image_size: 7_172_253, site: "https://hjetten.home.xs4all.nl/scan/scan.html", syzygy: false },
+    Known { key: "gnubg", name: "GNU Backgammon", programs: &["gnubg"], args: &["-t", "-q"], variants: &["backgammon"], tag: Some("1.08.003"), pin: PIN_GNUBG, image_size: 8_940_325, site: "https://www.gnu.org/software/gnubg/", syzygy: false },
 ];
 
 impl Known {
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn installed_first_else_the_image() {
         let rt = Runtime { name: "podman", path: PathBuf::from("/nonexistent/podman") };
-        let k = Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: Some("sha256:1111111111111111111111111111111111111111111111111111111111111111"), image_size: 1, site: "", syzygy: true };
+        let k = Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: Some("sha256:1111111111111111111111111111111111111111111111111111111111111111"), image_size: 65_071_892, site: "", syzygy: true };
         let here = PathBuf::from("/usr/games/stockfish");
         let nets = Path::new("/nonexistent/networks");
         assert_eq!(choose(&k, Some(here.clone()), Some(&rt), |_, _| true, None, nets, false), Ok(Program::Installed { path: here, args: vec![] }));
@@ -307,7 +307,7 @@ mod tests {
         assert!(matches!(choose(&k, None, Some(&rt), |_, _| true, Some(missing), nets, false), Ok(Program::Container { syzygy: None, .. })));
         assert_eq!(choose(&k, None, Some(&rt), |_, _| false, None, nets, false), Err(Missing::NotPulled { image }));
         assert_eq!(choose(&k, None, None, |_, _| true, None, nets, false), Err(Missing::NoRuntime));
-        assert_eq!(choose(known("pikafish").unwrap(), None, Some(&rt), |_, _| true, None, nets, false), Err(Missing::NoImage), "unpublished");
+        assert_eq!(choose(known("yaneuraou").unwrap(), None, Some(&rt), |_, _| true, None, nets, false), Err(Missing::NoImage), "no image of it");
         // GNU Go installed gets its protocol on its command line; its image's entrypoint has it.
         let g = known("gnugo").unwrap();
         let gnugo = Known { pin: k.pin, programs: g.programs, args: g.args, variants: g.variants, tag: g.tag, site: g.site, ..k };
@@ -326,8 +326,8 @@ mod tests {
         }
         let rt = Runtime { name: "podman", path: PathBuf::from("/nonexistent/podman") };
         let nets = Path::new("/nonexistent/networks");
-        let k = known("gnugo").unwrap();
-        assert_eq!(k.pin, None, "unpublished");
+        let unpublished = Known { pin: None, ..*known("gnugo").unwrap() };
+        let k = &unpublished;
         let local = "localhost/bragd-gnugo:dev";
         assert_eq!(k.dev_image(true).as_deref(), Some(local));
         assert_eq!(k.dev_image(false), None);

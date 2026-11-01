@@ -562,12 +562,12 @@ mod tests {
         assert_eq!(engines_for(&cfg, "seirawan").last().map(String::as_str), Some("my-engine"));
         assert!(!engines_for(&cfg, "shogi").contains(&"my-engine".to_string()));
         assert!(matches!(availability(&cfg, "my-engine"), Availability::Gone { .. }));
-        // Unpublished images are never offered, and no runtime is asked about them.
-        cfg.engines.paths.insert("pikafish".into(), "/nonexistent/pikafish".into());
+        // An engine Bragd has no image of is never offered one, and no runtime is asked about it.
+        cfg.engines.paths.insert("yaneuraou".into(), "/nonexistent/yaneuraou".into());
         cfg.engines.containers = true;
-        if known::known("pikafish").unwrap().installed().is_none() {
-            assert_eq!(availability(&cfg, "pikafish"), Availability::NoImage);
-            assert!(resolve(&cfg, "pikafish", "xiangqi").is_err());
+        if known::known("yaneuraou").unwrap().installed().is_none() {
+            assert_eq!(availability(&cfg, "yaneuraou"), Availability::NoImage);
+            assert!(resolve(&cfg, "yaneuraou", "shogi").is_err());
         }
         cfg.engines.default.insert("xiangqi".into(), "pikafish".into());
         assert_eq!(default_for(&cfg, "xiangqi").as_deref(), Some("pikafish"));

@@ -38,7 +38,7 @@ An Engine for the Variant that is ready: installed on your machine, added by its
 | Backgammon | GNU Backgammon |
 | Tafl, Ur, senet | None. Built-in Bots for them are not built yet |
 
-Bragd's sealed container images of these Engines are not published yet, so an Engine plays only when it is installed ([Engine container images](../engines/container-images.md)).
+An Engine that is not installed plays from Bragd's sealed container image, once you pull it from its card on the Engines page ([Engine container images](../engines/container-images.md)).
 
 ## Settings and config.toml
 

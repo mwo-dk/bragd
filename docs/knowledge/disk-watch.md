@@ -50,7 +50,7 @@ What happens next is up to you, per Source. All three are off until you turn the
 
 ## What it needs
 
-The [Helper](helper.md), which does the checks. Image sizes come from the container runtime; while no image is published, none is listed.
+The [Helper](helper.md), which does the checks. Image sizes come from the container runtime: each image Bragd pulled is listed.
 
 ## Settings and config.toml
 
