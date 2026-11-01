@@ -179,12 +179,13 @@ jobs:
           export DEMO_HOME="$RUNNER_TEMP/demo-home"
           docs/screenshots/demo-home.sh "$DEMO_HOME"
           cd docs/screenshots || exit 1
+          "$RUNNER_TEMP/venv/bin/python" cap.py --self-test
           "$RUNNER_TEMP/venv/bin/python" ui-check.py --shots "$RUNNER_TEMP/ui-shots"
       - name: What the app said
         if: failure()
         run: |
           mkdir -p "$RUNNER_TEMP/ui-shots"
-          for f in /tmp/bragd-cap-*/gui-*.log /tmp/bragd-cap-*/not-drawn.png; do
+          for f in /tmp/bragd-cap-*/gui-*.log /tmp/bragd-cap-*/chromium-*.log /tmp/bragd-cap-*/not-drawn.png; do
             [ -e "$f" ] || continue
             cp "$f" "$RUNNER_TEMP/ui-shots/"
             case "$f" in *.log) echo "== $f"; tail -n 40 "$f" ;; esac

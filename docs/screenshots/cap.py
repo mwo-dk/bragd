@@ -31,7 +31,7 @@ folder. Linux only; needs bwrap, broadwayd, chromium (or the browser $CHROMIUM n
 and ImageMagick (magick).
 """
 
-import base64, json, os, shutil, socket, subprocess, tempfile, threading, time, urllib.request
+import base64, json, os, shutil, socket, subprocess, sys, tempfile, threading, time, urllib.request
 from pathlib import Path
 
 import websocket
@@ -84,6 +84,35 @@ def _stop(p):
             p.wait(5)
 
 
+class StartupError(TimeoutError):
+    """A part of the sandbox (Broadway and the app, or Chromium) did not start: says which, and
+    where its log is. A TimeoutError, so Desktop starts again."""
+
+
+# A start that fails for good is one plain line, not a stack trace.
+_hook = sys.excepthook
+sys.excepthook = lambda kind, e, tb: print(f"error: {e}", file=sys.stderr) if issubclass(kind, StartupError) else _hook(kind, e, tb)
+
+
+def _until(what, probe, proc, log, deadline=60):
+    """`probe()`'s first true answer, asked every 0.2 s for `deadline` seconds. A probe that
+    raises has no answer yet. Fails at once when `proc`, which runs `what`, has stopped."""
+    end, last = time.monotonic() + deadline, None
+    while time.monotonic() < end:
+        if proc.poll() is not None:
+            hint = ""
+            if "Socket path too long" in Path(log).read_text(errors="replace"):
+                hint = " Its socket path is too long: set a short TMPDIR, such as ~/tmp/cap."
+            raise StartupError(f"{what} stopped (exit {proc.returncode}) before it answered: see {log}.{hint}")
+        try:
+            if answer := probe():
+                return answer
+        except (OSError, ValueError, KeyError, websocket.WebSocketException) as e:
+            last = e
+        time.sleep(0.2)
+    raise StartupError(f"{what} did not answer within {deadline} s{f' ({last})' if last else ''}: see {log}")
+
+
 # Keys by name, as the DevTools protocol wants them: (key, code, windowsVirtualKeyCode).
 NAMED = {"Enter": ("Enter", "Enter", 13), "Esc": ("Escape", "Escape", 27), "Tab": ("Tab", "Tab", 9),
          "Backspace": ("Backspace", "Backspace", 8), "Up": ("ArrowUp", "ArrowUp", 38), "Down": ("ArrowDown", "ArrowDown", 40),
@@ -119,19 +148,20 @@ def _dpi():
 class Desktop:
     def __init__(self, args=(), lang="en_GB.UTF-8", size=(1440, 900), state=None):
         self.args, self.lang, self.size, self.state = list(args), lang, size, state
-        self.procs, self.n, self.ws, self.wk, self.target, self.profile = [], 0, None, None, None, None
+        self.procs, self.n, self.ws, self.wk, self.target, self.profile, self.logs = [], 0, None, None, None, None, []
 
     def __enter__(self):
         # Now and then the first window never reaches the display: start again.
         for attempt in range(3):
-            self._start()
             try:
+                self._start()
                 return self.ready()
-            except TimeoutError:
+            except TimeoutError as e:
                 if attempt == 2:
+                    self.__exit__(e)
                     raise
                 self.__exit__()
-                self.procs, self.wk, self.target = [], None, None
+                self.procs, self.ws, self.wk, self.target = [], None, None, None
 
     def _start(self):
         # Ports of its own for each start (Broadway, Chromium's DevTools, WebKit's inspector), and a
@@ -155,25 +185,23 @@ class Desktop:
         run = (f"broadwayd --address 127.0.0.1 --port {self.port} {self.display} >/dev/null 2>&1 & until [ -e /home/demo/{go.name} ]; do sleep 0.2; done; rm /home/demo/{go.name}; "
                f"exec env LD_PRELOAD={RUNTIME}/dpi96.so GDK_BACKEND=broadway BROADWAY_DISPLAY={self.display} WEBKIT_DISABLE_DMABUF_RENDERER=1 "
                f'WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:{self.inspector} BRAGD_WINDOW_SIZE={w}x{h} BRAGD_OFFLINE=1 LANG={self.lang} bragd-gui "$@"')
-        self.log = open(RUNTIME / f"gui-{self.port}.log", "w")
-        self.procs.append(subprocess.Popen([str(SANDBOX), "sh", "-c", run, "sh", *self.args], env=env, stdout=self.log, stderr=subprocess.STDOUT))
-        for _ in range(100):
-            try:
-                urllib.request.urlopen(f"http://127.0.0.1:{self.port}/", timeout=1)
-                break
-            except OSError:
-                time.sleep(0.2)
+        gui_log, chromium_log = RUNTIME / f"gui-{self.port}.log", RUNTIME / f"chromium-{self.port}.log"
+        self.logs = [open(gui_log, "w"), open(chromium_log, "w")]
+        sandbox = subprocess.Popen([str(SANDBOX), "sh", "-c", run, "sh", *self.args], env=env, stdout=self.logs[0], stderr=subprocess.STDOUT)
+        self.procs.append(sandbox)
+        _until("Broadway (in the sandbox)", lambda: urllib.request.urlopen(f"http://127.0.0.1:{self.port}/", timeout=1), sandbox, gui_log)
         self.profile = tempfile.mkdtemp(prefix="cap-chromium-", dir=RUNTIME)
-        self.procs.append(subprocess.Popen([os.environ.get("CHROMIUM", "chromium"), "--headless=new", *OFFLINE, "--no-sandbox", "--hide-scrollbars", f"--user-data-dir={self.profile}",
-                                            f"--window-size={w + 100},{h + 300}", f"--remote-debugging-port={self.debug}", f"http://127.0.0.1:{self.port}/"],
-                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
-        for _ in range(50):
-            try:
-                tabs = json.load(urllib.request.urlopen(f"http://127.0.0.1:{self.debug}/json"))
-                self.ws = websocket.create_connection([t for t in tabs if t["type"] == "page"][0]["webSocketDebuggerUrl"], suppress_origin=True)
-                break
-            except (OSError, IndexError):
-                time.sleep(0.2)
+        chromium = subprocess.Popen([os.environ.get("CHROMIUM", "chromium"), "--headless=new", *OFFLINE, "--no-sandbox", "--hide-scrollbars", f"--user-data-dir={self.profile}",
+                                     f"--window-size={w + 100},{h + 300}", f"--remote-debugging-port={self.debug}", f"http://127.0.0.1:{self.port}/"],
+                                    stdout=self.logs[1], stderr=subprocess.STDOUT)
+        self.procs.append(chromium)
+
+        def devtools():
+            # The page's target shows in /json some time after the endpoint itself answers.
+            tabs = json.load(urllib.request.urlopen(f"http://127.0.0.1:{self.debug}/json", timeout=2))
+            url = next((t["webSocketDebuggerUrl"] for t in tabs if t["type"] == "page" and "webSocketDebuggerUrl" in t), None)
+            return url and websocket.create_connection(url, suppress_origin=True)
+        self.ws = _until("Chromium's DevTools endpoint", devtools, chromium, chromium_log)
         # Room for the window's title bar and its place on the display: a picture is clipped to
         # the page, and a window larger than the page loses its bottom and right edge: +160 cut
         # about 29 px off the bottom of a 1100 px picture, so the page is 300 px taller.
@@ -188,9 +216,10 @@ class Desktop:
             _stop(p)
         if self.profile:
             shutil.rmtree(self.profile, ignore_errors=True)
-        self.log.close()
-        if exc is None:  # kept only when something went wrong
-            (RUNTIME / f"gui-{self.port}.log").unlink(missing_ok=True)
+        for log in self.logs:
+            log.close()
+            if exc is None:  # kept only when something went wrong
+                Path(log.name).unlink(missing_ok=True)
 
     def call(self, method, **params):
         self.n += 1
@@ -355,7 +384,45 @@ def gif(frames, out, width=800, fps=12, hold=0.6):
     return size
 
 
+def self_test():
+    """_until waits through a probe that fails, then answers; and fails, naming what and its
+    log, when the process stops or the deadline passes."""
+    log = Path(tempfile.mkstemp(prefix="cap-self-test-")[1])
+    try:
+        log.write_text("[1:2:ERROR:process_singleton_posix.cc] Socket path too long: /x\n")
+        tries = iter([OSError("refused"), ValueError("half a reply"), None, "ws"])
+
+        def probe():
+            t = next(tries)
+            if isinstance(t, Exception):
+                raise t
+            return t
+        alive = subprocess.Popen(["sleep", "30"])
+        try:
+            assert _until("Thing", probe, alive, log, deadline=5) == "ws"
+            try:
+                _until("Thing", lambda: None, alive, log, deadline=0.5)
+                raise AssertionError("no StartupError at the deadline")
+            except StartupError as e:
+                assert "Thing did not answer within 0.5 s" in str(e) and str(log) in str(e), e
+        finally:
+            _stop(alive)
+        dead = subprocess.Popen(["false"])
+        dead.wait()
+        try:
+            _until("Chromium", lambda: "never asked", dead, log)
+            raise AssertionError("no StartupError for a stopped process")
+        except StartupError as e:
+            assert "Chromium stopped (exit 1)" in str(e) and "short TMPDIR" in str(e) and str(log) in str(e), e
+    finally:
+        log.unlink()
+    print("cap self-test: ok")
+
+
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--self-test"]:
+        self_test()
+        sys.exit()
     # The look check after a UI change: the first screen at both widths.
     for p in widths("start"):
         print(p)
