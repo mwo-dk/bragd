@@ -52,6 +52,9 @@ pub enum Notation {
     Hub,
     /// GNU Backgammon's turns (`24/18 13/10`, `8/5(2)`, `13/7*`).
     Gnubg,
+    /// Shatranj as Fairy-Stockfish writes it: the ferz `q` and the alfil `b`. Its own start has
+    /// both kings on the d-file, so it is always told Bragd's start as a FEN.
+    Shatranj,
 }
 
 /// How the engine called `name` (as it says it is) writes moves of `key` in `protocol`.
@@ -61,6 +64,7 @@ pub fn notation(key: &str, protocol: Protocol, name: &str) -> Notation {
         Protocol::Hub => Notation::Hub,
         Protocol::Gnubg => Notation::Gnubg,
         Protocol::Ucci => Notation::RanksFromZero,
+        _ if key == "shatranj" => Notation::Shatranj,
         _ if known::family(key) == Some(Family::Xiangqi) && !name.to_ascii_lowercase().starts_with("fairy") => Notation::RanksFromZero,
         _ => Notation::Wire,
     }
@@ -90,6 +94,14 @@ pub fn position(key: &str, initial: Option<&str>, entries: &[String], notation: 
             // The scoring entries after two passes are not moves.
             p.moves = entries.iter().take_while(|e| !e.starts_with("dead:") && !matches!(e.as_str(), "accept" | "resume")).map(|e| to_engine(notation, e)).collect();
         }
+        Notation::Shatranj => {
+            let fen = match initial.map(str::trim).filter(|i| !i.is_empty()) {
+                Some(i) => bragd_games::replay(key, Some(i), &[] as &[&str]).map_err(|e| e.to_string())?.position,
+                None => bragd_games::start_position(key).map_err(|e| e.to_string())?,
+            };
+            p.start = Start::Setup(fen.replace('F', "Q").replace('f', "q").replace('E', "B").replace('e', "b"));
+            p.moves = entries.iter().map(|e| to_engine(notation, e)).collect();
+        }
         _ => {
             if let Some(i) = initial.map(str::trim).filter(|i| !i.is_empty()) {
                 // Sent to the engine as it was typed: a line break in it would be a command of its own.
@@ -114,6 +126,8 @@ pub fn to_engine(notation: Notation, entry: &str) -> String {
         Notation::Gtp => entry.to_ascii_uppercase(),
         // `23x14:18:9` → `23x14x18x9`.
         Notation::Hub => entry.replace(':', "x"),
+        // A pawn promotes to a ferz only: `b7b8f` → `b7b8q`.
+        Notation::Shatranj => entry.strip_suffix('f').filter(|m| m.len() == 4).map_or_else(|| entry.to_string(), |m| format!("{m}q")),
     }
 }
 
@@ -123,6 +137,10 @@ pub fn entry<'a>(state: &'a State, notation: Notation, mv: &str) -> Option<&'a L
     let moves = &state.moves;
     match notation {
         Notation::Wire => moves.iter().find(|m| m.wire == mv),
+        Notation::Shatranj => {
+            let wire = mv.strip_suffix('q').map_or_else(|| mv.to_string(), |m| format!("{m}f"));
+            moves.iter().find(|m| m.wire == wire)
+        }
         Notation::RanksFromZero => {
             let wire = shift_ranks(mv, 1)?;
             moves.iter().find(|m| m.wire == wire)
@@ -325,7 +343,7 @@ mod tests {
             ("chess", &["stockfish", "lc0", "berserk", "ethereal", "rubichess", "koivisto", "igel", "arasan", "fruit", "fairy-stockfish"], Some("chess")),
             ("chess960", &["stockfish", "lc0", "berserk", "ethereal", "rubichess", "fairy-stockfish"], Some("chess")),
             ("shatranj", &["fairy-stockfish"], Some("shatranj")),
-            ("chaturanga", &["fairy-stockfish"], Some("chaturanga")),
+            ("chaturanga", &[], None),
             ("kingofthehill", &["fairy-stockfish"], Some("kingofthehill")),
             ("racingkings", &["fairy-stockfish"], Some("racingkings")),
             ("seirawan", &["fairy-stockfish"], Some("seirawan")),
@@ -375,6 +393,23 @@ mod tests {
             assert_eq!(back.wire, *e, "{key}: {theirs}");
             played.push(e.to_string());
         }
+    }
+
+    /// Fairy-Stockfish's shatranj has both kings on the d-file and writes the ferz `q` and the
+    /// alfil `b`: it is told Bragd's start, in its letters, and its promotions come back.
+    #[test]
+    fn shatranj_goes_to_fairy_stockfish_in_its_letters() {
+        let n = notation("shatranj", Protocol::Uci, "Fairy-Stockfish 14.0.1 XQ");
+        assert_eq!(n, Notation::Shatranj);
+        let (p, _) = position("shatranj", None, &["f2f3".into()], n).unwrap();
+        assert_eq!(p.start, Start::Setup("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1".into()));
+        assert_eq!(p.moves, ["f2f3"]);
+        let fen = "4k3/1P6/8/8/8/8/8/4K3 w - - 0 1";
+        let (p, state) = position("shatranj", Some(fen), &[], n).unwrap();
+        assert_eq!(p.start, Start::Setup(fen.into()));
+        assert_eq!(entry(&state, n, "b7b8q").unwrap().wire, "b7b8f");
+        assert_eq!(to_engine(n, "b7b8f"), "b7b8q");
+        round_trip("shatranj", n, &["e2e3", "d7d6", "d1e2", "c8e6"]);
     }
 
     #[test]

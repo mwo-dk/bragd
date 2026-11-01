@@ -20,7 +20,8 @@ An Engine plays a Side in Play, analyses a position in Analyse and reviews a who
 | Game family | Variants | Engines Bragd knows | Protocol |
 |---|---|---|---|
 | Chess | chess, Chess960 | Stockfish, Fairy-Stockfish | UCI |
-| Chess | shatranj, chaturanga, King of the Hill, Racing Kings, Seirawan, Capablanca | Fairy-Stockfish | UCI |
+| Chess | chaturanga | none: Fairy-Stockfish plays another reconstruction, whose elephant leaps two squares diagonally | |
+| Chess | shatranj, King of the Hill, Racing Kings, Seirawan, Capablanca | Fairy-Stockfish | UCI |
 | Xiangqi | xiangqi | Fairy-Stockfish, Pikafish, ElephantEye | UCI (UCCI for ElephantEye and other old xiangqi engines) |
 | Xiangqi | janggi | Fairy-Stockfish | UCI |
 | Shogi | shogi | Fairy-Stockfish, YaneuraOu | USI |

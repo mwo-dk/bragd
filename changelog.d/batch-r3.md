@@ -1,0 +1,1 @@
+| **Every Family with an Engine has played whole Games against one.** Fairy-Stockfish now plays Bragd's shatranj, not its own (whose kings stand on the d-file). It is no longer offered for chaturanga, whose elephant it moves another way. Racing Kings ends as soon as White's king is home and Black's cannot follow. | [Docs](engines/README.md#which-engine-plays-which-family) |
