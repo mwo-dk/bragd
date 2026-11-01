@@ -41,8 +41,8 @@ provides = ["blake3"]
 
 # The operating system's random numbers. ring takes each TLS connection's keys and nonces from
 # it, which the TLS assets cover; ahash (for parquet) seeds its hash tables from it, which is
-# not cryptography. The Helper takes its connection token from it, and the app its dice and
-# sticks.
+# not cryptography, and neither is zip's random name for its extraction folder. The Helper
+# takes its connection token from it, and the app its dice and sticks.
 [[library]]
 crate = "getrandom"
 provides = ["os-random"]
