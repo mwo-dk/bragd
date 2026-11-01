@@ -1,3 +1,16 @@
 {
- "theme.group.home": "Computadores hogareños"
+ "theme.group.home": "Computadores hogareños",
+ "clubs.intro": "Un club guarda sus miembros, sus roles e IDs, y una puntuación para cada uno. Es un solo archivo: copia el archivo para compartir el club.",
+ "clubs.none_yet": "Todavía no hay ningún club. Crea uno abajo o abre un archivo de club que te haya mandado alguien.",
+ "clubs.acting_none": "Elige un director",
+ "clubs.error.read_only": "{user} en {host} tiene abierto este club, así que acá es de solo lectura. Toma el control para cambiarlo.",
+ "clubs.error.not_director": "Solo un director puede cambiar el club. Elige uno en Actuando como.",
+ "clubs.error.last_director": "El club tiene que tener al menos un director. Primero haz director a otra persona.",
+ "clubs.error.newer": "Este archivo de club lo escribió un Bragd más nuevo. Actualiza Bragd para abrirlo.",
+ "clubs.error.why": "Escribe el motivo: el registro de auditoría lo guarda.",
+ "clubs.no_lists": "Todavía no se trajo ninguna lista de puntuación. Activa una en Fuentes para encontrar jugadores por nombre o ID.",
+ "feature.clubs.a1": "Copia su archivo .bragd-club, o guárdalo en una carpeta compartida. Un bloqueo evita que dos directores lo cambien a la vez.",
+ "feature.clubs.a3": "De FIDE, DSU y ECF, que trae el Ayudante una vez por mes cuando las actives. Antes de eso no se baja nada.",
+ "feature.clubs.tip": "Guarda los miembros y las puntuaciones de tu club en Bragd: Clubes en la barra lateral.",
+ "tour.clubs.text": "Clubes en la barra lateral guarda los miembros de un club, sus roles, los IDs de FIDE, nacional y Lichess, y las puntuaciones Glicko-2 o Elo con un registro de auditoría, todo en un archivo que puedes compartir. Las listas de puntuación de FIDE, DSU y ECF te ayudan a encontrar jugadores por nombre o ID."
 }

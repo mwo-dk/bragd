@@ -1,7 +1,7 @@
 <script>
   // The sidebar, as bragd-core works it out from what is on: the Families as outer items when two
-  // or more are on, one Family's items at the top when only it is, and always Settings, Help and
-  // What's new.
+  // or more are on, one Family's items at the top when only it is, and always Clubs, Settings, Help
+  // and What's new.
   import { t } from "./i18n.svelte.js";
   import HelperStatus from "./HelperStatus.svelte";
   // The rune wordmark: outlines from Noto Sans Runic, drawn in the sidebar's gold. Outlines, not
@@ -69,6 +69,7 @@
       {/each}
     </div>
     <div class="always">
+      <button class:current={page.kind === "clubs"} onclick={() => go({ kind: "clubs" })}>{t("sidebar.clubs")}</button>
       <button class:current={page.kind === "settings"} onclick={() => go({ kind: "settings" })}>{t("sidebar.settings")}</button>
       <button class:current={page.kind === "help"} onclick={() => go({ kind: "help" })}>{t("sidebar.help")} <kbd>F1</kbd></button>
       <button class:current={page.kind === "whats_new"} onclick={() => go({ kind: "whats_new" })}>{t("sidebar.whats_new")}</button>

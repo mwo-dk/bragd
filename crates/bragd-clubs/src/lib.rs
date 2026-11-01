@@ -3,4 +3,6 @@
 //! (`rating`). Rating lists, such as FIDE's, are downloaded by the Helper and kept in one file
 //! per machine, where check-in finds players by name or ID (`lists`).
 
+pub mod club;
+pub mod lists;
 pub mod rating;

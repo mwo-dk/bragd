@@ -37,6 +37,8 @@ pub struct AppState {
     /// Unix time of the last upgrade (its tour cards seen), and the version it came from.
     pub upgraded: u64,
     pub upgraded_from: String,
+    /// The Club files opened or made here, for the Clubs page's list.
+    pub clubs: Vec<PathBuf>,
     /// What a newer Bragd keeps here that this one does not know: saved as it was, so going
     /// back to an older version and forward again loses none of it.
     #[serde(flatten)]

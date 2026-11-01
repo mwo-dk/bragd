@@ -253,6 +253,8 @@ pub fn position_key(family: String, fen: String) -> Res<String> {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SourceView {
+    /// A rating list: its players go to the rating lists, not to a Library.
+    pub rating_list: bool,
     pub id: String,
     pub name: String,
     pub family: String,
@@ -329,6 +331,7 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
             size: if a.size == 0 { t!("source.size_unknown") } else { t!("source.size", "size" => bragd_core::i18n::bytes(a.size)) },
             notice: a.notice.as_deref().map(|n| t!(n, "source" => a.name)).unwrap_or_default(),
             custom: a.id.starts_with(sources::CUSTOM),
+            rating_list: a.kind == sources::Kind::RatingList,
             last: ago(m.last_fetch, now),
             error: m.last_error.clone().unwrap_or_default(),
             paused: m.paused,

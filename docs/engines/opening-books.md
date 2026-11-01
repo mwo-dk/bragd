@@ -60,4 +60,4 @@ Book moves, like Analyse, are locked while a rated online Game against a person 
 Its card shows the error in place of its moves. **Remove** takes it out of `engines.books`.
 
 ---
-[← Previous: Tablebases](tablebases.md) · [Next: Look →](../look/README.md)
+[← Previous: Tablebases](tablebases.md) · [Next: Clubs →](../clubs/README.md)

@@ -184,7 +184,52 @@ def help_():
     widths("help", lambda d: (d.keys("F1"), d.wait(1)))
 
 
-ALL = {"help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes}
+def fill(d, label, value):
+    """Type `value` into the field inside the label whose text starts with `label`."""
+    r = js(d, f"""const l = [...document.querySelectorAll('main label')].find(l => l.textContent.trim().startsWith({json.dumps(label)}));
+      const i = l && l.querySelector('input'); if (!i) return 'none';
+      i.value = {json.dumps(value)}; i.dispatchEvent(new Event('input', {{bubbles: true}})); return 'ok';""")
+    if r != "ok":
+        raise RuntimeError(f"no field {label!r}")
+
+
+def clubs():
+    """clubs-390.png (the Clubs page before a Club is open) and clubs-1100.png (a Club made
+    there, with members, a rating set by hand and its audit log)."""
+    def page(d):
+        js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+        d.wait(0.4)
+        click(d, "Clubs", "nav")
+    widths("clubs", page)
+    d0 = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/clubs/Skovlunde Skakklub.bragd-club"
+    try:
+        with Desktop(size=W1100) as d:
+            page(d)
+            fill(d, "Club name", "Skovlunde Skakklub")
+            fill(d, "Your name", "Mette Holm")
+            click(d, "Create Club")
+            for name, fide, nat, lichess in [("Bo Kjær", "1401234", "100200300", "bokjaer"), ("Anna Lind", "", "100200301", "")]:
+                click(d, "Add a member")
+                fill(d, "Name", name)
+                fill(d, "FIDE ID", fide)
+                fill(d, "National ID", nat)
+                fill(d, "Federation", "DEN" if nat else "")
+                fill(d, "Lichess", lichess)
+                click(d, "Save")
+            click(d, "Set rating", nth=0)
+            fill(d, "New rating", "1640")
+            fill(d, "Why", "Rated games at the summer open")
+            click(d, "Save")
+            d.shot(HERE / "clubs-1100.png")
+    finally:
+        for p in (d0, d0.with_name(d0.name + ".lock")):
+            p.unlink(missing_ok=True)
+        st = d0.parent.parent / "state.json"
+        if st.exists():
+            st.write_text(json.dumps({k: v for k, v in json.loads(st.read_text()).items() if k != "clubs"}))
+
+
+ALL = {"clubs": clubs, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "screens": screens, "themes": themes}
 
 if __name__ == "__main__":
     for n in sys.argv[1:] or ALL:

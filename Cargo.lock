@@ -329,6 +329,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bragd-clubs"
+version = "0.1.0"
+dependencies = [
+ "bragd-core",
+ "libc",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "zip",
+]
+
+[[package]]
 name = "bragd-core"
 version = "0.1.0"
 dependencies = [
@@ -381,6 +393,7 @@ dependencies = [
 name = "bragd-gui"
 version = "0.1.0"
 dependencies = [
+ "bragd-clubs",
  "bragd-core",
  "bragd-engines",
  "bragd-games",
@@ -401,6 +414,7 @@ dependencies = [
 name = "bragd-helper"
 version = "0.1.0"
 dependencies = [
+ "bragd-clubs",
  "bragd-core",
  "bragd-engines",
  "bragd-library",

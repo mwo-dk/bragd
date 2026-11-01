@@ -15,5 +15,9 @@ serde_json = "1"
 # FIDE sends its list as a zip. Deflate only, in pure Rust.
 zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
 
+# The machine's name, for the lock.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 bragd-core = { path = "../bragd-core", features = ["test-home"] }

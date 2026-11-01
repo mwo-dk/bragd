@@ -2,7 +2,7 @@
 
 # The sidebar
 
-The sidebar is how you reach everything in Bragd. It lists the Game families that are on, each with its items, and below them Settings, Help and What's new, which are always there. At the bottom, a line shows what the [Helper](../knowledge/helper.md) is doing. It sits on the left, and on the right in Hebrew and Persian.
+The sidebar is how you reach everything in Bragd. It lists the Game families that are on, each with its items, and below them Clubs, Settings, Help and What's new, which are always there. At the bottom, a line shows what the [Helper](../knowledge/helper.md) is doing. It sits on the left, and on the right in Hebrew and Persian.
 
 ![The sidebar with every Family on: the rune wordmark at the top, Chess folded open with its seven items, the other Families folded, then Settings, Help F1 and What's new, and the Helper line at the bottom](../screenshots/sidebar-1100.png)
 *The sidebar at 1100 px, with Chess folded open.*
@@ -20,13 +20,14 @@ It is always on screen. What it holds:
 | A Family (with two or more on) | Click it to fold its items open or shut. The Family of the page you are on stays open |
 | Its items | Play, Analyse, Databases, Engines and Rules. Chess also has Tablebases and Opening books. Tafl, Ur and Senet have only Play, Databases and Rules, as they have no outside Engine |
 | Slices | Each [Slice](../knowledge/slices.md) of the Family shows under Databases. A Slice with no Family shows under every Family |
+| Clubs | Your Clubs, their members and ratings ([Clubs](../clubs/clubs.md)) |
 | Settings | Every setting, by area ([Every setting](../reference/settings.md)) |
 | Help **F1** | [Help (F1) and notices](help.md) |
 | What's new | [What's new](whats-new.md) |
 | The Helper line | Idle, how many jobs run, paused on battery, or out of reach, with the running job's progress. Click it to open the Jobs page |
 | **«** / **»** | Folds the sidebar to a narrow strip, and shows it again |
 
-With one Family on, its items stand at the top on their own, with no Family heading. With none on, only Settings, Help and What's new are left.
+With one Family on, its items stand at the top on their own, with no Family heading. With none on, only Clubs, Settings, Help and What's new are left.
 
 Bragd opens on Play for the first Family that is on.
 

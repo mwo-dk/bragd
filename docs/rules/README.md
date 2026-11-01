@@ -117,4 +117,4 @@ not a piece, and the board model and the sprites assume one piece per cell.
 Recorded here so it is not proposed again as though it were cheap.
 
 ---
-[← Previous: Privacy](../reference/privacy.md) · [Next: Changelog →](../changelog.md)
+[← Previous: Rating lists](../reference/rating-lists.md) · [Next: Changelog →](../changelog.md)

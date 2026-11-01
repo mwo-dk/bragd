@@ -21,4 +21,4 @@ How Bragd looks and which language it speaks: the Theme for the app's colours, t
 | File picker | `look.file_picker` | `"auto"` |
 
 ---
-[← Previous: Opening books](../engines/opening-books.md) · [Next: Themes →](themes.md)
+[← Previous: Clubs](../clubs/clubs.md) · [Next: Themes →](themes.md)

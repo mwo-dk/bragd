@@ -13,6 +13,8 @@ path = "src/main.rs"
 [dependencies]
 bragd-core = { path = "../bragd-core" }
 bragd-library = { path = "../bragd-library" }
+# Rating lists, fetched like Sources, go into the rating lists file.
+bragd-clubs = { path = "../bragd-clubs" }
 # Disk watch asks the container runtime what its engine images take.
 bragd-engines = { path = "../bragd-engines" }
 serde = { version = "1", features = ["derive"] }

@@ -173,6 +173,20 @@ pub struct About {
     pub fetchable: bool,
     /// The text key of the notice shown for it, if any.
     pub notice: Option<String>,
+    /// Games for a Library, or a rating list.
+    #[serde(default)]
+    pub kind: Kind,
+}
+
+/// What a Source's downloads hold.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Kind {
+    /// Games, imported into the Libraries its Routes name.
+    #[default]
+    Games,
+    /// Players and their ratings, imported into the rating lists (`bragd_clubs::lists`).
+    RatingList,
 }
 
 impl About {
@@ -246,6 +260,7 @@ impl Source for Twic {
             url: TWIC_URL.into(),
             fetchable: true,
             notice: None,
+            kind: Kind::Games,
         }
     }
 
@@ -300,6 +315,7 @@ impl Source for CustomUrl {
             url: self.url.clone(),
             fetchable: true,
             notice: None,
+            kind: Kind::Games,
         }
     }
 
@@ -335,6 +351,27 @@ impl Source for Later {
     }
 }
 
+/// A rating list (`bragd_clubs::lists::LISTS`): one file, fetched whole each month.
+pub struct RatingList(pub &'static bragd_clubs::lists::List);
+
+impl Source for RatingList {
+    fn about(&self) -> About {
+        let l = self.0;
+        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, notice: None, kind: Kind::RatingList }
+    }
+
+    fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>> {
+        let to = cx.dir.join(self.0.file);
+        // Fetched whole each time: last month's list is replaced, never resumed into.
+        let _ = std::fs::remove_file(&to);
+        let _ = std::fs::remove_file(net::part_of(&to));
+        if !net::download(cx.net, self.0.url, &to, cx.cap, cx.stop, cx.progress)? {
+            return Err(io::Error::other(format!("{} is not there", self.0.url)));
+        }
+        Ok(vec![to])
+    }
+}
+
 fn later(id: &str, name: &str, family: &str, size: u64, schedule: Schedule, url: &str) -> Box<dyn Source> {
     Box::new(Later(About {
         id: id.into(),
@@ -345,6 +382,7 @@ fn later(id: &str, name: &str, family: &str, size: u64, schedule: Schedule, url:
         url: url.into(),
         fetchable: false,
         notice: Some(OUT_OF_SCOPE.into()),
+        kind: Kind::Games,
     }))
 }
 
@@ -366,6 +404,9 @@ pub fn builtin() -> Vec<Box<dyn Source>> {
         later("pychess", "pychess exports", "chess", 500_000_000, Schedule::Monthly, "https://www.pychess.org/"),
         later("lishogi", "Lishogi exports", "shogi", 500_000_000, Schedule::Monthly, "https://lishogi.org/"),
     ]
+    .into_iter()
+    .chain(bragd_clubs::lists::LISTS.iter().map(|l| Box::new(RatingList(l)) as Box<dyn Source>))
+    .collect()
 }
 
 /// The Source with `id`: a built-in one, or a custom URL one at `url`.
@@ -486,8 +527,8 @@ pub(crate) mod tests {
     #[test]
     fn the_registry_lists_every_source_and_fetches_only_some() {
         let ids: Vec<String> = builtin().iter().map(|s| s.about().id).collect();
-        assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi"]);
-        for s in builtin().iter().skip(1) {
+        assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings"]);
+        for s in builtin().iter().skip(1).filter(|s| s.about().kind == Kind::Games) {
             let a = s.about();
             assert!(!a.fetchable && a.notice.as_deref() == Some(OUT_OF_SCOPE) && a.size > 0, "{}", a.id);
         }

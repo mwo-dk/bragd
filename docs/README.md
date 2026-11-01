@@ -63,6 +63,13 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Tablebases](engines/tablebases.md) | Syzygy sets, their folder, the Lichess fallback |
 | [Opening books](engines/opening-books.md) | Polyglot books and opening names |
 
+## [Clubs](clubs/README.md)
+
+| Page | What it covers |
+|---|---|
+| [Clubs](clubs/README.md) | The area's pages |
+| [Clubs](clubs/clubs.md) | Members, roles and IDs in one Club file, club ratings and their audit log, the lock, finding players in rating lists |
+
 ## [Look](look/README.md)
 
 | Page | What it covers |
@@ -91,6 +98,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Command line](reference/command-line.md) | `bragd-gui` and `bragd-helper`, their flags and environment variables |
 | [Files on disk](reference/files.md) | Where config, data, Libraries, the Helper, tablebases and the cache are kept |
 | [Privacy](reference/privacy.md) | What leaves the machine, when, and how to stop it |
+| [Rating lists](reference/rating-lists.md) | FIDE's and each federation's list: where, format, terms, rhythm, and which Bragd fetches |
 
 ## [Rules](rules/README.md)
 

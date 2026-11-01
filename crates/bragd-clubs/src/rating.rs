@@ -42,12 +42,88 @@ pub const K: f64 = 20.0;
 /// The rating after one Glicko-2 rating period (Glickman, "Example of the Glicko-2 system",
 /// steps 1–8). With no games only the deviation grows.
 pub fn glicko2(player: Rating, games: &[Game]) -> Rating {
-    todo!()
+    const SCALE: f64 = 173.7178;
+    const EPSILON: f64 = 0.000001;
+
+    let mu = (player.rating - 1500.0) / SCALE;
+    let phi = player.deviation / SCALE;
+    if games.is_empty() {
+        return Rating {
+            rating: player.rating,
+            deviation: SCALE * (phi * phi + player.volatility * player.volatility).sqrt(),
+            volatility: player.volatility,
+        };
+    }
+
+    let g = |opponent_phi: f64| {
+        1.0 / (1.0 + 3.0 * opponent_phi * opponent_phi / std::f64::consts::PI.powi(2)).sqrt()
+    };
+    let mut sum_g_score = 0.0;
+    let mut sum_g_squared_variance = 0.0;
+    for game in games {
+        let opponent_mu = (game.opponent.rating - 1500.0) / SCALE;
+        let opponent_phi = game.opponent.deviation / SCALE;
+        let gj = g(opponent_phi);
+        let expected = 1.0 / (1.0 + (-gj * (mu - opponent_mu)).exp());
+        sum_g_score += gj * (game.score - expected);
+        sum_g_squared_variance += gj * gj * expected * (1.0 - expected);
+    }
+    let variance = 1.0 / sum_g_squared_variance;
+    let delta = variance * sum_g_score;
+    let a = (player.volatility * player.volatility).ln();
+    let f = |x: f64| {
+        let exp_x = x.exp();
+        exp_x * (delta * delta - phi * phi - variance - exp_x)
+            / (2.0 * (phi * phi + variance + exp_x).powi(2))
+            - (x - a) / (TAU * TAU)
+    };
+
+    let mut lower = a;
+    let mut upper = if delta * delta > phi * phi + variance {
+        (delta * delta - phi * phi - variance).ln()
+    } else {
+        let mut k = 1;
+        while f(a - (k as f64) * TAU) < 0.0 {
+            k += 1;
+        }
+        a - (k as f64) * TAU
+    };
+    let mut f_lower = f(lower);
+    let mut f_upper = f(upper);
+    while (upper - lower).abs() > EPSILON {
+        let candidate = lower + (lower - upper) * f_lower / (f_upper - f_lower);
+        let f_candidate = f(candidate);
+        if f_candidate * f_upper <= 0.0 {
+            lower = upper;
+            f_lower = f_upper;
+        } else {
+            f_lower /= 2.0;
+        }
+        upper = candidate;
+        f_upper = f_candidate;
+    }
+    let volatility = (lower / 2.0).exp();
+    let phi_star = (phi * phi + volatility * volatility).sqrt();
+    let new_phi = 1.0 / (1.0 / (phi_star * phi_star) + 1.0 / variance).sqrt();
+    let new_mu = mu + new_phi * new_phi * sum_g_score;
+
+    Rating {
+        rating: SCALE * new_mu + 1500.0,
+        deviation: SCALE * new_phi,
+        volatility,
+    }
 }
 
 /// The rating after one period of Elo games, all against the opponents' ratings before it.
 pub fn elo(player: Rating, games: &[Game]) -> Rating {
-    todo!()
+    let change: f64 = games
+        .iter()
+        .map(|game| {
+            let expected = 1.0 / (1.0 + 10.0_f64.powf((game.opponent.rating - player.rating) / 400.0));
+            game.score - expected
+        })
+        .sum();
+    Rating { rating: player.rating + K * change, deviation: player.deviation, volatility: player.volatility }
 }
 
 /// The rating after one period under `system`.

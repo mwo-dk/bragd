@@ -27,8 +27,10 @@ In the Flatpak, the XDG folders are the app's own: `~/.var/app/io.github.mwo_dk.
 |---|---|
 | config/`config.toml` | Your settings ([config.toml](config-toml.md)) |
 | config/`engine-options.toml` | Each Engine's options, as you set them on the Engines page |
-| data/`state.json` | What Bragd remembers that is not a setting: the wizard seen, the last version whose cards you saw, the last update check, notices closed, hints shown |
+| data/`state.json` | What Bragd remembers that is not a setting: the wizard seen, the last version whose cards you saw, the last update check, notices closed, hints shown, the Club files you opened |
 | data/`libraries/` | Your Libraries, such as `main.bragd`, with their `-wal` and `-shm` files. Moved by `knowledge.library` |
+| data/`clubs/` | The Clubs you made, one `<name>.bragd-club` file each, with a `.bragd-club.lock` beside a Club while it is open ([Clubs](../clubs/clubs.md)) |
+| data/`rating-lists.sqlite` | The players of every rating list fetched ([Rating lists](rating-lists.md)) |
 | data/`tablebases/` | Syzygy tables. Moved by `tablebases.path` |
 | data/`networks/pikafish/pikafish.nnue` | Pikafish's evaluation network, for its image, downloaded once you agree to its licence |
 | data/`helper/` | The Helper's folder |

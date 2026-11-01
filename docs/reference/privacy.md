@@ -21,6 +21,7 @@ Bragd sends nothing unless you ask, with one exception: the update check, which 
 |---|---|---|---|---|
 | Update check | At start, then once a day, while on | A request for the newest version, with `bragd/<version>` as the user agent | GitHub, or this copy's channel ([below](#the-update-check)) | *Check for a new version* off (`updates.check`) |
 | Source downloads | On the schedule of each Source you turned on, or *Fetch now* | Requests for the files | The Source's address, such as `theweekinchess.com` for TWIC, or your custom URL | Leave the Source off. Every Source starts off ([Sources](../knowledge/sources.md)) |
+| Rating lists | Once a month, for each rating list you turned on (in the wizard or under Sources), or *Fetch now* | Requests for the list's file | `ratings.fide.com`, `turnering.skak.dk`, `rating.englishchess.org.uk` | Leave the list off. Every list starts off ([Rating lists](rating-lists.md)) |
 | Tablebase sizes | When you press **Show size** | A request for one small list of file sizes | `tablebase.lichess.ovh` | Do not press it |
 | Tablebase downloads | When you press **Download**, or **Done** in the wizard with Syzygy ticked | Requests for the files | `tablebase.lichess.ovh` | Untick Syzygy in the wizard; do not press Download ([Tablebases](../engines/tablebases.md)) |
 | Tablebase lookups | In Analyse, for a chess position of seven pieces or fewer that your tables do not cover | The position, as a FEN | the Lichess tablebase API, `tablebase.lichess.ovh` | *Ask Lichess for tablebase positions* off (`tablebases.online`) |
@@ -85,4 +86,4 @@ Online play is not available yet. When it comes, signing in to a server is per s
 No. It listens on a socket in your own data folder, readable by you only. On Windows it listens on a loopback port with a token, which only this machine can reach.
 
 ---
-[← Previous: Files on disk](files.md) · [Next: Rules →](../rules/README.md)
+[← Previous: Files on disk](files.md) · [Next: Rating lists →](rating-lists.md)

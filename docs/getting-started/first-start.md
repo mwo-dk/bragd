@@ -15,7 +15,7 @@ On the first start Bragd opens the install wizard: six short steps in a frame ov
 | 1 Welcome | Language (each by its own name), Theme and Board theme, with a preview | Look |
 | 2 Your games | *Which games do you play?* One click on *Only Chess* (or any other Family) keeps that one and turns the rest off. *Several…* shows a switch for every Family and Variant | Game families |
 | 3 Engines | Nothing: it shows the Engines found on this machine for each Family that is on | Engines |
-| 4 Knowledge | Downloads: TWIC every week and Syzygy 3–5 pieces (about 1 GB) are ticked; the others are listed with their sizes | Knowledge |
+| 4 Knowledge | Downloads: TWIC every week and Syzygy 3–5 pieces (about 1 GB) are ticked; the others, the FIDE, DSU and ECF rating lists among them, are listed with their sizes | Knowledge |
 | 5 Online | Nothing yet: signing in to servers comes in a later version | Online |
 | 6 Helper | *Start with my session* | Knowledge |
 

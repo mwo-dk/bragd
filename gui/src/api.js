@@ -110,3 +110,30 @@ export const booksPage = () => invoke("books_page");
 export const bookAdd = (/** @type {string} */ path) => invoke("book_add", { path });
 /** @returns {Promise<void>} */
 export const bookRemove = (/** @type {string} */ path) => invoke("book_remove", { path });
+
+// Clubs (gui/src-tauri/src/clubs.rs).
+/** The Club files known here, the Club open and the rating lists. @returns {Promise<any>} */
+export const clubsPage = () => invoke("clubs_page");
+/** @returns {Promise<any>} */
+export const clubOpen = (/** @type {string} */ path) => invoke("club_open", { path });
+/** A Club file chosen with the file dialog; null when none was. @returns {Promise<any>} */
+export const clubPick = () => invoke("club_pick");
+/** @returns {Promise<any>} */
+export const clubCreate = (/** @type {string} */ name, /** @type {string} */ system, /** @type {string} */ director) => invoke("club_create", { name, system, director });
+export const clubClose = () => invoke("club_close");
+/** Takes a Club off the list; its file stays. @returns {Promise<any>} */
+export const clubForget = (/** @type {string} */ path) => invoke("club_forget", { path });
+/** @returns {Promise<any>} */
+export const clubAdd = (/** @type {number|null} */ by, /** @type {any} */ details, /** @type {number|null} */ rating) => invoke("club_add", { by, details, rating });
+/** @returns {Promise<any>} */
+export const clubUpdate = (/** @type {number|null} */ by, /** @type {number} */ id, /** @type {any} */ details) => invoke("club_update", { by, id, details });
+/** @returns {Promise<any>} */
+export const clubRemove = (/** @type {number|null} */ by, /** @type {number} */ id) => invoke("club_remove", { by, id });
+/** @returns {Promise<any>} */
+export const clubRating = (/** @type {number|null} */ by, /** @type {number} */ id, /** @type {number} */ rating, /** @type {string} */ why) => invoke("club_rating", { by, id, rating, why });
+/** @returns {Promise<any>} */
+export const clubSystem = (/** @type {number|null} */ by, /** @type {string} */ system, /** @type {string} */ why) => invoke("club_system", { by, system, why });
+/** @returns {Promise<any>} */
+export const clubTakeOver = (/** @type {number|null} */ by) => invoke("club_take_over", { by });
+/** Players in the rating lists by name or ID. @returns {Promise<any[]>} */
+export const ratingSearch = (/** @type {string} */ query) => invoke("rating_search", { query });
