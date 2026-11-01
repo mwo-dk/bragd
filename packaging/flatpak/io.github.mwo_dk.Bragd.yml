@@ -39,8 +39,9 @@ modules:
         npm_config_offline: 'true'
         XDG_CACHE_HOME: /run/build/bragd/flatpak-node/cache
     build-commands:
-      # The Tauri crate embeds gui/dist, so the frontend builds first.
-      - cd gui && npm ci --offline --no-audit --no-fund && npm run build
+      # The Tauri crate embeds gui/dist, so the frontend builds first. No install scripts: the only
+      # ones are optional dev tools (libxmljs2, fsevents) the build never runs.
+      - cd gui && npm ci --offline --ignore-scripts --no-audit --no-fund && npm run build
       - cargo build --release --locked --offline -p bragd-gui
       - install -Dm755 target/release/bragd-gui -t /app/bin
       - install -Dm644 packaging/flatpak/io.github.mwo_dk.Bragd.desktop -t /app/share/applications
