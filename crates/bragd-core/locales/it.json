@@ -526,7 +526,7 @@
  "slice.use_position": "Usa la posizione attuale della scacchiera",
  "slice.variant": "Variante",
  "source.add": "Aggiungi",
- "source.add_hint": "Un file PGN, SGF, KIF, CSA o PDN sul web, o uno zip di questi. Viene riscaricato per intero a ogni scaricamento.",
+ "source.add_hint_formats": "Partite in {formats} sul web: un file, o uno zip di questi. Viene riscaricato per intero a ogni scaricamento.",
  "source.add_name": "Nome",
  "source.add_title": "Aggiungi un URL personalizzato",
  "source.after_import.delete": "Elimina il download",

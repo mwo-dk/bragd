@@ -526,7 +526,7 @@
  "slice.use_position": "Naudoti dabartinę lentos poziciją",
  "slice.variant": "Variantas",
  "source.add": "Pridėti",
- "source.add_hint": "PGN, SGF, KIF, CSA ar PDN failas internete arba jų zip archyvas. Kiekvieno atsisiuntimo metu jis atsisiunčiamas iš naujo visas.",
+ "source.add_hint_formats": "{formats} partijos internete: vienas failas arba tokių failų zip archyvas. Kiekvieno atsisiuntimo metu jis atsisiunčiamas iš naujo visas.",
  "source.add_name": "Pavadinimas",
  "source.add_title": "Pridėti savo URL",
  "source.after_import.delete": "Ištrinti atsisiuntimą",

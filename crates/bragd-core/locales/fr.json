@@ -526,7 +526,7 @@
  "slice.use_position": "Utiliser la position actuelle de l’échiquier",
  "slice.variant": "Variante",
  "source.add": "Ajouter",
- "source.add_hint": "Un fichier PGN, SGF, KIF, CSA ou PDN sur le web, ou un zip de ces fichiers. Il est retéléchargé en entier à chaque récupération.",
+ "source.add_hint_formats": "Parties {formats} sur le web : un fichier, ou un zip de tels fichiers. Il est retéléchargé en entier à chaque récupération.",
  "source.add_name": "Nom",
  "source.add_title": "Ajouter une URL personnalisée",
  "source.after_import.delete": "Supprimer le téléchargement",

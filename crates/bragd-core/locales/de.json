@@ -524,7 +524,7 @@
  "slice.use_position": "Aktuelle Brettstellung verwenden",
  "slice.variant": "Variante",
  "source.add": "Hinzufügen",
- "source.add_hint": "Eine PGN-, SGF-, KIF-, CSA- oder PDN-Datei im Netz oder ein Zip davon. Sie wird bei jedem Abruf vollständig neu geladen.",
+ "source.add_hint_formats": "{formats}-Partien im Netz: eine Datei oder ein Zip davon. Sie wird bei jedem Abruf vollständig neu geladen.",
  "source.add_name": "Name",
  "source.add_title": "Eigene URL hinzufügen",
  "source.after_import.delete": "Den Download löschen",

@@ -524,7 +524,7 @@
  "slice.use_position": "استفاده از موقعیت فعلی صفحه",
  "slice.variant": "گونه",
  "source.add": "افزودن",
- "source.add_hint": "یک پرونده‌ی PGN، SGF، KIF، CSA یا PDN روی وب، یا یک zip از آن‌ها. هر بار که دریافت می‌شود کامل دوباره دانلود می‌شود.",
+ "source.add_hint_formats": "بازی‌های {formats} روی وب: یک پرونده، یا یک zip از آن‌ها. هر بار که دریافت می‌شود کامل دوباره دانلود می‌شود.",
  "source.add_name": "نام",
  "source.add_title": "افزودن نشانی دلخواه",
  "source.after_import.delete": "حذف دانلود",

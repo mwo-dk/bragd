@@ -526,7 +526,7 @@
  "slice.use_position": "Usar la posición actual del tablero",
  "slice.variant": "Variante",
  "source.add": "Agregar",
- "source.add_hint": "Un archivo PGN, SGF, KIF, CSA o PDN en la web, o un zip de ellos. Se vuelve a descargar entero en cada descarga.",
+ "source.add_hint_formats": "Partidas en {formats} en la web: un archivo, o un zip de ellos. Se vuelve a descargar entero en cada descarga.",
  "source.add_name": "Nombre",
  "source.add_title": "Agregar una URL personalizada",
  "source.after_import.delete": "Borrar la descarga",

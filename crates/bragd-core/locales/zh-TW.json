@@ -522,7 +522,7 @@
  "slice.use_position": "使用當前棋盤局面",
  "slice.variant": "變體",
  "source.add": "新增",
- "source.add_hint": "網路上的 PGN、SGF、KIF、CSA 或 PDN 檔案，或其壓縮檔。每次抓取都會完整重新下載。",
+ "source.add_hint_formats": "網路上的 {formats} 棋局：一個檔案，或此類檔案的壓縮檔。每次抓取都會完整重新下載。",
  "source.add_name": "名稱",
  "source.add_title": "新增自訂網址",
  "source.after_import.delete": "刪除下載檔案",

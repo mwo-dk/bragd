@@ -524,7 +524,7 @@
  "slice.use_position": "Använd aktuell brädställning",
  "slice.variant": "Variant",
  "source.add": "Lägg till",
- "source.add_hint": "En PGN-, SGF-, KIF-, CSA- eller PDN-fil på webben, eller en zip med dem. Den laddas ned igen helt vid varje hämtning.",
+ "source.add_hint_formats": "{formats}-partier på webben: en fil, eller en zip med sådana. Den laddas ned igen helt vid varje hämtning.",
  "source.add_name": "Namn",
  "source.add_title": "Lägg till en egen webbadress",
  "source.after_import.delete": "Ta bort nedladdningen",

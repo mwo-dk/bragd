@@ -67,6 +67,8 @@ struct FamilyView {
     race: bool,
     /// The file formats Bragd reads for it: "PGN", "SGF"…
     formats: &'static [&'static str],
+    /// Those a custom URL Source can fetch: "PGN" for chess, not SCID.
+    url_formats: Vec<&'static str>,
     variants: Vec<VariantView>,
 }
 
@@ -178,6 +180,7 @@ fn snapshot(cfg: &Config) -> Snapshot {
                 shown: cfg.family_shown(f.key()),
                 race: f.race(),
                 formats: bragd_library::formats(f.key()),
+                url_formats: bragd_library::url_formats(f.key()),
                 variants: f
                     .variants()
                     .map(|v| VariantView {

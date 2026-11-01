@@ -524,7 +524,7 @@
  "slice.use_position": "Kasuta praegust laua seisu",
  "slice.variant": "Variant",
  "source.add": "Lisa",
- "source.add_hint": "PGN-, SGF-, KIF-, CSA- või PDN-fail veebis või nende zip. Seda laaditakse igal toomisel uuesti täies mahus.",
+ "source.add_hint_formats": "{formats}-partiid veebis: üks fail või nende zip. Seda laaditakse igal toomisel uuesti täies mahus.",
  "source.add_name": "Nimi",
  "source.add_title": "Lisa oma URL",
  "source.after_import.delete": "Kustuta allalaadimine",

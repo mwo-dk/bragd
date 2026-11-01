@@ -526,7 +526,7 @@
  "slice.use_position": "Izmantot pašreizējo dēļa pozīciju",
  "slice.variant": "Variants",
  "source.add": "Pievienot",
- "source.add_hint": "PGN, SGF, KIF, CSA vai PDN fails tīmeklī vai to zip arhīvs. Katras ielādes laikā tas tiek lejupielādēts no jauna pilnībā.",
+ "source.add_hint_formats": "{formats} partijas tīmeklī: viens fails vai šādu failu zip arhīvs. Katras ielādes laikā tas tiek lejupielādēts no jauna pilnībā.",
  "source.add_name": "Nosaukums",
  "source.add_title": "Pievienot pielāgotu URL",
  "source.after_import.delete": "Dzēst lejupielādi",

@@ -6,13 +6,15 @@
   // dry run) and Apply over all of them. The Sources this version cannot fetch yet are shown
   // with their notice. A custom URL can be added, and removed again.
   import * as k from "./knowledge.js";
-  import { t } from "./i18n.svelte.js";
+  import { t, i18n } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
   import StripEditor from "./StripEditor.svelte";
   import JobLine from "./JobLine.svelte";
 
-  /** @type {{ family: string }} */
+  /** @type {{ family: any }} */
   let { family } = $props();
+  // The formats a custom URL of the page Family can be, from Rust, joined as the language joins "this or that".
+  const formats = $derived(new Intl.ListFormat(i18n.lang, { type: "disjunction" }).format(family.urlFormats));
   /** @type {any} */
   let page = $state(null);
   /** @type {string | null} */
@@ -46,7 +48,7 @@
     load();
   });
 
-  const shown = $derived(page ? page.sources.filter((/** @type {any} */ s) => !s.family || s.family === family) : []);
+  const shown = $derived(page ? page.sources.filter((/** @type {any} */ s) => !s.family || s.family === family.id) : []);
 
   function expand(/** @type {any} */ s) {
     if (open === s.id) return void (open = null);
@@ -200,10 +202,10 @@
 
   <section class="panel add">
     <h3>{t("source.add_title")}</h3>
-    <p class="hint">{t("source.add_hint")}</p>
+    <p class="hint">{family.urlFormats.length ? t("source.add_hint_formats", { formats }) : t("db.no_formats", { family: family.name })}</p>
     <div class="bar">
       <input type="text" bind:value={name} placeholder={t("source.add_name")} aria-label={t("source.add_name")} />
-      <input class="grow" type="text" bind:value={url} placeholder="https://example.org/games.pgn" aria-label={t("source.url")} />
+      <input class="grow" type="text" bind:value={url} placeholder={`https://example.org/games.${(family.urlFormats[0] ?? "pgn").toLowerCase()}`} aria-label={t("source.url")} />
       <button onclick={add} disabled={!name.trim() || !url.trim()}>{t("source.add")}</button>
     </div>
   </section>

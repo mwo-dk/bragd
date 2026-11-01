@@ -524,7 +524,7 @@
  "slice.use_position": "Use current board position",
  "slice.variant": "Variant",
  "source.add": "Add",
- "source.add_hint": "A PGN, SGF, KIF, CSA or PDN file on the web, or a zip of them. It is downloaded again in full on each fetch.",
+ "source.add_hint_formats": "{formats} games on the web: one file, or a zip of such files. The file is downloaded again in full on each fetch.",
  "source.add_name": "Name",
  "source.add_title": "Add a custom URL",
  "source.after_import.delete": "Delete the download",

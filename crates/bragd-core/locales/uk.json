@@ -528,7 +528,7 @@
  "slice.use_position": "Використати поточну позицію на дошці",
  "slice.variant": "Варіант",
  "source.add": "Додати",
- "source.add_hint": "Файл PGN, SGF, KIF, CSA або PDN з мережі, або їхній zip. Він завантажується повністю при кожному завантаженні.",
+ "source.add_hint_formats": "Партії у форматі {formats} з мережі: один файл або zip з них. Він завантажується повністю при кожному завантаженні.",
  "source.add_name": "Назва",
  "source.add_title": "Додати власну адресу",
  "source.after_import.delete": "Видалити завантаження",

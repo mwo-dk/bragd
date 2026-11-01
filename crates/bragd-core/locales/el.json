@@ -524,7 +524,7 @@
  "slice.use_position": "Χρήση της τρέχουσας θέσης στη σκακιέρα",
  "slice.variant": "Παραλλαγή",
  "source.add": "Προσθήκη",
- "source.add_hint": "Ένα αρχείο PGN, SGF, KIF, CSA ή PDN στο web, ή ένα zip από αυτά. Κατεβαίνει ξανά ολόκληρο σε κάθε λήψη.",
+ "source.add_hint_formats": "Παρτίδες {formats} στο web: ένα αρχείο, ή ένα zip από αυτά. Κατεβαίνει ξανά ολόκληρο σε κάθε λήψη.",
  "source.add_name": "Όνομα",
  "source.add_title": "Προσθήκη προσαρμοσμένης διεύθυνσης",
  "source.after_import.delete": "Διαγραφή της λήψης",

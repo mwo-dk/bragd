@@ -526,7 +526,7 @@
  "slice.use_position": "Usa la posició actual del tauler",
  "slice.variant": "Variant",
  "source.add": "Afegeix",
- "source.add_hint": "Un fitxer PGN, SGF, KIF, CSA o PDN a la web, o un zip d'aquests. Es torna a descarregar sencer a cada descàrrega.",
+ "source.add_hint_formats": "Partides en {formats} a la web: un fitxer, o un zip d'aquests. Es torna a descarregar sencer a cada descàrrega.",
  "source.add_name": "Nom",
  "source.add_title": "Afegeix un URL personalitzat",
  "source.after_import.delete": "Esborra la descàrrega",

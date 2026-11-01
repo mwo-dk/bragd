@@ -524,7 +524,7 @@
  "slice.use_position": "Bruk gjeldende stilling på brettet",
  "slice.variant": "Variant",
  "source.add": "Legg til",
- "source.add_hint": "En PGN-, SGF-, KIF-, CSA- eller PDN-fil på nettet, eller en zip med dem. Den lastes ned på nytt helt ved hver henting.",
+ "source.add_hint_formats": "{formats}-partier på nettet: én fil, eller en zip med dem. Den lastes ned på nytt helt ved hver henting.",
  "source.add_name": "Navn",
  "source.add_title": "Legg til en egen nettadresse",
  "source.after_import.delete": "Slett nedlastingen",
