@@ -22,12 +22,12 @@ Where each file lives is in [Files on disk](files.md).
 | `state.json` | JSON | the key `format` | 1 | `bragd_core::state::FORMAT` |
 | A Library (`.bragd`) | SQLite | `PRAGMA user_version` | 1 | `bragd_library::library::FORMAT` |
 | A Club file (`.bragd-club`), its `.lock` file, and the Tournaments and Leagues it keeps as JSON | SQLite | `PRAGMA user_version` | 1 | `bragd_clubs::club::FORMAT` |
-| `positions.sqlite`, the [Position store](../knowledge/position-store.md) | SQLite | `PRAGMA user_version` | 4 | `bragd_positions::FORMAT` |
+| `positions.sqlite`, the [Position store](../knowledge/position-store.md) | SQLite | `PRAGMA user_version` | 3 | `bragd_positions::FORMAT` |
 | A Position store export (`.parquet`) | Parquet | the file's metadata key `bragd.format` | 1 | `bragd_positions::parquet::FORMAT` and `from_parquet` |
 | `rating-lists.sqlite` | SQLite | `PRAGMA user_version` | 1 | `bragd_clubs::lists::FORMAT` |
 | `translations.sqlite` | SQLite | `PRAGMA user_version` | 1 | `bragd_model::store::FORMAT` |
 | `tournament.json`, in a Tournament bundle | JSON | the key `format` | 1 | `bragd_clubs::export::FORMAT` |
-| The Helper's `state.json` | JSON | the key `format` | 2 | `bragd_helper::jobs::FORMAT` |
+| The Helper's `state.json` | JSON | the key `format` | 1 | `bragd_helper::jobs::FORMAT` |
 | `peers.json` | JSON | a list is version 1; a later version is an object with `format` | 1 | `bragd_peers::node::FORMAT` |
 | `key.pk8` | PKCS #8 | the standard's own | — | none: a standard format |
 

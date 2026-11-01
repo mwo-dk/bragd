@@ -1,6 +1,6 @@
 //! Peers swap what is new in their stores (`docs/peers/sync.md`).
 //!
-//! Every change to a row gives it the store's next change number (`seq`, schema 4). A Peer asks
+//! Every change to a row gives it the store's next change number (`seq`). A Peer asks
 //! for the rows changed since the last number it got from this store (`Store::changes`), a
 //! bounded batch at a time, and merges them by the store's merge rule (`Store::merge_changes`).
 //! The number it got so far, its watermark, is kept by the Peer that asks, in its own store and
@@ -15,34 +15,6 @@ use rusqlite::{OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use crate::{Annotation, Evaluation, Merged, Result, Store};
-
-/// Schema 4: a change number on every row, the counter, this store's id, and what was taken
-/// from each Peer.
-pub(crate) const MIGRATE_4: &str = "
-ALTER TABLE evaluations ADD COLUMN seq INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE annotations ADD COLUMN seq INTEGER NOT NULL DEFAULT 0;
-UPDATE evaluations SET seq = n.s
-    FROM (SELECT family, variant, key, edition, row_number() OVER (ORDER BY family, variant, key, edition) AS s FROM evaluations) AS n
-    WHERE n.family = evaluations.family AND n.variant = evaluations.variant AND n.key = evaluations.key AND n.edition = evaluations.edition;
-UPDATE annotations SET seq = n.s + (SELECT count(*) FROM evaluations)
-    FROM (SELECT family, variant, key, move, edition, row_number() OVER (ORDER BY family, variant, key, move, edition) AS s FROM annotations) AS n
-    WHERE n.family = annotations.family AND n.variant = annotations.variant AND n.key = annotations.key AND n.move = annotations.move AND n.edition = annotations.edition;
-CREATE INDEX evaluations_seq ON evaluations (seq);
-CREATE INDEX annotations_seq ON annotations (seq);
--- The last change number given.
-CREATE TABLE changes (n INTEGER NOT NULL);
-INSERT INTO changes (n) SELECT (SELECT count(*) FROM evaluations) + (SELECT count(*) FROM annotations);
--- This store's id, made the first time a Peer asks: a store made again is another store.
-CREATE TABLE store (id TEXT NOT NULL);
--- What was taken from each Peer: its store's id and the last change number, when, and how many rows.
-CREATE TABLE pulled (
-    peer TEXT PRIMARY KEY,
-    store TEXT NOT NULL,
-    seq INTEGER NOT NULL,
-    time INTEGER NOT NULL,
-    rows INTEGER NOT NULL
-) WITHOUT ROWID;
-";
 
 /// The next change number, for a row about to be written.
 pub(crate) fn next(tx: &rusqlite::Connection) -> Result<i64> {
@@ -282,27 +254,5 @@ mod tests {
             assert_eq!(s.annotations().unwrap(), want.annotations().unwrap(), "{name}");
         }
         assert_eq!(a.all().unwrap().len(), 5, "keys 1 to 4, and 5 by another Edition");
-    }
-
-    #[test]
-    fn rows_from_before_schema_4_are_numbered_once() {
-        let d = dir("v3");
-        let p = d.join("positions.sqlite");
-        {
-            let mut conn = rusqlite::Connection::open(&p).unwrap();
-            let v3 = bragd_core::format::Sqlite { migrations: &[], ..crate::FORMAT };
-            v3.open(&mut conn).unwrap();
-            conn.execute_batch(
-                "INSERT INTO editions (n, id, engine, version) VALUES (1, 'x', 'stockfish', 'Stockfish 17');
-                 INSERT INTO evaluations (family, variant, key, edition, kind, score, lead, depth, line, time) VALUES ('chess', 'chess', 2, 1, 'cp', 1, 0, 9, '', 1), ('chess', 'chess', 1, 1, 'cp', 1, 0, 9, '', 1);
-                 INSERT INTO annotations (family, variant, key, move, edition, mark, better, motifs, depth, time) VALUES ('chess', 'chess', 1, 'e2e4', 1, '', '', '', 9, 1);",
-            )
-            .unwrap();
-        }
-        let mut s = Store::open(&p).unwrap();
-        let c = s.changes("", 0, 10, 1 << 20).unwrap();
-        assert_eq!((c.evaluations.iter().map(|e| e.key).collect::<Vec<_>>(), c.annotations.len(), c.last), (vec![1, 2], 1, 3));
-        s.put(&eval(7, sf("Stockfish 17"), 20, 1, Score::Cp(0))).unwrap();
-        assert_eq!(s.changes(&c.store, 3, 10, 1 << 20).unwrap().evaluations.len(), 1, "the counter goes on after them");
     }
 }

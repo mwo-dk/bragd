@@ -200,9 +200,7 @@ pub struct State {
 const KEEP: usize = 100;
 
 /// `state.json`'s format: its `format` key.
-/// Version 2 adds jobs lent to or borrowed from Peers (`Job::lent`, `Job::from`) and
-/// `Work::Translate`: nothing to change in a version 1 file.
-pub const FORMAT: bragd_core::format::Json = bragd_core::format::Json { file: "helper/state.json", migrations: &[|_| {}] };
+pub const FORMAT: bragd_core::format::Json = bragd_core::format::Json { file: "helper/state.json", migrations: &[] };
 
 impl State {
     /// Missing: empty. Unreadable or broken: moved aside to `state.json.bad` (or
