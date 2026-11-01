@@ -153,6 +153,24 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
+    /// A Comment of a Game imported into a Library comes back with it and translates.
+    #[test]
+    fn a_library_games_comment_translates() {
+        key::mock();
+        let (dir, s) = temp_store("library");
+        let file = dir.join("opera.pgn");
+        std::fs::write(&file, include_str!("../../bragd-library/tests/annotated.pgn")).unwrap();
+        let mut lib = bragd_library::library::Library::open(&dir.join("n.bragd")).unwrap();
+        lib.import(&file, "mine", &|| false, &mut |_| {}).unwrap();
+        let comment = lib.stored(1).unwrap().notes.into_iter().find(|n| n.ply == 4).unwrap().comment;
+        let (url, seen) = client::tests::fake(vec![(200, r#"{"choices":[{"message":{"content":"White should have moved the knight here."}}]}"#.into())]);
+        let m = cfg(&url, "qwen3", "");
+        assert!(comment_view(&m, Some(&s), &comment, "en-GB").translatable);
+        assert_eq!(translate(&m, &s, &comment, "en-GB").unwrap().text, "White should have moved the knight here.");
+        assert!(seen.lock().unwrap()[0].2.contains("Springer"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
     #[test]
     fn model_not_ready_asks_nothing() {
         let (dir, s) = temp_store("off");

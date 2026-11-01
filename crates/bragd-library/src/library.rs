@@ -114,6 +114,8 @@ CREATE TABLE IF NOT EXISTS game_sources (
     fetched_at INTEGER NOT NULL,
     -- The headers as this Source has them, for merging them again.
     headers TEXT NOT NULL,
+    -- The main line's Comments and NAGs as this Source has them (`Note`s as JSON); NULL for none.
+    notes TEXT,
     PRIMARY KEY (game_id, source, source_ref)
 );
 CREATE TABLE IF NOT EXISTS positions (
@@ -164,6 +166,45 @@ pub struct NewGame {
     /// The start position's key, then the key after each move (`keys.len() == moves.len()`).
     pub start_key: u64,
     pub keys: Vec<u64>,
+    /// The main line's Comments and NAGs, by ply.
+    pub notes: Vec<Note>,
+}
+
+/// A Comment and NAGs at one ply of the main line: 0 before the first move, `n` after move `n`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Note {
+    pub ply: usize,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub comment: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub nags: Vec<u8>,
+}
+
+/// The Notes of `g`'s first `plies` main-line moves: its comment before the first move, then each
+/// move's comments (before and after it, in one) and NAGs. Commands such as `[%clk …]` and
+/// `[%eval …]` are left out: a Lichess file has them at every move, and no one reads them as text.
+fn pgn_notes(g: &pgn::Game, plies: usize) -> Vec<Note> {
+    let join = |a: &str, b: &str| [text(a), text(b)].into_iter().filter(|c| !c.is_empty()).collect::<Vec<_>>().join(" ");
+    let first = Note { ply: 0, comment: text(&g.comment), nags: vec![] };
+    let moves = g.main_line().into_iter().take(plies).enumerate().map(|(i, n)| {
+        let n = &g.nodes[n as usize];
+        Note { ply: i + 1, comment: join(&n.before, &n.after), nags: n.nags.clone() }
+    });
+    std::iter::once(first).chain(moves).filter(|n| !n.comment.is_empty() || !n.nags.is_empty()).collect()
+}
+
+/// Comment `c` without its `[%…]` commands.
+fn text(c: &str) -> String {
+    let mut out = String::new();
+    let mut rest = c;
+    while let Some(i) = rest.find("[%") {
+        let Some(end) = rest[i..].find(']') else { break };
+        out.push_str(&rest[..i]);
+        out.push(' ');
+        rest = &rest[i + end + 1..];
+    }
+    out.push_str(rest);
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// A stable 64-bit mix (SplitMix64's finaliser). Stored in Libraries: never change it.
@@ -211,6 +252,7 @@ impl NewGame {
             start: (pgn::fen(&first) != pgn::START).then(|| pgn::fen(&first)),
             result: g.result.clone(),
             start_key: polyglot::key(&first),
+            notes: pgn_notes(g, keys.len()),
             keys,
         }
     }
@@ -236,6 +278,7 @@ impl NewGame {
             start: if usual_start.is_empty() { g.tag("FEN").map(|_| g.start.clone()) } else { (g.start != usual_start).then(|| g.start.clone()) },
             result: g.result.clone(),
             start_key,
+            notes: pgn_notes(g, keys.len()),
             keys,
         }
     }
@@ -249,11 +292,15 @@ impl NewGame {
         let mut setup: Vec<String> = g.nodes.first().map(|n| n.setup.iter().map(|&(c, x, y)| format!("{}[{}]", ["AE", "AB", "AW"][c.min(2) as usize], coord((x, y)))).collect()).unwrap_or_default();
         setup.sort();
         start.push_str(&setup.concat());
-        let mut moves = vec![];
+        let (mut moves, mut notes) = (vec![], vec![]);
         let (start_key, keys) = g.keys();
         while let Some(i) = at {
             if let Some(m) = g.nodes[i].mv {
                 moves.push(format!("{}[{}]", if m.black { "B" } else { "W" }, m.at.map(coord).unwrap_or_default()));
+            }
+            let comment = g.nodes[i].comment.trim();
+            if !comment.is_empty() {
+                notes.push(Note { ply: moves.len(), comment: comment.into(), nags: vec![] });
             }
             at = g.nodes[i].children.first().map(|&c| c as usize);
         }
@@ -283,6 +330,7 @@ impl NewGame {
             result: if i.result.is_empty() { "*".into() } else { i.result.clone() },
             start_key,
             keys,
+            notes,
         }
     }
 }
@@ -294,7 +342,7 @@ impl NewGame {
     pub fn played(family: &str, variant: &str, start: Option<String>, moves: Vec<String>, positions: &[String], headers: Vec<(String, String)>, result: &str) -> NewGame {
         let mut keys = position_keys(family, positions);
         let start_key = if keys.is_empty() { 0 } else { keys.remove(0) };
-        NewGame { family: family.into(), variant: variant.into(), headers, moves, start, result: result.into(), start_key, keys }
+        NewGame { family: family.into(), variant: variant.into(), headers, moves, start, result: result.into(), start_key, keys, notes: vec![] }
     }
 }
 
@@ -531,6 +579,10 @@ impl Library {
         // older one stays as it was made.
         conn.execute_batch("PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
         conn.execute_batch(SCHEMA)?;
+        // A Library made before Notes were kept gets their column; its Games have none until imported again.
+        if conn.prepare("SELECT notes FROM game_sources LIMIT 0").is_err() {
+            conn.execute_batch("ALTER TABLE game_sources ADD COLUMN notes TEXT")?;
+        }
         Ok(Library { conn, path: path.to_path_buf(), priority: DEFAULT_PRIORITY.map(String::from).to_vec(), batch: DEFAULT_BATCH, max_ratio: bragd_core::config::MAX_UNPACK_RATIO })
     }
 
@@ -806,7 +858,16 @@ impl Library {
         let (family, variant, start, moves, result) = self.conn.query_row("SELECT family, variant, start, moves, result FROM games WHERE id = ?", [id], |r| {
             Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get::<_, String>(3)?, r.get(4)?))
         })?;
-        Ok(Stored { id, family, variant, start, moves: moves.split_whitespace().map(String::from).collect(), result, headers: self.headers(id)? })
+        Ok(Stored { id, family, variant, start, moves: moves.split_whitespace().map(String::from).collect(), result, headers: self.headers(id)?, notes: self.notes(id)? })
+    }
+
+    /// A Game's Comments and NAGs: those of the Source ranked first (`priority`, then the order
+    /// they came) that has any. A Duplicate's Notes are never mixed from several Sources.
+    pub fn notes(&self, id: i64) -> Result<Vec<Note>> {
+        let mut st = self.conn.prepare("SELECT source, notes FROM game_sources WHERE game_id = ? AND notes IS NOT NULL ORDER BY rowid")?;
+        let rows: Vec<(String, String)> = st.query_map([id], |r| Ok((r.get(0)?, r.get(1)?)))?.collect::<rusqlite::Result<_>>()?;
+        let rank = |s: &str| self.priority.iter().position(|p| p.eq_ignore_ascii_case(s.trim())).unwrap_or(self.priority.len());
+        Ok(rows.iter().min_by_key(|(s, _)| rank(s)).and_then(|(_, n)| serde_json::from_str(n).ok()).unwrap_or_default())
     }
 }
 
@@ -821,6 +882,8 @@ pub struct Stored {
     pub moves: Vec<String>,
     pub result: String,
     pub headers: Map<String, Value>,
+    /// Its Comments and NAGs by ply (`Library::notes`).
+    pub notes: Vec<Note>,
 }
 
 /// Imports every Game of the Foreign database at `path`, as coming from `source`, into each
@@ -946,13 +1009,19 @@ fn add_in(tx: &Connection, priority: &[String], g: &NewGame, source: &str, sourc
     let fetched = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64);
     let own: Map<String, Value> = g.headers.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect();
     let own = Value::Object(own).to_string();
+    let notes = (!g.notes.is_empty()).then(|| serde_json::to_string(&g.notes).expect("Notes serialise"));
     // Cached statements: an import runs these once per Game, millions of times.
     let same: Option<i64> = tx
         .prepare_cached("SELECT id FROM games WHERE zobrist_chain_hash = ?1 AND family = ?2 AND variant = ?3 AND moves = ?4 AND start IS ?5")?
         .query_row(params![hash, g.family, g.variant, moves, g.start], |r| r.get(0))
         .optional()?;
     if let Some(id) = same {
-        tx.prepare_cached("INSERT OR IGNORE INTO game_sources (game_id, source, source_ref, fetched_at, headers) VALUES (?, ?, ?, ?, ?)")?.execute(params![id, source, source_ref, fetched, own])?;
+        // The same Source and reference again (a file imported again) brings its Notes up to date.
+        tx.prepare_cached(
+            "INSERT INTO game_sources (game_id, source, source_ref, fetched_at, headers, notes) VALUES (?, ?, ?, ?, ?, ?)
+             ON CONFLICT (game_id, source, source_ref) DO UPDATE SET notes = excluded.notes",
+        )?
+        .execute(params![id, source, source_ref, fetched, own, notes])?;
         merge_headers(tx, priority, id, &g.result)?;
         return Ok((Added::Merged(id), 0));
     }
@@ -961,7 +1030,7 @@ fn add_in(tx: &Connection, priority: &[String], g: &NewGame, source: &str, sourc
         params![g.family, g.variant, g.result, moves, g.start, n as i64, last as i64, hash],
     )?;
     let id = tx.last_insert_rowid();
-    tx.prepare_cached("INSERT INTO game_sources (game_id, source, source_ref, fetched_at, headers) VALUES (?, ?, ?, ?, ?)")?.execute(params![id, source, source_ref, fetched, own])?;
+    tx.prepare_cached("INSERT INTO game_sources (game_id, source, source_ref, fetched_at, headers, notes) VALUES (?, ?, ?, ?, ?, ?)")?.execute(params![id, source, source_ref, fetched, own, notes])?;
     let mut put = tx.prepare_cached("INSERT INTO positions (hash, game_id, ply) VALUES (?, ?, ?)")?;
     for (ply, &k) in g.keys.iter().enumerate() {
         put.execute(params![k as i64, id, ply as i64 + 1])?;
@@ -1081,6 +1150,60 @@ pub(crate) mod tests {
         let mut s: String = tags.iter().map(|(k, v)| format!("[{k} \"{v}\"]\n")).collect();
         s.push_str(&format!("[Result \"{result}\"]\n\n{moves} {result}\n\n"));
         s
+    }
+
+    /// A PGN with Comments and NAGs: the game's comment before the first move, a move's comment
+    /// with its glyph, one after a later move. German, for *Translate*.
+    pub const ANNOTATED: &str = include_str!("../tests/annotated.pgn");
+
+    /// An imported Game's Comments and NAGs come back with it, keyed by ply, from PGN and SGF.
+    #[test]
+    fn imported_notes_come_back() {
+        let d = Dir::new("notes");
+        let file = d.0.join("opera.pgn");
+        std::fs::write(&file, ANNOTATED).unwrap();
+        let mut lib = Library::open(&d.0.join("n.bragd")).unwrap();
+        lib.import(&file, "mine", &|| false, &mut |_| {}).unwrap();
+        let s = lib.stored(1).unwrap();
+        let note = |ply: usize, c: &str, nags: &[u8]| Note { ply, comment: c.into(), nags: nags.to_vec() };
+        assert_eq!(s.notes, [note(0, "Gespielt in der Oper.", &[]), note(4, "Weiß hätte hier besser den Springer ziehen sollen.", &[6]), note(7, "Ein guter Zug.", &[])]);
+        let sgf = NewGame::from_go(&go::parse(b"(;FF[4]GM[1]SZ[9]C[Start];B[df];W[cf]C[Gote])"));
+        assert_eq!(sgf.notes, [note(0, "Start", &[]), note(2, "Gote", &[])]);
+        let kif = from_parsed(Format::Csa, &crate::shogi::parse("V2.2\nPI\n+\n+7776FU\n'** a comment\n-3334FU\n%TORYO\n", Format::Csa));
+        assert_eq!(kif.notes, [note(1, "a comment", &[])]);
+        // Commands are not Comments: a Lichess move's clock and evaluation alone leave no Note.
+        let lichess = NewGame::from_chess(&pgn::parse("1. e4 { [%eval 0.17] [%clk 0:03:00] } e5 { Sharp [%clk 0:02:58] reply. }"));
+        assert_eq!(lichess.notes, [note(2, "Sharp reply.", &[])]);
+    }
+
+    /// A Duplicate keeps the Notes of the Source ranked first that has any, never a mix; a file
+    /// imported again brings Notes into a Library made before they were kept.
+    #[test]
+    fn a_duplicates_notes_come_from_one_source() {
+        let d = Dir::new("notes-dup");
+        let mut lib = Library::open(&d.0.join("n.bragd")).unwrap();
+        let mut bare = NewGame::from_chess(&pgn::parse(ANNOTATED));
+        bare.notes.clear();
+        let mut other = bare.clone();
+        other.notes = vec![Note { ply: 1, comment: "From TWIC".into(), nags: vec![] }];
+        lib.add(&bare, "mine", "a").unwrap();
+        assert_eq!(lib.stored(1).unwrap().notes, []);
+        lib.add(&NewGame::from_chess(&pgn::parse(ANNOTATED)), "mine", "b").unwrap();
+        assert_eq!(lib.stored(1).unwrap().notes[0].comment, "Gespielt in der Oper.");
+        lib.add(&other, "twic", "c").unwrap();
+        assert_eq!(lib.stored(1).unwrap().notes, other.notes, "twic is ranked first");
+        // A Library from before: no column, so no Notes; the same file again fills them in.
+        let old = d.0.join("old.bragd");
+        drop(Library::open(&old).unwrap());
+        let c = Connection::open(&old).unwrap();
+        c.execute_batch("ALTER TABLE game_sources DROP COLUMN notes").unwrap();
+        c.execute("INSERT INTO games (family, variant, headers, result, moves, ply_count, zobrist_final, zobrist_chain_hash) VALUES ('chess', 'chess', '{}', '1-0', ?, 7, 0, ?)", params![bare.moves.join(" "), *bare.chain().last().unwrap() as i64]).unwrap();
+        c.execute("INSERT INTO game_sources (game_id, source, source_ref, fetched_at, headers) VALUES (1, 'mine', 'a', 0, '{}')", []).unwrap();
+        drop(c);
+        let mut lib = Library::open(&old).unwrap();
+        assert_eq!(lib.stored(1).unwrap().notes, []);
+        lib.add(&NewGame::from_chess(&pgn::parse(ANNOTATED)), "mine", "a").unwrap();
+        assert_eq!((lib.count().unwrap(), lib.stored(1).unwrap().notes.len()), (1, 3));
     }
 
     /// A go Game played and its SGF have the same position keys, ko point included, and the

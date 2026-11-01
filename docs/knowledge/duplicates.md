@@ -23,7 +23,7 @@ Each Game gets a key made from its Family, its Variant, its starting position an
 - Go positions use a Zobrist key of their own, over the stones, the side to move and the ko point. The same position reached by another move order has the same key.
 - Headers play no part: different spellings of the players, events or dates do not stop a match.
 
-When a Duplicate arrives, the Game already stored is kept and the new Source is recorded on it. Where the headers disagree, the Source higher in the priority wins each header.
+When a Duplicate arrives, the Game already stored is kept and the new Source is recorded on it. Where the headers disagree, the Source higher in the priority wins each header. Comments are not mixed: the Game shows the comments of the highest Source in the priority that has any, all of them together.
 
 ## What it needs
 
@@ -48,6 +48,10 @@ Open both from the Duplicates tab and decide. There is no merge for Near-duplica
 #### I changed the Source priority. Why have old Games kept their headers?
 
 A new priority applies to later merges. Saving it restarts the Helper, which reads it as it starts. Press **Dedupe now** to merge the headers of the Games already stored again under the new order.
+
+#### Why are the comments of only one Source shown?
+
+Two Sources often comment the same Game in different words, or one has the other's comments plus its own. Mixed, they would repeat or contradict each other. So a Game shows the comments of one Source, the highest in the priority that has any. Reorder the priority to see another Source's comments.
 
 #### Why does saving the priority stop a job?
 
