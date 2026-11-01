@@ -89,4 +89,4 @@ Monrad needs no ratings and suits a field of equals. The Nordic Swiss seeds by s
 The system dates from before everyone had a rating, so DSU's text starts from the draw. A director who wants the first round by rating can number the players by rating instead of by lot.
 
 ---
-[← Previous: Round-robin, knockout and Scheveningen](round-robin-and-knockout.md) · [Next: Rules →](../rules/README.md)
+[← Previous: Round-robin, knockout and Scheveningen](round-robin-and-knockout.md) · [Next: Drop-in tournament →](drop-in.md)

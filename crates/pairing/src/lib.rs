@@ -8,6 +8,7 @@
 //! Scores are whole numbers in the caller's own unit. With the usual 1, ½ and 0
 //! points the caller passes `win: 2` and records a draw as 1.
 
+pub mod drop_in;
 pub mod dutch;
 pub mod knockout;
 pub mod monrad;
@@ -183,6 +184,10 @@ pub enum Rule {
     /// A score pool of the Nordic Swiss (DSU's Dansk Schweizer): the strong
     /// half meets the weak half, `a1` against `b1`, the middle player floating.
     Nordic,
+    /// A Drop-in evening: those present, by points with half a point for
+    /// each absence, each meeting the highest ranked player below met least.
+    /// `natural` when that is 1-2, 3-4, ... with no repeat.
+    DropIn,
 }
 
 /// The criteria of C.04.3 2.3-2.4 a bracket can fail.

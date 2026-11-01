@@ -103,6 +103,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Swiss pairing](reference/swiss-pairing.md) | How Bragd pairs a Swiss round under the FIDE Dutch rules, and how that was tested |
 | [Round-robin, knockout and Scheveningen](reference/round-robin-and-knockout.md) | Berger tables, knockout brackets with seeds and byes, and team-against-team matches |
 | [Monrad and Nordic Swiss](reference/monrad.md) | The Danish Chess Union's Monrad system and its Dansk Schweizer, and how they were tested |
+| [Drop-in tournament](reference/drop-in.md) | Club evenings where whoever turns up is paired, and the season's standings |
 
 ## [Rules](rules/README.md)
 

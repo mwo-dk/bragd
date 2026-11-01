@@ -117,4 +117,4 @@ not a piece, and the board model and the sprites assume one piece per cell.
 Recorded here so it is not proposed again as though it were cheap.
 
 ---
-[← Previous: Monrad](../reference/monrad.md) · [Next: Changelog →](../changelog.md)
+[← Previous: Drop-in tournament](../reference/drop-in.md) · [Next: Changelog →](../changelog.md)
