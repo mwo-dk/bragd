@@ -950,6 +950,7 @@ pub(crate) mod tests {
     }
 
     /// Held while a test writes config.toml: two tests writing it at once lose an entry.
+    #[cfg(unix)]
     static CONFIG: Mutex<()> = Mutex::new(());
 
     /// A fake UCI engine added by its path for chess, `Fake 2.0`, that finds `e2e4` at depth 20.
