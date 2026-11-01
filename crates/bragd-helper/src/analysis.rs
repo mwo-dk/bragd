@@ -155,8 +155,9 @@ pub fn local_hour() -> u64 {
 
 #[cfg(windows)]
 pub fn local_hour() -> u64 {
-    // Safety: the call fills in a plain struct.
-    let t = unsafe { windows_sys::Win32::System::SystemInformation::GetLocalTime() };
+    // Safety: a plain struct the call fills in.
+    let mut t: windows_sys::Win32::Foundation::SYSTEMTIME = unsafe { std::mem::zeroed() };
+    unsafe { windows_sys::Win32::System::SystemInformation::GetLocalTime(&mut t) };
     u64::from(t.wHour)
 }
 
