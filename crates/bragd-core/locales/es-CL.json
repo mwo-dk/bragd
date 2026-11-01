@@ -10,7 +10,7 @@
  "clubs.error.why": "Escribe el motivo: el registro de auditoría lo guarda.",
  "clubs.no_lists": "Todavía no se trajo ninguna lista de puntuación. Activa una en Fuentes para encontrar jugadores por nombre o ID.",
  "feature.clubs.a1": "Copia su archivo .bragd-club, o guárdalo en una carpeta compartida. Un bloqueo evita que dos directores lo cambien a la vez.",
- "feature.clubs.a3": "De FIDE, DSU y ECF, que trae el Ayudante una vez por mes cuando las actives. Antes de eso no se baja nada.",
+ "feature.clubs.a3": "De FIDE y de las federaciones nacionales que están en Fuentes para el ajedrez (DSU, ECF, CFC, SShL y NZCF), que trae el Ayudante una vez por mes cuando las actives. Antes de eso no se baja nada.",
  "feature.clubs.tip": "Guarda los miembros y las puntuaciones de tu club en Bragd: Clubes en la barra lateral.",
- "tour.clubs.text": "Clubes en la barra lateral guarda los miembros de un club, sus roles, los IDs de FIDE, nacional y Lichess, y las puntuaciones Glicko-2 o Elo con un registro de auditoría, todo en un archivo que puedes compartir. Las listas de puntuación de FIDE, DSU y ECF te ayudan a encontrar jugadores por nombre o ID."
+ "tour.clubs.text": "Clubes en la barra lateral guarda los miembros de un club, sus roles, los IDs de FIDE, nacional y Lichess, y las puntuaciones Glicko-2 o Elo con un registro de auditoría, todo en un archivo que puedes compartir. Las listas de puntuación de FIDE y de las federaciones nacionales te ayudan a encontrar jugadores por nombre o ID."
 }

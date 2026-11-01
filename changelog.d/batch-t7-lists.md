@@ -1,0 +1,1 @@
+| **Rating lists from Canada, Finland and New Zealand.** The CFC, SShL and NZCF lists join FIDE, DSU and ECF as Sources under chess's Databases, off until you turn them on, so Find in rating lists finds players from those federations too. | [Rating lists](reference/rating-lists.md#the-lists-bragd-fetches) |

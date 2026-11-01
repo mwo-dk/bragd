@@ -527,7 +527,7 @@ pub(crate) mod tests {
     #[test]
     fn the_registry_lists_every_source_and_fetches_only_some() {
         let ids: Vec<String> = builtin().iter().map(|s| s.about().id).collect();
-        assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings"]);
+        assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings"]);
         for s in builtin().iter().skip(1).filter(|s| s.about().kind == Kind::Games) {
             let a = s.about();
             assert!(!a.fetchable && a.notice.as_deref() == Some(OUT_OF_SCOPE) && a.size > 0, "{}", a.id);
