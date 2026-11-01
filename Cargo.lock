@@ -425,6 +425,7 @@ dependencies = [
  "memchr",
  "parquet",
  "rules-chess",
+ "rules-draughts",
  "rules-shogi",
  "rules-xiangqi",
  "rusqlite",

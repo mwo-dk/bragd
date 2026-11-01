@@ -18,6 +18,9 @@ memchr = "2"
 ruzstd = "0.9.0"
 # Chess boards, moves and legality, for reading games (SAN, FEN, Polyglot keys).
 rules-chess = { path = "../rules-chess" }
+# Draughts boards for reading games: PDN FEN, captures with a search budget, and moves played
+# as the file writes them.
+rules-draughts = { path = "../rules-draughts" }
 # Shogi positions for reading games: SFEN, hands, and moves played as the file writes them.
 rules-shogi = { path = "../rules-shogi" }
 # Xiangqi positions for reading games: FEN, and moves played as the file writes them.
