@@ -1,0 +1,1 @@
+| **Finding a player in the FIDE list is instant.** The rating lists get a name index, so a search at check-in reads only the players it finds, not all 1.95 million. Each word can be just the start of a name: `carl mag` finds Carlsen, Magnus. | [Rating lists](reference/rating-lists.md#how-much-disk-does-a-list-take-and-how-fast-is-a-search) |
