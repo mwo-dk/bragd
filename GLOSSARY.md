@@ -71,6 +71,10 @@ _Avoid_: daemon, service, worker
 
 ### Presentation
 
+**Tip**:
+An occasional one-line suggestion of a Feature the user has not used yet. It can be silenced one at a time, or all together.
+_Avoid_: hint (a hint explains something where it applies), nag, notification
+
 **Theme**:
 The app's named appearance, such as Racing green, Nord or Aqua. Racing green is the default.
 _Avoid_: mode, skin, dark mode (that is one kind of Theme)

@@ -152,6 +152,14 @@ Every step can be skipped, and each links to its Settings area. The wizard can b
 
 **What's new:** after an upgrade, the tour cards for each feature newer than the version you last saw appear in the same frame as the install wizard.
 
+**Tips:** now and then, Bragd suggests a Feature you have not used yet.
+- A Tip is one line with *Show me*, which opens the Feature, *Not now*, and *Don't suggest this again*.
+- Bragd counts locally which Features you use. The counts never leave the machine.
+- At most one Tip a day, at start or when idle. Never during a live Game, a Call or the wizard. A Feature you already use is never suggested.
+- After an upgrade, the tour cards come first. A new Feature you have not tried after a week then gets its Tip.
+- Settings → Tips: *Often*, *Now and then* (the default) or *Off*. F1 → Features always lists every Feature.
+- Every Tip is in every language.
+
 ## Updates
 
 - At start, and once a day after that, Bragd checks the channel it was installed from and shows that channel's upgrade command. It never installs updates itself.
