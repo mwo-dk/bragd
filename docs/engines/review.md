@@ -39,7 +39,7 @@ A mark comes from the Evaluations before and after the move, read from the mover
 | `!` | Good move | The Engine's own move, played, where its second choice is worse by at least the `?` amount |
 | `!!` | Brilliant move | The same, by at least the `??` amount |
 
-Centipawns count only up to 10.00 pawns either way, and a mate counts as 10.00, so a move in a won position is not a blunder for winning a little less. `!` and `!!` are not given when the mover was already winning by the last column's amount. They need the Engine's second choice, so a position taken from the store without it gets no `!`.
+Centipawns count only up to 10.00 pawns either way, and a mate counts as 10.00, so a move in a won position is not a blunder for winning a little less. `!` and `!!` are not given when the mover was already winning by the last column's amount. They need the Engine's second choice. A review asks the Engine for two lines (MultiPV 2), and the [Position store](../knowledge/position-store.md) keeps the second with the first, so a position taken from the store earns `!` and `!!` too. Engines that speak UCI, USI or UCCI give two lines when they offer a `MultiPV` option. Scan (draughts), KataGo and GNU Go give one, so their moves get no `!`.
 
 ### The better line
 

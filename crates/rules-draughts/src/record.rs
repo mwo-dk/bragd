@@ -12,7 +12,7 @@
 //! was made up. The captures of a position are worked out once (`Captures`).
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 
 /// Capture paths: each the squares landed on (from first) and the pieces taken.
@@ -437,9 +437,185 @@ impl Captures {
     }
 }
 
+/// A position's text as its key is made from (`bragd_library::library::position_keys`): PDN's
+/// FEN with nothing but the pieces and whose move, `W:W31,32,K46:B1,2` (who moves, then White's
+/// squares and Black's, each in rising order, a king's with `K`, no runs). It reads either form
+/// Bragd writes: PDN's FEN (`W:W31-35,K46:B1-5`, runs allowed, any case, a trailing `.`) and the
+/// picture `Board::fen` draws (`1m1m/…/M1M1 w`). So the same position has one text whoever wrote
+/// it and whatever its move number. None for a text that is neither, a square written as `c3`
+/// (it needs the board's size), or a piece on a light square of a picture.
+pub fn canonical(text: &str) -> Option<String> {
+    let (side, white, black) = if text.contains(':') { from_pdn(text)? } else { from_picture(text)? };
+    if white.keys().any(|n| black.contains_key(n)) {
+        return None;
+    }
+    let list = |s: &Squares| {
+        s.iter().map(|(n, king)| format!("{}{n}", if *king { "K" } else { "" })).collect::<Vec<_>>().join(",")
+    };
+    Some(format!("{side}:W{}:B{}", list(&white), list(&black)))
+}
+
+/// The squares of one side: number to whether it is a king. A square's number is at most `MAX_SQUARE`.
+type Squares = BTreeMap<u64, bool>;
+const MAX_SQUARE: u64 = 10_000;
+/// A picture row's pieces: (cell, is White's, is a king).
+type Pieces = Vec<(u64, bool, bool)>;
+
+/// `W:W31,K46:B1-2`, any case and order of the two sides, a trailing `.` allowed.
+fn from_pdn(text: &str) -> Option<(char, Squares, Squares)> {
+    let text = text.strip_suffix('.').unwrap_or(text);
+    let (side, first, second) = match text.split(':').collect::<Vec<_>>().as_slice() {
+        [side, first, second] => (*side, *first, *second),
+        _ => return None,
+    };
+    let side = match side.to_ascii_uppercase().as_str() {
+        "W" => 'W',
+        "B" => 'B',
+        _ => return None,
+    };
+    let (a, b) = (pdn_side(first)?, pdn_side(second)?);
+    let (white, black) = match (a.0, b.0) {
+        ('W', 'B') => (a.1, b.1),
+        ('B', 'W') => (b.1, a.1),
+        _ => return None,
+    };
+    Some((side, white, black))
+}
+
+/// One side's part of PDN: its colour letter, then its squares, `K` for a king, `a-b` for a run.
+fn pdn_side(part: &str) -> Option<(char, Squares)> {
+    let colour = match part.get(..1)?.to_ascii_uppercase().as_str() {
+        "W" => 'W',
+        "B" => 'B',
+        _ => return None,
+    };
+    let mut squares = Squares::new();
+    let list = part.get(1..)?;
+    if list.is_empty() {
+        return Some((colour, squares));
+    }
+    for item in list.split(',') {
+        let king = item.starts_with(['K', 'k']);
+        let item = if king { &item[1..] } else { item };
+        let (first, last) = match item.split_once('-') {
+            Some((a, b)) => (number(a)?, number(b)?),
+            None => (number(item)?, number(item)?),
+        };
+        if first > last {
+            return None;
+        }
+        for n in first..=last {
+            if squares.insert(n, king).is_some() {
+                return None;
+            }
+        }
+    }
+    Some((colour, squares))
+}
+
+/// A square's number as PDN writes it: digits only, from 1 up to `MAX_SQUARE`.
+fn number(s: &str) -> Option<u64> {
+    if s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    s.parse().ok().filter(|n| (1..=MAX_SQUARE).contains(n))
+}
+
+/// `1K2/4/4/m3 b`: rows top to bottom, then whose move. The square numbers follow from the width.
+fn from_picture(text: &str) -> Option<(char, Squares, Squares)> {
+    let mut words = text.split_whitespace();
+    let (rows, side) = (words.next()?, words.next()?);
+    if words.next().is_some() {
+        return None;
+    }
+    let side = match side {
+        "w" => 'W',
+        "b" => 'B',
+        _ => return None,
+    };
+    let (mut white, mut black) = (Squares::new(), Squares::new());
+    let mut first_width = None;
+    for (y, row) in rows.split('/').enumerate() {
+        let y = y as u64;
+        let (cells, pieces) = picture_row(row)?;
+        let width = *first_width.get_or_insert(cells);
+        if cells != width || width == 0 || width % 2 == 1 {
+            return None;
+        }
+        for (x, is_white, king) in pieces {
+            if (x.checked_add(y)? % 2) == 0 {
+                return None;
+            }
+            let n = y.checked_mul(width / 2)?.checked_add(x / 2)?.checked_add(1)?;
+            if n > MAX_SQUARE {
+                return None;
+            }
+            let squares = if is_white { &mut white } else { &mut black };
+            squares.insert(n, king);
+        }
+    }
+    Some((side, white, black))
+}
+
+/// One picture row: its width in cells, and its pieces as (cell, White's, king's).
+fn picture_row(row: &str) -> Option<(u64, Pieces)> {
+    let (mut x, mut run) = (0u64, 0u64);
+    let mut pieces = Vec::new();
+    for c in row.chars() {
+        if let Some(d) = c.to_digit(10) {
+            run = run.checked_mul(10)?.checked_add(u64::from(d))?;
+            if run > MAX_SQUARE {
+                return None;
+            }
+            continue;
+        }
+        let (is_white, king) = match c {
+            'M' => (true, false),
+            'K' => (true, true),
+            'm' => (false, false),
+            'k' => (false, true),
+            _ => return None,
+        };
+        x = x.checked_add(run)?;
+        pieces.push((x, is_white, king));
+        x = x.checked_add(1)?;
+        run = 0;
+    }
+    Some((x.checked_add(run)?, pieces))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn one_canonical_text_from_either_form() {
+        let pdn = "W:W31,32,K46:B1,2";
+        assert_eq!(canonical(pdn).as_deref(), Some(pdn));
+        assert_eq!(canonical("w:wk46,32,31:b2,1.").as_deref(), Some(pdn), "any case and order");
+        assert_eq!(canonical("W:W31-32,K46:B1-2").as_deref(), Some(pdn), "runs");
+        // The start of international draughts drawn as a picture, and as PDN.
+        let start = Board::start(INTERNATIONAL);
+        let want = "W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50:B1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20";
+        assert_eq!(canonical(&start.fen()).as_deref(), Some(want));
+        assert_eq!(canonical("W:W31-50:B1-20").as_deref(), Some(want));
+        // English draughts: Black to move first.
+        let english = Board::start(ENGLISH);
+        assert_eq!(canonical(&english.fen()).as_deref(), Some("B:W21,22,23,24,25,26,27,28,29,30,31,32:B1,2,3,4,5,6,7,8,9,10,11,12"));
+        // A king in a picture; the side to move kept.
+        assert_eq!(canonical("1K2/4/4/m3 b").as_deref(), Some("B:WK1:B7"));
+        assert_eq!(canonical("1K2/4/4/m3 w").as_deref(), Some("W:WK1:B7"));
+        assert_eq!(canonical("W:W:B5").as_deref(), Some("W:W:B5"), "a side with no pieces");
+    }
+
+    #[test]
+    fn a_text_that_is_no_position_has_none() {
+        assert_eq!(canonical(""), None);
+        assert_eq!(canonical("hello"), None);
+        assert_eq!(canonical("W:Wc3:B1"), None, "an algebraic square needs the board's size");
+        assert_eq!(canonical("K3/4/4/4 w"), None, "a piece on a light square");
+        assert_eq!(canonical("1m1/4 w"), None, "rows of different widths");
+    }
 
     #[test]
     fn squares_are_numbered_from_the_top_left() {

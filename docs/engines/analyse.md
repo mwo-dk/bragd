@@ -20,7 +20,7 @@ Analyse runs an Engine on any position and shows its three best lines as they co
 
 Analyse is the Play board with an analysis panel. You move on the board as in Play, and the Engine follows the position while it is on. Scores are from the first Side's view: `+0.35` is good for White, `#3` is mate in three. For chess the panel also shows the opening's name, book moves ([Opening books](opening-books.md)) and what the [tablebases](tablebases.md) say.
 
-Analyse reads the [Position store](../knowledge/position-store.md) first. When the chosen Engine has judged the position before, its line shows at once, with the depth it reached then. The Engine's own line takes over once it is as deep. When the Engine stops, its deepest line is kept in the store. When the store has an Annotation for the move that led here, it shows under the lines, such as *14. Bxf7?? Blunder. It leaves a piece hanging.*
+Analyse reads the [Position store](../knowledge/position-store.md) first. When the chosen Engine has judged the position before, its line shows at once, with the depth it reached then. The Engine's own line takes over once it is as deep. When the Engine stops, its deepest line is kept in the store, with its second line, which gives `!` and `!!` in a [review](review.md#marks). When the store has an Annotation for the move that led here, it shows under the lines, such as *14. Bxf7?? Blunder. It leaves a piece hanging.*
 
 ## What it needs
 

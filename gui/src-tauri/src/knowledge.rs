@@ -739,7 +739,7 @@ mod tests {
         std::fs::create_dir_all(&d).unwrap();
         let mut a = bragd_positions::Store::open(&d.join("a.sqlite")).unwrap();
         let edition = bragd_positions::Edition { engine: "stockfish".into(), version: "Stockfish 17".into(), network: None, image: None };
-        a.put(&bragd_positions::Evaluation { family: "chess".into(), variant: "chess".into(), key: 7, edition, score: bragd_positions::Score::Cp(12), depth: 20, line: "e2e4".into(), time: 1 }).unwrap();
+        a.put(&bragd_positions::Evaluation { family: "chess".into(), variant: "chess".into(), key: 7, edition, score: bragd_positions::Score::Cp(12), depth: 20, line: "e2e4".into(), time: 1, second: None }).unwrap();
         let out = d.join("p.parquet");
         assert_eq!(export_to(&a, &out).unwrap(), "Rows written: 1.");
         let mut b = bragd_positions::Store::open(&d.join("b.sqlite")).unwrap();

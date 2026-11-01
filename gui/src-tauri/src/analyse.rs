@@ -17,7 +17,7 @@ use bragd_engines::session::{Session, think};
 use bragd_engines::syzygy::{Tablebases, material};
 use bragd_games::{State, Variant};
 use bragd_library::chess::{openings, polyglot};
-use bragd_positions::{Annotation, Evaluation, Mark, Store};
+use bragd_positions::{Annotation, Evaluation, Mark, Second, Store};
 use serde::Serialize;
 
 use crate::engines;
@@ -160,7 +160,8 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
     let raw = Arc::new(Mutex::new(Raw { engine: key.clone(), ..Default::default() }));
     let stop = Arc::new(AtomicBool::new(false));
     let (r, s, a, cfg, key) = (raw.clone(), stop.clone(), asked.clone(), cfg.clone(), key.clone());
-    let wanted = lines.unwrap_or(LINES).clamp(1, bragd_engines::session::MAX_LINES);
+    // Two at least: the second goes into the store with the first, for `!` and `!!`.
+    let wanted = lines.unwrap_or(LINES).clamp(2, bragd_engines::session::MAX_LINES);
     std::thread::spawn(move || {
         let halt = || s.load(Ordering::Relaxed);
         let result = (|| -> Result<(), String> {
@@ -197,13 +198,14 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
             // Until stopped, or the engine's own cap (`Limit::cap`).
             let report = &mut |i: &Info| crate::lock(&r).heard(i, wanted);
             let thought = think(&mut e, &pos, Limit::Depth(99), wanted, &halt, report);
-            // The engine's own line 1, however far it got, goes into the store.
+            // The engine's own line 1, however far it got, goes into the store, with line 2.
             let mut raw = crate::lock(&r);
+            let first_view = |s: &Score| if second { s.flipped() } else { *s };
             if let (Some(s), Some(Info { depth: Some(depth), score: Some(score), pv, .. })) = (&mut store, raw.lines.first().filter(|_| raw.floor == 0))
                 && !pv.is_empty()
             {
-                let score = if second { score.flipped() } else { *score };
-                let ev = Evaluation { family, variant: a.variant.clone(), key: at, edition, score: score.into(), depth: *depth, line: pv.join(" "), time: now_secs() };
+                let next = raw.lines.get(1).and_then(|i| Some(Second { score: first_view(i.score.as_ref()?).into(), line: i.pv.join(" ") }));
+                let ev = Evaluation { family, variant: a.variant.clone(), key: at, edition, score: first_view(score).into(), depth: *depth, line: pv.join(" "), time: now_secs(), second: next };
                 if let Err(e) = s.put(&ev) {
                     raw.error = Some(e.to_string());
                 }
@@ -652,7 +654,7 @@ mod tests {
         let d = std::env::temp_dir().join(format!("bragd-gui-analyse-store-{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap();
         let p = d.join("fake");
-        std::fs::write(&p, "#!/bin/sh\nwhile read l; do case \"$l\" in uci) echo 'id name Store 1'; echo uciok;; go*) echo 'info depth 5 multipv 1 score cp 25 pv e7e5 g1f3'; echo 'bestmove e7e5';; quit) exit 0;; esac; done\n").unwrap();
+        std::fs::write(&p, "#!/bin/sh\nwhile read l; do case \"$l\" in uci) echo 'id name Store 1'; echo 'option name MultiPV type spin default 1 min 1 max 5'; echo uciok;; go*) echo 'info depth 5 multipv 1 score cp 25 pv e7e5 g1f3'; echo 'info depth 5 multipv 2 score cp -60 pv c7c5'; echo 'bestmove e7e5';; quit) exit 0;; esac; done\n").unwrap();
         std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
         let mut cfg = Config::default();
         cfg.engines.added.insert("storefake".into(), "chess".into());
@@ -661,7 +663,7 @@ mod tests {
         let (_, _, keys) = positions("chess", None, &entries(&["d2d4", "g8f6"])).unwrap();
         let mut store = Store::open(&Store::path().unwrap()).unwrap();
         let edition = bragd_positions::Edition { engine: "storefake".into(), version: "Store 0".into(), network: None, image: None };
-        store.put(&Evaluation { family: "chess".into(), variant: "chess".into(), key: keys[2], edition, score: bragd_positions::Score::Cp(-50), depth: 30, line: "c2c4 e7e6".into(), time: 1 }).unwrap();
+        store.put(&Evaluation { family: "chess".into(), variant: "chess".into(), key: keys[2], edition, score: bragd_positions::Score::Cp(-50), depth: 30, line: "c2c4 e7e6".into(), time: 1, second: None }).unwrap();
         let held = Held::default();
         let wait = |held: &Held| {
             let mut n = now(held).unwrap();
@@ -686,6 +688,7 @@ mod tests {
         let (_, _, keys) = positions("chess", None, &entries(&["e2e4"])).unwrap();
         let kept = store.shown("chess", "chess", keys[1], "storefake").unwrap().unwrap();
         assert_eq!((kept.edition.version.as_str(), kept.score, kept.depth), ("Store 1", bragd_positions::Score::Cp(-25), 5));
+        assert_eq!(kept.second, Some(Second { score: bragd_positions::Score::Cp(60), line: "c7c5".into() }), "line 2 kept, from White's view");
         std::fs::remove_dir_all(&d).unwrap();
     }
 }
