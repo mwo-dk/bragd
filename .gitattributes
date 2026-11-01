@@ -1,0 +1,2 @@
+# Format fixtures are compared byte for byte: never turned into CRLF on checkout.
+tests/fixtures/** -text
