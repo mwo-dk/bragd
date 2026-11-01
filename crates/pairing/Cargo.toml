@@ -1,0 +1,10 @@
+[package]
+name = "pairing"
+description = "Tournament pairing systems, starting with the FIDE Dutch Swiss system (C.04.3, 2026). Pure logic: standings in, pairings out."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Empty on purpose: pairing is pure Rust with no dependencies and no I/O.
+[dependencies]
