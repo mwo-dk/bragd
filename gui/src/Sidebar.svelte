@@ -4,9 +4,11 @@
   // What's new.
   import { t } from "./i18n.svelte.js";
   import HelperStatus from "./HelperStatus.svelte";
-  // The rune wordmark: outlines from Noto Sans Runic, drawn in the sidebar's gold.
+  // The rune wordmark: outlines from Noto Sans Runic, drawn in the sidebar's gold. Outlines, not
+  // text, because WebKitGTK draws Runic text with no width (BASELINE.md). The brand block is named
+  // "Bragd" for screen readers, so the picture's own name (the five runes) is dropped.
   import wordmark from "../../assets/brand/wordmark-runes.svg?raw";
-  const runes = wordmark.replaceAll("#004225", "currentColor");
+  const runes = wordmark.replaceAll("#004225", "currentColor").replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
 
   /** @type {{ snap: any, page: any, collapsed: boolean, go: (page: any) => void, toggle: () => void, slices: Record<string, any[]> }} */
   let { snap, page, collapsed, go, toggle, slices } = $props();
@@ -25,7 +27,7 @@
 </script>
 
 <nav class="sidebar" class:collapsed aria-label="Bragd">
-  <div class="brand">
+  <div class="brand" role="img" aria-label="Bragd">
     <span class="runes">{@html runes}</span>
     {#if !collapsed}<span class="word">Bragd</span>{/if}
   </div>
