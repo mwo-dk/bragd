@@ -151,7 +151,7 @@ class Desktop:
         self.procs, self.n, self.ws, self.wk, self.target, self.profile, self.logs = [], 0, None, None, None, None, []
 
     def __enter__(self):
-        # About one start in four never draws its window (#133): start again, up to five times.
+        # A start that does not draw its window is started again, up to five times.
         for attempt in range(5):
             try:
                 self._start()
@@ -182,9 +182,13 @@ class Desktop:
         # sandbox's own. The app waits for the page, so the display has its size first.
         go = Path(env["DEMO_HOME"]) / f".cap-go-{self.port}"
         go.unlink(missing_ok=True)
+        # GIO_USE_PROXY_RESOLVER=dummy (#133): WEBKIT_INSPECTOR_HTTP_SERVER makes WebKit open a
+        # socket inside its class init, which holds GObject's class lock. GIO's default proxy
+        # resolver (libproxy) then waits for D-Bus, which dconf's thread is setting up and cannot
+        # finish without that lock: about one start in four hung. Without the inspector, no hang.
         run = (f"broadwayd --address 127.0.0.1 --port {self.port} {self.display} >/dev/null 2>&1 & until [ -e /home/demo/{go.name} ]; do sleep 0.2; done; rm /home/demo/{go.name}; "
                f"exec env LD_PRELOAD={RUNTIME}/dpi96.so GDK_BACKEND=broadway BROADWAY_DISPLAY={self.display} WEBKIT_DISABLE_DMABUF_RENDERER=1 "
-               f'WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:{self.inspector} BRAGD_WINDOW_SIZE={w}x{h} BRAGD_OFFLINE=1 LANG={self.lang} bragd-gui "$@"')
+               f'GIO_USE_PROXY_RESOLVER=dummy WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:{self.inspector} BRAGD_WINDOW_SIZE={w}x{h} BRAGD_OFFLINE=1 LANG={self.lang} bragd-gui "$@"')
         gui_log, chromium_log = RUNTIME / f"gui-{self.port}.log", RUNTIME / f"chromium-{self.port}.log"
         self.logs = [open(gui_log, "w"), open(chromium_log, "w")]
         sandbox = subprocess.Popen([str(SANDBOX), "sh", "-c", run, "sh", *self.args], env=env, stdout=self.logs[0], stderr=subprocess.STDOUT)
