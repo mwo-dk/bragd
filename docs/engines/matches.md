@@ -24,7 +24,7 @@ Every Family with an outside Engine has the page: chess, xiangqi, shogi, go, dra
 | Engines | Tick two or more. In a gauntlet or an SPRT, the first one ticked is the one tested |
 | Kind | Round robin, gauntlet or SPRT (below) |
 | Game pairs per pairing | How often each pairing meets. A pair is two Games from the same opening, each Engine taking each Side once. For an SPRT: the most game pairs it plays before it stops undecided |
-| Time per move (ms) | How long an Engine may think about each move |
+| Time | A fixed time per move, or a clock for each Engine (below) |
 | Games at once | How many Games run side by side, each with its own two Engines. At most one per processor |
 | Openings | From the start, a Polyglot book (chess) or a file of opening lines |
 | Book moves | How deep a Polyglot book is followed |
@@ -49,6 +49,24 @@ An SPRT has four numbers:
 | H1: Elo difference | The difference you hope to show, often 2 to 5 |
 | α | The chance of accepting H1 when H0 is the truth |
 | β | The chance of accepting H0 when H1 is the truth |
+
+### Time
+
+| Choice | Fields | What the Engines are told |
+|---|---|---|
+| A fixed time per move | Time per move (ms) | Think this long about each move |
+| A clock for each engine | Time on the clock (s), Added after each move (s), Moves per period | Their own time left, the other Engine's, the increment and the moves to the next period, as in a tournament. Each Engine shares out its time itself |
+
+With a clock, Bragd times each move. An Engine whose time runs out loses the Game, which is recorded with `Termination` *time forfeit*. With **Moves per period** at 40 and 90 s on the clock, an Engine gets another 90 s after each 40 of its moves; at 0 the time is for the whole Game.
+
+| Protocol | How a clock is told |
+|---|---|
+| UCI (chess, xiangqi) | `go wtime … btime … winc … binc … movestogo …` |
+| USI (shogi) | `go btime … wtime … binc … winc …` |
+| UCCI (ElephantEye) | `go time … increment …` or `movestogo …`, with `opptime` |
+| GTP (go) | `time_settings` and `time_left`; moves per period are Canadian byo-yomi |
+| Hub (draughts) | `level moves=… time=… inc=…` and `time my=… your=…` |
+| GNU Backgammon | No clock: it thinks to its own depth, and its time is still counted |
 
 ### Openings
 
@@ -100,6 +118,14 @@ No. Matches run beside the Helper's other jobs, one match at a time.
 #### Why does my Library have fewer Games than the match played?
 
 Two Games with the same moves from the same start are one Game in a Library ([Duplicates](../knowledge/duplicates.md)). Engines that think to a fixed depth can play the same Game twice. Its Sources show both.
+
+#### Why play with a clock rather than a time per move?
+
+A clock lets an Engine spend more time on a hard move and less on an easy one, as it would in a tournament, so time management is part of what the match measures. A time per move takes that away, and gives steadier Games for testing one change.
+
+#### Is an Engine's time counted fairly when Games run side by side?
+
+Each Engine is timed from the moment Bragd asks for its move to the moment its move arrives. Games at once share the processors, so on a busy machine every Engine has less of the processor per second. Keep **Games at once** at or below the number of processors.
 
 #### Where do I see the Games?
 

@@ -1,6 +1,7 @@
 use super::*;
 use crate::protocol::{About, Best, Event, Info, Position, Score, Start};
 use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
@@ -25,11 +26,13 @@ struct Fake {
     mode: Mode,
     pos: Position,
     out: VecDeque<Event>,
+    /// What it was told to think within, move by move.
+    told: Arc<Mutex<Vec<Limit>>>,
 }
 
 fn fake(variant: &str, mode: Mode) -> Player {
     let notation = if variant.starts_with("go") { Notation::Gtp } else { Notation::Wire };
-    Player { session: Box::new(Fake { about: About { name: "Fake".into(), options: vec![] }, variant: variant.into(), mode, pos: Position::default(), out: VecDeque::new() }), notation }
+    Player { session: Box::new(Fake { about: About { name: "Fake".into(), options: vec![] }, variant: variant.into(), mode, pos: Position::default(), out: VecDeque::new(), told: Default::default() }), notation }
 }
 
 impl Session for Fake {
@@ -43,7 +46,8 @@ impl Session for Fake {
         self.pos = p.clone();
         Ok(())
     }
-    fn go(&mut self, _: Limit, _: u32) -> std::io::Result<()> {
+    fn go(&mut self, limit: Limit, _: u32) -> std::io::Result<()> {
+        self.told.lock().unwrap().push(limit);
         let initial = match &self.pos.start {
             Start::Setup(s) => Some(s.as_str()),
             Start::Initial => None,
@@ -79,7 +83,7 @@ fn adj(max_moves: u32) -> Adjudication {
 
 fn one(variant: &str, a: Mode, b: Mode, adjudication: &Adjudication, table: Table) -> Played {
     let mut players = [fake(variant, a), fake(variant, b)];
-    play(variant, &Opening::default(), &mut players, Limit::Depth(1), adjudication, table, NEVER).unwrap()
+    play(variant, &Opening::default(), &mut players, Limit::Depth(1), None, adjudication, table, NEVER).unwrap()
 }
 
 #[test]
@@ -168,6 +172,7 @@ fn setup(kind: Kind, engines: usize, rounds: u32, parallel: u32, adjudication: A
         kind,
         rounds,
         limit: Limit::Depth(1),
+        clock: None,
         parallel,
         book: None,
         book_depth: 8,
@@ -238,4 +243,27 @@ fn an_engine_that_cannot_start_stops_the_match() {
     let games = schedule(&s.kind, 3, s.rounds);
     let r = Run { setup: &s, games: &games, opening: &|_| Opening::default(), start: &|n| if n == 2 { Err("e2 is not there".into()) } else { Ok(fake("chess", Mode::First(0))) }, table: NO_TABLE, stop: NEVER, done: &|_, _, _| {} };
     assert_eq!(run(&r, unplayed(games.len())), Err("e2 is not there".into()));
+}
+
+/// With a clock, each engine is told its own time and the other's, each Side once the first;
+/// the Game is played as without one.
+#[test]
+fn a_clock_tells_each_engine_its_time() {
+    let told: [Arc<Mutex<Vec<Limit>>>; 2] = Default::default();
+    let mut players = [0, 1].map(|i| {
+        let mut f = Fake { about: About::default(), variant: "chess".into(), mode: Mode::First(0), pos: Position::default(), out: VecDeque::new(), told: told[i].clone() };
+        f.about.name = "Fake".into();
+        Player { session: Box::new(f), notation: Notation::Wire }
+    });
+    let tc = TimeControl { base_ms: 60_000, inc_ms: 1_000, moves: Some(40) };
+    let p = play("chess", &Opening::default(), &mut players, Limit::Depth(1), Some(tc), &adj(3), NO_TABLE, NEVER).unwrap();
+    assert_eq!(p.reason, "length");
+    let (a, b) = (told[0].lock().unwrap().clone(), told[1].lock().unwrap().clone());
+    assert_eq!((a.len(), b.len()), (3, 3));
+    assert_eq!(a[0], Limit::Clock { own: 60_000, other: 60_000, inc: 1_000, to_go: Some(40), first: true });
+    let Limit::Clock { own, other, to_go, first, .. } = b[0] else { panic!("{:?}", b[0]) };
+    // The first Side's move took some milliseconds at most, and earned its second.
+    assert_eq!((own, to_go, first), (60_000, Some(40), false));
+    assert!((60_000..=61_000).contains(&other), "{other}");
+    assert!(matches!(a[2], Limit::Clock { to_go: Some(38), .. }));
 }

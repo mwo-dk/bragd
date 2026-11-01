@@ -116,6 +116,11 @@ impl Dialect for Hub {
             Limit::Time(ms) => format!("move-time={:.3}", ms as f64 / 1000.0),
             Limit::Depth(d) => format!("depth={d}"),
             Limit::Nodes(n) => format!("nodes={n}"),
+            Limit::Clock { own, other, inc, to_go, .. } => {
+                let s = |ms: u32| format!("{:.3}", ms as f64 / 1000.0);
+                let level = format!("moves={} time={} inc={}", to_go.unwrap_or(0), s(own), s(inc));
+                return format!("level {level}\ntime my={} your={}\ngo think\n", s(own), s(other));
+            }
         };
         format!("level {level}\ngo think\n")
     }
@@ -170,6 +175,8 @@ mod tests {
             format!("set-param name=variant value=normal\nnew-game\npos pos={START} moves=\"32-28 19-23\"\n")
         );
         assert_eq!(d.go(&about, Limit::Time(1500), 1), "level move-time=1.500\ngo think\n");
+        let clock = Limit::Clock { own: 61_000, other: 59_500, inc: 1_000, to_go: None, first: true };
+        assert_eq!(d.go(&about, clock, 1), "level moves=0 time=61.000 inc=1.000\ntime my=61.000 your=59.500\ngo think\n");
         let got: Vec<Event> = ["info depth=11 mean-depth=10.2 score=0.12 nodes=12345 time=0.10 nps=1.2 pv=\"28x19 14x23\"", "done move=28x19 ponder=14x23"].iter().flat_map(|l| d.read(l)).collect();
         assert_eq!(got[0], Event::Info(Info { depth: Some(11), line: 1, score: Some(Score::Cp(12)), nodes: Some(12345), pv: vec!["28x19".into(), "14x23".into()] }));
         assert_eq!(got[1], Event::Best(Best { mv: Some("28x19".into()), ponder: Some("14x23".into()) }));
