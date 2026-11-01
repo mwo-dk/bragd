@@ -6,6 +6,10 @@ license.workspace = true
 publish.workspace = true
 description = "Bragd's language model: an OpenAI-compatible client, local servers found running, the key in the OS keychain, and Comments translated on demand"
 
+[features]
+# keyring's in-memory store (`key::mock`), for other crates' tests: never the real keychain.
+mock-keychain = ["keyring-core/sample"]
+
 [dependencies]
 # config.toml's [model], the data folder, the reader's language and BRAGD_OFFLINE.
 bragd-core = { path = "../bragd-core" }

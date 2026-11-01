@@ -36,19 +36,30 @@ fn store() -> Result<(), String> {
     }
 }
 
-fn entry(url: &str) -> Result<Entry, String> {
+fn entry(service: &str, account: &str) -> Result<Entry, String> {
     store()?;
-    Entry::new(SERVICE, url.trim()).map_err(|e| t!("model.error.keychain", "why" => e))
+    Entry::new(service, account.trim()).map_err(|e| t!("model.error.keychain", "why" => e))
 }
 
 /// The key kept for `url`, if any.
 pub fn get(url: &str) -> Option<String> {
-    entry(url).ok()?.get_password().ok()
+    get_in(SERVICE, url)
 }
 
 /// Keeps `key` for `url`; an empty one removes it.
 pub fn set(url: &str, key: &str) -> Result<(), String> {
-    let e = entry(url)?;
+    set_in(SERVICE, url, key)
+}
+
+/// The secret kept for `account` under `service`, if any. Other crates (an online server's
+/// token) keep theirs through here, so the keychain is set up in one place.
+pub fn get_in(service: &str, account: &str) -> Option<String> {
+    entry(service, account).ok()?.get_password().ok()
+}
+
+/// Keeps `key` for `account` under `service`; an empty one removes it.
+pub fn set_in(service: &str, account: &str, key: &str) -> Result<(), String> {
+    let e = entry(service, account)?;
     let r = if key.trim().is_empty() { e.delete_credential() } else { e.set_password(key.trim()) };
     match r {
         Ok(()) | Err(Error::NoEntry) => Ok(()),
@@ -56,8 +67,10 @@ pub fn set(url: &str, key: &str) -> Result<(), String> {
     }
 }
 
-#[cfg(test)]
-pub(crate) fn mock() {
+/// keyring's in-memory store in place of the system's keychain, for tests (here and in other
+/// crates' tests, which turn on the `mock-keychain` feature).
+#[cfg(any(test, feature = "mock-keychain"))]
+pub fn mock() {
     static M: Once = Once::new();
     M.call_once(|| keyring_core::set_default_store(keyring_core::sample::Store::new().unwrap()));
 }
