@@ -20,6 +20,7 @@ pub mod game;
 pub mod perft;
 pub mod piece;
 pub mod position;
+pub mod record;
 
 pub use board::{Bitboard, Square};
 pub use game::{DrawReason, Game, MoveError, Outcome, WinReason};
