@@ -25,7 +25,7 @@ Sidebar → **Draughts** → **Play**, then choose the ruleset in the first list
 
 ## What it needs
 
-Nothing to play against yourself. Against an Engine: Scan installed, for International draughts only. English, Brazilian and Russian draughts have no Engine, so the *Opponent* list does not show for them ([Playing against an Engine](against-an-engine.md)).
+Nothing to play against yourself. Against an Engine: Scan, installed or from its image, for International draughts only. English, Brazilian and Russian draughts have no Engine, so the *Opponent* list does not show for them ([Playing against an Engine](against-an-engine.md)).
 
 ## Controls
 

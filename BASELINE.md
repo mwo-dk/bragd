@@ -16,4 +16,3 @@ What is settled, and what is known to be broken. Read this before starting work.
 ## Known broken
 
 - Text set in the bundled Noto Sans Runic draws nothing in WebKitGTK: the font loads, but the runes have no width. The sidebar shows the rune wordmark from `assets/brand/wordmark-runes.svg` (outlines) instead. The cause is not found yet.
-- The engine images are published, but Bragd does not pin them yet (every pin is `None`), so none is pulled.

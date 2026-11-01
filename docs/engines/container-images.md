@@ -4,9 +4,10 @@
 
 When an Engine is not installed, Bragd can run it from a sealed container image with podman or docker. The images are Bragd's own, at `ghcr.io/mwo-dk/bragd-<engine>`, and each is pinned by its digest.
 
-**Not yet available.** No image is published yet, so no image is ever pulled. Each Engine that is not installed says *Not installed, and its container image is not published yet*, with the program to install and a **Download page** button. Until the images come, install the Engine yourself, or build its image on your own machine ([below](#images-built-on-your-own-machine)).
+Every Engine in the table below has an image. Its card on the Engines page shows **Get it (…)** with the download size, and nothing is downloaded until you press it. Igel and YaneuraOu have no image: install them yourself.
 
-![The Engines page of chess: a card for an Engine that is not installed, saying its image is not yet published and naming its package and download page](../screenshots/engines-chess-1100.png)
+<!-- screenshot: engines-chess-1100.png: the Engines page of chess with podman installed, a card for an Engine that is not installed showing Get it with its download size -->
+![The Engines page of chess: a card for an Engine that is not installed, saying where it stands and what to do next](../screenshots/engines-chess-1100.png)
 *A card on the Engines page says where the Engine stands.*
 
 ## How to reach it
@@ -126,7 +127,7 @@ It is pinned by nothing, so Bragd runs it only when started with `BRAGD_DEV_IMAG
 
 #### How much disk do the images take?
 
-Disk watch counts each pulled image ([Disk watch](../knowledge/disk-watch.md)). Today that list is empty, as no image is published.
+Disk watch counts each pulled image ([Disk watch](../knowledge/disk-watch.md)).
 
 ---
 [← Previous: The Engines page](engines.md) · [Next: Analyse →](analyse.md)

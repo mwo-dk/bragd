@@ -69,7 +69,7 @@ Six as swatches: Racing green, Racing green (dark), Light, Dark, Paper white and
 
 #### Why does the Engines step show "No sealed image is published yet"?
 
-Bragd's engine images are not published yet. An Engine works now only when it is installed on the machine ([Engine container images](../engines/container-images.md)).
+Igel and YaneuraOu have no image of Bragd's: install them on the machine. Every other Engine shows *A sealed image can be pulled with podman or docker* ([Engine container images](../engines/container-images.md)).
 
 #### Where did the Syzygy download go?
 
