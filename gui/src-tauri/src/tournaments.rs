@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use bragd_clubs::club::{self, Club};
 use bragd_clubs::export;
 use bragd_clubs::tiebreak::Tiebreak;
-use bragd_clubs::tournament::{self, Outcome, Player, Status, Tournament, Warning};
+use bragd_clubs::tournament::{self, Handicap, Outcome, Player, Status, Tournament, Warning};
 use bragd_core::t;
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -50,6 +50,22 @@ pub struct View {
     all: Vec<Named>,
     /// Why the next Round cannot be paired, if it cannot.
     blocked: Option<String>,
+    /// The Variant played, by name.
+    variant: String,
+}
+
+/// A Variant a Tournament can be played in: those of the Families and Variants turned on.
+#[derive(Serialize)]
+pub struct VariantChoice {
+    key: &'static str,
+    name: String,
+    family: &'static str,
+}
+
+#[tauri::command]
+pub fn tournament_variants(ctx: State<'_, Ctx>) -> Vec<VariantChoice> {
+    let cfg = ctx.cfg();
+    bragd_games::VARIANTS.iter().filter(|v| cfg.variant_on(v.key)).map(|v| VariantChoice { key: v.key, name: t!(&format!("variant.{}", v.key)), family: v.family.key() }).collect()
 }
 
 fn value(v: f64) -> String {
@@ -70,6 +86,7 @@ fn view(id: i64, t: Tournament) -> View {
         tiebreaks: t.tiebreaks.iter().map(|&tb| named(tb)).collect(),
         all: Tiebreak::ALL.iter().map(|&tb| named(tb)).collect(),
         blocked: t.can_pair().err().map(|e| e.to_string()),
+        variant: t!(&format!("variant.{}", t.variant)),
         tournament: t,
     }
 }
@@ -91,10 +108,12 @@ fn change(held: &Held, by: i64, id: i64, f: impl FnOnce(&mut Tournament, &str) -
 
 /// A new Tournament; the Club's view, with it listed.
 #[tauri::command(async)]
-pub fn tournament_new(by: i64, name: String, system: tournament::System, rounds: u32, date: String, place: String, held: State<'_, Held>) -> Res<club::View> {
+#[allow(clippy::too_many_arguments, reason = "one argument per field of the New Tournament form")]
+pub fn tournament_new(by: i64, name: String, system: tournament::System, rounds: u32, date: String, place: String, variant: String, handicap: Option<Handicap>, match_to: Option<u32>, held: State<'_, Held>) -> Res<club::View> {
     on(&held, |c| {
         let mut t = Tournament::new(&name, system, rounds, &date)?;
         t.place = place.trim().into();
+        t.set_game(&variant, handicap, match_to)?;
         c.add_tournament(by, &t)?;
         bragd_core::tips::used("tournaments");
         c.view()
