@@ -2,7 +2,7 @@
 
 # Round-robin, knockout and Scheveningen
 
-Besides the Swiss, Bragd pairs the three systems where who meets whom is fixed in advance: everyone against everyone, a knockout bracket, and a match of two teams. Like the Swiss pairing, this is pure logic in the `pairing` crate; the tournament screens that use it come with the rest of 0.3.0. Every system hands back the same shape: the boards in order, the bye if there is one, and a short account of the rule each group of boards came from, for the director's "why" view.
+Besides the Swiss, Bragd pairs the three systems where who meets whom is fixed in advance: everyone against everyone, a knockout bracket, and a match of two teams. Like the Swiss pairing, this is pure logic in the `pairing` crate; [club Tournaments](../clubs/tournaments.md) use it. Every system hands back the same shape: the boards in order, the bye if there is one, and a short account of the rule each group of boards came from, for the director's "why" view.
 
 ## Contents
 

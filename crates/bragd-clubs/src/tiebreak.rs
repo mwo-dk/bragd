@@ -13,7 +13,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::tournament::{Slot, Standing, System, Tournament};
+use std::cmp::Ordering;
+
+use crate::tournament::{DropIn, Slot, Standing, System, Tournament};
 
 /// One tiebreak, by its C.07 acronym.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -129,13 +131,17 @@ impl Tiebreak {
 }
 
 /// The tiebreaks a new Tournament starts with: the Danish Chess Union's (DSU EMT rules, §24).
-/// A round-robin goes by Sonneborn-Berger. Every other group goes by *almindelig korrektion*:
-/// Buchholz without the two lowest opponents, then with the second-lowest added back, then
-/// with the lowest too.
+/// A round-robin goes by Sonneborn-Berger, and so does a Scheveningen, where everyone in a
+/// team meets the same opponents and Buchholz could not tell them apart. Every other group,
+/// Monrad and the Nordic Swiss too, goes by *almindelig korrektion*: Buchholz without the two
+/// lowest opponents, then with the second-lowest added back, then with the lowest too. A
+/// knockout ranks by how far a player went, and a Drop-in by its own standings: neither starts
+/// with a tiebreak.
 pub fn defaults(system: System) -> Vec<Tiebreak> {
     match system {
-        System::Dutch => vec![BuchholzCut2, BuchholzCut1, Buchholz],
-        System::RoundRobin { .. } => vec![SonnebornBerger],
+        System::Dutch { .. } | System::Monrad | System::Nordic => vec![BuchholzCut2, BuchholzCut1, Buchholz],
+        System::RoundRobin { .. } | System::Scheveningen { .. } => vec![SonnebornBerger],
+        System::Knockout | System::DropIn { .. } => vec![],
     }
 }
 
@@ -168,7 +174,7 @@ fn vur(s: Slot) -> bool {
 impl<'a> Table<'a> {
     fn new(t: &'a Tournament) -> Table<'a> {
         let rounds = t.played.len();
-        let swiss = matches!(t.system, System::Dutch);
+        let swiss = t.system.swiss();
         let slots: Vec<Vec<Slot>> = (0..t.players.len()).map(|p| (0..rounds).map(|r| t.slot(r, p)).collect()).collect();
         let score: Vec<u32> = slots.iter().map(|s| s.iter().map(|x| x.points()).sum()).collect();
         let adjusted = slots
@@ -281,7 +287,7 @@ impl<'a> Table<'a> {
                 // in a round-robin a game against each other player in each cycle.
                 let half = match self.t.system {
                     System::RoundRobin { double } => self.t.seeds.len().saturating_sub(1) * if double { 2 } else { 1 },
-                    System::Dutch => self.rounds,
+                    _ => self.rounds,
                 };
                 self.slots[p]
                     .iter()
@@ -418,9 +424,27 @@ pub fn standings(t: &Tournament) -> Vec<Standing> {
     let table = Table::new(&upto);
     let n = t.players.len();
     let mut values: Vec<Vec<f64>> = (0..n).map(|p| t.tiebreaks.iter().map(|&tb| table.value(tb, p)).collect()).collect();
+    // Points and the Rounds they come from: a Drop-in counts its own way.
+    let (primary, percentage): (Vec<(u32, u32)>, bool) = match t.system {
+        System::DropIn { standings } => (upto.drop_in_points(standings), standings == DropIn::Percentage),
+        _ => (table.score.iter().map(|&s| (s, done as u32)).collect(), false),
+    };
+    let better = |a: usize, b: usize| {
+        let ((pa, ra), (pb, rb)) = (primary[a], primary[b]);
+        if !percentage {
+            return pb.cmp(&pa);
+        }
+        // pa/ra against pb/rb, cross-multiplied; no Rounds goes last.
+        match (ra, rb) {
+            (0, 0) => Ordering::Equal,
+            (0, _) => Ordering::Greater,
+            (_, 0) => Ordering::Less,
+            _ => (u64::from(pb) * u64::from(ra)).cmp(&(u64::from(pa) * u64::from(rb))),
+        }
+    };
     let mut order: Vec<usize> = (0..n).collect();
-    order.sort_by(|&a, &b| table.score[b].cmp(&table.score[a]).then(a.cmp(&b)));
-    let mut groups = runs(&order, |&a, &b| table.score[a] == table.score[b]);
+    order.sort_by(|&a, &b| better(a, b).then(a.cmp(&b)));
+    let mut groups = runs(&order, |&a, &b| better(a, b) == Ordering::Equal);
     for (k, &tb) in t.tiebreaks.iter().enumerate() {
         let mut next = vec![];
         for g in groups {
@@ -440,7 +464,7 @@ pub fn standings(t: &Tournament) -> Vec<Standing> {
     for g in groups {
         let rank = out.len() as u32 + 1;
         for p in g {
-            out.push(Standing { player: p, rank, points: table.score[p], tiebreaks: std::mem::take(&mut values[p]) });
+            out.push(Standing { player: p, rank, points: primary[p].0, rounds: primary[p].1, tiebreaks: std::mem::take(&mut values[p]) });
         }
     }
     out
@@ -458,7 +482,7 @@ mod tests {
         for &(name, rating, _) in rows {
             t.players.push(Player { name: name.into(), rating, ..Player::default() });
         }
-        if !matches!(system, System::Dutch) {
+        if !system.swiss() {
             t.seeds = (0..rows.len()).collect();
         }
         for r in 0..t.rounds as usize {
@@ -485,7 +509,7 @@ mod tests {
                             ("-", true) => Outcome::BlackForfeit,
                             _ => panic!("{c}"),
                         };
-                        round.games.push(Game { white: p, black: opp, result: Some(result), handicap: 0 });
+                        round.games.push(Game { white: p, black: opp, result: Some(result), handicap: 0, playoff: None });
                     }
                 }
             }
@@ -498,7 +522,7 @@ mod tests {
     /// Forfeits are written `F` with the opponent; the lower number is White.
     fn swiss() -> Tournament {
         crosstable(
-            System::Dutch,
+            System::Dutch { baku: false },
             &[
                 ("Alyx", 2200, &["+W9", "=B13", "=W2", "+B15", "=W4"]),
                 ("Bruno", 2150, &["+B10", "+W7", "=B1", "+W16", "=B3"]),
@@ -640,7 +664,7 @@ mod tests {
     fn direct_encounter_in_a_swiss_ranks_one_alone_at_the_top_whatever_the_missing_games() {
         // Alyx beat everyone, Bruno beat Charline and David, who never met (Held 6).
         let t = crosstable(
-            System::Dutch,
+            System::Dutch { baku: false },
             &[
                 ("Alyx", 0, &["+W2", "+W3", "+W4"]),
                 ("Bruno", 0, &["-B1", "+W4", "+W3"]),

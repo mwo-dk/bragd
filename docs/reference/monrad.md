@@ -2,7 +2,7 @@
 
 # Monrad and Nordic Swiss
 
-The Monrad system is how most Danish club tournaments are paired. Bragd follows the Danish Chess Union's (DSU) own text, *Monrads turneringssystem*, and its arbiter course *TD3 Monradsystemet* (November 2025). The pairing is pure logic in the `pairing` crate; the tournament screens that use it come with the rest of 0.3.0.
+The Monrad system is how most Danish club tournaments are paired. Bragd follows the Danish Chess Union's (DSU) own text, *Monrads turneringssystem*, and its arbiter course *TD3 Monradsystemet* (November 2025). The pairing is pure logic in the `pairing` crate; [club Tournaments](../clubs/tournaments.md) use it, and the Nordic Swiss below.
 
 ## Contents
 

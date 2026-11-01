@@ -185,6 +185,11 @@ export const tournamentSetPairing = (/** @type {By} */ by, /** @type {number} */
 export const tournamentResult = (/** @type {By} */ by, /** @type {number} */ id, /** @type {number} */ round, /** @type {number} */ board, /** @type {string|null} */ result, /** @type {string} */ why) =>
   invoke("tournament_result", { by, id, round, board, result, why });
 /** @returns {Promise<any>} */
+export const tournamentPlayoff = (/** @type {By} */ by, /** @type {number} */ id, /** @type {number} */ round, /** @type {number} */ board, /** @type {number|null} */ winner, /** @type {string} */ why) =>
+  invoke("tournament_playoff", { by, id, round, board, winner, why });
+/** @returns {Promise<any>} */
+export const tournamentTeam = (/** @type {By} */ by, /** @type {number} */ id, /** @type {number} */ player, /** @type {number} */ team) => invoke("tournament_team", { by, id, player, team });
+/** @returns {Promise<any>} */
 export const tournamentTiebreaks = (/** @type {By} */ by, /** @type {number} */ id, /** @type {string[]} */ codes) => invoke("tournament_tiebreaks", { by, id, codes });
 /** Rates the Club's members from the Tournament's games; the Club's view. @returns {Promise<any>} */
 export const tournamentRate = (/** @type {By} */ by, /** @type {number} */ id) => invoke("tournament_rate", { by, id });

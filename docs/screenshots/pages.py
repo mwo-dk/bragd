@@ -237,8 +237,9 @@ def result(d, board, value):
 
 
 def tournaments():
-    """tournaments-1100.png (a Swiss on its Rounds tab: Round 2 paired, some results in) and
-    tournaments-390.png (its standings after Round 1)."""
+    """tournaments-1100.png (a Swiss on its Rounds tab: Round 2 paired, some results in),
+    tournaments-390.png (its standings after Round 1) and tournaments-new-390/1100.png (the New
+    Tournament form with Drop-in chosen: the system's one-line explanation and its standings)."""
     def club_page(d):
         js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
         d.wait(0.4)
@@ -246,12 +247,24 @@ def tournaments():
     d0 = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/clubs/Skovlunde Skakklub.bragd-club"
     players = [("Bo Kjær", 2105), ("Anna Lind", 1980), ("Peter Dahl", 1875), ("Sara Holm", 1820), ("Jens Moe", 1760), ("Lise Berg", 1690), ("Karl Vang", 1610), ("Eva Ravn", 1540), ("Ole Friis", 1450)]
     results = ["white", "draw", "black", "white"]
+
+    def new_form(d, width):
+        """The New Tournament form with Drop-in chosen, scrolled into view."""
+        js(d, """const s = [...document.querySelectorAll('main label')].find(l => l.textContent.trim().startsWith('Pairing system')).querySelector('select');
+          s.value = 'drop_in'; s.dispatchEvent(new Event('change', {bubbles: true}));""")
+        d.wait(0.5)
+        js(d, "[...document.querySelectorAll('main h4')].find(h => h.textContent.trim() === 'New Tournament').scrollIntoView()")
+        d.wait(0.5)
+        d.shot(HERE / f"tournaments-new-{width}.png")
     try:
         with Desktop(size=W1100) as d:
             club_page(d)
             fill(d, "Club name", "Skovlunde Skakklub")
             fill(d, "Your name", "Mette Holm")
             click(d, "Create Club")
+            new_form(d, 1100)
+            js(d, """const s = [...document.querySelectorAll('main label')].find(l => l.textContent.trim().startsWith('Pairing system')).querySelector('select');
+              s.value = 'dutch'; s.dispatchEvent(new Event('change', {bubbles: true}));""")
             fill(d, "Name", "Autumn Swiss 2026")
             fill(d, "Place", "Skovlunde")
             click(d, "Create Tournament")
@@ -273,6 +286,7 @@ def tournaments():
         with Desktop(size=(390, 844)) as d:
             club_page(d)
             click(d, "Skovlunde Skakklub", "main")
+            new_form(d, 390)
             click(d, "Autumn Swiss 2026", "main")
             click(d, "Standings", "main")
             js(d, "document.querySelector('main [role=tablist]').scrollIntoView()")

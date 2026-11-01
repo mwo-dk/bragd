@@ -2,7 +2,7 @@
 
 # Drop-in tournament
 
-A Drop-in tournament ("spil når du vil", play when you like) runs over a season of club evenings. Whoever turns up on an evening is paired among themselves, and the standings add up the evenings. The pairing is pure logic in the `pairing` crate; the tournament screens that use it come with the rest of 0.3.0.
+A Drop-in tournament ("spil når du vil", play when you like) runs over a season of club evenings. Whoever turns up on an evening is paired among themselves, and the standings add up the evenings. The pairing is pure logic in the `pairing` crate; [club Tournaments](../clubs/tournaments.md) use it.
 
 ## Contents
 
