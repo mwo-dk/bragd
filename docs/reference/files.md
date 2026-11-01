@@ -31,6 +31,7 @@ In the Flatpak, the XDG folders are the app's own: `~/.var/app/io.github.mwo_dk.
 | data/`libraries/` | Your Libraries, such as `main.bragd`, with their `-wal` and `-shm` files. Moved by `knowledge.library` |
 | data/`clubs/` | The Clubs you made, one `<name>.bragd-club` file each, with a `.bragd-club.lock` beside a Club while it is open ([Clubs](../clubs/clubs.md)) |
 | data/`positions.sqlite` | The [Position store](../knowledge/position-store.md): Engine Evaluations and Annotations by position, with its `-wal` and `-shm` files |
+| data/`translations.sqlite` | Comments translated by the [language model](../knowledge/language-model.md), by their original text and language. Made by the first translation |
 | data/`rating-lists.sqlite` | The players of every rating list fetched ([Rating lists](rating-lists.md)) |
 | data/`tablebases/` | Syzygy tables. Moved by `tablebases.path` |
 | data/`networks/pikafish/pikafish.nnue` | Pikafish's evaluation network, for its image, downloaded once you agree to its licence |

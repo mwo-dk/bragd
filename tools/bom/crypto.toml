@@ -12,7 +12,7 @@
 # Crates that do cryptography. Add one when a new dependency brings some in.
 watch = [
   "aes", "aes-gcm", "argon2", "aws-lc-rs", "blake2", "blake3", "cbc", "chacha20", "chacha20poly1305",
-  "ctr", "ed25519-dalek", "getrandom", "hmac", "md-5", "md5", "native-tls", "openssl", "p256", "p384",
+  "ctr", "ed25519-dalek", "getrandom", "hkdf", "hmac", "md-5", "md5", "native-tls", "openssl", "p256", "p384",
   "pbkdf2", "ring", "rsa", "rustls", "scrypt", "sha1", "sha2", "sha3", "x25519-dalek", "zip",
 ]
 
@@ -53,6 +53,26 @@ provides = ["os-random"]
 [[library]]
 crate = "zip"
 provides = []
+
+# The Secret Service on Linux and the BSDs (dbus-secret-service, for the language model's key in
+# the keychain): the session with it is opened by a Diffie-Hellman exchange in the 1024-bit MODP
+# group the Secret Service specifies, its key derived by HKDF-SHA-256, and the secret crossing the
+# session bus encrypted with AES-128-CBC. macOS and Windows use the system's own keychain API.
+[[library]]
+crate = "aes"
+provides = ["aes-128-cbc"]
+
+[[library]]
+crate = "cbc"
+provides = ["aes-128-cbc"]
+
+[[library]]
+crate = "hkdf"
+provides = ["hkdf-sha-256"]
+
+[[library]]
+crate = "dbus-secret-service"
+provides = ["dh-modp-1024"]
 
 # ---------------------------------------------------------------------------- assets
 # CycloneDX cryptoProperties, plus `purpose` (why Bragd uses it, a property in the CBOM) and
@@ -142,7 +162,7 @@ primitive = "hash"
 oid = "2.16.840.1.101.3.4.2.1"
 param_set = "256"
 functions = ["digest"]
-purpose = "TLS handshake transcript and key schedule; the Content-Security-Policy's script hashes; checking a downloaded engine network against its digest"
+purpose = "TLS handshake transcript and key schedule; the Content-Security-Policy's script hashes; checking a downloaded engine network against its digest; HKDF in the Secret Service session"
 found = [{ file = "crates/bragd-engines/src/network.rs", pattern = "hash: Sha256::new()" }]
 
 [[asset]]
@@ -248,3 +268,32 @@ found = [
   { file = "crates/bragd-helper/src/helper.rs", pattern = "getrandom::fill(&mut bytes)" },
   { file = "crates/bragd-core/src/throw.rs", pattern = "getrandom::fill(&mut b)" },
 ]
+
+[[asset]]
+ref = "aes-128-cbc"
+name = "AES-128-CBC"
+type = "algorithm"
+primitive = "block-cipher"
+oid = "2.16.840.1.101.3.4.1.2"
+param_set = "128"
+mode = "cbc"
+functions = ["encrypt", "decrypt"]
+purpose = "The language model's key, sent to and read from the Secret Service (Linux, BSD) in an encrypted session"
+found = [{ file = "crates/bragd-model/src/key.rs", pattern = "dbus_secret_service_keyring_store::Store::new()" }]
+
+[[asset]]
+ref = "hkdf-sha-256"
+name = "HKDF-SHA-256"
+type = "algorithm"
+primitive = "kdf"
+functions = ["keyderive"]
+purpose = "The Secret Service session key, from the Diffie-Hellman secret"
+
+[[asset]]
+ref = "dh-modp-1024"
+name = "DH-MODP-1024"
+type = "algorithm"
+primitive = "key-agree"
+param_set = "1024"
+functions = ["keygen", "keyderive"]
+purpose = "Opening the Secret Service session, in the group its specification fixes. It protects the secret only on the user's own session bus"

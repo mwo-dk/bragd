@@ -26,10 +26,12 @@ pub enum Area {
     Tips,
     /// The update check, and everything that can leave the machine.
     Privacy,
+    /// The language model: its address, its model, its key and consent.
+    Model,
 }
 
 impl Area {
-    pub const ALL: [Area; 8] = [
+    pub const ALL: [Area; 9] = [
         Area::Overview,
         Area::Families,
         Area::Look,
@@ -38,6 +40,7 @@ impl Area {
         Area::Online,
         Area::Tips,
         Area::Privacy,
+        Area::Model,
     ];
 
     /// Its name in the `settings.area.<id>` text.
@@ -51,6 +54,7 @@ impl Area {
             Area::Online => "online",
             Area::Tips => "tips",
             Area::Privacy => "privacy",
+            Area::Model => "model",
         }
     }
 
@@ -76,10 +80,11 @@ impl Opt {
         crate::i18n::tr(self.texts, &[])
     }
 
-    /// Listed in its area of Settings. Families and Disk watch draw their own options; the
-    /// Source priority is set on Databases → Libraries, where Sources are picked by name.
+    /// Listed in its area of Settings. Families, Disk watch and the language model draw their
+    /// own options; the Source priority is set on Databases → Libraries, where Sources are
+    /// picked by name.
     pub fn listed(&self) -> bool {
-        self.area != Families && !self.name.starts_with("disk_") && self.name != "source_priority"
+        !matches!(self.area, Families | Model) && !self.name.starts_with("disk_") && self.name != "source_priority"
     }
 
     /// The Game family it concerns, if only one: it leaves its area while that Family is off.
@@ -134,7 +139,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 17] = [
+const OTHER_OPTS: [Opt; 20] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -200,6 +205,10 @@ const OTHER_OPTS: [Opt; 17] = [
         Privacy,
         "setting.check_updates",
     ),
+    // Drawn by Settings → Language model, which checks the address and asks for consent.
+    opt("model_url", &["model", "url"], Model, "setting.model_url"),
+    opt("model_name", &["model", "name"], Model, "setting.model_name"),
+    opt("model_consent", &["model", "consent"], Model, "setting.model_consent"),
     // Disk watch's limits in bytes, drawn with each item's own by Disk watch in Knowledge.
     opt("disk_total", &["disk", "total"], Knowledge, "setting.disk_total"),
     opt("disk_free_below", &["disk", "free_below"], Knowledge, "setting.disk_free_below"),
@@ -210,7 +219,7 @@ const OTHER_OPTS: [Opt; 17] = [
 pub fn areas(cfg: &Config) -> Vec<Area> {
     Area::ALL
         .into_iter()
-        .filter(|a| matches!(a, Overview | Families) || options().any(|o| o.area == *a && o.listed_for(cfg)))
+        .filter(|a| matches!(a, Overview | Families | Model) || options().any(|o| o.area == *a && o.listed_for(cfg)))
         .collect()
 }
 
@@ -383,9 +392,10 @@ mod tests {
         assert!(!find("family_chess").unwrap().listed());
         assert!(!find("disk_total").unwrap().listed());
         assert!(!find("source_priority").unwrap().listed(), "no text field of Source ids");
+        assert!(!find("model_url").unwrap().listed(), "Settings → Language model draws it");
         assert!(find("theme").unwrap().listed());
         let listed = options().filter(|o| o.listed()).count();
-        assert_eq!(listed, OTHER_OPTS.len() - 3);
+        assert_eq!(listed, OTHER_OPTS.len() - 6);
     }
 
     #[test]

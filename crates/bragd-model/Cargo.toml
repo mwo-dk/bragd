@@ -1,0 +1,37 @@
+[package]
+name = "bragd-model"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Bragd's language model: an OpenAI-compatible client, local servers found running, the key in the OS keychain, and Comments translated on demand"
+
+[dependencies]
+# config.toml's [model], the data folder, the reader's language and BRAGD_OFFLINE.
+bragd-core = { path = "../bragd-core" }
+# The system's certificate store, as the update check.
+ureq = { version = "3", features = ["platform-verifier", "json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Translations kept beside the Position store, by original text and language.
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+# A Comment's language guessed on the machine, so one in the reader's language is not sent.
+whatlang = "0.18"
+# The key of a cloud model, in the OS keychain only.
+keyring-core = "1"
+
+# Linux and the BSDs: the Secret Service over libdbus, which the window already links. The
+# session with it is encrypted (DH, HKDF, AES-128-CBC; tools/bom/crypto.toml).
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
+dbus-secret-service-keyring-store = { version = "1", features = ["crypto-rust"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+apple-native-keyring-store = { version = "1", features = ["keychain"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-native-keyring-store = { version = "1", default-features = false }
+
+[dev-dependencies]
+bragd-core = { path = "../bragd-core", features = ["test-home"] }
+# keyring's in-memory store, so tests never touch the real keychain.
+keyring-core = { version = "1", features = ["sample"] }

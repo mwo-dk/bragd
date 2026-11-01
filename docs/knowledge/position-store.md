@@ -74,4 +74,4 @@ Not by itself. A newer Edition analyses a position when you open it in Analyse o
 Reviews were once kept per Game in the cache folder. They were not carried over: review the Game again, and the store keeps it.
 
 ---
-[← Previous: Disk watch](disk-watch.md) · [Next: The Helper →](helper.md)
+[← Previous: Disk watch](disk-watch.md) · [Next: Language model →](language-model.md)

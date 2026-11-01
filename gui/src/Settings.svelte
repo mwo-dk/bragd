@@ -7,8 +7,9 @@
   import FamilyToggles from "./FamilyToggles.svelte";
   import SettingsExtras from "./SettingsExtras.svelte";
   import DiskUse from "./DiskUse.svelte";
+  import LanguageModel from "./LanguageModel.svelte";
 
-  /** @type {{ snap: any, save: (name: string, value: any) => void }} */
+  /** @type {{ snap: any, save: (name: string, value: any) => Promise<any> }} */
   let { snap, save } = $props();
   let area = $state("overview");
   // A link elsewhere (the wizard, a notice) names the area to open.
@@ -39,6 +40,10 @@
       {#if area === "overview"}
         <p>{t("settings.overview", { version: snap.version, families: tn("settings.families_on", shown.length), variants: tn("settings.variants_on", variantsOn) })}</p>
         <SettingsExtras />
+      {/if}
+
+      {#if area === "model"}
+        <LanguageModel {snap} {save} />
       {/if}
 
       {#if area === "families"}

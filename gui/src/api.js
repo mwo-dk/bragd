@@ -230,3 +230,15 @@ export const leagueResult = (
   /** @type {string|null} */ result,
   /** @type {string} */ why,
 ) => invoke("league_result", { by, id, round, m, board, result, why });
+/** The language model as Settings shows it. @returns {Promise<any>} */
+export const modelStatus = () => invoke("model_status");
+/** Local model servers running now, with their models. @returns {Promise<any[]>} */
+export const modelFind = () => invoke("model_find");
+/** The models a server offers. @returns {Promise<string[]>} */
+export const modelModels = (/** @type {string} */ url) => invoke("model_models", { url });
+/** Keeps a key for the address set, in the keychain; empty removes it. @returns {Promise<any>} */
+export const modelKey = (/** @type {string} */ key) => invoke("model_key", { key });
+/** Whether to offer Translate on a Comment, and its kept translation. @returns {Promise<any>} */
+export const commentView = (/** @type {string} */ text) => invoke("comment_view", { text });
+/** A Comment translated into the reader's language. @returns {Promise<any>} */
+export const commentTranslate = (/** @type {string} */ text) => invoke("comment_translate", { text });

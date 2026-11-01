@@ -3,7 +3,7 @@
   // End), the comments, and its evaluation profile as a small graph when it has one. Each
   // step's board is replayed in Rust from the position Rust laid out for it.
   import * as api from "./api.js";
-  import { t } from "./i18n.svelte.js";
+  import { t, i18n } from "./i18n.svelte.js";
   import Board from "./Board.svelte";
 
   /** @type {{ replay: any, onclose: () => void, onstep?: (step: any) => void }} */
@@ -14,6 +14,26 @@
   let flipped = $state(false);
 
   const step = $derived(replay.steps[at]);
+  // The step's Comment as Rust sees it: whether to offer Translate, and its kept translation.
+  /** @type {any} */
+  let cv = $state(null);
+  let translating = $state(false);
+  let trError = $state("");
+  $effect(() => {
+    const c = step?.comment;
+    // Asked again when the reader's language changes: the translation kept is per language.
+    void i18n.lang;
+    [cv, trError] = [null, ""];
+    if (c) api.commentView(c).then((v) => step?.comment === c && (cv = v), () => {});
+  });
+  function translate() {
+    const c = step.comment;
+    [translating, trError] = [true, ""];
+    api
+      .commentTranslate(c)
+      .then((tr) => step?.comment === c && (cv = { ...cv, translation: tr }), (e) => (trError = String(e)))
+      .finally(() => (translating = false));
+  }
 
   $effect(() => {
     const s = replay.steps[at];
@@ -67,7 +87,24 @@
           {#if step?.evpX != null}<line x1={step.evpX} x2={step.evpX} y1="0" y2={replay.evp.height} class="now" />{/if}
         </svg>
       {/if}
-      {#if step?.comment}<p class="comment">{step.comment}</p>{/if}
+      {#if step?.comment}
+        {#if cv?.translation}
+          <div class="comment">
+            <p>{cv.translation.text}</p>
+            <p class="machine">{t("replay.machine_translated", { model: cv.translation.model })}</p>
+            <details>
+              <summary>{t("replay.original")}</summary>
+              <p>{step.comment}</p>
+            </details>
+          </div>
+        {:else}
+          <p class="comment">{step.comment}</p>
+          {#if cv?.translatable}
+            <button class="translate" onclick={translate} disabled={translating}>{translating ? t("replay.translating") : t("replay.translate")}</button>
+          {/if}
+        {/if}
+        {#if trError}<p class="error" role="alert">{trError}</p>{/if}
+      {/if}
       <ol class="moves">
         {#each replay.steps.slice(1) as s, i}
           <li><button class:current={at === i + 1} onclick={() => go(i + 1)}>{s.label}</button></li>
@@ -157,6 +194,17 @@
   }
   .comment {
     font-style: italic;
+  }
+  .comment p {
+    margin: 0 0 0.3rem;
+  }
+  .machine {
+    font-style: normal;
+    font-size: 0.85em;
+    color: var(--dim);
+  }
+  .translate {
+    margin-bottom: 0.4rem;
   }
   .moves {
     list-style: none;

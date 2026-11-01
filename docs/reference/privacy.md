@@ -27,6 +27,7 @@ Bragd sends nothing unless you ask, with one exception: the update check, which 
 | Tablebase lookups | In Analyse, for a chess position of seven pieces or fewer that your tables do not cover | The position, as a FEN | the Lichess tablebase API, `tablebase.lichess.ovh` | *Ask Lichess for tablebase positions* off (`tablebases.online`) |
 | Engine images | When you press **Get it** on an Engine's card | A pull of the pinned image | `ghcr.io` | Do not press it, or turn off `engines.containers`. No image is published yet ([Engine container images](../engines/container-images.md)) |
 | Pikafish's evaluation network | When you press **Agree and download** under its licence on the Engines page | A request for Pikafish's release archive | `github.com`, Pikafish's release | Do not press it. An installed Pikafish needs none ([Engine container images](../engines/container-images.md#why-does-the-pikafish-image-need-a-download-of-its-own)) |
+| Language model | When you press **Translate** on a comment, or **List models** in *Settings → Language model* | The comment's text, or a request for the model list, with your key when you saved one | The address you set. Ollama, Lemonade and LM Studio found on this machine keep everything on it. An address off this machine is used only after you agree to it once | Leave the language model off. It starts off ([Language model](../knowledge/language-model.md)) |
 
 An Engine Bragd runs from an image has no network at all. An installed Engine is your own program: Bragd gives it no network rules.
 

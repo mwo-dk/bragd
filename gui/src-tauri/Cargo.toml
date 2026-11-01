@@ -20,6 +20,8 @@ bragd-library = { path = "../../crates/bragd-library" }
 # The Position store: Analyse and reviews read Evaluations and Annotations from it and write
 # them to it; Disk watch exports and imports it.
 bragd-positions = { path = "../../crates/bragd-positions" }
+# The language model: Settings → Language model and a Comment's Translate.
+bragd-model = { path = "../../crates/bragd-model" }
 # Clubs, their members and ratings, and the rating lists.
 bragd-clubs = { path = "../../crates/bragd-clubs" }
 # Lists written into config.toml (the opening books), as bragd-core writes them.

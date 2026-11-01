@@ -26,6 +26,7 @@ pub struct Config {
     pub updates: UpdatesConfig,
     pub disk: DiskConfig,
     pub tips: TipsConfig,
+    pub model: ModelConfig,
     /// The user's own Themes, `[themes.<name>]`: each colour not given is Racing green's. One
     /// named like a built-in Theme replaces it.
     pub themes: BTreeMap<String, Theme>,
@@ -203,6 +204,19 @@ impl Default for TipsConfig {
     }
 }
 
+/// The language model (`bragd-model`): an OpenAI-compatible address. Off while `url` is empty.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ModelConfig {
+    /// Its base address, such as `http://localhost:11434/v1`.
+    pub url: String,
+    /// The model asked, by the id the server lists.
+    pub name: String,
+    /// The address the user agreed may receive positions and comments. An address off this
+    /// machine is used only while it equals `url`.
+    pub consent: String,
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
@@ -216,6 +230,7 @@ impl Default for Config {
             updates: UpdatesConfig::default(),
             disk: DiskConfig::default(),
             tips: TipsConfig::default(),
+            model: ModelConfig::default(),
             themes: BTreeMap::new(),
             refused: vec![],
         }
@@ -298,6 +313,7 @@ impl Config {
         take(&table, "updates", &mut c.updates, &mut refused);
         take(&table, "disk", &mut c.disk, &mut refused);
         take(&table, "tips", &mut c.tips, &mut refused);
+        take(&table, "model", &mut c.model, &mut refused);
         take(&table, "themes", &mut c.themes, &mut refused);
         c.refused = refused;
         c
