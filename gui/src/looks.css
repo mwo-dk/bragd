@@ -156,7 +156,7 @@ html:root[data-look="win95"] {
 html:root[data-look="win95"] body {
   background: #c0c0c0;
 }
-html:root[data-look="win95"] :is(.moves, input[type="text"], select) {
+html:root[data-look="win95"] :is(.moves, input[type="text"], input[type="search"], input[type="number"], input[type="date"], textarea, select) {
   border: 0;
   box-shadow: var(--bevel-in);
 }
@@ -670,7 +670,7 @@ html:root[data-look="next"] {
 html:root[data-look="next"] body {
   background: #555555;
 }
-html:root[data-look="next"] :is(nav.sidebar, .moves, input[type="text"], select) {
+html:root[data-look="next"] :is(nav.sidebar, .moves, input[type="text"], input[type="search"], input[type="number"], input[type="date"], textarea, select) {
   border: 1px solid #000000;
   box-shadow: var(--bevel-in);
 }

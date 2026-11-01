@@ -4,9 +4,10 @@
   // every pairing, warning, tiebreak and export (bragd_clubs::tournament); this page draws it.
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
+  import Why from "./Why.svelte";
 
-  /** @type {{ club: any, by: number|null, role: string|null, onclub: (v: any) => void }} */
-  let { club, by, role, onclub } = $props();
+  /** @type {{ club: any, by: number|null, role: string|null, onclub: (v: any) => void, onopen: (open: boolean) => void }} */
+  let { club, by, role, onclub, onopen } = $props();
 
   /** The open Tournament's view. @type {any} */
   let tv = $state(null);
@@ -37,6 +38,18 @@
   /** The tiebreak list being edited, by code. @type {string[]|null} */
   let order = $state(null);
   let adding = $state("");
+  /** Guests pasted as a list, a line each. */
+  let list = $state("");
+  let guestName = $state(/** @type {HTMLInputElement|null} */ (null));
+  /** @type {any} */
+  let whyBox;
+  /** The tiebreaks the system picked for a new Tournament starts with. @type {any[]} */
+  let defaults = $state([]);
+  $effect(() => {
+    api.tournamentDefaults(systemOf(fresh)).then((v) => (defaults = v));
+  });
+  // An open Tournament takes the page (Clubs folds the rest away).
+  $effect(() => onopen(tv !== null));
 
   const official = $derived(by !== null && (role === "director" || role === "arbiter") && !club.held_by);
   const director = $derived(by !== null && role === "director" && !club.held_by);
@@ -117,7 +130,15 @@
     e.preventDefault();
     const player = { name: guest.name, rating: Number(guest.rating) || 0, fide_id: guest.fide_id, federation: guest.federation, title: guest.title };
     const v = await change(() => api.tournamentRegister(by, tv.id, player, here));
-    if (v) guest = { name: "", rating: "", fide_id: "", federation: "", title: "" };
+    if (v) {
+      guest = { name: "", rating: "", fide_id: "", federation: "", title: "" };
+      // The next guest is typed straight in: Enter adds, and Name has the focus again.
+      guestName?.focus();
+    }
+  }
+  async function addList() {
+    const v = await change(() => api.tournamentRegisterList(by, tv.id, list, here));
+    if (v) list = "";
   }
   async function search(/** @type {Event} */ e) {
     e.preventDefault();
@@ -134,22 +155,22 @@
     const g = T.played[r].games[b];
     let why = "";
     if (g.result) {
-      why = prompt(t("tournaments.why_correction")) ?? "";
-      if (!why.trim()) return change(() => api.tournamentView(tv.id));
+      why = (await whyBox.ask(t("tournaments.why_correction"))) ?? "";
+      if (!why) return change(() => api.tournamentView(tv.id));
     }
     await change(() => api.tournamentResult(by, tv.id, r, b, value || null, why));
   }
   async function setPlayoff(/** @type {number} */ r, /** @type {number} */ b, /** @type {string} */ value) {
     let why = "";
     if (T.played[r].games[b].playoff !== null) {
-      why = prompt(t("tournaments.why_correction")) ?? "";
-      if (!why.trim()) return change(() => api.tournamentView(tv.id));
+      why = (await whyBox.ask(t("tournaments.why_correction"))) ?? "";
+      if (!why) return change(() => api.tournamentView(tv.id));
     }
     await change(() => api.tournamentPlayoff(by, tv.id, r, b, value === "" ? null : Number(value), why));
   }
   async function pairAgain() {
-    const why = prompt(t("tournaments.why_pair_again"));
-    if (why?.trim()) await change(() => api.tournamentPairAgain(by, tv.id, why));
+    const why = await whyBox.ask(t("tournaments.why_pair_again"));
+    if (why) await change(() => api.tournamentPairAgain(by, tv.id, why));
   }
   function startEdit() {
     const r = T.played[last];
@@ -223,6 +244,7 @@
 {/snippet}
 
 <div class="panel">
+  <Why bind:this={whyBox} />
   <h3>{t("tournaments.title")}</h3>
   {#if !tv}
     {#if club.tournaments.length === 0}<p class="dim">{t("tournaments.none_yet")}</p>{/if}
@@ -278,6 +300,7 @@
         {/if}
       {/if}
       <p class="dim">{t("tournaments.new_hint")}</p>
+      {#if defaults.length}<p class="dim">{t("tournaments.new_tiebreaks", { list: defaults.map((x) => x.name).join(", ") })}</p>{/if}
       <div class="row">
         <button class="primary" disabled={!official}>{t("tournaments.create")}</button>
         <button type="button" disabled={!official} onclick={importBundle}>{t("tournaments.import")}</button>
@@ -290,13 +313,13 @@
         <p class="dim">{[T.date, T.place, T.variant === "chess" ? "" : tv.variant, T.match_to ? t("tournaments.match_of", { points: num(T.match_to) }) : "", tv.system, t("tournaments.progress", { paired: num(T.played.length), rounds: num(T.rounds), players: num(T.players.length) })].filter(Boolean).join(" · ")}</p>
       </div>
       <div class="row">
-        <button onclick={() => (tv = null)}>{t("clubs.close")}</button>
+        <button onclick={() => (tv = null)}>{t("clubs.back", { name: club.name })}</button>
         <button disabled={!director} onclick={remove}>{t("tournaments.remove")}</button>
       </div>
     </div>
     <div class="tabs" role="tablist">
       {#each TABS as id}
-        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => (tab = id)}>{t(`tournaments.tab.${id}`)}</button>
+        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => ((tab = id), (error = note = ""))}>{t(`tournaments.tab.${id}`)}</button>
       {/each}
     </div>
 
@@ -307,7 +330,7 @@
           <button disabled={!official || !T.players.some((/** @type {any} */ p) => p.status === "away")} onclick={() => change(() => api.tournamentCheckInAll(by, tv.id))}>{t("tournaments.check_in_all")}</button>
         </div>
         <div class="scroll">
-          <table>
+          <table class="stack">
             <thead>
               <tr>
                 <th>{t("tournaments.player")}</th><th>{t("clubs.rating")}</th>{#if T.system.kind === "scheveningen"}<th>{t("tournaments.team")}</th>{/if}<th>{t("tournaments.points")}</th><th>{t("tournaments.status")}</th>
@@ -317,16 +340,16 @@
               {#each T.players as p, i (i)}
                 <tr>
                   <td>{p.title ? `${p.title} ` : ""}{p.name}</td>
-                  <td class="num">{p.rating ? num(p.rating) : ""}</td>
+                  <td class="num" data-label={t("clubs.rating")}>{p.rating ? num(p.rating) : "–"}</td>
                   {#if T.system.kind === "scheveningen"}
-                    <td>
+                    <td data-label={t("tournaments.team")}>
                       <select aria-label={t("tournaments.team_of", { name: p.name })} value={p.team} disabled={!official || T.played.length > 0} onchange={(e) => change(() => api.tournamentTeam(by, tv.id, i, Number(e.currentTarget.value)))}>
                         <option value={0}>–</option>
                         {#each [1, 2] as n}<option value={n}>{t("tournaments.team_n", { n })}</option>{/each}
                       </select>
                     </td>
                   {/if}
-                  <td class="num">{tv.points[i]}</td>
+                  <td class="num" data-label={t("tournaments.points")}>{tv.points[i]}</td>
                   <td>
                     <select aria-label={t("tournaments.status_of", { name: p.name })} value={p.status} disabled={!official} onchange={(e) => change(() => api.tournamentStatus(by, tv.id, i, e.currentTarget.value))}>
                       {#each STATUS as s}<option value={s}>{t(`tournaments.status.${s}`)}</option>{/each}
@@ -366,13 +389,19 @@
           </ul>
         {/if}
         <div class="grid">
-          <label>{t("clubs.name")} <input type="text" required bind:value={guest.name} /></label>
+          <label>{t("clubs.name")} <input type="text" required bind:this={guestName} bind:value={guest.name} /></label>
           <label>{t("clubs.rating")} <input type="number" min="0" max="4000" bind:value={guest.rating} /></label>
           <label>{t("clubs.fide_id")} <input type="text" inputmode="numeric" bind:value={guest.fide_id} /></label>
           <label>{t("clubs.federation")} <input type="text" maxlength="3" bind:value={guest.federation} /></label>
         </div>
         <button class="primary" disabled={!official}>{t("tournaments.add_guest")}</button>
+        <p class="dim">{t("tournaments.add_guest_hint")}</p>
       </form>
+      <details>
+        <summary>{t("tournaments.paste")}</summary>
+        <label>{t("tournaments.paste_label")} <textarea rows="6" bind:value={list}></textarea></label>
+        <button disabled={!official || !list.trim()} onclick={addList}>{t("tournaments.paste_add")}</button>
+      </details>
     {:else if tab === "round"}
       <div class="row">
         <button class="primary" disabled={!official || !!tv.blocked} onclick={() => change(() => api.tournamentPair(by, tv.id))}>{t("tournaments.pair", { n: T.played.length + 1 })}</button>
@@ -390,19 +419,30 @@
         {#if edit}
           <form class="edit" onsubmit={keep}>
             <h4>{t("tournaments.change_pairing")}</h4>
-            {#each edit.boards as b, i (i)}
-              <div class="row">
-                <span class="num">{i + 1}</span>
-                <select aria-label={t("tournaments.white_on", { n: i + 1 })} bind:value={b[0]} onchange={() => (warnings = null)}>
-                  <option value={null}>–</option>
-                  {#each T.players as p, k (k)}{#if p.status !== "withdrawn"}<option value={k}>{p.name}</option>{/if}{/each}
-                </select>
-                <select aria-label={t("tournaments.black_on", { n: i + 1 })} bind:value={b[1]} onchange={() => (warnings = null)}>
-                  <option value={null}>–</option>
-                  {#each T.players as p, k (k)}{#if p.status !== "withdrawn"}<option value={k}>{p.name}</option>{/if}{/each}
-                </select>
-              </div>
-            {/each}
+            <table class="pick">
+              <thead>
+                <tr><th>{t("tournaments.board")}</th><th>{t("tournaments.white")}</th><th>{t("tournaments.black")}</th></tr>
+              </thead>
+              <tbody>
+                {#each edit.boards as b, i (i)}
+                  <tr>
+                    <td class="num">{i + 1}</td>
+                    <td>
+                      <select aria-label={t("tournaments.white_on", { n: i + 1 })} bind:value={b[0]} onchange={() => (warnings = null)}>
+                        <option value={null}>–</option>
+                        {#each T.players as p, k (k)}{#if p.status !== "withdrawn"}<option value={k}>{p.name}</option>{/if}{/each}
+                      </select>
+                    </td>
+                    <td>
+                      <select aria-label={t("tournaments.black_on", { n: i + 1 })} bind:value={b[1]} onchange={() => (warnings = null)}>
+                        <option value={null}>–</option>
+                        {#each T.players as p, k (k)}{#if p.status !== "withdrawn"}<option value={k}>{p.name}</option>{/if}{/each}
+                      </select>
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
             <div class="row">
               <button type="button" onclick={() => (edit.boards = [...edit.boards, [null, null]])}>{t("tournaments.add_board")}</button>
               <label for="t-bye">{t("tournaments.bye_label")}</label>
@@ -435,7 +475,7 @@
       {/if}
     {:else if tab === "standings"}
       <div class="scroll">
-        <table>
+        <table class="stack">
           <thead>
             <tr>
               <th>{t("tournaments.rank")}</th><th>{t("tournaments.player")}</th><th>{t("tournaments.points")}</th>
@@ -447,8 +487,8 @@
               <tr>
                 <td class="num">{s.rank}</td>
                 <td>{name(s.player)}</td>
-                <td class="num">{s.points}</td>
-                {#each s.tiebreaks as v}<td class="num">{v}</td>{/each}
+                <td class="num" data-label={t("tournaments.points")}>{s.points}</td>
+                {#each s.tiebreaks as v, k}<td class="num" data-label={tv.tiebreaks[k].code}>{v}</td>{/each}
               </tr>
             {/each}
           </tbody>
@@ -525,7 +565,7 @@
         <p class="dim">{t("clubs.log_empty")}</p>
       {:else}
         <div class="scroll">
-          <table>
+          <table class="stack">
             <thead>
               <tr><th>{t("clubs.when")}</th><th>{t("clubs.who")}</th><th>{t("tournaments.concerns")}</th><th>{t("clubs.change")}</th><th>{t("clubs.why")}</th></tr>
             </thead>
@@ -536,7 +576,7 @@
                   <td>{e.who}</td>
                   <td>{e.member}</td>
                   <td>{t(`tournaments.log.${e.what}`)}: {e.what === "status" ? `${t(`tournaments.status.${e.old}`)} → ${t(`tournaments.status.${e.new}`)}` : `${e.old} → ${e.new}`}</td>
-                  <td>{e.why}</td>
+                  <td data-label={t("clubs.why")}>{e.why}</td>
                 </tr>
               {/each}
             </tbody>
@@ -683,6 +723,11 @@
     td select {
       max-width: 5.5rem;
       padding-inline: 0.3rem;
+    }
+    /* Choosing White and Black needs the names whole: the selects take their columns. */
+    table.pick td select {
+      max-width: none;
+      width: 100%;
     }
   }
   .dim {

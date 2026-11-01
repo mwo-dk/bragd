@@ -224,7 +224,7 @@ mod tests {
             results: None,
         };
         let text = report(&r);
-        assert!(text.contains('7') && text.contains("10") && text.contains("2.0 MB") && text.contains("3.0 kB"), "{text}");
+        assert!(text.contains('7') && text.contains("10") && text.contains("2 MB") && text.contains("3 kB"), "{text}");
         assert_eq!(report(&Report::default()), t!("job.report_nothing"));
     }
 

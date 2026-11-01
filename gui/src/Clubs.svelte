@@ -28,6 +28,14 @@
   /** The rating being set by hand. */
   let rate = $state(/** @type {any} */ (null));
   let system = $state({ value: "glicko2", why: "" });
+  /** The Tournament or League open, which then takes the page: "tournament", "league" or null. */
+  let busy = $state(/** @type {string|null} */ (null));
+  const opened = (/** @type {string} */ what) => (/** @type {boolean} */ open) => {
+    if (open) {
+      busy = what;
+      document.querySelector("main")?.scrollTo?.(0, 0);
+    } else if (busy === what) busy = null;
+  };
 
   const chess = $derived(snap.families.find((/** @type {any} */ f) => f.id === "chess" && f.shown));
   const officials = $derived(club ? club.members.filter((/** @type {any} */ m) => m.role !== "member") : []);
@@ -163,10 +171,11 @@
       <span class="dim">{t("clubs.acting_hint")}</span>
     </div>
 
+    {#if !busy}
     <div class="panel">
       <h3>{t("clubs.members")}</h3>
       <div class="scroll">
-        <table>
+        <table class="stack">
           <thead>
             <tr>
               <th>{t("clubs.name")}</th>
@@ -183,10 +192,10 @@
               <tr>
                 <td>{m.name}</td>
                 <td>{t(`clubs.role.${m.role}`)}</td>
-                <td>{m.fide_id}</td>
-                <td>{m.national_id}{m.federation ? ` (${m.federation})` : ""}</td>
-                <td>{m.lichess}</td>
-                <td class="num">{rating(m)}</td>
+                <td data-label={m.fide_id ? t("clubs.fide_id") : null}>{m.fide_id}</td>
+                <td data-label={m.national_id ? t("clubs.national_id") : null}>{m.national_id}{m.federation ? ` (${m.federation})` : ""}</td>
+                <td data-label={m.lichess ? t("clubs.lichess") : null}>{m.lichess}</td>
+                <td class="num" data-label={t("clubs.rating")}>{rating(m)}</td>
                 <td class="acts">
                   <button disabled={!director} onclick={() => edit(m)}>{t("clubs.edit")}</button>
                   <button disabled={!director} onclick={() => (rate = { id: m.id, name: m.name, value: Math.round(m.rating.rating), why: "" })}>{t("clubs.set_rating")}</button>
@@ -251,7 +260,7 @@
           </label>
           <label>{t("clubs.fide_id")} <input type="text" inputmode="numeric" bind:value={form.fide_id} /></label>
           <label>{t("clubs.national_id")} <input type="text" bind:value={form.national_id} /></label>
-          <label>{t("clubs.federation")} <input type="text" maxlength="3" bind:value={form.federation} placeholder="DEN" /></label>
+          <label>{t("clubs.federation")} <input type="text" maxlength="3" bind:value={form.federation} /></label>
           <label>{t("clubs.lichess")} <input type="text" bind:value={form.lichess} /></label>
         </div>
         {#if form.id === null && start !== null}<p class="dim">{t("clubs.starts_at", { rating: num(start) })}</p>{/if}
@@ -262,8 +271,12 @@
       </form>
     {/if}
 
-    <Tournaments {club} {by} {role} onclub={show} />
-    <Leagues {club} {by} {role} onclub={show} />
+    {/if}
+
+    {#if busy !== "league"}<Tournaments {club} {by} {role} onclub={show} onopen={opened("tournament")} />{/if}
+    {#if busy !== "tournament"}<Leagues {club} {by} {role} onclub={show} onopen={opened("league")} />{/if}
+
+    {#if !busy}
 
     <form class="panel row" onsubmit={(e) => (e.preventDefault(), change(() => api.clubSystem(by, system.value, system.why)))}>
       <label for="club-system">{t("clubs.system")}</label>
@@ -283,7 +296,7 @@
         <p class="dim">{t("clubs.log_empty")}</p>
       {:else}
         <div class="scroll">
-          <table>
+          <table class="stack">
             <thead>
               <tr><th>{t("clubs.when")}</th><th>{t("clubs.who")}</th><th>{t("clubs.role.member")}</th><th>{t("clubs.change")}</th><th>{t("clubs.why")}</th></tr>
             </thead>
@@ -294,7 +307,7 @@
                   <td>{e.who}</td>
                   <td>{e.member}</td>
                   <td>{t(`clubs.log.${e.what}`)}: {e.old} → {e.new}</td>
-                  <td>{e.why}</td>
+                  <td data-label={t("clubs.why")}>{e.why}</td>
                 </tr>
               {/each}
             </tbody>
@@ -302,6 +315,7 @@
         </div>
       {/if}
     </div>
+    {/if}
   {:else if page}
     <div class="panel">
       <h2>{t("clubs.yours")}</h2>

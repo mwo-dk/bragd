@@ -130,6 +130,24 @@ pub struct Player {
     pub team: u8,
 }
 
+impl Player {
+    /// Guests pasted as a list, one a line: a name, then a rating if there is one, after a
+    /// space, tab, comma or semicolon (`Carlsen, Magnus\t2830`). Blank lines are skipped.
+    pub fn list(text: &str) -> Vec<Player> {
+        let seps = |c: char| c.is_whitespace() || c == ',' || c == ';';
+        text.lines()
+            .filter_map(|line| {
+                let line = line.trim();
+                let (name, rating) = match line.rsplit_once(seps) {
+                    Some((name, last)) if !last.is_empty() && last.chars().all(|c| c.is_ascii_digit()) => (name.trim_end_matches(seps), last.parse().ok()?),
+                    _ => (line, 0),
+                };
+                (!name.is_empty()).then(|| Player { name: name.into(), rating, ..Player::default() })
+            })
+            .collect()
+    }
+}
+
 /// The result of a game.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -639,6 +657,9 @@ impl Tournament {
         if (!self.played.is_empty() || self.system.swiss()) && self.played.len() as u32 >= self.rounds {
             return Err(Error::Invalid("tournaments.error.over"));
         }
+        if self.played.is_empty() && matches!(self.system, System::Scheveningen { .. }) {
+            self.first_seeds()?;
+        }
         Ok(())
     }
 
@@ -797,6 +818,20 @@ impl Tournament {
         // Judge it against the Round as it was before this pairing.
         let before = Tournament { played: self.played[..r].to_vec(), ..self.clone() };
         let name = |p: usize| self.players[p].name.clone();
+        // Who meet again, and a second bye: named for every Swiss, as no Swiss allows them.
+        if self.system.swiss() {
+            let met = |a: usize, b: usize| (0..r).any(|k| matches!(self.slot(k, a), Slot::Played { opponent, .. } if opponent == b));
+            let again: Vec<(String, String)> = pairs.iter().filter(|&&(w, b)| met(w, b)).map(|&(w, b)| (name(w), name(b))).collect();
+            if !again.is_empty() {
+                warnings.push(Warning::Rematch { boards: again });
+            }
+            if let Some(p) = bye
+                && (0..r).any(|k| self.slot(k, p) == Slot::PairingBye)
+            {
+                warnings.push(Warning::SecondBye { player: name(p) });
+            }
+        }
+        let named = warnings.iter().any(|w| matches!(w, Warning::Rematch { .. } | Warning::SecondBye { .. }));
         match self.system {
             System::Dutch { .. } => {
                 let order = self.seeding();
@@ -811,6 +846,8 @@ impl Tournament {
                 match dutch::assess(&self.settings(&order, &self.seeds), &players, &present, &boards) {
                     Ok(dutch::Verdict::Same | dutch::Verdict::Better { .. }) => {}
                     Ok(dutch::Verdict::Colours(bs)) => warnings.push(Warning::Colours { boards: bs.iter().map(|b| (at(b.white), at(b.black))).collect() }),
+                    // A rematch or second bye named above is the broken rule; say it once.
+                    Ok(dutch::Verdict::Illegal { .. }) if named => {}
                     Ok(dutch::Verdict::Illegal { bracket }) => warnings.push(Warning::Illegal { score: bracket }),
                     Ok(dutch::Verdict::Worse { bracket, criterion: c }) => warnings.push(Warning::Worse { score: bracket, criterion: criterion(c).into() }),
                     Ok(dutch::Verdict::GeneratedLater { bracket }) => warnings.push(Warning::Order { score: bracket }),
@@ -819,18 +856,7 @@ impl Tournament {
                     Err(e) => return Err(pairing_error(e)),
                 }
             }
-            System::Monrad | System::Nordic | System::DropIn { .. } => {
-                let met = |a: usize, b: usize| (0..r).any(|k| matches!(self.slot(k, a), Slot::Played { opponent, .. } if opponent == b));
-                let again: Vec<(String, String)> = pairs.iter().filter(|&&(w, b)| met(w, b)).map(|&(w, b)| (name(w), name(b))).collect();
-                if !again.is_empty() {
-                    warnings.push(Warning::Rematch { boards: again });
-                }
-                if let Some(p) = bye
-                    && (0..r).any(|k| self.slot(k, p) == Slot::PairingBye)
-                {
-                    warnings.push(Warning::SecondBye { player: name(p) });
-                }
-            }
+            System::Monrad | System::Nordic | System::DropIn { .. } => {}
             System::RoundRobin { .. } | System::Knockout | System::Scheveningen { .. } => {
                 let (ours, our_bye) = before.propose()?;
                 let mut a: Vec<_> = pairs.to_vec();
@@ -1210,8 +1236,8 @@ mod tests {
         let r = &t.played[1];
         let ours: Vec<_> = r.games.iter().map(|g| (g.white, g.black)).collect();
         assert_eq!(t.check(&ours, None).unwrap(), []);
-        // A rematch is illegal.
-        assert!(matches!(t.check(&[(b, a), (c, d)], None).unwrap()[..], [Warning::Illegal { .. }]));
+        // A rematch is illegal, and the warning names who meet again.
+        assert_eq!(t.check(&[(b, a), (c, d)], None).unwrap(), [Warning::Rematch { boards: vec![("Bo".into(), "Anna".into()), ("Carl".into(), "Dan".into())] }]);
         // Players twice, or a reason missing, cannot stand at all.
         assert_eq!(t.check(&[(a, b), (a, c)], None), Err(Error::Invalid("tournaments.error.twice")));
         assert_eq!(t.set_pairing("Mette", &[(b, a), (c, d)], None, ""), Err(Error::Invalid("clubs.error.why")));
@@ -1411,6 +1437,10 @@ mod tests {
         assert_eq!(t.can_pair(), Err(Error::Invalid("tournaments.error.playoff")));
         assert_eq!(t.set_playoff("Mette", 0, 0, Some(a), ""), Err(Error::Invalid("tournaments.error.playoff_player")));
         t.set_playoff("Mette", 0, 0, Some(e), "").unwrap();
+        // The four still in share first place; Dan, out in Round 1, comes after them.
+        let ranks: Vec<(usize, u32)> = tiebreak::standings(&t).iter().map(|s| (s.player, s.rank)).collect();
+        assert_eq!(ranks.iter().filter(|x| x.1 == 1).count(), 4, "{ranks:?}");
+        assert_eq!(ranks.last(), Some(&(d, 5)));
         t.pair_next().unwrap();
         // Round 2: 1 meets the winner of 4-5, 2 meets 3.
         let mut met: Vec<(usize, usize)> = t.played[1].games.iter().map(|g| (g.white.min(g.black), g.white.max(g.black))).collect();
@@ -1419,6 +1449,13 @@ mod tests {
         assert_eq!(t.set_playoff("Mette", 0, 0, Some(d), "wrong sheet"), Err(Error::Invalid("tournaments.error.knockout_settled")));
         assert_eq!(t.set_result("Mette", 0, 0, Some(Outcome::White), "x").is_ok(), t.played[0].games[0].white == e, "only a result keeping Eva through stands");
         assert_eq!(Tournament::new("K", System::Knockout, 0, "").unwrap().tiebreaks, []);
+    }
+
+    #[test]
+    fn a_pasted_list_gives_a_guest_a_line_with_the_rating_at_its_end() {
+        let got: Vec<(String, u32)> = Player::list("Bo Kjær 2105\n\n  Carlsen, Magnus\t2830\nAnna Lind;1980\nEva Ravn\nJens Moe, 1760 \n2020").into_iter().map(|p| (p.name, p.rating)).collect();
+        let want: Vec<(String, u32)> = [("Bo Kjær", 2105), ("Carlsen, Magnus", 2830), ("Anna Lind", 1980), ("Eva Ravn", 0), ("Jens Moe", 1760), ("2020", 0)].map(|(n, r)| (n.to_string(), r)).into();
+        assert_eq!(got, want);
     }
 
     #[test]
@@ -1467,6 +1504,7 @@ mod tests {
     fn a_scheveningen_needs_two_equal_teams_and_meets_each_with_the_other() {
         let mut t = field(System::Scheveningen { double: false }, 0, &[("Anna", 2100, 1), ("Bo", 1900, 2), ("Carl", 2000, 1)]);
         assert_eq!(t.pair_next(), Err(Error::Invalid("tournaments.error.teams")));
+        assert_eq!(t.can_pair(), Err(Error::Invalid("tournaments.error.teams")), "said beside the Pair button");
         assert!(t.seeds.is_empty());
         let mut t = field(System::Scheveningen { double: true }, 0, &FOUR);
         t.pair_next().unwrap();

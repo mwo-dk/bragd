@@ -2,7 +2,7 @@
 
 # Sources
 
-A Source is where Games come from, such as The Week in Chess. When a Source is on, the [Helper](helper.md) fetches it on its schedule and imports its Games through its Routes: into `main.bragd` unless you add others. Every Source is off until you turn it on, and its size per fetch is shown before it downloads anything. You can also add any address of a game file as a custom URL Source, and remove it again.
+A Source is where Games come from, such as The Week in Chess. When a Source is on, the [Helper](helper.md) fetches it on its schedule and imports its Games through its Routes: into `main.bragd` unless you add others. Every Source is off until you turn it on, and its size per fetch and schedule, such as *about 1.5 MB a week*, is shown before it downloads anything. You can also add any address of a game file as a custom URL Source, and remove it again.
 
 ![The Sources tab for chess: The Week in Chess with its size, last fetch, Options and Fetch now, the big Sources greyed out with their notice, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
 *Databases → Sources.*
@@ -114,7 +114,7 @@ Into the Helper's folder, `<data>/bragd/helper/sources/<source>/`, one folder pe
 
 #### Why does a Source ask before a big download?
 
-![A custom URL Source whose next download is 3.4 GB, more than its limit of 2.0 GB, with Download it anyway](../screenshots/sources-too-big-1100.png)
+![A custom URL Source whose next download is 3.4 GB, more than its limit of 2 GB, with Download it anyway](../screenshots/sources-too-big-1100.png)
 
 Each download may take at most 2 GB, or what you set as *Largest download*. When the server says a file is bigger, nothing is downloaded. The Source's line then says how big it is, with **Download it anyway**, and a notice says so. Your yes covers that one download, and the limit applies again after it. When the server does not say how big a file is, the download stops as it passes the limit. Raise *Largest download* to take it.
 

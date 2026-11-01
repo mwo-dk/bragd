@@ -4,10 +4,10 @@
 
 A Club runs its own Tournaments, in any of nine pairing systems: a Swiss by FIDE's Dutch rules (with Baku acceleration if you like), Monrad, the Nordic Swiss, a Drop-in, a single or double round-robin, a knockout, or a single or double Scheveningen between two teams. On the night you check players in, pair the Round, show the pairings on a second screen, enter the results and publish the standings. A director can change any pairing. Bragd says which rules the change breaks and keeps it in the Tournament's log with the reason. Players level on points are ordered by FIDE's tiebreaks, in the order you choose. A Tournament is kept in its Club's file, so a copy of the Club carries its Tournaments. In F1 → Features this is the entry `tournaments`.
 
-![The Rounds tab of a Tournament: Round 1 with its boards and results, the buttons Show on a second screen, Change the pairing and Pair again](../screenshots/tournaments-1100.png)
+![A Tournament open, taking the Clubs page: Back to the Club, the Rounds tab with Round 2's boards and results, and the buttons Show on a second screen, Change the pairing and Pair again](../screenshots/tournaments-1100.png)
 *A Tournament open on its Rounds tab.*
 
-![The Standings tab at 390 px: places, points and the tiebreak columns, then the list of tiebreaks](../screenshots/tournaments-390.png)
+![The Standings tab at 390 px, a block a player: place, name, points and each tiebreak, then the list of tiebreaks](../screenshots/tournaments-390.png)
 *The standings at 390 px.*
 
 ![The New Tournament form at 1100 px with Drop-in chosen: its one-line explanation below the picker, and Standings by Percentage of points](../screenshots/tournaments-new-1100.png)
@@ -41,7 +41,7 @@ A Club runs its own Tournaments, in any of nine pairing systems: a Swiss by FIDE
 | **Open a bundle…** | Adds the Tournament in a `.bragd-tournament` bundle to the open Club |
 | **Delete Tournament** | Deletes it with its Rounds and results, after asking |
 
-A Tournament has five tabs: **Players**, **Rounds**, **Standings**, **Publish and export** and **Log**.
+An open Tournament takes the Clubs page: the members, the Leagues and the audit log fold away until **Back to** *the Club* brings them back. A Tournament has five tabs: **Players**, **Rounds**, **Standings**, **Publish and export** and **Log**. On a narrow window the tables of players, standings and the log show a block a row, each value under its column's name.
 
 ## Pairing systems
 
@@ -91,7 +91,7 @@ The Variant and these options are set when the Tournament is created and cannot 
 
 | Step | Where | What you do |
 |---|---|---|
-| Register | Players | Pick a **Club member**, or find a **Guest from a rating list** by name or ID, or type a guest in. **Check them in at once** checks a player in as they are added |
+| Register | Players | Pick a **Club member**, or find a **Guest from a rating list** by name or ID, or type a guest in. Enter adds the guest and puts you back in **Name**, so a field of players can be typed straight in. **Paste a list of guests** takes a list a line a player, the rating at the end of the line. **Check them in at once** checks a player in as they are added |
 | Check in | Players | Set each player's **Status**: *Checked in*, *Not here*, *Half-point bye next Round* or *Withdrawn*. **Check in everyone** checks in all who are *Not here* |
 | Pair | Rounds | **Pair Round N**. It is greyed out, with the reason beside it, until every result of the last Round is in |
 | Show | Rounds | **Show on a second screen** opens the pairings in large type in a window of their own. Drag it to a projector or print it from there |
@@ -108,7 +108,7 @@ A Swiss gives the player left over a bye worth a point. A round-robin fixes ever
 
 | System | What the check compares |
 |---|---|
-| Swiss (FIDE Dutch) | Every criterion of the Dutch rules, as below |
+| Swiss (FIDE Dutch) | Players who meet again and a second bye, named, then every criterion of the Dutch rules, as below |
 | Monrad, Nordic Swiss, Drop-in | Players who meet again, a second bye, and players left out. In Monrad and the Nordic Swiss meeting again is never allowed; in a Drop-in it is allowed but put off |
 | Round-robin | The Berger table's pairing for the Round |
 | Knockout | The bracket's pairing for the Round |
@@ -118,22 +118,22 @@ The warnings:
 
 | Warning | Meaning |
 |---|---|
-| Breaks an absolute rule | Two players meet again, someone gets a second bye, or the rest of the Round cannot be paired |
+| Breaks an absolute rule | In a Swiss (FIDE Dutch), the rest of the Round cannot be paired as the boards stand |
 | The rules' pairing does better on … | Legal, but worse on one of the Dutch system's criteria, C5 to C21, named in words |
 | The rules take another one first | As good on every criterion, but not the one the rules choose |
 | Colours differ from the rules | The same pairs, with colours the other way on the boards named |
 | Not the Berger table's pairing | In a round-robin, the boards differ from the table |
 | Not the knockout bracket's pairing | In a knockout, the boards differ from the bracket |
 | Not the Scheveningen schedule's pairing | In a Scheveningen, the boards differ from the schedule |
-| These players have met before | In Monrad, the Nordic Swiss or a Drop-in, the pairs named have played each other already |
-| … has had a bye already | In Monrad, the Nordic Swiss or a Drop-in, the bye goes to a player who had one |
+| These players have met before | In a Swiss of any kind, the pairs named have played each other already |
+| … has had a bye already | In a Swiss of any kind, the bye goes to a player who had one |
 | … is checked in but not paired | Someone who is here has no board |
 
 You can keep a pairing with warnings. **Keep this pairing** needs a reason, and the log keeps the old pairing, the new one, the warnings and the reason.
 
 ## Results and corrections
 
-A result entered for the first time is not logged. Changing a result that is already there asks why, and the log keeps the old and new result with the reason. Earlier Rounds are under the current one, folded; open one to correct it.
+A result entered for the first time is not logged. Changing a result that is already there asks why in a box over the page: type the reason and press Enter, or Escape to leave the result as it was. The log keeps the old and new result with the reason. **Pair again** asks for its reason the same way. Earlier Rounds are under the current one, folded; open one to correct it.
 
 ## Tiebreaks
 
@@ -157,7 +157,7 @@ The **Standings** tab ranks players by points, then by the first tiebreak, then 
 | TPR | Performance rating |
 | RTNG | The player's own rating |
 
-A new Tournament starts with the Danish Chess Union's defaults (EMT rules, §24): a Swiss, Monrad and the Nordic Swiss use *almindelig korrektion*, which is BH-C2, then BH-C1, then BH; a round-robin uses SB. A Scheveningen uses SB too, since everyone in a team meets the same opponents and Buchholz cannot tell them apart. A knockout and a Drop-in start with none: a knockout ranks by how far a player went, and a Drop-in by its own standings.
+A new Tournament names the tiebreaks it starts with under the form. They are the Danish Chess Union's defaults (EMT rules, §24): a Swiss, Monrad and the Nordic Swiss use *almindelig korrektion*, which is BH-C2, then BH-C1, then BH; a round-robin uses SB. A Scheveningen uses SB too, since everyone in a team meets the same opponents and Buchholz cannot tell them apart. A knockout and a Drop-in start with none: a knockout ranks by how far a player went, the players still in first and then by the Round they went out in, and a Drop-in by its own standings.
 
 In a Swiss, Monrad, Nordic Swiss or Drop-in, rounds a player did not play count as C.07 Article 16 says. For an opponent's Buchholz, a player's byes or absences that are followed only by more of them count as draws. For a player's own Buchholz, each unplayed Round counts as a game against an opponent with the player's own score, but at most a draw a Round, or the scheduled opponent's score for a forfeit. Cutting the lowest value cuts a Round the player chose not to play first. In a round-robin, forfeits count as games. The rating tiebreaks leave unrated opponents out.
 

@@ -429,7 +429,16 @@ pub fn standings(t: &Tournament) -> Vec<Standing> {
         System::DropIn { standings } => (upto.drop_in_points(standings), standings == DropIn::Percentage),
         _ => (table.score.iter().map(|&s| (s, done as u32)).collect(), false),
     };
+    // A knockout ranks by how far a player went: the Round they went out in, those still in first.
+    let reach: Option<Vec<usize>> = (t.system == System::Knockout).then(|| {
+        (0..n)
+            .map(|p| upto.played.iter().position(|r| r.games.iter().any(|g| (g.white == p || g.black == p) && g.winner() != Some(p))).unwrap_or(done + 1))
+            .collect()
+    });
     let better = |a: usize, b: usize| {
+        if let Some(reach) = &reach {
+            return reach[b].cmp(&reach[a]);
+        }
         let ((pa, ra), (pb, rb)) = (primary[a], primary[b]);
         if !percentage {
             return pb.cmp(&pa);

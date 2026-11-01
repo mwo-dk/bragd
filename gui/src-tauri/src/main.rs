@@ -398,6 +398,8 @@ fn main() {
             leagues::league_result,
             tournaments::tournament_remove,
             tournaments::tournament_register,
+            tournaments::tournament_register_list,
+            tournaments::tournament_defaults,
             tournaments::tournament_status,
             tournaments::tournament_check_in_all,
             tournaments::tournament_pair,
