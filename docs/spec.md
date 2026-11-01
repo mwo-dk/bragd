@@ -118,6 +118,25 @@ How engines run:
   - Sign-in is per server over OAuth. Tokens are kept in the OS keychain.
   - Analysis is locked while a rated game against a person is live.
 - **Phase 2:** our own Rust game server, as a container on our host, for the Families nobody else hosts. It brings ratings and tournaments, and Bragd's rules crates are authoritative on it.
+- **Chat on Lichess (1.0.0):** a Lichess Game's chat, through the Lichess API, with Lichess's own rules. Lichess Games get no Call: the opponent may not be using Bragd.
+
+## Playing together (1.1.0)
+
+Two Bragd players on the Bragd server can Chat and Call during a Game.
+
+- **Bragd server:** a docker compose of its own with Caddy on the Hetzner host, not the pine-z instance. It holds accounts and Friends, runs Games between Bragd players, and brings Calls together with a signalling service and STUN/TURN (coturn).
+- **Media:** a Call's voice and camera go directly between the two machines, encrypted end to end (WebRTC, DTLS-SRTP). When no direct path exists, TURN relays the encrypted packets and cannot read them.
+- **Consent:** Chat, voice and camera each open only when both Players say yes.
+  - All are off by default. Settings holds a default for each: *Ask me* or *Off*.
+  - In a Game, a request shows as "Anna would like voice: Allow / Not now".
+  - Either Player can close a channel at any time, which closes it for both.
+  - A clear indicator shows while your camera or microphone is live.
+  - Nothing is recorded. A Chat is kept with the Game only if both agree.
+- **Friends:** both players accept, by an invite or a request. A setting counts the members of your Clubs as Friends.
+  - Blocking hides a player and refuses their requests. Reporting goes to the Bragd server's operator.
+- **Strangers:** a Call is only ever between Friends. A Chat with a stranger opens if both agree, with a word filter you can turn off.
+- **In Bragd:** the webview's own WebRTC handles the camera, microphone and media. Rust decides who may call and holds the consent, the server connection and the signalling. Svelte draws the tiles and controls.
+  - On Linux this needs GStreamer's WebRTC plugins: the Flatpak runtime has them, and the .deb, .rpm and AppImage list them.
 
 ## First run and upgrades
 

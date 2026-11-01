@@ -83,6 +83,24 @@ _Avoid_: skin, style
 The four colours of a board: light square, dark square, highlight and marker. It is chosen independently of the Theme, or set to match it. It never controls how a board is built, because that belongs to the Game family.
 _Avoid_: board colour, board skin
 
+### Playing together
+
+**Chat**:
+Text messages between the two Players of a Game, open only when both agree.
+_Avoid_: message, conversation
+
+**Call**:
+Voice, camera or both between two Players who are Friends, during a Game, open only when both agree. Nothing of it is recorded.
+_Avoid_: video, stream, meeting
+
+**Friend**:
+Another player on the Bragd server whom you both accepted. Members of your Clubs can count as Friends.
+_Avoid_: contact, buddy
+
+**Bragd server**:
+The server Bragd's makers run for accounts, Friends, Games between Bragd players, and bringing Calls together.
+_Avoid_: backend, cloud, lobby
+
 ### Clubs and competition
 
 **Club**:
