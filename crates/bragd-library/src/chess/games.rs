@@ -687,10 +687,14 @@ impl Table {
 
     /// `open`, with limits of its own.
     pub fn open_with(path: &Path, limits: Limits) -> io::Result<Table> {
+        Table::start(path, limits, Arc::new(AtomicBool::new(false)))
+    }
+
+    /// `open_with`, heeding `stop` from the start: a test sets it before the thread runs.
+    fn start(path: &Path, limits: Limits, stop: Arc<AtomicBool>) -> io::Result<Table> {
         let size = std::fs::metadata(path)?.len();
         let read = Arc::new(AtomicU64::new(0));
         let shared = Arc::new(Mutex::new(Shared::default()));
-        let stop = Arc::new(AtomicBool::new(false));
         let source = Mutex::new(Source { path: path.to_path_buf(), open: None });
         if super::scid::is_scid(path) {
             let base = Arc::new(super::scid::Base::open(path)?);
@@ -1182,7 +1186,8 @@ mod tests {
 
     /// A file opened in place unpacks as far as an import may (`knowledge.max_unpack_ratio`),
     /// whatever its size: a bomb stops at the ratio with the games read so far, a raised ratio
-    /// reads it whole, and a stop is heard while the blank bytes unpack.
+    /// reads it whole, and a stop is heard while the blank bytes unpack (set before the read
+    /// starts, so no thread can finish first).
     #[test]
     fn an_open_file_stops_at_the_unpacking_ratio() {
         let d = tempdir::Dir::new();
@@ -1212,9 +1217,7 @@ mod tests {
         let whole = Limits { ratio: u64::MAX, ..Limits::default() };
         let p2 = wait(&Table::open_with(&p, whole).unwrap());
         assert_eq!((p2.games, p2.error, p2.read), (1000, None, bytes.len() as u64));
-        let t = Table::open_with(&p, whole).unwrap();
-        t.stop.store(true, Ordering::Relaxed);
-        let p3 = wait(&t);
+        let p3 = wait(&Table::start(&p, whole, Arc::new(AtomicBool::new(true))).unwrap());
         assert_eq!(p3.error.as_deref(), Some("stopped"));
         assert!(p3.read < bytes.len() as u64, "{p3:?}");
     }
