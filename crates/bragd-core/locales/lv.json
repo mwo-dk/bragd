@@ -1578,7 +1578,7 @@
  "feature.commentary.q1": "Vai tas var izdomāt?",
  "feature.commentary.a1": "Tam dod tikai to, ko glabā pozīciju krātuve: pozīciju, gājienu, novērtējumu ar tā otro rindu un anotāciju. Tam liek neko nepiebilst, un tas ir atzīmēts kā mašīnrakstīts, ar savu modeli.",
  "feature.commentary.q2": "Vai tas raksta par katru gājienu?",
- "feature.commentary.a2": "Nē. Tikai tad, kad Analīzē nospiežat Skaidrojums vai blakus pārskatītam gājienam.",
+ "feature.commentary.a2": "Nē. Tikai tad, kad Analīzē nospiežat Skaidrojums vai blakus pārskatītam gājienam, vai Rakstīt skaidrojumu atlasei, kas vispirms parāda, cik gājienu tas ir.",
  "feature.commentary.q3": "Vai tas tiek saglabāts?",
  "feature.commentary.a3": "Jā. Tas tiek glabāts pa valodām pozīciju krātuvē, un jūsu līdzinieki to saņem nākamajā sinhronizācijā.",
  "feature.commentary.tip": "Pārskatījāt partiju? Nospiediet Skaidrojums blakus gājienam, lai to izskaidrotu jūsu valodā.",
@@ -1734,5 +1734,16 @@
  "tour.ogs.title": "Spēlēt OGS",
  "tour.ogs.text": "Go Spēlēt → Spēlēt OGS spēlē online-go.com no Bragd dēļa: meklējiet partiju vai atbildiet uz izaicinājumu, izlaidiet gājienu un pieņemiet OGS skaitīto rezultātu.",
  "format.newer": "{file} ir rakstījis jaunāks Bragd. Lai to atvērtu, atjauniniet Bragd. Fails paliek nemainīts.",
- "format.unknown": "{file} ir formātā, ko šis Bragd nevar nolasīt (versija {version}). Fails paliek nemainīts."
+ "format.unknown": "{file} ir formātā, ko šis Bragd nevar nolasīt (versija {version}). Fails paliek nemainīts.",
+ "job.slice_commentary": "Atrast {slice} gājienus skaidrojumam valodā {language}",
+ "commentary.slice.action": "Rakstīt Skaidrojumu",
+ "commentary.slice.action_hint": "Ļaut valodas modelim skaidrot šīs atlases gājienus, ko pārskatījis dzinējs",
+ "commentary.slice.counting": "Skaita pārskatītos gājienus…",
+ "commentary.slice.none": "Neviens pārskatīts {name} gājiens negaida skaidrojumu jūsu valodā. Vispirms pārskatiet tā partijas Analīzē.",
+ "commentary.slice.ask": {
+  "one": "Modelis rakstītu skaidrojumu: {n} pārskatīts gājiens no {name}. Katrs gājiens prasa dažas sekundes. Rakstīt?",
+  "other": "Modelis rakstītu skaidrojumus: {n} pārskatīti gājieni no {name}. Katrs gājiens prasa dažas sekundes. Rakstīt?",
+  "zero": "Modelis rakstītu skaidrojumus: {n} pārskatītu gājienu no {name}. Katrs gājiens prasa dažas sekundes. Rakstīt?"
+ },
+ "commentary.slice.write": "Rakstīt"
 }

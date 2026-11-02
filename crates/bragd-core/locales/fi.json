@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Voiko se keksiä asioita?",
  "feature.commentary.a1": "Sille annetaan vain se, mitä asemavarasto pitää: asema, siirto, arvio toisella rivillään ja merkinnät. Sille kerrotaan, ettei se lisää mitään, ja teksti merkitään koneellisesti kirjoitetuksi mallin nimen kanssa.",
  "feature.commentary.q2": "Kirjoittaako se jokaisesta siirrosta?",
- "feature.commentary.a2": "Ei. Vain kun painat Selostus-painiketta Analyysissä tai tarkistetun siirron vierestä.",
+ "feature.commentary.a2": "Ei. Vain kun painat Selostus-painiketta Analyysissä tai tarkistetun siirron vierestä, tai painat Kirjoita selostus leikkaukselle, joka ensin näyttää siirtojen määrän.",
  "feature.commentary.q3": "Tallennetaanko se?",
  "feature.commentary.a3": "Kyllä. Sitä säilytetään kielittäin asemavarastossa, ja vertaisesi saavat sen seuraavassa synkronoinnissa.",
  "feature.commentary.tip": "Oletko tarkistanut pelin? Paina siirron vierestä Selostus-painiketta, niin se selitetään kielelläsi.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Pelaa OGS:ssä",
  "tour.ogs.text": "Gon Pelaa → Pelaa OGS:ssä pelaa sivustolla online-go.com Bragdin laudalta: etsi peli tai vastaa haasteeseen, passaa ja hyväksy OGS:n laskema pistetilanne.",
  "format.newer": "{file} on kirjoittanut uudempi Bragd. Päivitä Bragd, jotta voit avata sen. Tiedosto jätetään ennalleen.",
- "format.unknown": "{file} on muodossa, jota tämä Bragd ei osaa lukea (versio {version}). Tiedosto jätetään ennalleen."
+ "format.unknown": "{file} on muodossa, jota tämä Bragd ei osaa lukea (versio {version}). Tiedosto jätetään ennalleen.",
+ "job.slice_commentary": "Etsi {slice}-leikkauksen siirrot selostukseen kielellä {language}",
+ "commentary.slice.action": "Kirjoita selostus",
+ "commentary.slice.action_hint": "Anna kielimallin selostaa tämän leikkauksen siirrot, jotka moottori on tarkistanut",
+ "commentary.slice.counting": "Lasketaan tarkistettuja siirtoja…",
+ "commentary.slice.none": "Yksikään tarkistettu siirto leikkauksessa {name} ei odota selostusta omalla kielelläsi. Tarkista ensin pelit Analyysissä.",
+ "commentary.slice.ask": {
+  "one": "Malli kirjoittaisi selostuksen {n} tarkistettuun siirtoon leikkauksessa {name}. Jokainen siirto vie muutaman sekunnin. Kirjoitetaanko?",
+  "other": "Malli kirjoittaisi selostuksen {n} tarkistettuun siirtoon leikkauksessa {name}. Jokainen siirto vie muutaman sekunnin. Kirjoitetaanko?"
+ },
+ "commentary.slice.write": "Kirjoita"
 }

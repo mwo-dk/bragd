@@ -1578,7 +1578,7 @@
  "feature.commentary.q1": "Může si něco vymýšlet?",
  "feature.commentary.a1": "Dostane jen to, co drží Úložiště pozic: pozici, tah, hodnocení s jeho druhým řádkem a anotaci. Je mu řečeno, aby nic nepřidával, a je označen jako strojově napsaný, s uvedením svého modelu.",
  "feature.commentary.q2": "Píše o každém tahu?",
- "feature.commentary.a2": "Ne. Jen když stisknete Výklad v Analýze, nebo vedle zhodnoceného tahu.",
+ "feature.commentary.a2": "Ne. Jen když stisknete Výklad v Analýze, vedle zhodnoceného tahu, nebo Napsat Výklad u výběru, který nejprve ukáže počet tahů.",
  "feature.commentary.q3": "Ukládá se?",
  "feature.commentary.a3": "Ano. Ukládá se po jazycích do Úložiště pozic a vaši Partneři ho dostanou při příští synchronizaci.",
  "feature.commentary.tip": "Zhodnotili jste partii? Stiskněte Výklad vedle tahu, aby vám ho vysvětlil ve vašem jazyce.",
@@ -1734,5 +1734,16 @@
  "tour.ogs.title": "Hrát na OGS",
  "tour.ogs.text": "V go Hra → Hrát na OGS hraje na online-go.com na šachovnici Bragdu: hledejte partii nebo přijměte výzvu, passujte a přijměte skóre, které počítá OGS.",
  "format.newer": "{file} zapsal novější Bragd. Pro otevření aktualizujte Bragd. Soubor zůstane beze změny.",
- "format.unknown": "{file} má formát, který tento Bragd nedokáže číst (verze {version}). Soubor zůstane beze změny."
+ "format.unknown": "{file} má formát, který tento Bragd nedokáže číst (verze {version}). Soubor zůstane beze změny.",
+ "job.slice_commentary": "Najít tahy z {slice} pro Výklad v jazyce {language}",
+ "commentary.slice.action": "Napsat Výklad",
+ "commentary.slice.action_hint": "Nechat jazykový model vysvětlit tahy tohoto výběru, které engine zhodnotil",
+ "commentary.slice.counting": "Počítají se zhodnocené tahy…",
+ "commentary.slice.none": "Žádný zhodnocený tah z {name} nečeká na Výklad ve vašem jazyce. Nejprve zhodnoťte jeho partie v Analýze.",
+ "commentary.slice.ask": {
+  "one": "Model by napsal Výklad k {n} zhodnocenému tahu z {name}. Každý tah trvá několik sekund. Napsat?",
+  "few": "Model by napsal Výklady k {n} zhodnoceným tahům z {name}. Každý tah trvá několik sekund. Napsat?",
+  "other": "Model by napsal Výklady k {n} zhodnoceným tahům z {name}. Každý tah trvá několik sekund. Napsat?"
+ },
+ "commentary.slice.write": "Napsat"
 }

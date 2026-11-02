@@ -1578,7 +1578,7 @@
  "feature.commentary.q1": "Può inventare cose?",
  "feature.commentary.a1": "Riceve solo ciò che contiene l'archivio delle posizioni: la posizione, la mossa, la valutazione con la sua seconda riga e le annotazioni. Gli viene detto di non aggiungere nulla, e il testo è etichettato come scritto automaticamente, con il suo modello.",
  "feature.commentary.q2": "Scrive su ogni mossa?",
- "feature.commentary.a2": "No. Solo quando premi Spiegazione in Analisi, o accanto a una mossa rivista.",
+ "feature.commentary.a2": "No. Solo quando premi Spiegazione in Analisi, accanto a una mossa rivista, o Scrivi Spiegazione per una selezione, che prima dice quante mosse sono.",
  "feature.commentary.q3": "Viene conservata?",
  "feature.commentary.a3": "Sì. Viene conservata per lingua nell'archivio delle posizioni, e i tuoi Peer la ricevono alla sincronizzazione successiva.",
  "feature.commentary.tip": "Hai rivisto una partita? Premi Spiegazione accanto a una mossa per farla spiegare nella tua lingua.",
@@ -1734,5 +1734,16 @@
  "tour.ogs.title": "Gioca su OGS",
  "tour.ogs.text": "Gioca → Gioca su OGS per il go: gioca su online-go.com dalla scacchiera di Bragd. Cerca una partita o rispondi a una sfida, passa, e accetta il punteggio che conta OGS.",
  "format.newer": "{file} è stato scritto da una versione più recente di Bragd. Aggiorna Bragd per aprirlo. Il file resta invariato.",
- "format.unknown": "{file} ha un formato che questo Bragd non sa leggere (versione {version}). Il file resta invariato."
+ "format.unknown": "{file} ha un formato che questo Bragd non sa leggere (versione {version}). Il file resta invariato.",
+ "job.slice_commentary": "Trova le mosse di {slice} per la Spiegazione in {language}",
+ "commentary.slice.action": "Scrivi Spiegazione",
+ "commentary.slice.action_hint": "Fai spiegare al modello linguistico le mosse di questa selezione che il motore ha rivisto",
+ "commentary.slice.counting": "Conto le mosse riviste…",
+ "commentary.slice.none": "Nessuna mossa rivista di {name} attende la Spiegazione nella tua lingua. Prima analizza le sue partite in Analisi.",
+ "commentary.slice.ask": {
+  "one": "Il modello scriverebbe la Spiegazione di {n} mossa rivista di {name}. Richiede alcuni secondi a mossa. Scriverla?",
+  "many": "Il modello scriverebbe le Spiegazioni di {n} mosse riviste di {name}. Richiede alcuni secondi a mossa. Scriverle?",
+  "other": "Il modello scriverebbe le Spiegazioni di {n} mosse riviste di {name}. Richiede alcuni secondi a mossa. Scriverle?"
+ },
+ "commentary.slice.write": "Scrivi"
 }

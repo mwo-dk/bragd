@@ -53,6 +53,10 @@ pub enum Work {
     /// language model from `facts`, which the asking machine gathered from its Position store:
     /// a Peer needs nothing else. Kept in this machine's Position store, which its Peers sync.
     Commentary { family: String, variant: String, key: u64, mv: String, language: String, facts: String },
+    /// *Write Commentary* for a Slice: the facts of each judged move of its Games of `family`
+    /// (empty: any) with no Commentary in `language` yet (`commentary::slice`), each queued as a
+    /// `Commentary` job. Only when the user asks, after being told how many.
+    SliceCommentary { library: PathBuf, slice: String, family: String, language: String },
 }
 
 /// The workers that take jobs: one for most, one for engine matches, one for background
@@ -655,6 +659,19 @@ impl Jobs {
                 }
                 self.set_report(id, Report { translation: Some(t), ..Default::default() });
                 Ok(1)
+            }
+            Work::SliceCommentary { library, slice, family, language } => {
+                let cfg = Config::load().unwrap_or_default();
+                let store = bragd_positions::Store::open(&self.data.join("positions.sqlite")).map_err(|e| e.to_string())?;
+                let stop = || self.should_stop(id);
+                let todo = crate::commentary::slice(&cfg, &store, &self.open_library(library)?, slice, family, language, &stop, &mut |n, of| self.progress(id, n, Some(of)))?;
+                if self.should_stop(id) {
+                    return Ok(0);
+                }
+                for f in &todo {
+                    self.add(Work::Commentary { family: f.family.clone(), variant: f.variant.clone(), key: f.key, mv: f.mv.clone(), language: language.clone(), facts: f.text.clone() });
+                }
+                Ok(todo.len() as u64)
             }
             Work::Commentary { language, facts, .. } => {
                 let t = bragd_model::commentary(&Config::load().unwrap_or_default().model, facts, language)?;

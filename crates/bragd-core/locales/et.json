@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Kas ta võib asju välja mõelda?",
  "feature.commentary.a1": "Ta saab ainult selle, mis on Seisude hoidlas: seis, käik, hinnang koos teise reaga ja märkus. Talle öeldakse, et ta ei lisaks midagi, ning teda märgistatakse masinkirjutisena koos tema mudeliga.",
  "feature.commentary.q2": "Kas ta kirjutab igast käigust?",
- "feature.commentary.a2": "Ei. Ainult siis, kui vajutad Analüüsis nuppu Selgitus, või üle vaadatud käigu kõrval.",
+ "feature.commentary.a2": "Ei. Ainult siis, kui vajutad Analüüsis nuppu Selgitus või üle vaadatud käigu kõrval, või lõigu puhul nuppu Kirjuta selgitus, mis esmalt näitab käikude arvu.",
  "feature.commentary.q3": "Kas seda hoitakse alles?",
  "feature.commentary.a3": "Jah. Seda hoitakse keeleti Seisude hoidlas ja sinu partnerid saavad selle järgmise sünkroonimisega.",
  "feature.commentary.tip": "Vaatasid partii üle? Vajuta käigu kõrval nuppu Selgitus, et see selgitataks sinu keeles.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Mängi OGS-is",
  "tour.ogs.text": "Go menüü Mängi → Mängi OGS-is mängib saidil online-go.com Bragdi laualt: otsi partiid või vasta väljakutsele, passi ja kinnita OGS-i arvestatud skoor.",
  "format.newer": "{file} kirjutas uuem Bragd. Avamiseks uuenda Bragd. Fail jääb muutmata.",
- "format.unknown": "{file} on vormingus, mida see Bragd ei oska lugeda (versioon {version}). Fail jääb muutmata."
+ "format.unknown": "{file} on vormingus, mida see Bragd ei oska lugeda (versioon {version}). Fail jääb muutmata.",
+ "job.slice_commentary": "Leia lõigu {slice} käigud selgituseks keeles {language}",
+ "commentary.slice.action": "Kirjuta selgitus",
+ "commentary.slice.action_hint": "Lase keelemudelil selgitada selle lõigu käike, mille mootor on üle vaadanud",
+ "commentary.slice.counting": "Üle vaadatud käike loetakse…",
+ "commentary.slice.none": "Ühtegi üle vaadatud käiku lõigust {name} ei oota omas keeles selgitust. Vaata kõigepealt mänge Analüüsis üle.",
+ "commentary.slice.ask": {
+  "one": "Mudel kirjutaks lõigu {name} {n} üle vaadatud käigu kohta selgituse. Iga käik võtab mitu sekundit. Kas kirjutada?",
+  "other": "Mudel kirjutaks lõigu {name} {n} üle vaadatud käigu kohta selgitused. Iga käik võtab mitu sekundit. Kas kirjutada?"
+ },
+ "commentary.slice.write": "Kirjuta"
 }

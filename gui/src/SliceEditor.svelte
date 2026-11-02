@@ -2,11 +2,12 @@
   // A Slice: made or changed, its Games shown live as the fields change, and kept as a separate
   // copy on request. "Use current board position" takes the position of the Game in replay.
   import * as k from "./knowledge.js";
-  import { t } from "./i18n.svelte.js";
+  import { t, tn } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
   import GameList from "./GameList.svelte";
   import Replay from "./Replay.svelte";
   import SliceAnalyse from "./SliceAnalyse.svelte";
+  import JobLine from "./JobLine.svelte";
 
   /** @type {{ library: string, slice: any, family: string, engine: boolean, variants: {key: string, name: string}[], position: {family: string, fen: string} | null, onstep: (family: string, step: any) => void, onsaved: () => void, onplayer: (name: string) => void }} */
   let { library, slice, family, engine, variants, position, onstep, onsaved, onplayer } = $props();
@@ -23,6 +24,27 @@
   /** @type {any} */
   let game = $state(null);
   let analysing = $state(false);
+  /** *Write Commentary*: the moves the model would write about (null while counting), then its job. */
+  let writing = $state(/** @type {{ count: number | null, job: number | null } | null} */ (null));
+
+  async function askCommentary() {
+    error = "";
+    writing = { count: null, job: null };
+    try {
+      writing.count = await k.sliceCommentaryCount(library, slice.name, family);
+    } catch (e) {
+      error = k.why(e);
+      writing = null;
+    }
+  }
+  async function writeCommentary() {
+    if (!writing) return;
+    try {
+      writing.job = await k.sliceCommentary(library, slice.name, family);
+    } catch (e) {
+      error = k.why(e);
+    }
+  }
 
   const query = $derived({ ...q, players: players.split(",").map((/** @type {string} */ p) => p.trim()).filter(Boolean), rating_min: q.rating_min || null, family: q.family || null });
   const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(library, query, from, count);
@@ -88,9 +110,30 @@
     <button onclick={keep} disabled={!name.trim()} title={t("slice.keep_hint")}>{t("slice.keep")}</button>
     {#if engine}
       <button onclick={() => (analysing = !analysing)} disabled={!slice?.name} title={slice?.name ? t("background.action_hint") : t("background.save_first")} aria-expanded={analysing}>{t("background.action")}</button>
+      <button onclick={askCommentary} disabled={!slice?.name || writing?.count === null} title={slice?.name ? t("commentary.slice.action_hint") : t("background.save_first")}>{t("commentary.slice.action")}</button>
     {/if}
   </div>
   {#if analysing && slice?.name}<SliceAnalyse {library} name={slice.name} {family} {variants} onclose={() => (analysing = false)} />{/if}
+  {#if writing && slice?.name}
+    <div class="panel writing" role="status">
+      {#if writing.count === null}
+        <p>{t("commentary.slice.counting")}</p>
+      {:else if writing.count === 0}
+        <p>{t("commentary.slice.none", { name: slice.name })}</p>
+        <div class="bar"><button onclick={() => (writing = null)}>{t("common.close")}</button></div>
+      {:else if writing.job === null}
+        <p>{tn("commentary.slice.ask", writing.count, { name: slice.name })}</p>
+        <div class="bar">
+          <button class="primary" onclick={writeCommentary}>{t("commentary.slice.write")}</button>
+          <button onclick={() => (writing = null)}>{t("common.cancel")}</button>
+        </div>
+      {:else}
+        <p>{t("background.queued")}</p>
+        <JobLine id={writing.job} />
+        <div class="bar"><button onclick={() => (writing = null)}>{t("common.close")}</button></div>
+      {/if}
+    </div>
+  {/if}
   {#if !position}<p class="hint">{t("slice.position_hint")}</p>{/if}
   {#if message}<p role="status">{message}</p>{/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -143,5 +186,8 @@
   }
   .error {
     color: var(--red);
+  }
+  .writing p {
+    margin: 0 0 0.4rem;
   }
 </style>

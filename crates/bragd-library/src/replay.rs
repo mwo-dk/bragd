@@ -201,7 +201,27 @@ fn go(s: &Stored, variant: Variant, upto: usize) -> (Option<String>, States) {
     (None, out)
 }
 
+/// `s` as `bragd_games` plays it: its start and its entries, as far as its moves can be played
+/// (`asked`'s last position). None when its Variant is not one Bragd plays.
+pub fn played(s: &Stored, keys: &[u64]) -> Option<(Option<String>, Vec<String>)> {
+    let variant = Variant::from_key(&s.variant)?;
+    let (initial, states) = match variant.family() {
+        Family::Go => go(s, variant, s.moves.len()),
+        _ if set_up(s, variant) => (s.start.clone(), by_keys(s, variant, keys, s.moves.len())),
+        _ => (s.start.clone(), by_words(s, variant, keys, s.moves.len())),
+    };
+    Some((initial, states.into_iter().flat_map(|(_, e)| e).collect()))
+}
+
 impl crate::library::Library {
+    /// The Game `id` as `bragd_games` plays it (`played`): its start and its entries.
+    pub fn played(&self, id: i64) -> crate::library::Result<Option<(Option<String>, Vec<String>)>> {
+        let s = self.stored(id)?;
+        let mut st = self.conn().prepare_cached("SELECT hash FROM positions WHERE game_id = ?1 ORDER BY ply")?;
+        let keys: Vec<u64> = st.query_map([id], |r| r.get::<_, i64>(0))?.map(|k| k.map(|k| k as u64)).collect::<rusqlite::Result<_>>()?;
+        Ok(played(&s, &keys))
+    }
+
     /// The positions of the Game `id` before its first move and after each of its first `upto`
     /// moves, as an Engine is asked about them (`asked`).
     pub fn asked(&self, id: i64, upto: usize) -> crate::library::Result<Vec<Asked>> {
@@ -271,6 +291,10 @@ mod tests {
             }
             // Only the start and the first move, when that is all that is asked.
             assert_eq!(lib.asked(id, 1).unwrap().len(), 2, "{v}");
+            // And the whole Game as entries, for a page that plays it again.
+            let (start, entries) = lib.played(id).unwrap().unwrap();
+            let last = bragd_games::replay(v, start.as_deref(), &entries).unwrap();
+            assert_eq!(position_keys(&g.family, &[last.position])[0], *g.keys.last().unwrap(), "{v}: played whole");
         }
         // Go's set-up stones are played first, as a GTP engine takes no set-up.
         let go = lib.asked(5, 1).unwrap();

@@ -1575,7 +1575,7 @@
  "feature.commentary.q1": "¿Puede inventar cosas?",
  "feature.commentary.a1": "Solo recibe lo que guarda el Almacén de posiciones: la posición, la jugada, la evaluación con su segunda línea y la anotación. Se le indica que no agregue nada, y se marca como escrito por máquina, con su modelo.",
  "feature.commentary.q2": "¿Escribe sobre todas las jugadas?",
- "feature.commentary.a2": "No. Solo cuando apretás Explicación en Análisis, o al lado de una jugada revisada.",
+ "feature.commentary.a2": "No. Solo cuando apretás Explicación en Análisis, al lado de una jugada revisada, o Escribir Explicación para una selección, que antes dice cuántas jugadas son.",
  "feature.commentary.q3": "¿Se guarda?",
  "feature.commentary.a3": "Sí. Se guarda por idioma en el Almacén de posiciones, y tus Pares la reciben con la próxima sincronización.",
  "feature.commentary.tip": "¿Revisaste una partida? Apretá Explicación al lado de una jugada para que te la explique en tu idioma.",
@@ -1731,5 +1731,16 @@
  "tour.ogs.title": "Jugar en OGS",
  "tour.ogs.text": "Jugar → Jugar en OGS del go permite jugar en online-go.com desde el tablero de Bragd: buscá una partida o respondé un desafío, pasá, y aceptá el puntaje que cuenta OGS.",
  "format.newer": "{file} lo escribió un Bragd más nuevo. Actualizá Bragd para abrirlo. El archivo queda como está.",
- "format.unknown": "{file} tiene un formato que este Bragd no puede leer (versión {version}). El archivo queda como está."
+ "format.unknown": "{file} tiene un formato que este Bragd no puede leer (versión {version}). El archivo queda como está.",
+ "job.slice_commentary": "Buscar las jugadas de {slice} para Explicación en {language}",
+ "commentary.slice.action": "Escribir Explicación",
+ "commentary.slice.action_hint": "Que el modelo de lenguaje explique las jugadas de esta selección que revisó el motor",
+ "commentary.slice.counting": "Contando las jugadas revisadas…",
+ "commentary.slice.none": "Ninguna jugada revisada de {name} espera Explicación en tu idioma. Primero revisá sus partidas en Análisis.",
+ "commentary.slice.ask": {
+  "one": "El modelo escribiría la Explicación de {n} jugada revisada de {name}. Tarda varios segundos por jugada. ¿Escribirla?",
+  "many": "El modelo escribiría las Explicaciones de {n} jugadas revisadas de {name}. Tarda varios segundos por jugada. ¿Escribirlas?",
+  "other": "El modelo escribiría las Explicaciones de {n} jugadas revisadas de {name}. Tarda varios segundos por jugada. ¿Escribirlas?"
+ },
+ "commentary.slice.write": "Escribir"
 }

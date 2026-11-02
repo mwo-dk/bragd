@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Kan het dingen verzinnen?",
  "feature.commentary.a1": "Het krijgt alleen wat het stellingopslag bevat: de stelling, de zet, de evaluatie met de tweede regel, en de annotatie. Het krijgt de opdracht niets toe te voegen, en het is gelabeld als machinaal geschreven, met het model erbij.",
  "feature.commentary.q2": "Schrijft het over elke zet?",
- "feature.commentary.a2": "Nee. Alleen als je in Analyseren op Toelichting drukt, of naast een nagekeken zet.",
+ "feature.commentary.a2": "Nee. Alleen als je in Analyseren op Toelichting drukt, naast een nagekeken zet, of op Schrijf Toelichting bij een selectie, die eerst zegt hoeveel zetten het zijn.",
  "feature.commentary.q3": "Wordt die bewaard?",
  "feature.commentary.a3": "Ja. Die wordt per taal bewaard in het stellingopslag, en je Koppelingen krijgen die bij de volgende synchronisatie.",
  "feature.commentary.tip": "Een partij nagekeken? Druk naast een zet op Toelichting om hem in je taal uitgelegd te krijgen.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Speel op OGS",
  "tour.ogs.text": "Bij go speelt Spelen → Speel op OGS op online-go.com vanaf het bord van Bragd: zoek een partij of beantwoord een uitdaging, pas, en accepteer de score die OGS telt.",
  "format.newer": "{file} is geschreven door een nieuwere Bragd. Werk Bragd bij om het te openen. Het blijft zoals het is.",
- "format.unknown": "{file} heeft een formaat dat deze Bragd niet kan lezen (versie {version}). Het blijft zoals het is."
+ "format.unknown": "{file} heeft een formaat dat deze Bragd niet kan lezen (versie {version}). Het blijft zoals het is.",
+ "job.slice_commentary": "Zoek de zetten van {slice} voor Toelichting in {language}",
+ "commentary.slice.action": "Schrijf Toelichting",
+ "commentary.slice.action_hint": "Laat het taalmodel de zetten van deze selectie toelichten die de engine al heeft nagekeken",
+ "commentary.slice.counting": "Nagekeken zetten tellen…",
+ "commentary.slice.none": "Geen nagekeken zet van {name} wacht op Toelichting in jouw taal. Bekijk eerst de partijen ervan in Analyseren.",
+ "commentary.slice.ask": {
+  "one": "Het model zou Toelichting schrijven bij {n} nagekeken zet van {name}. Dat duurt enkele seconden per zet. Schrijven?",
+  "other": "Het model zou Toelichting schrijven bij {n} nagekeken zetten van {name}. Dat duurt enkele seconden per zet. Schrijven?"
+ },
+ "commentary.slice.write": "Schrijven"
 }

@@ -13,7 +13,7 @@ The store fills by itself as you analyse and review. Export and Import are in *S
 
 | Button | What it does |
 |---|---|
-| **Export Position store** | Asks where to save, then writes every Evaluation and Annotation to one Parquet file, such as `positions.parquet`. It says how many rows it wrote |
+| **Export Position store** | Asks where to save, then writes every Evaluation, Annotation and Commentary to one Parquet file, such as `positions.parquet`. It says how many rows it wrote |
 | **Import Position store** | Asks for a Parquet file written by Export, and merges it in. It says how many rows it read, and how many were new or deeper than the store's |
 
 *Show me* on the `positions` entry in F1 opens the page. Below Export and Import, Disk watch lists what each Engine and Edition takes and prunes the store ([Disk watch](disk-watch.md#the-position-store)). [Background analysis](../engines/background-analysis.md) fills it while you do other things.
@@ -32,18 +32,19 @@ Only the deepest row for a position and an Edition is kept. An import keeps the 
 
 ## The Parquet file
 
-One row per Evaluation or Annotation, compressed with Snappy. Commentary is not in it: it stays in the store, and paired machines swap it ([Sharing between Peers](../peers/sharing.md)).
+One row per Evaluation, Annotation or Commentary, compressed with Snappy.
 
 | Column | What it holds |
 |---|---|
 | `family`, `variant`, `key` | The position: its Game family, Variant and position key |
-| `edition`, `engine`, `version`, `network`, `image` | The Edition |
-| `kind` | `cp`, `mate`, `winrate` or `equity` for an Evaluation, `annotation` for an Annotation |
-| `score`, `lead` | The score, and go's lead in points (0 for an Annotation) |
+| `edition`, `engine`, `version`, `network`, `image` | The Edition (empty for Commentary) |
+| `kind` | `cp`, `mate`, `winrate` or `equity` for an Evaluation, `annotation` for an Annotation, `commentary` for Commentary |
+| `score`, `lead` | The score, and go's lead in points (0 for an Annotation or Commentary) |
 | `depth`, `time` | How deep, and when, in seconds since 1970 |
-| `line` | The best line, or an Annotation's better line |
-| `move`, `mark`, `motifs` | An Annotation's move, mark and motifs (empty for an Evaluation) |
+| `line` | The best line, an Annotation's better line, or Commentary's text |
+| `move`, `mark`, `motifs` | An Annotation's move, mark and motifs (empty for an Evaluation), and Commentary's move (empty for one on the position) |
 | `kind2`, `score2`, `lead2`, `line2` | The Engine's second choice: its kind (empty when there is none), score, go's lead and line (empty for an Annotation). A file written before these columns imports without a second choice |
+| `language`, `model` | Commentary's language and the model that wrote it (empty for the rest). A file written before these columns imports without Commentary |
 
 ## What it needs
 

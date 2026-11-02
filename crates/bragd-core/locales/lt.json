@@ -1578,7 +1578,7 @@
  "feature.commentary.q1": "Ar jis gali išgalvoti?",
  "feature.commentary.a1": "Jam duodama tik tai, ką laiko pozicijų saugykla: pozicija, ėjimas, įvertinimas su antra eilute ir anotacijos. Jam pasakyta nieko nepridėti, o tekstas pažymėtas kaip parašytas mašinai, nurodant modelį.",
  "feature.commentary.q2": "Ar rašo apie kiekvieną ėjimą?",
- "feature.commentary.a2": "Ne. Tik kai paspaudžiate Aprašymas Analizėje arba šalia peržiūrėto ėjimo.",
+ "feature.commentary.a2": "Ne. Tik kai paspaudžiate Aprašymas Analizėje, šalia peržiūrėto ėjimo arba Rašyti Aprašymą prie atrankos, kuri pirmiausia parodo, kiek ėjimų.",
  "feature.commentary.q3": "Ar jis saugomas?",
  "feature.commentary.a3": "Taip. Jis saugomas pagal kalbą pozicijų saugykloje, o jūsų lygiaverčiai jį gauna kitos sinchronizacijos metu.",
  "feature.commentary.tip": "Peržiūrėjote partiją? Spauskite Aprašymas šalia ėjimo, kad jis būtų paaiškintas jūsų kalba.",
@@ -1734,5 +1734,16 @@
  "tour.ogs.title": "Žaisti OGS",
  "tour.ogs.text": "Go Žaisti → Žaisti OGS žaidžia online-go.com iš Bragd lentos: ieškokite partijos arba atsakykite į iššūkį, praleiskite ir priimkite OGS skaičiuojamą rezultatą.",
  "format.newer": "{file} įrašė naujesnė Bragd versija. Atnaujinkite Bragd, kad jį atvertumėte. Failas paliekamas nepakeistas.",
- "format.unknown": "{file} yra formato, kurio šis Bragd negali skaityti (versija {version}). Failas paliekamas nepakeistas."
+ "format.unknown": "{file} yra formato, kurio šis Bragd negali skaityti (versija {version}). Failas paliekamas nepakeistas.",
+ "job.slice_commentary": "Rasti {slice} ėjimus Aprašymui {language} kalba",
+ "commentary.slice.action": "Rašyti Aprašymą",
+ "commentary.slice.action_hint": "Leisti kalbos modeliui aprašyti šios atrankos ėjimus, kuriuos peržiūrėjo variklis",
+ "commentary.slice.counting": "Skaičiuojami peržiūrėti ėjimai…",
+ "commentary.slice.none": "Nė vienas peržiūrėtas {name} ėjimas nelaukia Aprašymo jūsų kalba. Pirmiausia peržiūrėkite jo partijas Analizėje.",
+ "commentary.slice.ask": {
+  "one": "Modelis parašytų {n} peržiūrėto {name} ėjimo Aprašymą. Kiekvienas ėjimas užtrunka kelias sekundes. Rašyti?",
+  "few": "Modelis parašytų {n} peržiūrėtų {name} ėjimų Aprašymus. Kiekvienas ėjimas užtrunka kelias sekundes. Rašyti?",
+  "other": "Modelis parašytų {n} peržiūrėtų {name} ėjimų Aprašymus. Kiekvienas ėjimas užtrunka kelias sekundes. Rašyti?"
+ },
+ "commentary.slice.write": "Rašyti"
 }

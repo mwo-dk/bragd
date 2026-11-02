@@ -1578,7 +1578,7 @@
  "feature.commentary.q1": "Peut-il inventer des choses ?",
  "feature.commentary.a1": "Il ne reçoit que ce que le magasin de positions contient : la position, le coup, l’évaluation avec sa seconde ligne et les annotations. Il reçoit l’ordre de n’ajouter rien, et le texte est signalé comme rédigé par machine, avec son modèle.",
  "feature.commentary.q2": "Rédige-t-il une explication pour chaque coup ?",
- "feature.commentary.a2": "Non. Seulement lorsque vous appuyez sur Explication dans Analyse, ou à côté d’un coup revu.",
+ "feature.commentary.a2": "Non. Seulement lorsque vous appuyez sur Explication dans Analyse, à côté d’un coup revu, ou sur Rédiger l’Explication pour une sélection, qui indique d’abord le nombre de coups.",
  "feature.commentary.q3": "Est-elle conservée ?",
  "feature.commentary.a3": "Oui. Elle est gardée par langue dans le magasin de positions, et vos Pairs la reçoivent à la prochaine synchronisation.",
  "feature.commentary.tip": "Partie revue ? Appuyez sur Explication à côté d’un coup pour l’avoir expliqué dans votre langue.",
@@ -1734,5 +1734,16 @@
  "tour.ogs.title": "Jouer sur OGS",
  "tour.ogs.text": "Le menu Jouer → Jouer sur OGS joue sur online-go.com depuis l’échiquier de Bragd : cherchez une partie ou répondez à un défi, passez, et acceptez le score compté par OGS.",
  "format.newer": "{file} a été écrit par une version plus récente de Bragd. Mettez Bragd à jour pour l’ouvrir. Le fichier est laissé tel quel.",
- "format.unknown": "{file} a un format que ce Bragd ne peut pas lire (version {version}). Le fichier est laissé tel quel."
+ "format.unknown": "{file} a un format que ce Bragd ne peut pas lire (version {version}). Le fichier est laissé tel quel.",
+ "job.slice_commentary": "Trouver les coups de {slice} pour l’Explication en {language}",
+ "commentary.slice.action": "Rédiger l’Explication",
+ "commentary.slice.action_hint": "Demander au modèle de langue d’expliquer les coups de cette sélection que le moteur a revus",
+ "commentary.slice.counting": "Décompte des coups revus…",
+ "commentary.slice.none": "Aucun coup revu de {name} n’attend d’Explication dans votre langue. Analysez d’abord ses parties dans Analyse.",
+ "commentary.slice.ask": {
+  "one": "Le modèle rédigerait l’Explication d’{n} coup revu de {name}. Cela prend quelques secondes par coup. La rédiger ?",
+  "many": "Le modèle rédigerait les Explications de {n} coups revus de {name}. Cela prend quelques secondes par coup. Les rédiger ?",
+  "other": "Le modèle rédigerait les Explications de {n} coups revus de {name}. Cela prend quelques secondes par coup. Les rédiger ?"
+ },
+ "commentary.slice.write": "Rédiger"
 }

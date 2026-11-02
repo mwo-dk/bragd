@@ -20,4 +20,6 @@ message evaluations {
   OPTIONAL DOUBLE score2;
   OPTIONAL DOUBLE lead2;
   OPTIONAL BYTE_ARRAY line2 (STRING);
+  OPTIONAL BYTE_ARRAY language (STRING);
+  OPTIONAL BYTE_ARRAY model (STRING);
 }

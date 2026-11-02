@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Kan den hitta på saker?",
  "feature.commentary.a1": "Den får bara det ställningslagret innehåller: ställningen, draget, utvärderingen med dess andra rad, och annoteringen. Den får inte lägga till något, och den är märkt som maskinskrivet, med sin modell.",
  "feature.commentary.q2": "Skriver den om varje drag?",
- "feature.commentary.a2": "Nej. Bara när du trycker på Förklaring i Analys, eller bredvid ett granskat drag.",
+ "feature.commentary.a2": "Nej. Bara när du trycker på Förklaring i Analys, bredvid ett granskat drag, eller på Skriv Förklaring för ett urval, som först visar hur många drag det gäller.",
  "feature.commentary.q3": "Sparas den?",
  "feature.commentary.a3": "Ja. Den sparas per språk i ställningslagret, och dina kopplade datorer får den vid nästa synkronisering.",
  "feature.commentary.tip": "Har du granskat ett parti? Tryck på Förklaring bredvid ett drag för att få det förklarat på ditt språk.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Spela på OGS",
  "tour.ogs.text": "I go spelar Spela → Spela på OGS på online-go.com från Bragds bräda: sök ett parti eller svara på en utmaning, passa och godkänn poängen som OGS räknar.",
  "format.newer": "{file} skrevs av en nyare Bragd. Uppdatera Bragd för att öppna den. Filen lämnas som den är.",
- "format.unknown": "{file} har ett format som denna Bragd inte kan läsa (version {version}). Filen lämnas som den är."
+ "format.unknown": "{file} har ett format som denna Bragd inte kan läsa (version {version}). Filen lämnas som den är.",
+ "job.slice_commentary": "Hitta dragen i {slice} för Förklaring på {language}",
+ "commentary.slice.action": "Skriv Förklaring",
+ "commentary.slice.action_hint": "Låt språkmodellen förklara dragen i det här urvalet som motorn har granskat",
+ "commentary.slice.counting": "Räknar de granskade dragen…",
+ "commentary.slice.none": "Inget granskat drag i {name} väntar på Förklaring på ditt språk. Granska partierna i Analys först.",
+ "commentary.slice.ask": {
+  "one": "Modellen skulle skriva Förklaring till {n} granskat drag i {name}. Det tar några sekunder per drag. Skriva?",
+  "other": "Modellen skulle skriva Förklaringar till {n} granskade drag i {name}. Det tar några sekunder per drag. Skriva dem?"
+ },
+ "commentary.slice.write": "Skriv"
 }
