@@ -464,9 +464,13 @@ fn a_game_with_the_cube_in_it_replays_too() {
     // silently wrong. This is what checks it.
     let mut game = Game::new();
     let mut rng = Rng(4242);
-    game.offer_double(Side::White).expect("White is to move");
-    game.take(Side::Black).expect("Black takes");
-    // An odd number of turns, so that it comes round to Black — who now holds
+    // Nobody may double before the opening roll, so White plays it first.
+    let roll = rng.roll(&game);
+    let turns = game.turns_for(roll);
+    game.play(roll, &turns[rng.below(turns.len())].clone()).expect("legal");
+    game.offer_double(Side::Black).expect("Black is to move");
+    game.take(Side::White).expect("White takes");
+    // An odd number of turns, so that it comes round to White — who now holds
     // the cube and is the only one who may double next.
     for _ in 0..9 {
         let roll = rng.roll(&game);
@@ -474,11 +478,11 @@ fn a_game_with_the_cube_in_it_replays_too() {
         let turn = turns[rng.below(turns.len())].clone();
         game.play(roll, &turn).expect("legal");
     }
-    game.offer_double(Side::Black).expect("Black owns the cube");
-    game.take(Side::White).expect("White takes");
+    game.offer_double(Side::White).expect("White owns the cube");
+    game.take(Side::Black).expect("Black takes");
 
     assert_eq!(game.cube().value(), 4);
-    assert_eq!(game.cube().owner(), Some(Side::White));
+    assert_eq!(game.cube().owner(), Some(Side::Black));
 
     let replayed =
         Game::replay(*game.initial_position(), game.entries()).expect("the record replays");

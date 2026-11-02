@@ -1,0 +1,1 @@
+| **Double waits for the opening throw in backgammon.** Nobody may double before the first throw, since it decides who moves first, so **Double** shows only after it. | [Backgammon](play/backgammon.md#controls) |

@@ -14,6 +14,8 @@ fn a_short_game_replays_with_its_rolls() {
     assert!(!start.throws.contains(&"6-6".to_string()));
     assert!(apply("backgammon", None, &record, "6-6").is_err(), "the rules refuse an opening double");
     assert_eq!(start.to_move.unwrap().name, "White");
+    assert!(!offered(&start, "double"), "nobody doubles before the opening throw");
+    assert!(apply("backgammon", None, &record, "double").is_err(), "and the rules refuse it");
 
     for (roll, turn, mover) in [("3-1", "8/5 6/5", "White"), ("6-5", "24/18 18/13", "Black")] {
         record.push(roll);
@@ -61,15 +63,17 @@ fn an_illegal_turn_and_an_early_roll_are_refused() {
 
 #[test]
 fn a_double_is_answered_before_anything_else() {
-    let state = replay("backgammon", None, &["double"]).unwrap();
-    assert_eq!(state.to_move.unwrap().name, "Black");
+    let opening = ["3-1", "8/5 6/5"];
+    let with = |more: &[&'static str]| [&opening[..], more].concat();
+    let state = replay("backgammon", None, &with(&["double"])).unwrap();
+    assert_eq!(state.to_move.unwrap().name, "White");
     let wires: Vec<_> = state.moves.iter().map(|m| m.wire.as_str()).collect();
     assert_eq!(wires, ["take", "drop"]);
-    let taken = replay("backgammon", None, &["double", "take"]).unwrap();
+    let taken = replay("backgammon", None, &with(&["double", "take"])).unwrap();
     let cube = taken.board.cube.unwrap();
-    assert_eq!((cube.value, cube.owner), (2, Some(1)));
-    let dropped = replay("backgammon", None, &["double", "drop"]).unwrap();
-    assert_eq!(dropped.outcome.unwrap().winner.unwrap().name, "White");
+    assert_eq!((cube.value, cube.owner), (2, Some(0)));
+    let dropped = replay("backgammon", None, &with(&["double", "drop"])).unwrap();
+    assert_eq!(dropped.outcome.unwrap().winner.unwrap().name, "Black");
 }
 
 #[test]

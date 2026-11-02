@@ -483,7 +483,8 @@ impl Game {
         Ok(())
     }
 
-    /// Offers a double. Only on your own turn, and **only before rolling** —
+    /// Offers a double. Only on your own turn, never before the opening roll, and
+    /// **only before rolling** —
     /// which is now a thing the engine has to enforce rather than a thing the
     /// shape of the API guaranteed. Splitting the roll off into its own entry
     /// created the state in between that a late double could sit in, and a
@@ -498,6 +499,10 @@ impl Game {
         }
         if self.pending_roll().is_some() {
             return Err(PlayError::AlreadyRolled);
+        }
+        // Who moves first is not known until the opening throw.
+        if self.is_opening() {
+            return Err(PlayError::BeforeOpening);
         }
         self.cube.offer_by(side)?;
         self.entries.push(Entry::Double);
@@ -643,6 +648,8 @@ pub enum PlayError {
     WrongRoll,
     /// A double as the opening roll, which is one die each and thrown again on a tie.
     OpeningDouble,
+    /// A double offered before the opening roll, which decides who moves first.
+    BeforeOpening,
     Cube(CubeError),
 }
 
@@ -665,6 +672,7 @@ impl fmt::Display for PlayError {
             PlayError::NoRoll => f.write_str("nothing has been rolled yet"),
             PlayError::WrongRoll => f.write_str("that is not the roll on the table"),
             PlayError::OpeningDouble => f.write_str("the opening roll is never a double"),
+            PlayError::BeforeOpening => f.write_str("nobody may double before the opening roll"),
             PlayError::Cube(error) => write!(f, "{error}"),
         }
     }
@@ -792,8 +800,9 @@ mod tests {
     fn there_is_nothing_to_continue_before_the_dice_or_during_a_double() {
         let mut game = Game::new();
         assert_eq!(game.continue_turn(&[]), None, "nothing has been thrown");
+        play(&mut game, "3-1", "8/5 6/5").expect("the opening");
 
-        game.offer_double(Side::White).expect("before rolling");
+        game.offer_double(Side::Black).expect("before rolling");
         assert_eq!(
             game.continue_turn(&[]),
             None,
@@ -803,7 +812,7 @@ mod tests {
         // actually supposed to read.
         assert_eq!(
             game.needs(),
-            Some(Needed::Answer { side: Side::Black }),
+            Some(Needed::Answer { side: Side::White }),
             "and `needs` is what says so"
         );
         assert_eq!(
@@ -811,12 +820,12 @@ mod tests {
             Err(PlayError::DoubleWaiting),
             "nothing may be thrown under an unanswered double"
         );
-        game.take(Side::Black).expect("taken");
+        game.take(Side::White).expect("taken");
 
         game.roll(roll("3-1")).expect("thrown");
         assert!(game.continue_turn(&[]).is_some(), "and now there is");
 
-        game.resign(Side::White, Concession::Single).expect("over");
+        game.resign(Side::Black, Concession::Single).expect("over");
         assert_eq!(game.continue_turn(&[]), None, "the game is over");
     }
 
@@ -983,18 +992,30 @@ mod tests {
         game.roll(Roll::new(6, 6).unwrap()).expect("a double after the opening");
     }
 
+    /// Who moves first is not known until the opening throw, so nobody may double before it.
+    #[test]
+    fn nobody_may_double_before_the_opening_roll() {
+        let mut game = Game::new();
+        assert_eq!(game.offer_double(Side::White), Err(PlayError::BeforeOpening));
+        assert!(game.entries().is_empty(), "and nothing was written down");
+        play(&mut game, "3-1", "8/5 6/5").expect("the opening");
+        game.offer_double(Side::Black).expect("after the opening roll");
+    }
+
     #[test]
     fn a_declined_double_ends_the_game_without_a_move() {
         let mut game = Game::new();
-        game.offer_double(Side::White).expect("White is to move");
+        play(&mut game, "3-1", "8/5 6/5").expect("the opening");
+        let after_opening = *game.position();
+        game.offer_double(Side::Black).expect("Black is to move");
         assert_eq!(
             game.needs(),
-            Some(Needed::Answer { side: Side::Black }),
-            "and it is Black who owes an answer, not the side to move"
+            Some(Needed::Answer { side: Side::White }),
+            "and it is White who owes an answer, not the side to move"
         );
         assert_eq!(
             game.position().to_move(),
-            Side::White,
+            Side::Black,
             "the position still says the doubler is to play, which is why `needs` exists"
         );
         assert!(
@@ -1007,44 +1028,46 @@ mod tests {
             Err(PlayError::DoubleWaiting)
         );
 
-        game.drop(Side::Black).expect("Black drops");
+        game.drop(Side::White).expect("White drops");
         assert_eq!(
             game.outcome(),
             Some(Outcome {
-                winner: Side::White,
+                winner: Side::Black,
                 reason: WinReason::DoubleDeclined,
                 points: 1,
             }),
             "the value before the double, and never a gammon"
         );
-        assert_eq!(game.entries(), &[Entry::Double, Entry::Drop]);
-        assert_eq!(game.position(), &Position::starting(), "no checker moved");
+        assert_eq!(&game.entries()[2..], &[Entry::Double, Entry::Drop]);
+        assert_eq!(game.position(), &after_opening, "no checker moved");
     }
 
     #[test]
     fn only_the_player_to_move_may_double() {
         let mut game = Game::new();
-        assert_eq!(game.offer_double(Side::Black), Err(PlayError::NotYourTurn));
-        game.offer_double(Side::White).expect("White is to move");
+        play(&mut game, "3-1", "8/5 6/5").expect("the opening");
+        assert_eq!(game.offer_double(Side::White), Err(PlayError::NotYourTurn));
+        game.offer_double(Side::Black).expect("Black is to move");
     }
 
     #[test]
     fn resigning_a_gammon_costs_two_points_times_the_cube() {
         let mut game = Game::new();
-        game.offer_double(Side::White).expect("to move");
-        game.take(Side::Black).expect("taken");
-        game.resign(Side::White, Concession::Gammon)
-            .expect("White concedes a gammon");
+        play(&mut game, "3-1", "8/5 6/5").expect("the opening");
+        game.offer_double(Side::Black).expect("to move");
+        game.take(Side::White).expect("taken");
+        game.resign(Side::Black, Concession::Gammon)
+            .expect("Black concedes a gammon");
         assert_eq!(
             game.outcome(),
             Some(Outcome {
-                winner: Side::Black,
+                winner: Side::White,
                 reason: WinReason::Resignation(Concession::Gammon),
                 points: 4,
             })
         );
         assert_eq!(
-            game.resign(Side::Black, Concession::Single),
+            game.resign(Side::White, Concession::Single),
             Err(PlayError::GameOver)
         );
     }
