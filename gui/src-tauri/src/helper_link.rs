@@ -136,6 +136,7 @@ pub fn what(work: &Work) -> String {
         Work::Prune { library, .. } => t!("job.prune", "library" => file_name(library)),
         Work::Analyse { job } => t!(if job.low { "job.analyse_game" } else { "job.analyse" }, "about" => job.about, "engine" => engine_name(&job.engine)),
         Work::Translate { language, .. } => t!("job.translate", "language" => bragd_core::i18n::find(language).map_or(language.as_str(), |l| l.name)),
+        Work::Commentary { language, .. } => t!("job.commentary", "language" => bragd_core::i18n::find(language).map_or(language.as_str(), |l| l.name)),
         Work::Match { setup } => t!("job.match", "engines" => setup.engines.iter().map(|k| bragd_engines::known::known(k).map_or(k.as_str(), |k| k.name)).collect::<Vec<_>>().join(" – ")),
     }
 }

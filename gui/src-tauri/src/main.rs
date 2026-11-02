@@ -379,6 +379,8 @@ fn main() {
             model::model_key,
             model::comment_view,
             model::comment_translate,
+            model::commentary_view,
+            model::commentary_write,
             online::online_view,
             online::online_servers,
             online::online_sign_in,

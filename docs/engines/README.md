@@ -10,6 +10,7 @@ An Engine plays a Side in Play, analyses a position in Analyse and reviews a who
 | [Engine container images](container-images.md) | Sealed images, podman or docker, pins, pruning |
 | [Analyse](analyse.md) | Engine lines on any position, clicking into a line |
 | [Game review](review.md) | Marks on every move, the evaluation profile |
+| [Commentary](commentary.md) | A language model's prose about a move, from the Engine's facts |
 | [Tablebases](tablebases.md) | Syzygy sets, their folder, the Lichess fallback |
 | [Opening books](opening-books.md) | Polyglot books and opening names |
 | [Engine matches](matches.md) | Round robins, gauntlets and SPRT matches between Engines, played in the Helper |

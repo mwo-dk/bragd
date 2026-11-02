@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use bragd_core::format;
-use bragd_positions::{Annotation, Edition, Evaluation, Mark, Motif, Score, Second, Store, FORMAT};
+use bragd_positions::{Annotation, Commentary, Edition, Evaluation, Mark, Motif, Score, Second, Store, FORMAT};
 
 fn dir(name: &str) -> PathBuf {
     let d = std::env::temp_dir().join(format!("bragd-positions-formats-{name}-{}", std::process::id()));
@@ -31,11 +31,16 @@ fn annotations() -> Vec<Annotation> {
     vec![Annotation { family: "chess".into(), variant: "chess".into(), key: 7, mv: "g1f3".into(), edition: edition("Stockfish 17", None), mark: Some(Mark::Blunder), better: "e2e4 e7e5".into(), motifs: vec![Motif::Fork, Motif::Hangs], depth: 20, time: 1_800_000_002 }]
 }
 
+fn commentary() -> Vec<Commentary> {
+    vec![Commentary { family: "chess".into(), variant: "chess".into(), key: 7, mv: "g1f3".into(), language: "da".into(), model: "qwen3".into(), text: "Springeren efterlader en officer.".into(), time: 1_800_000_003 }]
+}
+
 #[test]
 fn the_current_format_is_the_one_committed() {
     let p = dir("current").join("positions.sqlite");
     let mut s = Store::open(&p).unwrap();
     s.merge(&evaluations(), &annotations()).unwrap();
+    s.put_commentary(&commentary()[0]).unwrap();
     drop(s);
     let c = rusqlite::Connection::open(&p).unwrap();
     format::snapshot("positions", FORMAT.version(), "schema.sql", &format::sqlite_schema(&c).unwrap());
@@ -52,6 +57,7 @@ fn every_committed_version_opens_with_its_rows() {
         let s = Store::open(&p).unwrap();
         assert_eq!(s.all().unwrap(), evaluations(), "v{v}");
         assert_eq!(s.annotations().unwrap(), annotations(), "v{v}");
+        assert_eq!(s.commentaries().unwrap(), commentary(), "v{v}");
     }
 }
 

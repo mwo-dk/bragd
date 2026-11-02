@@ -89,6 +89,26 @@ pub fn ask(m: &ModelConfig, text: &str, reader: &str) -> Result<Translation, Str
     Ok(Translation { text: out, model: m.name.clone(), time })
 }
 
+/// Commentary on a move or a position, written by the model of `m` in the language of `reader`
+/// from `facts` (the Position store's, gathered by the asking machine), kept nowhere: the
+/// machine that asked keeps it in its Position store. It explains the facts and invents none.
+pub fn commentary(m: &ModelConfig, facts: &str, reader: &str) -> Result<Translation, String> {
+    if !ready(m) {
+        return Err(t!("model.error.not_ready"));
+    }
+    let language = bragd_core::i18n::find(reader).map_or(reader, |l| l.name);
+    let system = format!(
+        "You write commentary on one move or position from the record of a board game, for a reader of {language} (language code {reader}). \
+         Write 2 to 3 sentences in {language} that explain the facts the user gives: the position, the move, the engine's evaluation with its best and second lines, and the annotation. \
+         Use only the facts given: do not invent moves, evaluations, plans, threats, players or history. \
+         Keep move notation, square names and numbers exactly as given. \
+         Reply with the commentary only, without headings, quotes or explanations."
+    );
+    let out = client::chat(&m.url, key::get(&m.url).as_deref(), &m.name, &system, facts)?;
+    let time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64);
+    Ok(Translation { text: out, model: m.name.clone(), time })
+}
+
 /// `text` translated into the language of `reader` by the model of `m`, and kept in `store`. A
 /// translation already kept is given without asking the model.
 pub fn translate(m: &ModelConfig, store: &Translations, text: &str, reader: &str) -> Result<Translation, String> {
@@ -189,6 +209,26 @@ mod tests {
         let back: Translation = serde_json::from_str(&serde_json::to_string(&t).unwrap()).unwrap();
         assert_eq!(back, t);
         assert_eq!(ask(&ModelConfig::default(), DE, "en-GB").unwrap_err(), t!("model.error.not_ready"));
+    }
+
+    /// Commentary is asked with the facts as the user's message, in the reader's language, in
+    /// two or three sentences and nothing beyond the facts; it records its model and keeps nothing.
+    #[test]
+    fn model_commentary_explains_the_facts_in_the_readers_language() {
+        key::mock();
+        let (url, seen) = client::tests::fake(vec![(200, r#"{"choices":[{"message":{"content":"<think>hm</think> Hvid taber en officer."}}]}"#.into())]);
+        let facts = "Move played: 12. Nf3\nAnnotation: Blunder.";
+        let c = commentary(&cfg(&url, "qwen3", ""), facts, "da").unwrap();
+        assert_eq!((c.text.as_str(), c.model.as_str()), ("Hvid taber en officer.", "qwen3"));
+        assert!(c.time > 0);
+        let seen = seen.lock().unwrap();
+        let body: serde_json::Value = serde_json::from_str(&seen[0].2).unwrap();
+        let system = body["messages"][0]["content"].as_str().unwrap();
+        assert!(system.contains("Dansk") || system.contains("Danish"), "{system}");
+        assert!(system.contains("(language code da)") && system.contains("2") && system.contains("3"), "{system}");
+        assert!(system.contains("only the facts"), "{system}");
+        assert_eq!(body["messages"][1]["content"].as_str().unwrap(), facts);
+        assert_eq!(commentary(&ModelConfig::default(), facts, "da").unwrap_err(), t!("model.error.not_ready"));
     }
 
     #[test]

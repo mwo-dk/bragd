@@ -409,6 +409,39 @@ mod tests {
         assert!(bragd_model::Translations::open(&b.jobs.data().join("translations.sqlite")).unwrap().get(&text, "en-GB").unwrap().is_none(), "B keeps none");
     }
 
+    /// Commentary through the shared queue: B's model writes it for A, A keeps it in its
+    /// Position store, and B gets it with the next sync. With a model here, A writes its own.
+    #[test]
+    fn a_peers_model_writes_commentary_for_this_machine() {
+        let _config = CONFIG.lock().unwrap_or_else(|e| e.into_inner());
+        let (a, b) = (Machine::new("a"), Machine::new("b"));
+        pair(&a, &b);
+        let url = fake_model("Hvid giver en officer væk.");
+        let key = (u64::from(std::process::id()) << 32) | 77;
+        let work = |language: &str| Work::Commentary { family: "chess".into(), variant: "chess".into(), key, mv: "g1f3".into(), language: language.into(), facts: "Move played: 2. Nf3".into() };
+        let id = a.jobs.add(work("da"));
+        assert!(!b.jobs.run_borrowed(Lane::Model), "no model ready on B");
+        set_model(&url);
+        let ran = b.jobs.run_borrowed(Lane::Model);
+        set_model("");
+        assert!(ran);
+        let j = a.jobs.list().into_iter().find(|j| j.id == id).unwrap();
+        assert_eq!((j.status, j.report.and_then(|r| r.translation).map(|t| t.model)), (Status::Done, Some("fake".into())));
+        let kept = a.store().commentary("chess", "chess", key, "g1f3", "da").unwrap().unwrap();
+        assert_eq!((kept.text.as_str(), kept.model.as_str()), ("Hvid giver en officer væk.", "fake"));
+        assert_eq!(b.store().commentary("chess", "chess", key, "g1f3", "da").unwrap(), None, "B keeps none of its own");
+        b.share.sync_with(&a.id());
+        assert_eq!(b.store().commentary("chess", "chess", key, "g1f3", "da").unwrap(), Some(kept), "it comes with the sync");
+        // A model here: A's own Model lane writes it, no Peer asked.
+        set_model(&url);
+        let own = a.jobs.add(work("en-GB"));
+        let ran = a.jobs.run_first(Lane::Model);
+        set_model("");
+        assert!(ran);
+        assert_eq!(a.jobs.list().into_iter().find(|j| j.id == own).unwrap().status, Status::Done);
+        assert!(a.store().commentary("chess", "chess", key, "g1f3", "en-GB").unwrap().is_some());
+    }
+
     /// The caller holds `CONFIG`.
     fn set_model(url: &str) {
         bragd_core::config::Config::save_value(&["model", "url"], url.into()).unwrap();

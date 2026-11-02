@@ -381,24 +381,95 @@ fn worded(mark: Option<Mark>, motifs: &[bragd_positions::Motif], better: &[(Stri
     (!words.is_empty()).then(|| words.join(" "))
 }
 
+/// Move `index` as the move list writes it, `12. Nf3`; a reply has no number in the move list,
+/// so here it is the move's, as `3… Qg5`.
+fn label(state: &State, index: usize) -> String {
+    let number = match state.numbers.get(index).map_or("", String::as_str) {
+        "" if index > 0 => state.numbers[index - 1].replace('.', "…"),
+        n => n.to_string(),
+    };
+    format!("{number} {}", state.history.get(index).map_or("", String::as_str)).trim().to_string()
+}
+
 /// Move `index`'s note, its better line replayed from `entries` (the moves before it); `state`
 /// is the whole Game's, for the move's label.
 #[allow(clippy::too_many_arguments)]
 fn note(state: &State, index: usize, mark: Option<Mark>, motifs: &[bragd_positions::Motif], better: &[String], variant: &str, initial: Option<&str>, entries: &[String], notation: Notation) -> Option<NoteView> {
     let better = if better.is_empty() { vec![] } else { seam::line(variant, initial, entries, notation, &better[..better.len().min(SHOWN)]) };
     let text = worded(mark, motifs, &better)?;
-    // A reply has no number in the move list: here it is the move's, as `3… Qg5`.
-    let number = match state.numbers.get(index).map_or("", String::as_str) {
-        "" if index > 0 => state.numbers[index - 1].replace('.', "…"),
-        n => n.to_string(),
-    };
-    let label = format!("{number} {}", state.history.get(index).map_or("", String::as_str)).trim().to_string();
-    Some(NoteView { index, label, mark: mark.map_or("", Mark::sign).into(), text, better: better.into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect() })
+    Some(NoteView { index, label: label(state, index), mark: mark.map_or("", Mark::sign).into(), text, better: better.into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect() })
 }
 
 fn note_view(state: &State, a: &Annotation, index: usize, variant: &str, initial: Option<&str>, entries: &[String], notation: Notation) -> Option<NoteView> {
     let better: Vec<String> = a.better.split_whitespace().map(String::from).collect();
     note(state, index, a.mark, &a.motifs, &better, variant, initial, entries, notation)
+}
+
+/// What Commentary on the Game's last move (or, before the first, on its position) is written
+/// from: the store's facts about it, as the prompt gives them, and where the Commentary is kept.
+#[derive(Debug)]
+pub struct Facts {
+    pub family: String,
+    pub variant: String,
+    /// The position the move was played in.
+    pub key: u64,
+    /// The move in the Engine's notation, as its Annotation is kept; empty for the position.
+    pub mv: String,
+    pub text: String,
+}
+
+/// The facts the Position store holds about the Game's last move by the Engine `engine` (or the
+/// Variant's): the position before it, the move, the Evaluation with its second line, the score
+/// after it, and the Annotation worded. None when the store has none of them: Commentary
+/// explains the facts and invents none.
+pub fn facts(cfg: &Config, variant: &str, initial: Option<&str>, entries: &[String], engine: Option<String>) -> Result<Option<Facts>, String> {
+    guard()?;
+    let Some(key) = engine.filter(|k| !k.is_empty()).or_else(|| engines::default_for(cfg, variant)) else { return Ok(None) };
+    let Some(store) = Store::path().filter(|p| p.exists()).and_then(|p| Store::open(&p).ok()) else { return Ok(None) };
+    let chosen = engines::resolve(cfg, &key, variant)?;
+    let notation = seam::notation(variant, chosen.protocols[0], bragd_engines::known::known(&key).map_or(key.as_str(), |k| k.name));
+    let (pos, _) = seam::position(variant, initial, entries, notation)?;
+    let (family, texts, keys) = positions(variant, initial, entries)?;
+    let n = entries.len();
+    let at = n.saturating_sub(1);
+    let mv = if n > 0 { pos.moves.last().cloned().unwrap_or_default() } else { String::new() };
+    let before = store.shown(&family, variant, keys[at], &key).map_err(|e| e.to_string())?;
+    let after = if n > 0 { store.shown(&family, variant, keys[n], &key).map_err(|e| e.to_string())? } else { None };
+    let note = if n > 0 { store.annotation(&family, variant, keys[at], &mv, &key).map_err(|e| e.to_string())? } else { None };
+    if before.is_none() && after.is_none() && note.is_none() {
+        return Ok(None);
+    }
+    let state = bragd_games::replay(variant, initial, entries).map_err(|e| e.to_string())?;
+    let shown = |s: bragd_positions::Score| Score::from(s).shown();
+    // A line in the Variant's notation, from the moves before the move (or after it).
+    let words = |upto: usize, line: &str| {
+        let pv: Vec<String> = line.split_whitespace().take(SHOWN).map(String::from).collect();
+        let l = seam::line(variant, initial, &entries[..upto], notation, &pv);
+        if l.is_empty() { pv.join(" ") } else { l.into_iter().map(|(_, n)| n).collect::<Vec<_>>().join(" ") }
+    };
+    let mut text = vec![format!("Game: {family}, variant {variant}.")];
+    text.push(format!("Position{}: {}", if n > 0 { " before the move" } else { "" }, texts[at]));
+    if n > 0 {
+        let side = bragd_games::replay(variant, initial, &entries[..at]).ok().and_then(|s| s.to_move).map(|s| format!(", by {}", s.name)).unwrap_or_default();
+        text.push(format!("Move played: {}{side}.", label(&state, at)));
+    }
+    if let Some(e) = &before {
+        text.push(format!("Engine: {} (depth {}).", e.edition.version, e.depth));
+        text.push(format!("Evaluation{}: {}. Best line: {}.", if n > 0 { " before the move" } else { "" }, shown(e.score), words(at, &e.line)));
+        if let Some(s) = &e.second {
+            text.push(format!("Second choice: {}. Its line: {}.", shown(s.score), words(at, &s.line)));
+        }
+    }
+    if let Some(e) = &after {
+        text.push(format!("Evaluation after the move: {} (depth {}). Best reply: {}.", shown(e.score), e.depth, words(n, &e.line)));
+    }
+    if let Some(a) = &note
+        && let Some(v) = note_view(&state, a, at, variant, initial, &entries[..at], notation)
+    {
+        text.push(format!("Annotation: {}{} {}", v.label, v.mark, v.text));
+    }
+    text.push("Scores are from the view of the side that moved first: + is good for it.".into());
+    Ok(Some(Facts { family, variant: variant.into(), key: keys[at], mv, text: text.join("\n") }))
 }
 
 /// A review as the move list and Analyse show it: each entry's mark and evaluation, and the
@@ -680,6 +751,38 @@ mod tests {
         assert_eq!(worded(Some(Mark::Good), &[Motif::Fork], &better).unwrap(), "Good move. It forks two pieces.");
         assert_eq!(worded(None, &[], &better), None);
         assert_eq!(worded(None, &[Motif::MissedMate], &better).unwrap(), "It misses a forced mate. Better was Nf3 Nc6.");
+    }
+
+    /// Commentary's facts come from the store only: none before the Engine has judged the move,
+    /// then the position, the move, the Evaluation with its second line, the score after and the
+    /// Annotation, in the Variant's notation.
+    #[test]
+    fn commentary_facts_are_the_stores() {
+        let mut cfg = Config::default();
+        let d = std::env::temp_dir().join(format!("bragd-gui-facts-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("factsfake");
+        std::fs::write(&p, "").unwrap();
+        cfg.engines.added.insert("factsfake".into(), "chess".into());
+        cfg.engines.paths.insert("factsfake".into(), p.display().to_string());
+        let entries: Vec<String> = ["e2e4", "e7e5", "g1f3"].iter().map(|s| s.to_string()).collect();
+        let (_, _, keys) = positions("chess", None, &entries).unwrap();
+        let mut store = Store::open(&Store::path().unwrap()).unwrap();
+        assert!(facts(&cfg, "chess", None, &entries, Some("factsfake".into())).unwrap().is_none(), "nothing judged yet");
+        let edition = bragd_positions::Edition { engine: "factsfake".into(), version: "Facts 1".into(), network: None, image: None };
+        let second = Some(Second { score: bragd_positions::Score::Cp(-40), line: "d2d4 e5d4".into() });
+        store.put(&Evaluation { family: "chess".into(), variant: "chess".into(), key: keys[2], edition: edition.clone(), score: bragd_positions::Score::Cp(35), depth: 22, line: "b1c3 g8f6".into(), time: 1, second }).unwrap();
+        store.put(&Evaluation { family: "chess".into(), variant: "chess".into(), key: keys[3], edition: edition.clone(), score: bragd_positions::Score::Cp(20), depth: 20, line: "b8c6".into(), time: 1, second: None }).unwrap();
+        store.put_annotation(&Annotation { family: "chess".into(), variant: "chess".into(), key: keys[2], mv: "g1f3".into(), edition, mark: Some(Mark::Inaccuracy), better: "b1c3".into(), motifs: vec![], depth: 22, time: 1 }).unwrap();
+        let f = facts(&cfg, "chess", None, &entries, Some("factsfake".into())).unwrap().unwrap();
+        assert_eq!((f.family.as_str(), f.key, f.mv.as_str()), ("chess", keys[2], "g1f3"));
+        for want in ["rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq", "Move played: 2. Nf3, by White.", "Facts 1 (depth 22)", "+0.35. Best line: Nc3 Nf6.", "Second choice: −0.40. Its line: d4 exd4.", "after the move: +0.20 (depth 20). Best reply: Nc6.", "Annotation: 2. Nf3?! Inaccuracy. Better was Nc3."] {
+            assert!(f.text.contains(want), "{want:?} not in\n{}", f.text);
+        }
+        // Before the first move: the position itself.
+        let start = facts(&cfg, "chess", None, &[], Some("factsfake".into())).unwrap();
+        assert!(start.is_none(), "the start position is not judged here");
+        std::fs::remove_dir_all(&d).unwrap();
     }
 
     /// What the store knows shows at once, before the engine is as deep; the engine's own line

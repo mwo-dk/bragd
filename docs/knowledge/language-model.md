@@ -43,6 +43,10 @@ When you replay a Game from a Foreign database or a Library, a comment that is n
 - A translation is kept per language. The same comment, in this Game or any other, then shows its translation at once, without asking the model again.
 - A Library keeps a Game's comments from 0.5.0. A Game imported before that has none: import its file again to bring them in ([Libraries](libraries.md#why-does-a-game-from-my-library-have-no-comments)).
 
+## Commentary
+
+The model also writes [Commentary](../engines/commentary.md): a few sentences about a move in Analyse, in your language, from what the Engine found. It is labelled *Machine-written by* and the model's name, and kept in the Position store.
+
 ## A model off this machine
 
 An address that is not this machine (`localhost`, `127.0.0.1` or `::1`) is treated as a cloud service, even one on your home network. Before Bragd sends it anything but a request for its model list, it says plainly that the comments you translate go there, and so will positions when Bragd writes Commentary. Nothing goes until you press **I agree**. You agree once per address: a new address asks again.

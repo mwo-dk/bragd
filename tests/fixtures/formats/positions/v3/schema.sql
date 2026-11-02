@@ -16,6 +16,19 @@ CREATE TABLE annotations (
     PRIMARY KEY (family, variant, key, move, edition)
 ) WITHOUT ROWID;
 CREATE TABLE changes (n INTEGER NOT NULL);
+CREATE TABLE commentary (
+    family TEXT NOT NULL,
+    variant TEXT NOT NULL,
+    key INTEGER NOT NULL,
+    move TEXT NOT NULL,
+    -- A locale code.
+    language TEXT NOT NULL,
+    model TEXT NOT NULL,
+    text TEXT NOT NULL,
+    time INTEGER NOT NULL,
+    seq INTEGER NOT NULL,
+    PRIMARY KEY (family, variant, key, move, language, model)
+) WITHOUT ROWID;
 CREATE TABLE editions (
     n INTEGER PRIMARY KEY,
     -- `Edition::id`, the same on every machine; `n` is this store's own.
@@ -53,4 +66,5 @@ CREATE TABLE pulled (
 ) WITHOUT ROWID;
 CREATE TABLE store (id TEXT NOT NULL);
 CREATE INDEX annotations_seq ON annotations (seq);
+CREATE INDEX commentary_seq ON commentary (seq);
 CREATE INDEX evaluations_seq ON evaluations (seq);

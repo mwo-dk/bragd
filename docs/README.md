@@ -72,6 +72,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Engine container images](engines/container-images.md) | Sealed images, podman or docker, pins, pruning |
 | [Analyse](engines/analyse.md) | Engine lines on any position, clicking into a line |
 | [Game review](engines/review.md) | Marks on every move, the evaluation profile |
+| [Commentary](engines/commentary.md) | A language model's prose about a move, from the Engine's facts |
 | [Tablebases](engines/tablebases.md) | Syzygy sets, their folder, the Lichess fallback |
 | [Opening books](engines/opening-books.md) | Polyglot books and opening names |
 | [Engine matches](engines/matches.md) | Round robins, gauntlets and SPRT matches between Engines, played in the Helper |

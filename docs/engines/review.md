@@ -100,4 +100,4 @@ They were kept per Game in the cache folder and were not carried over. Review th
 The evaluation profile shows on the Databases page, beside a Game whose file carries one ([Foreign databases](../knowledge/foreign-databases.md)). Analyse shows the marks in the move list.
 
 ---
-[← Previous: Analyse](analyse.md) · [Next: Tablebases →](tablebases.md)
+[← Previous: Analyse](analyse.md) · [Next: Commentary →](commentary.md)

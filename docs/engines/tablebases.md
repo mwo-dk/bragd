@@ -66,4 +66,4 @@ Yes. Each file's size is checked against the mirror's list, and its BLAKE3 check
 Bragd is running offline (`BRAGD_OFFLINE`), so nothing is downloaded or asked online. The page says so under the switch.
 
 ---
-[← Previous: Game review](review.md) · [Next: Opening books →](opening-books.md)
+[← Previous: Commentary](commentary.md) · [Next: Opening books →](opening-books.md)

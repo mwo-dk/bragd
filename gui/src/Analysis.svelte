@@ -2,8 +2,10 @@
   // Analyse's panel: set up a position, run an engine on it and show its best lines (scored from
   // the first Side's view, moves in the Variant's notation, each one playable), what the
   // tablebases say for a chess ending, and a review of the whole Game: its Annotations, worded
-  // by Rust, listed here and marked in the move list. Rust runs the engine, reads and writes the
-  // Position store, and turns its moves into entries.
+  // by Rust, listed here and marked in the move list; and Commentary on the last move or a
+  // reviewed one, which the language model writes from the store's facts through the Helper's
+  // queue. Rust runs the engine, reads and writes the Position store, and turns its moves into
+  // entries.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
@@ -25,6 +27,11 @@
   let review = $state(null);
   let text = $state("");
   let error = $state("");
+  /** Commentary on the last move. @type {any} */
+  let com = $state(null);
+  let writing = $state(false);
+  /** Commentary written for reviewed moves, by index. @type {Record<number, any>} */
+  let noteCom = $state({});
 
   $effect(() => {
     api.engineChoices(game.variant).then((c) => {
@@ -78,6 +85,7 @@
     try {
       await api.reviewStart({ variant: game.variant, initial: game.initial, entries: [...game.entries] }, engine || null);
       error = "";
+      noteCom = {};
       clearInterval(reviewing);
       reviewing = setInterval(async () => {
         review = await api.reviewNow();
@@ -87,6 +95,37 @@
       }, 500);
     } catch (e) {
       error = String(e);
+    }
+  }
+
+  // Commentary for the last move: looked up again when the Game moves, the engine changes, or
+  // an analysis or review ends and the store may know more.
+  // Derived, so the analysis's polling does not ask again each time: only when it settles.
+  const settled = $derived(!now?.running && !(review && !review.done));
+  $effect(() => {
+    const g = { variant: game.variant, initial: game.initial, entries: [...game.entries] };
+    void settled;
+    api.commentaryView(g, engine || null).then((v) => (com = v), () => (com = null));
+  });
+
+  // The last move's Commentary shows beside its Annotation when the review lists it, not twice.
+  const lastNoted = $derived(!!review?.notes.some((/** @type {any} */ n) => n.index === game.entries.length - 1));
+  /** @param {any} n a reviewed move's note */
+  const written = (n) => noteCom[n.index] ?? (n.index === game.entries.length - 1 ? com?.shown : null);
+
+  /** @param {number|null} index the reviewed move's, or null for the last move */
+  async function writeCommentary(index) {
+    const entries = index === null ? [...game.entries] : game.entries.slice(0, index + 1);
+    writing = true;
+    try {
+      const w = await api.commentaryWrite({ variant: game.variant, initial: game.initial, entries }, engine || null);
+      if (index === null) com = { ...com, shown: w };
+      else noteCom[index] = w;
+      error = "";
+    } catch (e) {
+      error = String(e);
+    } finally {
+      writing = false;
     }
   }
 
@@ -180,12 +219,32 @@
       <h3>{t("analyse.notes")}</h3>
       <ul class="notes">
         {#each review.notes as n (n.index)}
-          <li><span class="label" class:bad={n.mark.startsWith("?")}>{n.label}{n.mark}</span> {n.text}</li>
+          <li>
+            <span class="label" class:bad={n.mark.startsWith("?")}>{n.label}{n.mark}</span> {n.text}
+            {#if written(n)}
+              <p class="written"><span class="machine">{t("commentary.label", { model: written(n).model })}</span> {written(n).text}</p>
+            {:else if com?.model}
+              <button class="link" onclick={() => writeCommentary(n.index)} disabled={writing}>{t("commentary.write")}</button>
+            {/if}
+          </li>
         {/each}
       </ul>
     {:else if review?.done && !review.error}
       <p class="dim">{t("analyse.notes_none")}</p>
     {/if}
+  {/if}
+
+  {#if com && !lastNoted}
+    <section class="commentary" aria-label={t("commentary.title")}>
+      {#if com.shown}
+        <p class="written"><span class="machine">{t("commentary.label", { model: com.shown.model })}</span> {com.shown.text}</p>
+      {:else}
+        <div class="row">
+          <button onclick={() => writeCommentary(null)} disabled={!com.offered || writing} title={com.why ?? ""}>{writing ? t("commentary.writing") : t("commentary.write")}</button>
+          {#if com.why}<span class="dim">{com.why}</span>{/if}
+        </div>
+      {/if}
+    </section>
   {/if}
 
   {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -271,5 +330,15 @@
   }
   .label.bad {
     color: var(--red);
+  }
+  .written {
+    margin: 0.2rem 0;
+    padding-inline-start: 0.5rem;
+    border-inline-start: 3px solid var(--dim);
+  }
+  .machine {
+    display: block;
+    color: var(--dim);
+    font-size: 0.85em;
   }
 </style>

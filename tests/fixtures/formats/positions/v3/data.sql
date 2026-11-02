@@ -1,5 +1,6 @@
 INSERT INTO "annotations" ("family", "variant", "key", "move", "edition", "mark", "better", "motifs", "depth", "time", "seq") VALUES ('chess', 'chess', 7, 'g1f3', 2, '??', 'e2e4 e7e5', 'fork hangs', 20, 1800000002, 4);
-INSERT INTO "changes" ("n") VALUES (4);
+INSERT INTO "changes" ("n") VALUES (5);
+INSERT INTO "commentary" ("family", "variant", "key", "move", "language", "model", "text", "time", "seq") VALUES ('chess', 'chess', 7, 'g1f3', 'da', 'qwen3', 'Springeren efterlader en officer.', 1800000003, 5);
 INSERT INTO "editions" ("n", "id", "engine", "version", "network", "image") VALUES (1, 'stockfish|Stockfish 17.1|ab12cd34ef56ab12|00ff', 'stockfish', 'Stockfish 17.1', 'ab12cd34ef56ab12cd34', 'sha256:00ff');
 INSERT INTO "editions" ("n", "id", "engine", "version", "network", "image") VALUES (2, 'stockfish|Stockfish 17|ab12cd34ef56ab12|', 'stockfish', 'Stockfish 17', 'ab12cd34ef56ab12cd34', NULL);
 INSERT INTO "editions" ("n", "id", "engine", "version", "network", "image") VALUES (3, 'katago|KataGo 1.16||', 'katago', 'KataGo 1.16', NULL, NULL);
