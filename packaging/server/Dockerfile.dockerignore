@@ -1,0 +1,8 @@
+# The game service needs the Rust workspace only.
+target
+.worktrees
+.claude
+gui/node_modules
+gui/dist
+docs/screenshots
+assets
