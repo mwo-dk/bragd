@@ -64,7 +64,7 @@ A `call`'s body is one of these, and the reply's body is `{"ok":…}` or `{"erro
 |---|---|---|
 | `{"op":"changes","store":…,"since":…}` | The rows changed after change number `since` in that store, oldest first, at most 2,000 and about 1 MiB; the store's id, the last number sent, and whether there are more | The Position store's sync. A `store` that is not the answering store's id gets everything from the start |
 | `{"op":"working"}` | The jobs running there, and whether a language model is ready | *Settings → Peers* |
-| `{"op":"take","lane":…}` | A job of `analysis` or `model`, lent to the asker, or `null` | The shared queue |
+| `{"op":"take","lane":…,"containers":[…]}` | A job of `analysis` or `model`, lent to the asker, or `null`. Jobs for the Engines in `containers`, which the asker runs from their image, come first | The shared queue |
 | `{"op":"renew","id":…,"done":…,"total":…}` | `true` to go on, `false` when the owner wants it back | Every minute while the job runs |
 | `{"op":"give_back","id":…,"outcome":…}` | `null` | `outcome` is `done`, `translated` (with the text), `cannot` (with why) or `stopped` |
 

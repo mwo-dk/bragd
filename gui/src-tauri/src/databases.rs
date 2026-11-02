@@ -14,6 +14,7 @@ use bragd_core::t;
 use bragd_helper::disk;
 use bragd_library::chess::{self, Format, Query, Table, games::Limits, pgn};
 use bragd_library::go::Collection;
+use bragd_library::library::comment_text;
 use bragd_library::library::{Library, Stored, position_keys};
 use bragd_library::player::{self, PlayerSummary, Seen};
 use bragd_library::slice;
@@ -330,7 +331,7 @@ fn title(tags: &[(String, String)]) -> String {
 }
 
 fn comment(before: &str, after: &str) -> String {
-    [before.trim(), after.trim()].iter().filter(|c| !c.is_empty()).copied().collect::<Vec<_>>().join(" ")
+    [comment_text(before), comment_text(after)].into_iter().filter(|c| !c.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
 /// `g`'s main line laid out for replay, with its comments and evaluation profile.
@@ -339,7 +340,7 @@ pub fn replay(g: &pgn::Game, family: &str) -> Replay {
     let profile = g.eval_profile.as_ref().filter(|p| p.centipawns.len() > 1);
     // The ply each point stands for: the profile's start, then one a ply.
     let x_of = |ply: usize| profile.and_then(|p| ply.checked_sub(p.start_ply as usize)).filter(|&i| profile.is_some_and(|p| i < p.centipawns.len())).map(|i| i as f64 * EVP_W / (profile.map_or(1, |p| p.centipawns.len()) - 1) as f64);
-    let mut steps = vec![Step { label: String::new(), fen: Some(g.start.clone()), comment: g.comment.trim().to_string(), evp_x: x_of(0) }];
+    let mut steps = vec![Step { label: String::new(), fen: Some(g.start.clone()), comment: comment_text(&g.comment), evp_x: x_of(0) }];
     for (ply, &i) in line.iter().enumerate() {
         let n = &g.nodes[i as usize];
         let label = if n.white { format!("{}. {}", n.number, n.san) } else { format!("{}… {}", n.number, n.san) };
@@ -626,6 +627,10 @@ mod tests {
         assert_eq!(r.steps[1].label, "1. e4");
         assert_eq!(r.steps[1].comment, "Good");
         assert_eq!(r.steps[2].label, "1… e5");
+        // Machine commands are left out, as in a Library replay.
+        let g2 = pgn::parse("{[%clk 0:05:00] Start} 1. e4 { [%eval 0.17] [%clk 0:03:00] } e5 { Sharp [%clk 0:02:58] reply. } *");
+        let r2 = replay(&g2, "chess");
+        assert_eq!([r2.steps[0].comment.as_str(), &r2.steps[1].comment, &r2.steps[2].comment], ["Start", "", "Sharp reply."]);
         assert!(r.steps[3].fen.as_deref().unwrap().starts_with("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2"));
         let evp = r.evp.unwrap();
         // From the start position, a point a ply: the last capped at the top.

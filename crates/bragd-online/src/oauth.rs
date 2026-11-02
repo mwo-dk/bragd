@@ -3,8 +3,8 @@
 //! Bragd listens on at 127.0.0.1 with a code. Bragd swaps the code and its verifier for a token.
 //! Bragd never sees the password.
 
-use std::io::{BufRead, BufReader, Write};
-use std::net::{TcpListener, TcpStream};
+use std::io::{BufRead, BufReader, Read, Write};
+use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
@@ -123,7 +123,9 @@ impl Loopback {
             }
             match self.listener.accept() {
                 Ok((conn, _)) => {
-                    if let Some(answer) = answer(conn, server, state) {
+                    let _ = conn.set_nonblocking(false);
+                    let _ = conn.set_read_timeout(Some(Duration::from_secs(5)));
+                    if let Some(answer) = answer(&conn, server, state) {
                         return answer;
                     }
                 }
@@ -137,11 +139,16 @@ impl Loopback {
 
 /// Reads one request from the browser and answers it with a short page. The code when it
 /// carries `state`, the server's refusal when it says so, none for anything else.
-fn answer(conn: TcpStream, server: &str, state: &str) -> Option<Result<String, String>> {
-    let _ = conn.set_nonblocking(false);
-    let _ = conn.set_read_timeout(Some(Duration::from_secs(5)));
+fn answer(mut conn: impl Read + Write, server: &str, state: &str) -> Option<Result<String, String>> {
     let mut line = String::new();
-    BufReader::new(&conn).read_line(&mut line).ok()?;
+    let mut request = BufReader::new((&mut conn).take(64 * 1024));
+    request.read_line(&mut line).ok()?;
+    // The headers too: a socket closed with part of the request unread is reset, losing the page.
+    let mut header = String::new();
+    while matches!(request.read_line(&mut header), Ok(n) if n > 0 && !header.trim().is_empty()) {
+        header.clear();
+    }
+    drop(request);
     let target = line.split_whitespace().nth(1)?;
     let query = target.split_once('?').map_or("", |(_, q)| q);
     let param = |k: &str| query.split('&').find_map(|p| p.split_once('=').filter(|(n, _)| *n == k).map(|(_, v)| decode(v)));
@@ -158,8 +165,7 @@ fn answer(conn: TcpStream, server: &str, state: &str) -> Option<Result<String, S
         None => String::new(),
     };
     let body = format!("<!DOCTYPE html><meta charset=\"utf-8\"><title>Bragd</title><p style=\"font:1.2rem sans-serif;margin:2rem\">{}</p>", html(&text));
-    let mut out = &conn;
-    let _ = write!(out, "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+    let _ = write!(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
     result
 }
 
@@ -209,9 +215,8 @@ mod tests {
     }
 
     fn browser(redirect: &str, query: &str) -> String {
-        use std::io::Read;
         let addr = redirect.trim_start_matches("http://").trim_end_matches('/');
-        let mut c = TcpStream::connect(addr).unwrap();
+        let mut c = std::net::TcpStream::connect(addr).unwrap();
         write!(c, "GET /?{query} HTTP/1.1\r\nHost: {addr}\r\n\r\n").unwrap();
         let mut s = String::new();
         c.read_to_string(&mut s).unwrap();
@@ -229,6 +234,36 @@ mod tests {
         let stop = AtomicBool::new(false);
         assert_eq!(lb.wait("Lichess", "st", &stop, Duration::from_secs(20)).unwrap(), "liu_abc+1");
         assert!(t.join().unwrap().contains(&t!("online.browser_done")));
+    }
+
+    /// A connection whose request comes in pieces, one a read, as from a busy network.
+    struct Pieces(std::collections::VecDeque<&'static [u8]>, Vec<u8>);
+
+    impl std::io::Read for Pieces {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            let Some(p) = self.0.pop_front() else { return Ok(0) };
+            buf[..p.len()].copy_from_slice(p);
+            Ok(p.len())
+        }
+    }
+
+    impl Write for Pieces {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            self.1.extend_from_slice(buf);
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn oauth_loopback_reads_the_whole_request_before_it_answers() {
+        // Closing a socket with part of the request unread resets it, and the browser loses the page.
+        let mut c = Pieces(["GET /?code=c&state=st HTTP/1.1\r\n".as_bytes(), b"Host: 127.0.0.1\r\n", b"\r\n"].into(), vec![]);
+        assert_eq!(answer(&mut c, "Lichess", "st"), Some(Ok("c".into())));
+        assert!(c.0.is_empty(), "{} pieces left unread", c.0.len());
+        assert!(String::from_utf8_lossy(&c.1).starts_with("HTTP/1.1 200 OK"));
     }
 
     #[test]
