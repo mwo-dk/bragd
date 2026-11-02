@@ -472,6 +472,7 @@ dependencies = [
  "libc",
  "serde",
  "serde_json",
+ "static_vcruntime",
  "ureq",
  "windows-sys 0.61.2",
  "zip",

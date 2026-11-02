@@ -52,6 +52,7 @@ The window starts the Helper from beside its own program, so the scripts put `br
 
 - A 64-bit machine, x64 or arm64.
 - On Linux, WebKitGTK 4.1, which draws the window. The packages bring it in.
+- On Windows, Windows 10 or 11 and nothing more. Both programs carry their Visual C++ runtime, so the Visual C++ Redistributable is not needed.
 - Room for what you keep: Libraries, downloads, tablebases and engine images. [Disk watch](../knowledge/disk-watch.md) shows how much each takes.
 - Podman or docker only if you want Bragd to run an Engine you have not installed ([Engine container images](../engines/container-images.md)).
 
