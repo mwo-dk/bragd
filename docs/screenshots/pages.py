@@ -457,9 +457,10 @@ COMMENTS_PGN = """[Event "Demo"]
 """
 
 
-def fake_model():
+def fake_model(text="The Spanish Game. White attacks the knight that defends the pawn on e5."):
     """A stand-in language model on 127.0.0.1, in a thread: its model list names one model, and
-    every chat answer is the English of COMMENTS_PGN's comment. Stop it with `.shutdown()`."""
+    every chat answer is `text`, by default the English of COMMENTS_PGN's comment. Stop it with
+    `.shutdown()`."""
     import http.server, threading
 
     class Fake(http.server.BaseHTTPRequestHandler):
@@ -476,7 +477,6 @@ def fake_model():
 
         def do_POST(self):
             self.rfile.read(int(self.headers.get("Content-Length", 0)))
-            text = "The Spanish Game. White attacks the knight that defends the pawn on e5."
             self.answer({"choices": [{"index": 0, "message": {"role": "assistant", "content": text}}]})
 
         def log_message(self, *_):
@@ -485,6 +485,44 @@ def fake_model():
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Fake)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
+
+
+def commentary():
+    """commentary-chess-390.png and -1100.png: a Game reviewed in Analyse (as `review`), and the
+    language model's Commentary on 3… Qg5?? beside its Annotation. The model is a stand-in
+    unless MODEL_URL and MODEL_NAME name a real server; once written, the Commentary is kept in
+    the demo home's Position store, so the second width finds it there."""
+    fake = None
+    if os.environ.get("MODEL_URL"):
+        url, name = os.environ["MODEL_URL"], os.environ.get("MODEL_NAME", "")
+    else:
+        fake = fake_model("Black's queen goes to g5, where White's knight on f3 can simply take it, so the Engine marks 3… Qg5 "
+                          "as a blunder that leaves a piece hanging. Before the move the position was about level.")
+        url, name = f"http://127.0.0.1:{fake.server_port}/v1", "demo-writer"
+    config(f'[engines.paths]\nstockfish = "/home/demo/fake-uci"\n\n[model]\nurl = "{url}"\nname = "{name}"\n')
+    try:
+        def page(d):
+            js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+            d.wait(0.4)
+            nav(d, "chess", "Analyse")
+            for a, b in (m.split() for m in ["e2 e4", "e7 e5", "g1 f3", "b8 c6", "f1 c4", "d8 g5"]):
+                move(d, a, b)
+            click(d, "Review the game", "main")
+            d.wait(5)
+            # The second width finds it kept, beside the Annotation, with no button.
+            if not js(d, "return !!document.querySelector('main .notes .written')"):
+                click(d, "Commentary", "main .notes")
+            for _ in range(60):
+                if js(d, "return !!document.querySelector('main .notes .written')"):
+                    break
+                d.wait(1)
+            js(d, "document.querySelector('main .notes .written')?.scrollIntoView({block: 'center'})")
+
+        widths("commentary-chess", page)
+    finally:
+        config("")
+        if fake:
+            fake.shutdown()
 
 
 def model():
@@ -918,7 +956,7 @@ def families(only=None):
             p.unlink(missing_ok=True)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "background": background, "peers": peers, "sharing": sharing, "online": online, "families": families, "sources": sources,
+ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "families": families, "sources": sources,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":

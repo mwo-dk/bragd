@@ -24,6 +24,7 @@ The store fills by itself as you analyse and review. Export and Import are in *S
 |---|---|---|
 | Evaluation | A position and an Edition | The score, the depth, the Engine's best line, and its second choice with its score when the Engine gave one |
 | Annotation | A move from a position, and an Edition | The mark, the better line and the named motifs ([Game review](../engines/review.md#annotations)) |
+| Commentary | A move (or a position), a language and a model | A language model's prose about it, and when it was written ([Commentary](../engines/commentary.md)) |
 
 An Edition is one exact build of an Engine: its version, its network, and its image when it runs in a container. Every Edition is kept. Bragd shows the newest Edition's row, and the deepest of those.
 
@@ -31,7 +32,7 @@ Only the deepest row for a position and an Edition is kept. An import keeps the 
 
 ## The Parquet file
 
-One row per Evaluation or Annotation, compressed with Snappy:
+One row per Evaluation or Annotation, compressed with Snappy. Commentary is not in it: it stays in the store, and paired machines swap it ([Sharing between Peers](../peers/sharing.md)).
 
 | Column | What it holds |
 |---|---|

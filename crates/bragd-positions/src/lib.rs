@@ -19,10 +19,13 @@
 //! can earn them. It comes last in the merge order: `(depth, time, kind, score, lead, line,
 //! second)`, a row without one less than a row with one.
 //!
+//! Commentary, a language model's prose about a move, has a table of its own (`commentary`).
+//!
 //! Annotations (schema 2) are kept the same way, keyed also by the move, and merged by the same
 //! rule: the greater by `(depth, time, mark, better, motifs)` wins (`put_annotation`).
 
 pub mod annotation;
+pub mod commentary;
 pub mod edition;
 pub mod parquet;
 pub mod queue;
@@ -35,6 +38,7 @@ use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 
 pub use annotation::{Annotation, Mark, Motif};
+pub use commentary::Commentary;
 pub use edition::Edition;
 
 #[derive(Debug)]
@@ -194,8 +198,7 @@ pub struct Size {
     pub bytes: u64,
 }
 
-/// The store's format (`PRAGMA user_version`). Its 1.0 baseline is 3. Commentary comes as a
-/// migration, keyed the same way: (family, variant, key) and its own columns.
+/// The store's format (`PRAGMA user_version`). Its 1.0 baseline is 3.
 pub const FORMAT: bragd_core::format::Sqlite = bragd_core::format::Sqlite { file: "positions.sqlite", first: 3, schema: SCHEMA, migrations: &[] };
 
 const SCHEMA: &str = "
@@ -246,8 +249,23 @@ CREATE TABLE annotations (
     seq INTEGER NOT NULL,
     PRIMARY KEY (family, variant, key, move, edition)
 ) WITHOUT ROWID;
+-- Prose by a language model (`commentary`): `move` is empty for the position itself.
+CREATE TABLE commentary (
+    family TEXT NOT NULL,
+    variant TEXT NOT NULL,
+    key INTEGER NOT NULL,
+    move TEXT NOT NULL,
+    -- A locale code.
+    language TEXT NOT NULL,
+    model TEXT NOT NULL,
+    text TEXT NOT NULL,
+    time INTEGER NOT NULL,
+    seq INTEGER NOT NULL,
+    PRIMARY KEY (family, variant, key, move, language, model)
+) WITHOUT ROWID;
 CREATE INDEX evaluations_seq ON evaluations (seq);
 CREATE INDEX annotations_seq ON annotations (seq);
+CREATE INDEX commentary_seq ON commentary (seq);
 -- The last change number given.
 CREATE TABLE changes (n INTEGER NOT NULL);
 INSERT INTO changes (n) VALUES (0);
@@ -302,6 +320,14 @@ impl Store {
         conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
         // Another process (a window, the Helper) may be making it at the same moment: it is
         // made under the write lock, by whichever gets it first.
+        FORMAT.open(&mut conn)?;
+        Ok(Store { conn })
+    }
+
+    /// A store in memory, for tests that make thousands.
+    #[cfg(test)]
+    pub(crate) fn open_in_memory() -> Result<Store> {
+        let mut conn = Connection::open_in_memory()?;
         FORMAT.open(&mut conn)?;
         Ok(Store { conn })
     }

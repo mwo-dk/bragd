@@ -60,6 +60,7 @@ fn working(w: &Working) -> String {
     let what = match w.kind.as_str() {
         "analyse" => t!("peers.working.analyse", "about" => w.about),
         "translate" => t!("peers.working.translate"),
+        "commentary" => t!("peers.working.commentary"),
         _ => t!("peers.working.other"),
     };
     let what = format!("{what} ({})", count(w.done, w.total));

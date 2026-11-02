@@ -66,7 +66,7 @@ A `call`'s body is one of these, and the reply's body is `{"ok":…}` or `{"erro
 | `{"op":"working"}` | The jobs running there, and whether a language model is ready | *Settings → Peers* |
 | `{"op":"take","lane":…,"containers":[…]}` | A job of `analysis` or `model`, lent to the asker, or `null`. Jobs for the Engines in `containers`, which the asker runs from their image, come first | The shared queue |
 | `{"op":"renew","id":…,"done":…,"total":…}` | `true` to go on, `false` when the owner wants it back | Every minute while the job runs |
-| `{"op":"give_back","id":…,"outcome":…}` | `null` | `outcome` is `done`, `translated` (with the text), `cannot` (with why) or `stopped` |
+| `{"op":"give_back","id":…,"outcome":…}` | `null` | `outcome` is `done`, `translated` (with the text of a translation or a Commentary), `cannot` (with why) or `stopped` |
 
 ## Finding each other
 

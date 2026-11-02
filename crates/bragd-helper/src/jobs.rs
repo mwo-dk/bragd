@@ -47,8 +47,12 @@ pub enum Work {
     Analyse { job: bragd_positions::queue::Job },
     /// A Comment's `text` into `language` (a locale code) by the language model, on a worker
     /// of its own. Queued when this machine has no model ready, for a Peer whose model is, and
-    /// kept in this machine's translations. Commentary comes as a kind beside it.
+    /// kept in this machine's translations.
     Translate { text: String, language: String },
+    /// Commentary on a move (`mv`, empty for the position) in `language`, written by the
+    /// language model from `facts`, which the asking machine gathered from its Position store:
+    /// a Peer needs nothing else. Kept in this machine's Position store, which its Peers sync.
+    Commentary { family: String, variant: String, key: u64, mv: String, language: String, facts: String },
 }
 
 /// The workers that take jobs: one for most, one for engine matches, one for background
@@ -68,7 +72,7 @@ impl Lane {
         match work {
             Work::Match { .. } => Lane::Matches,
             Work::Analyse { .. } => Lane::Analysis,
-            Work::Translate { .. } => Lane::Model,
+            Work::Translate { .. } | Work::Commentary { .. } => Lane::Model,
             _ => Lane::Main,
         }
     }
@@ -93,7 +97,7 @@ pub struct Report {
     /// Background analysis: an estimate of the seconds left.
     #[serde(default)]
     pub left: Option<u64>,
-    /// A translation, once done.
+    /// A translation or a Commentary, once done.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub translation: Option<bragd_model::Translation>,
 }
@@ -155,6 +159,7 @@ pub struct Owner {
 pub enum Outcome {
     /// Done there: the positions done; the results come with the Position store's sync.
     Done { done: u64 },
+    /// A model job done there: a translation, or a Commentary's text. The owner keeps it.
     Translated { translation: bragd_model::Translation },
     /// That Peer cannot do it (no such Engine, too old an Edition, it failed there): it goes
     /// back to the queue, and is not lent to that Peer again.
@@ -651,7 +656,24 @@ impl Jobs {
                 self.set_report(id, Report { translation: Some(t), ..Default::default() });
                 Ok(1)
             }
+            Work::Commentary { language, facts, .. } => {
+                let t = bragd_model::commentary(&Config::load().unwrap_or_default().model, facts, language)?;
+                if from.is_none() {
+                    self.keep_commentary(work, &t)?;
+                }
+                self.set_report(id, Report { translation: Some(t), ..Default::default() });
+                Ok(1)
+            }
         }
+    }
+
+    /// The Commentary a model wrote for `work` (a `Work::Commentary`), into this machine's
+    /// Position store.
+    fn keep_commentary(&self, work: &Work, t: &bragd_model::Translation) -> Result<(), String> {
+        let Work::Commentary { family, variant, key, mv, language, .. } = work else { return Ok(()) };
+        let c = bragd_positions::Commentary { family: family.clone(), variant: variant.clone(), key: *key, mv: mv.clone(), language: language.clone(), model: t.model.clone(), text: t.text.clone(), time: t.time };
+        let mut store = bragd_positions::Store::open(&self.data.join("positions.sqlite")).map_err(|e| e.to_string())?;
+        store.put_commentary(&c).map(|_| ()).map_err(|e| e.to_string())
     }
 
     /// Background analysis of `job`, its results into the Position store: the positions done.
@@ -777,14 +799,18 @@ impl Jobs {
             _ if cancelled => j.status = Status::Cancelled,
             Outcome::Done { done } => (j.status, j.done) = (Status::Done, done),
             Outcome::Translated { translation } => {
-                if let Work::Translate { text, language } = &j.work {
-                    match bragd_model::Translations::open(&self.data.join("translations.sqlite")).map_err(|e| e.to_string()).and_then(|s| s.put(text.trim(), language, &translation).map_err(|e| e.to_string())) {
-                        Ok(()) => {
-                            j.status = Status::Done;
-                            j.report.get_or_insert_with(Report::default).translation = Some(translation);
-                        }
-                        Err(e) => (j.status, j.error) = (Status::Failed, Some(e)),
+                let kept = match &j.work {
+                    Work::Translate { text, language } => Some(bragd_model::Translations::open(&self.data.join("translations.sqlite")).map_err(|e| e.to_string()).and_then(|s| s.put(text.trim(), language, &translation).map_err(|e| e.to_string()))),
+                    w @ Work::Commentary { .. } => Some(self.keep_commentary(w, &translation)),
+                    _ => None,
+                };
+                match kept {
+                    Some(Ok(())) => {
+                        j.status = Status::Done;
+                        j.report.get_or_insert_with(Report::default).translation = Some(translation);
                     }
+                    Some(Err(e)) => (j.status, j.error) = (Status::Failed, Some(e)),
+                    None => {}
                 }
             }
             Outcome::Cannot { why } => {

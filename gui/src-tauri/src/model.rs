@@ -2,6 +2,9 @@
 //! and consent are options saved like any other; the key goes to the OS keychain from here.
 //! With no model ready here, a Peer's model translates through the shared queue (the Helper's
 //! `Work::Translate`).
+//!
+//! Commentary on a move always goes through the queue (`Work::Commentary`): the Helper's model
+//! lane writes it with this machine's model, or lends it to a Peer's.
 
 use std::time::{Duration, Instant};
 
@@ -9,6 +12,7 @@ use bragd_core::{i18n, t};
 use bragd_helper::helper::{Reply, Request};
 use bragd_helper::jobs::{Status as JobStatus, Work};
 use bragd_model::{CommentView, Found, Status, Translation, Translations};
+use serde::Serialize;
 use tauri::State;
 
 use crate::Ctx;
@@ -86,13 +90,19 @@ pub fn comment_translate(text: String, ctx: State<'_, Ctx>, k: State<'_, Knowled
 }
 
 /// `text` translated by a Peer's model: queued with the Helper, which lends it to a Peer with a
-/// model ready and keeps what comes back. Waits for it, at most `PEER_WAIT`.
+/// model ready and keeps what comes back.
 fn by_peer(k: &Knowledge, store: &Translations, text: &str) -> Result<Translation, String> {
     let language = i18n::language();
     if let Some(t) = store.get(text.trim(), language).map_err(|e| e.to_string())? {
         return Ok(t);
     }
-    let Reply::Started { id } = k.link.ask(&Request::Start { work: Work::Translate { text: text.trim().into(), language: language.into() } })? else {
+    queued(k, Work::Translate { text: text.trim().into(), language: language.into() }, "model.error.no_peer")
+}
+
+/// A model job queued with the Helper and waited for, at most `PEER_WAIT`: what the model wrote,
+/// or the text `late` when it did not come in time.
+fn queued(k: &Knowledge, work: Work, late: &str) -> Result<Translation, String> {
+    let Reply::Started { id } = k.link.ask(&Request::Start { work })? else {
         return Err(t!("helper.odd_reply"));
     };
     let until = Instant::now() + PEER_WAIT;
@@ -100,7 +110,7 @@ fn by_peer(k: &Knowledge, store: &Translations, text: &str) -> Result<Translatio
         std::thread::sleep(Duration::from_millis(300));
         let Reply::Jobs { jobs } = k.link.ask(&Request::Jobs)? else { return Err(t!("helper.odd_reply")) };
         match jobs.into_iter().find(|j| j.id == id) {
-            Some(j) if j.status == JobStatus::Done => return j.report.and_then(|r| r.translation).ok_or_else(|| t!("model.error.no_peer")),
+            Some(j) if j.status == JobStatus::Done => return j.report.and_then(|r| r.translation).ok_or_else(|| bragd_core::i18n::tr(late, &[])),
             Some(j) if j.status == JobStatus::Failed => return Err(j.error.unwrap_or_default()),
             Some(j) if j.status == JobStatus::Cancelled => break,
             Some(_) => {}
@@ -108,5 +118,53 @@ fn by_peer(k: &Knowledge, store: &Translations, text: &str) -> Result<Translatio
         }
     }
     let _ = k.link.ask(&Request::Cancel { id });
-    Err(t!("model.error.no_peer"))
+    Err(bragd_core::i18n::tr(late, &[]))
+}
+
+/// Commentary as Analyse shows it for the Game's last move: whether a model is ready (here or a
+/// Peer's) and the store has facts to explain, why not when it cannot be offered, and the
+/// Commentary kept in the reader's language, with its model.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct CommentaryView {
+    pub model: bool,
+    pub offered: bool,
+    pub why: Option<String>,
+    pub shown: Option<Written>,
+}
+
+/// Machine-written prose and the model that wrote it.
+#[derive(Clone, Debug, Serialize)]
+pub struct Written {
+    pub text: String,
+    pub model: String,
+}
+
+/// The Commentary kept for `f` in the reader's language.
+fn kept_commentary(f: &crate::analyse::Facts) -> Result<Option<Written>, String> {
+    let Some(path) = bragd_positions::Store::path().filter(|p| p.exists()) else { return Ok(None) };
+    let c = bragd_positions::Store::open(&path).and_then(|s| s.commentary(&f.family, &f.variant, f.key, &f.mv, i18n::language())).map_err(|e| e.to_string())?;
+    Ok(c.map(|c| Written { text: c.text, model: c.model }))
+}
+
+#[tauri::command(async)]
+pub fn commentary_view(variant: String, initial: Option<String>, entries: Vec<String>, engine: Option<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Result<CommentaryView, String> {
+    let cfg = ctx.cfg();
+    let model = bragd_model::ready(&cfg.model) || peer_model(&k, cfg.peers.on);
+    let Some(f) = crate::analyse::facts(&cfg, &variant, initial.as_deref(), &entries, engine)? else {
+        return Ok(CommentaryView { model, why: Some(t!("commentary.no_facts")), ..Default::default() });
+    };
+    Ok(CommentaryView { model, offered: model, why: (!model).then(|| t!("commentary.no_model")), shown: kept_commentary(&f)? })
+}
+
+/// Commentary on the Game's last move in the reader's language: the one kept, else written now
+/// through the shared queue and kept in the Position store.
+#[tauri::command(async)]
+pub fn commentary_write(variant: String, initial: Option<String>, entries: Vec<String>, engine: Option<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Result<Written, String> {
+    let f = crate::analyse::facts(&ctx.cfg(), &variant, initial.as_deref(), &entries, engine)?.ok_or_else(|| t!("commentary.no_facts"))?;
+    if let Some(w) = kept_commentary(&f)? {
+        return Ok(w);
+    }
+    let w = queued(&k, Work::Commentary { family: f.family, variant: f.variant, key: f.key, mv: f.mv, language: i18n::language().into(), facts: f.text }, "commentary.timeout")?;
+    bragd_core::tips::used("commentary");
+    Ok(Written { text: w.text, model: w.model })
 }

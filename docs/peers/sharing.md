@@ -2,7 +2,7 @@
 
 # Sharing between Peers
 
-Paired machines share two things: what is new in their [Position stores](../knowledge/position-store.md), and their queues of [background analysis](../engines/background-analysis.md) and translations. A machine with nothing to do takes a job the other has waiting, inside its own limits. Libraries, Slices and Settings stay on each machine. In F1 this is the `sharing` entry.
+Paired machines share two things: what is new in their [Position stores](../knowledge/position-store.md), and their queues of [background analysis](../engines/background-analysis.md), translations and [Commentary](../engines/commentary.md). A machine with nothing to do takes a job the other has waiting, inside its own limits. Libraries, Slices and Settings stay on each machine. In F1 this is the `sharing` entry.
 
 ![Settings at Peers: a paired machine with its sync and what it works on, and the shared queue](../screenshots/peers-sharing-1100.png)
 *Settings → Peers, with a paired machine sharing.*
@@ -16,9 +16,9 @@ Paired machines share two things: what is new in their [Position stores](../know
 | *Position store synced …* | Under each paired machine: when its rows last came, how many came then, and how many in all |
 | *Sync failed …* | The last sync did not get through, and why. The next one comes within a minute |
 | *Working on …* / *Idle* | What that machine runs now, and for whom |
-| *Has a language model* | That machine can translate for this one |
+| *Has a language model* | That machine can translate and write Commentary for this one |
 | **Sync now** | Takes what is new from every paired machine now, rather than at the next minute |
-| *Shared queue* | This machine's background analysis and translations waiting or running, and where: *Waiting*, *On laptop*, *Here*, or *Here, for laptop* |
+| *Shared queue* | This machine's background analysis, translations and Commentary waiting or running, and where: *Waiting*, *On laptop*, *Here*, or *Here, for laptop* |
 
 A job of the shared queue also shows on the [Jobs page](../knowledge/helper.md), where it can be cancelled.
 
@@ -33,7 +33,7 @@ Only what changed since the last sync goes over: each row carries a change numbe
 A machine takes a job from a Peer when it has none of its own waiting, and only inside its own limits:
 
 - background analysis inside the hours and the battery rule of *Settings → Knowledge* (`[analysis]` in `config.toml`), with the Engine the job names in an Edition at least as new as the job asks;
-- a translation only with a [language model](../knowledge/language-model.md) ready.
+- a translation or Commentary only with a [language model](../knowledge/language-model.md) ready.
 
 The job carries its positions, so the other machine needs neither the Library nor the Slice. It runs there into that machine's own Position store, and its results come back with the next sync. The machine that queued it marks it done as soon as it is given back, and takes the results at once.
 
@@ -43,7 +43,7 @@ Container Engines run the same Edition on every machine, pinned by image digest,
 
 ### Model jobs
 
-With no language model set up here, **Translate** under a comment shows when a paired machine has a model ready. The comment goes to that machine through the shared queue, its model translates it, and the translation comes back and is kept here only. If no Peer answers within two minutes, Bragd says so and the job is cancelled.
+With no language model set up here, **Translate** under a comment shows when a paired machine has a model ready. The comment goes to that machine through the shared queue, its model translates it, and the translation comes back and is kept here only. If no Peer answers within two minutes, Bragd says so and the job is cancelled. **Commentary** goes the same way: a Peer's model writes it, and this machine keeps it in its Position store, from where the next sync takes it to every Peer.
 
 ## What it needs
 

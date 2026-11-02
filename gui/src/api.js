@@ -242,6 +242,10 @@ export const modelKey = (/** @type {string} */ key) => invoke("model_key", { key
 export const commentView = (/** @type {string} */ text) => invoke("comment_view", { text });
 /** A Comment translated into the reader's language. @returns {Promise<any>} */
 export const commentTranslate = (/** @type {string} */ text) => invoke("comment_translate", { text });
+/** Commentary on the Game's last move: whether it can be written, why not, and the one kept. @returns {Promise<any>} */
+export const commentaryView = (/** @type {Game} */ g, /** @type {string|null} */ engine) => invoke("commentary_view", { ...g, engine });
+/** Commentary on the Game's last move, written by the language model through the shared queue. @returns {Promise<any>} */
+export const commentaryWrite = (/** @type {Game} */ g, /** @type {string|null} */ engine) => invoke("commentary_write", { ...g, engine });
 /** Peers as Settings shows them; with `hello`, each is asked whether it is there. @returns {Promise<any>} */
 export const peersView = (/** @type {boolean} */ hello) => invoke("peers_view", { hello });
 /** The Helper listens for Peers, or stops, as Settings say now. @returns {Promise<any>} */

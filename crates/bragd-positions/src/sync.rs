@@ -14,7 +14,7 @@
 use rusqlite::{OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
-use crate::{Annotation, Evaluation, Merged, Result, Store};
+use crate::{Annotation, Commentary, Evaluation, Merged, Result, Store};
 
 /// The next change number, for a row about to be written.
 pub(crate) fn next(tx: &rusqlite::Connection) -> Result<i64> {
@@ -36,6 +36,8 @@ pub struct Changes {
     pub store: String,
     pub evaluations: Vec<Evaluation>,
     pub annotations: Vec<Annotation>,
+    #[serde(default)]
+    pub commentary: Vec<Commentary>,
     /// The change number of the last row in the batch: where the next one starts.
     pub last: u64,
     /// More rows changed after `last`.
@@ -65,6 +67,17 @@ fn weight_a(a: &Annotation) -> usize {
     160 + a.family.len() + a.variant.len() + a.mv.len() + a.better.len() + a.edition.id().len() + a.motifs.len() * 12
 }
 
+fn weight_c(c: &Commentary) -> usize {
+    120 + c.family.len() + c.variant.len() + c.mv.len() + c.language.len() + c.model.len() + c.text.len()
+}
+
+/// A changed row of any table.
+enum Row {
+    E(Evaluation),
+    A(Annotation),
+    C(Commentary),
+}
+
 impl Store {
     /// This store's id, made the first time it is asked.
     pub fn id(&mut self) -> Result<String> {
@@ -90,31 +103,30 @@ impl Store {
         let id = self.id()?;
         let since = if store == id { since as i64 } else { 0 };
         let limit = rows as i64 + 1;
-        let evaluations = self.select_seq("WHERE v.seq > ?1 ORDER BY v.seq LIMIT ?2", params![since, limit])?;
-        let annotations = self.select_annotations_seq("WHERE a.seq > ?1 ORDER BY a.seq LIMIT ?2", params![since, limit])?;
+        let mut all: Vec<(u64, Row)> = self.select_seq("WHERE v.seq > ?1 ORDER BY v.seq LIMIT ?2", params![since, limit])?.into_iter().map(|(n, x)| (n, Row::E(x))).collect();
+        all.extend(self.select_annotations_seq("WHERE a.seq > ?1 ORDER BY a.seq LIMIT ?2", params![since, limit])?.into_iter().map(|(n, x)| (n, Row::A(x))));
+        all.extend(self.select_commentary("WHERE seq > ?1 ORDER BY seq LIMIT ?2", params![since, limit])?.into_iter().map(|(n, x)| (n, Row::C(x))));
+        // Change numbers are unique across the tables: one counter gives them all.
+        all.sort_by_key(|(n, _)| *n);
         let mut out = Changes { store: id, last: since as u64, ..Changes::default() };
-        let (mut e, mut a) = (evaluations.into_iter().peekable(), annotations.into_iter().peekable());
         let mut weight = 0;
-        loop {
-            let take_e = match (e.peek(), a.peek()) {
-                (None, None) => break,
-                (Some((se, _)), Some((sa, _))) => se < sa,
-                (Some(_), None) => true,
-                (None, Some(_)) => false,
+        for (seq, row) in all {
+            let w = match &row {
+                Row::E(x) => weight_e(x),
+                Row::A(x) => weight_a(x),
+                Row::C(x) => weight_c(x),
             };
-            let w = if take_e { e.peek().map_or(0, |(_, x)| weight_e(x)) } else { a.peek().map_or(0, |(_, x)| weight_a(x)) };
-            let taken = out.evaluations.len() + out.annotations.len();
+            let taken = out.evaluations.len() + out.annotations.len() + out.commentary.len();
             if taken >= rows || (taken > 0 && weight + w > bytes) {
                 out.more = true;
                 break;
             }
             weight += w;
-            if let Some((seq, x)) = if take_e { e.next().map(|(s, x)| (s, Ok(x))) } else { a.next().map(|(s, x)| (s, Err(x))) } {
-                out.last = seq;
-                match x {
-                    Ok(x) => out.evaluations.push(x),
-                    Err(x) => out.annotations.push(x),
-                }
+            out.last = seq;
+            match row {
+                Row::E(x) => out.evaluations.push(x),
+                Row::A(x) => out.annotations.push(x),
+                Row::C(x) => out.commentary.push(x),
             }
         }
         Ok(out)
@@ -124,7 +136,11 @@ impl Store {
     /// transaction: nothing when a row is refused.
     pub fn merge_changes(&mut self, peer: &str, c: &Changes) -> Result<Merged> {
         let tx = self.conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-        let m = crate::merge(&tx, &c.evaluations, &c.annotations)?;
+        let mut m = crate::merge(&tx, &c.evaluations, &c.annotations)?;
+        for x in &c.commentary {
+            m.read += 1;
+            m.changed += u64::from(crate::commentary::put(&tx, x)?);
+        }
         tx.execute(
             "INSERT INTO pulled (peer, store, seq, time, rows) VALUES (?1, ?2, ?3, ?4, ?5) \
              ON CONFLICT (peer) DO UPDATE SET store = excluded.store, seq = excluded.seq, time = excluded.time, rows = pulled.rows + excluded.rows",
@@ -155,6 +171,7 @@ impl Store {
 mod tests {
     use super::*;
     use crate::Score;
+    use crate::commentary::tests::said;
     use crate::tests::{dir, eval, note, sf};
 
     fn store(name: &str) -> Store {
@@ -183,15 +200,16 @@ mod tests {
             a.put(&eval(k, sf("Stockfish 17"), 20, 1, Score::Cp(k as i32))).unwrap();
         }
         a.put_annotation(&note(1, "e2e4", sf("Stockfish 17"), 20, 1, None)).unwrap();
-        assert_eq!(pull(&mut b, &mut a, "a", 2), (3, 6), "six rows, two at a time");
-        assert_eq!((b.all().unwrap(), b.annotations().unwrap()), (a.all().unwrap(), a.annotations().unwrap()));
+        a.put_commentary(&said(1, "e2e4", "da", "qwen3", 1, "Hvid tager centrum.")).unwrap();
+        assert_eq!(pull(&mut b, &mut a, "a", 2), (4, 7), "seven rows, two at a time");
+        assert_eq!((b.all().unwrap(), b.annotations().unwrap(), b.commentaries().unwrap()), (a.all().unwrap(), a.annotations().unwrap(), a.commentaries().unwrap()));
         assert_eq!(pull(&mut b, &mut a, "a", 2), (1, 0), "nothing new: nothing read");
         // A shallower row changes nothing in A, so it is not sent; a deeper one is.
         a.put(&eval(1, sf("Stockfish 17"), 10, 9, Score::Cp(0))).unwrap();
         a.put(&eval(2, sf("Stockfish 17"), 30, 9, Score::Cp(0))).unwrap();
         assert_eq!(pull(&mut b, &mut a, "a", 100), (1, 1));
         assert_eq!(b.evaluations("chess", "chess", 2).unwrap()[0].depth, 30);
-        assert_eq!(b.pulled("a").unwrap().unwrap().rows, 7);
+        assert_eq!(b.pulled("a").unwrap().unwrap().rows, 8);
     }
 
     /// Peers ask a store for the first time at once, and merge into one at once: each waits its
@@ -264,11 +282,23 @@ mod tests {
         let rows_c = [eval(1, sf("Stockfish 17"), 22, 3, Score::Cp(12)), eval(2, sf("Stockfish 17"), 28, 3, Score::Cp(21)), eval(4, sf("Stockfish 17"), 8, 3, Score::Cp(0))];
         let notes_a = [note(1, "e2e4", sf("Stockfish 17"), 20, 1, None)];
         let notes_c = [note(1, "e2e4", sf("Stockfish 17"), 24, 1, Some(crate::Mark::Good))];
+        // Two machines' models wrote about the same move in the same language: the later wins.
+        let said_a = [said(1, "e2e4", "da", "qwen3", 5, "Et godt træk."), said(2, "", "en-GB", "qwen3", 1, "Level.")];
+        let said_c = [said(1, "e2e4", "da", "qwen3", 9, "Hvid tager centrum."), said(1, "e2e4", "da", "gemma", 1, "Fint.")];
         a.merge(&rows_a, &notes_a).unwrap();
         b.put_all(&rows_b).unwrap();
         c.merge(&rows_c, &notes_c).unwrap();
+        for x in &said_a {
+            a.put_commentary(x).unwrap();
+        }
+        for x in &said_c {
+            c.put_commentary(x).unwrap();
+        }
         let mut want = store("three-want");
         want.merge(rows_a.iter().chain(&rows_b).chain(&rows_c), notes_a.iter().chain(&notes_c)).unwrap();
+        for x in said_a.iter().chain(&said_c) {
+            want.put_commentary(x).unwrap();
+        }
         // Rounds until nothing moves; small batches, so each round takes several.
         let mut rounds = 0;
         loop {
@@ -282,7 +312,9 @@ mod tests {
         for (name, s) in [("a", &a), ("b", &b), ("c", &c)] {
             assert_eq!(s.all().unwrap(), want.all().unwrap(), "{name}");
             assert_eq!(s.annotations().unwrap(), want.annotations().unwrap(), "{name}");
+            assert_eq!(s.commentaries().unwrap(), want.commentaries().unwrap(), "{name}");
         }
+        assert_eq!(a.commentary("chess", "chess", 1, "e2e4", "da").unwrap().unwrap().text, "Hvid tager centrum.");
         assert_eq!(a.all().unwrap().len(), 5, "keys 1 to 4, and 5 by another Edition");
     }
 }
