@@ -33,7 +33,7 @@ Whole Libraries are never queued. Within a job the positions that occur most oft
 | Field | What it does |
 |---|---|
 | Engines | Tick one or more. Only Engines that are there to run and play one of the Family's Variants are offered; each Variant's default Engine is ticked |
-| Oldest version | Per Engine, the oldest version that may answer, such as `Stockfish 17.1`. Empty: any. An older Engine stops the job with a message |
+| Oldest Edition | Per Engine, the oldest Edition that may answer, such as `Stockfish 17.1`. Empty: any. An older Engine stops the job with a message |
 | Depth per position, or Seconds per position | How long each position is thought about |
 | Most frequent positions | How many of the Slice's positions go into the job, the most frequent first. At most 100,000 |
 

@@ -167,8 +167,8 @@ fn save_confirmed(from: &Path, to_confirm: &Mutex<Option<PathBuf>>) -> Res<Saved
 // ---------------------------------------------------------------- Libraries and Slices
 
 #[tauri::command(async)]
-pub fn libraries_list(ctx: State<'_, Ctx>) -> Res<Vec<LibraryView>> {
-    Ok(databases::libraries(&ctx.cfg()))
+pub fn libraries_list(family: Option<String>, ctx: State<'_, Ctx>) -> Res<Vec<LibraryView>> {
+    Ok(databases::libraries(&ctx.cfg(), family.as_deref()))
 }
 
 #[tauri::command(async)]
@@ -179,7 +179,8 @@ pub fn library_rows(path: String, query: Value, from: usize, count: usize, k: St
 #[tauri::command(async)]
 pub fn library_game(path: String, id: i64, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Replay> {
     let lib = Library::open(Path::new(&path)).map_err(|e| e.to_string())?;
-    let r = databases::stored_replay(&lib.stored(id).map_err(|e| e.to_string())?);
+    let e = |e: bragd_library::library::Error| e.to_string();
+    let r = databases::stored_replay(&lib.stored(id).map_err(e)?, &lib.keys(id, usize::MAX).map_err(e)?);
     let cfg = ctx.cfg();
     if cfg.analysis.open_games
         && let Ok(o) = crate::background::Opened::of_stored(&lib, id, &r.title)
@@ -210,7 +211,7 @@ fn player_view(s: bragd_library::player::PlayerSummary, cfg: &Config) -> PlayerV
         .families
         .into_iter()
         .filter(|f| cfg.family_shown(&f.family))
-        .map(|f| FamilyView { title: t!(&format!("family.{}", f.family)), sides: sides(&f.family), summary: f })
+        .map(|f| FamilyView { title: t!(&format!("family.{}", f.family)), sides: databases::sides(&f.family), summary: f })
         .collect();
     PlayerView { name: s.name, families }
 }
@@ -236,18 +237,10 @@ pub struct FamilyView {
 }
 
 /// The names of the sides of a Library's `white` and `black` columns in `family`.
-fn sides(family: &str) -> [String; 2] {
-    let keys = match family {
-        "xiangqi" => ["red", "black"],
-        "shogi" => ["sente", "gote"],
-        _ => ["white", "black"],
-    };
-    keys.map(|k| t!(&format!("side.{k}")))
-}
 
 #[tauri::command(async)]
-pub fn library_review(path: String) -> Res<Review> {
-    databases::review(Path::new(&path))
+pub fn library_review(path: String, family: Option<String>) -> Res<Review> {
+    databases::review(Path::new(&path), family.as_deref())
 }
 
 /// "Dedupe now": the Helper merges the headers of every merged Game again: its job's id.
@@ -325,50 +318,52 @@ fn builtin_sources() -> Vec<(String, String, String)> {
     sources::builtin().iter().map(|s| s.about()).filter(|a| a.kind == sources::Kind::Games).map(|a| (a.id, a.name, a.family)).collect()
 }
 
-/// `id` named, and whether it shows for `cfg`: a Source of a Family that is off does not; an
-/// id Bragd does not know (a custom URL's) always does, by its own name.
-fn named(id: &str, cfg: &Config, known: &[(String, String, String)]) -> (Named, bool) {
+/// `id` named, and whether it shows for `cfg` on `page`, a Family's page: a Source of a Family
+/// that is off or of another page's Family does not; an id Bragd does not know (a custom URL's)
+/// always does, by its own name.
+fn named(id: &str, cfg: &Config, known: &[(String, String, String)], page: Option<&str>) -> (Named, bool) {
     match known.iter().find(|(k, ..)| k == id) {
-        Some((_, name, family)) => (Named { id: id.into(), name: name.clone() }, family.is_empty() || cfg.family_shown(family)),
+        Some((_, name, family)) => (Named { id: id.into(), name: name.clone() }, family.is_empty() || (cfg.family_shown(family) && page.is_none_or(|p| p == family))),
         None => (Named { id: id.into(), name: id.strip_prefix("custom:").unwrap_or(id).into() }, true),
     }
 }
 
-fn priority_of(cfg: &Config, known: &[(String, String, String)]) -> Priority {
+fn priority_of(cfg: &Config, known: &[(String, String, String)], page: Option<&str>) -> Priority {
     let order = &cfg.knowledge.source_priority;
-    let list = order.iter().map(|id| named(id, cfg, known)).filter(|(_, shown)| *shown).map(|(n, _)| n).collect();
-    let choices = known.iter().filter(|(id, ..)| !order.contains(id)).map(|(id, ..)| named(id, cfg, known)).filter(|(_, shown)| *shown).map(|(n, _)| n).collect();
+    let list = order.iter().map(|id| named(id, cfg, known, page)).filter(|(_, shown)| *shown).map(|(n, _)| n).collect();
+    let choices = known.iter().filter(|(id, ..)| !order.contains(id)).map(|(id, ..)| named(id, cfg, known, page)).filter(|(_, shown)| *shown).map(|(n, _)| n).collect();
     Priority { list, choices }
 }
 
 /// The new order: `shown` as the page put it, then the Sources it does not show (of Families
-/// that are off) in their old order, so turning a Family off and on again loses nothing.
-fn priority_merged(shown: Vec<String>, cfg: &Config, known: &[(String, String, String)]) -> Vec<String> {
+/// that are off or of other pages) in their old order, so turning a Family off and on again
+/// loses nothing.
+fn priority_merged(shown: Vec<String>, cfg: &Config, known: &[(String, String, String)], page: Option<&str>) -> Vec<String> {
     let mut out: Vec<String> = vec![];
     for id in shown.into_iter().map(|s| s.trim().to_lowercase()).filter(|s| !s.is_empty()) {
         if !out.contains(&id) {
             out.push(id);
         }
     }
-    let hidden: Vec<String> = cfg.knowledge.source_priority.iter().filter(|id| !named(id, cfg, known).1 && !out.contains(id)).cloned().collect();
+    let hidden: Vec<String> = cfg.knowledge.source_priority.iter().filter(|id| !named(id, cfg, known, page).1 && !out.contains(id)).cloned().collect();
     out.extend(hidden);
     out
 }
 
 #[tauri::command(async)]
-pub fn priority_get(ctx: State<'_, Ctx>) -> Res<Priority> {
-    Ok(priority_of(&ctx.cfg(), &builtin_sources()))
+pub fn priority_get(family: Option<String>, ctx: State<'_, Ctx>) -> Res<Priority> {
+    Ok(priority_of(&ctx.cfg(), &builtin_sources(), family.as_deref()))
 }
 
 /// Saves the Source priority to `[knowledge] source_priority` and restarts the Helper, which
 /// reads it as it starts; a running job starts again from its beginning, as imports are
-/// idempotent. `list` is the order of the Sources shown.
+/// idempotent. `list` is the order of the Sources shown on `family`'s page.
 #[tauri::command(async)]
-pub fn priority_save(list: Vec<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Res<Priority> {
+pub fn priority_save(list: Vec<String>, family: Option<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Res<Priority> {
     let known = builtin_sources();
-    let list = priority_merged(list, &ctx.cfg(), &known);
+    let list = priority_merged(list, &ctx.cfg(), &known, family.as_deref());
     let cfg = bragd_core::settings::save("source_priority", &Value::from(list))?;
-    let view = priority_of(&cfg, &known);
+    let view = priority_of(&cfg, &known, family.as_deref());
     *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = cfg;
     let _ = k.link.ask(&Request::Restart);
     Ok(view)
@@ -765,14 +760,19 @@ mod tests {
         let known = vec![("twic".into(), "The Week in Chess".into(), "chess".into()), ("ogs".into(), "OGS".into(), "go".into()), ("lichess".into(), "Lichess".into(), "chess".into())];
         let mut cfg = Config::default();
         cfg.knowledge.source_priority = vec!["twic".into(), "custom:mine".into(), "ogs".into()];
-        let p = priority_of(&cfg, &known);
+        let p = priority_of(&cfg, &known, None);
         assert_eq!(p.list.iter().map(|n| n.name.as_str()).collect::<Vec<_>>(), ["The Week in Chess", "mine", "OGS"]);
         assert_eq!(p.choices, [Named { id: "lichess".into(), name: "Lichess".into() }]);
+        // Go's page: go's Sources and custom ones only; saving it keeps chess's order.
+        let p = priority_of(&cfg, &known, Some("go"));
+        assert_eq!(p.list.iter().map(|n| n.id.as_str()).collect::<Vec<_>>(), ["custom:mine", "ogs"]);
+        assert!(p.choices.is_empty(), "no chess Source to add on go's page: {:?}", p.choices);
+        assert_eq!(priority_merged(vec!["ogs".into(), "custom:mine".into()], &cfg, &known, Some("go")), ["ogs", "custom:mine", "twic"]);
         cfg.families.family.insert("chess".into(), false);
-        let p = priority_of(&cfg, &known);
+        let p = priority_of(&cfg, &known, None);
         assert_eq!(p.list.iter().map(|n| n.id.as_str()).collect::<Vec<_>>(), ["custom:mine", "ogs"]);
         assert!(p.choices.is_empty(), "no chess Source to add: {:?}", p.choices);
-        assert_eq!(priority_merged(vec!["ogs".into(), "custom:mine".into()], &cfg, &known), ["ogs", "custom:mine", "twic"]);
+        assert_eq!(priority_merged(vec!["ogs".into(), "custom:mine".into()], &cfg, &known, None), ["ogs", "custom:mine", "twic"]);
     }
 
     #[test]

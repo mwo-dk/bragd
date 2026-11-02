@@ -216,7 +216,7 @@ fn hub_parts(mv: &str) -> Option<((u16, u16), Vec<u16>)> {
 /// What a backgammon turn does to the mover's checkers: how many leave and arrive at each
 /// place, in the mover's numbering, with hits, repeats (`(2)`) and chains (`24/18/12`)
 /// written out. Two ways of writing one turn give the same.
-fn net(turn: &str) -> Option<Vec<(String, i32)>> {
+pub(crate) fn net(turn: &str) -> Option<Vec<(String, i32)>> {
     let mut count: std::collections::BTreeMap<String, i32> = std::collections::BTreeMap::new();
     let turn = turn.trim();
     if turn.is_empty() || turn.starts_with('(') {

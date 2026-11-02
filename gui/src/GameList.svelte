@@ -5,12 +5,15 @@
   import { untrack } from "svelte";
   import { t, num } from "./i18n.svelte.js";
 
-  /** @type {{ fetch: (from: number, count: number) => Promise<{total: number, rows: any[]}>, version: any, sort?: string, desc?: boolean, onsort?: (col: string) => void, onopen: (row: any) => void, onplayer?: (name: string) => void, selected?: number | null }} */
+  /** @type {{ fetch: (from: number, count: number) => Promise<{total: number, rows: any[], sides?: string[]}>, version: any, sort?: string, desc?: boolean, onsort?: (col: string) => void, onopen: (row: any) => void, onplayer?: (name: string) => void, selected?: number | null }} */
   let { fetch, version, sort = "", desc = false, onsort, onopen, onplayer, selected = null } = $props();
 
   const ROW = 28;
   const COLS = ["number", "white", "white_elo", "black", "black_elo", "result", "date", "event", "eco", "moves"];
   let total = $state(0);
+  /** The two Sides' names, as Rust gives them with the rows. */
+  let sides = $state(["", ""]);
+  const head = (/** @type {string} */ c) => (c === "white" && sides[0]) || (c === "black" && sides[1]) || t(`db.col.${c}`);
   /** @type {any[]} */
   let rows = $state([]);
   let first = $state(0);
@@ -23,6 +26,7 @@
     try {
       const r = await fetch(from, count);
       total = r.total;
+      sides = r.sides ?? sides;
       rows = r.rows;
       first = from;
       error = "";
@@ -56,9 +60,9 @@
     {#each COLS as c}
       <span class="c {c}" role="columnheader" aria-sort={sort === c ? (desc ? "descending" : "ascending") : "none"}>
         {#if onsort}
-          <button onclick={() => onsort(c)}>{t(`db.col.${c}`)}{sort === c ? (desc ? " ▾" : " ▴") : ""}</button>
+          <button onclick={() => onsort(c)}>{head(c)}{sort === c ? (desc ? " ▾" : " ▴") : ""}</button>
         {:else}
-          {t(`db.col.${c}`)}
+          {head(c)}
         {/if}
       </span>
     {/each}

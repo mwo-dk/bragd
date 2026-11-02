@@ -829,23 +829,34 @@ impl Library {
         Ok(before.saturating_sub(self.size()))
     }
 
-    /// The Near-duplicates found, for review: the shorter Game's id, then the longer's.
-    pub fn near_duplicates(&self, limit: usize) -> Result<Vec<(i64, i64)>> {
-        let mut st = self.conn.prepare("SELECT short_id, long_id FROM near_duplicates ORDER BY short_id, long_id LIMIT ?")?;
-        let rows = st.query_map([limit as i64], |r| Ok((r.get(0)?, r.get(1)?)))?;
+    /// The Game `id`'s two players, the first Side's first, as the Games list shows them.
+    pub fn sides_of(&self, id: i64) -> Result<(String, String)> {
+        Ok(self.conn.query_row("SELECT white, black FROM games WHERE id = ?", [id], |r| Ok((r.get(0)?, r.get(1)?)))?)
+    }
+
+    /// How many Games of `family` it holds; every Game with None.
+    pub fn count_of(&self, family: Option<&str>) -> Result<u64> {
+        Ok(self.conn.query_row("SELECT count(*) FROM games WHERE ?1 IS NULL OR family = ?1", [family], |r| r.get::<_, i64>(0))? as u64)
+    }
+
+    /// The Near-duplicates of `family` (every Family with None) found, for review: the shorter
+    /// Game's id, then the longer's.
+    pub fn near_duplicates(&self, limit: usize, family: Option<&str>) -> Result<Vec<(i64, i64)>> {
+        let mut st = self.conn.prepare("SELECT n.short_id, n.long_id FROM near_duplicates n JOIN games g ON g.id = n.short_id WHERE ?2 IS NULL OR g.family = ?2 ORDER BY n.short_id, n.long_id LIMIT ?1")?;
+        let rows = st.query_map(params![limit as i64, family], |r| Ok((r.get(0)?, r.get(1)?)))?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
-    /// How many Near-duplicate pairs there are.
-    pub fn near_duplicate_count(&self) -> Result<u64> {
-        Ok(self.conn.query_row("SELECT count(*) FROM near_duplicates", [], |r| r.get::<_, i64>(0))? as u64)
+    /// How many Near-duplicate pairs of `family` there are.
+    pub fn near_duplicate_count(&self, family: Option<&str>) -> Result<u64> {
+        Ok(self.conn.query_row("SELECT count(*) FROM near_duplicates n JOIN games g ON g.id = n.short_id WHERE ?1 IS NULL OR g.family = ?1", [family], |r| r.get::<_, i64>(0))? as u64)
     }
 
-    /// The Games merged from more than one Source, by id, at most `limit` of them: the
-    /// Duplicates found, for review.
-    pub fn merged(&self, limit: usize) -> Result<Vec<i64>> {
-        let mut st = self.conn.prepare("SELECT game_id FROM game_sources GROUP BY game_id HAVING count(*) > 1 ORDER BY game_id LIMIT ?")?;
-        let rows = st.query_map([limit as i64], |r| r.get(0))?;
+    /// The Games of `family` merged from more than one Source, by id, at most `limit` of them:
+    /// the Duplicates found, for review.
+    pub fn merged(&self, limit: usize, family: Option<&str>) -> Result<Vec<i64>> {
+        let mut st = self.conn.prepare("SELECT s.game_id FROM game_sources s JOIN games g ON g.id = s.game_id WHERE ?2 IS NULL OR g.family = ?2 GROUP BY s.game_id HAVING count(*) > 1 ORDER BY s.game_id LIMIT ?1")?;
+        let rows = st.query_map(params![limit as i64, family], |r| r.get(0))?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
@@ -857,10 +868,10 @@ impl Library {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
-    /// How many Games were merged from more than one Source: every Duplicate, not only the
-    /// ones `merged` lists.
-    pub fn merged_count(&self) -> Result<u64> {
-        Ok(self.conn.query_row("SELECT count(*) FROM (SELECT 1 FROM game_sources GROUP BY game_id HAVING count(*) > 1)", [], |r| r.get::<_, i64>(0))? as u64)
+    /// How many Games of `family` were merged from more than one Source: every Duplicate, not
+    /// only the ones `merged` lists.
+    pub fn merged_count(&self, family: Option<&str>) -> Result<u64> {
+        Ok(self.conn.query_row("SELECT count(*) FROM (SELECT 1 FROM game_sources s JOIN games g ON g.id = s.game_id WHERE ?1 IS NULL OR g.family = ?1 GROUP BY s.game_id HAVING count(*) > 1)", [family], |r| r.get::<_, i64>(0))? as u64)
     }
 
     /// A Game as kept, to show it: its Family, Variant, start position, main line and result.
@@ -1309,8 +1320,11 @@ pub(crate) mod tests {
         // Importing the same file again records nothing new.
         assert_eq!(import(&mut lib, &twic, "twic").merged, 1);
         assert_eq!(lib.sources(1).unwrap().len(), 2);
-        assert_eq!(lib.merged(10).unwrap(), [1]);
-        assert_eq!((lib.merged(0).unwrap().len(), lib.merged_count().unwrap()), (0, 1), "counted past the list's limit");
+        assert_eq!(lib.merged(10, None).unwrap(), [1]);
+        assert_eq!((lib.merged(0, None).unwrap().len(), lib.merged_count(None).unwrap()), (0, 1), "counted past the list's limit");
+        // Counted for its Family's page only.
+        assert_eq!((lib.merged(10, Some("go")).unwrap().len(), lib.merged_count(Some("go")).unwrap(), lib.merged_count(Some("chess")).unwrap()), (0, 0, 1));
+        assert_eq!((lib.count_of(Some("chess")).unwrap(), lib.count_of(Some("go")).unwrap(), lib.count_of(None).unwrap()), (1, 0, 1));
         let s = lib.stored(1).unwrap();
         assert_eq!((s.family.as_str(), s.variant.as_str(), s.start.as_deref(), s.moves.len()), ("chess", "chess", None, 82));
         assert_eq!(&s.moves[..2], ["Nf3", "Nf6"]);
@@ -1354,11 +1368,12 @@ pub(crate) mod tests {
             let p = import(&mut lib, second, "twic");
             assert_eq!((p.added, p.merged, p.near_duplicates), (1, 0, 1));
             assert_eq!(lib.count().unwrap(), 2, "never merged");
-            let plies: Vec<i64> = lib.near_duplicates(usize::MAX).unwrap().iter().map(|&(s, _)| lib.conn().query_row("SELECT ply_count FROM games WHERE id = ?", [s], |r| r.get(0)).unwrap()).collect();
+            let plies: Vec<i64> = lib.near_duplicates(usize::MAX, None).unwrap().iter().map(|&(s, _)| lib.conn().query_row("SELECT ply_count FROM games WHERE id = ?", [s], |r| r.get(0)).unwrap()).collect();
             assert_eq!(plies, [80], "the shorter one is the one cut after move 40");
-            let long: i64 = lib.conn().query_row("SELECT ply_count FROM games WHERE id = ?", [lib.near_duplicates(usize::MAX).unwrap()[0].1], |r| r.get(0)).unwrap();
+            let long: i64 = lib.conn().query_row("SELECT ply_count FROM games WHERE id = ?", [lib.near_duplicates(usize::MAX, None).unwrap()[0].1], |r| r.get(0)).unwrap();
             assert_eq!(long, 82, "every move of the whole game played");
-            assert_eq!((lib.near_duplicate_count().unwrap(), lib.near_duplicates(0).unwrap().len()), (1, 0));
+            assert_eq!((lib.near_duplicate_count(None).unwrap(), lib.near_duplicates(0, None).unwrap().len()), (1, 0));
+            assert_eq!((lib.near_duplicate_count(Some("chess")).unwrap(), lib.near_duplicate_count(Some("shogi")).unwrap(), lib.near_duplicates(9, Some("shogi")).unwrap().len()), (1, 0, 0));
         }
     }
 

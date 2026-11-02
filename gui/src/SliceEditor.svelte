@@ -47,7 +47,8 @@
   }
 
   const query = $derived({ ...q, players: players.split(",").map((/** @type {string} */ p) => p.trim()).filter(Boolean), rating_min: q.rating_min || null, family: q.family || null });
-  const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(library, query, from, count);
+  // On a Family's page, a Slice that names no Family lists that Family's Games.
+  const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(library, { ...query, family: query.family || family }, from, count);
 
   async function usePosition() {
     if (!position) return;
@@ -103,6 +104,7 @@
       <span>{t("slice.position")}: {q.position ? t("slice.position_set") : t("slice.any")}</span>
       <button onclick={usePosition} disabled={!position} title={position ? "" : t("slice.position_hint")}>{t("slice.use_position")}</button>
       {#if q.position}<button onclick={() => (q.position = null)}>{t("slice.clear")}</button>{/if}
+      {#if !position}<span class="hint">{t("slice.position_hint")}</span>{/if}
     </div>
   </div>
   <div class="bar">
@@ -134,7 +136,6 @@
       {/if}
     </div>
   {/if}
-  {#if !position}<p class="hint">{t("slice.position_hint")}</p>{/if}
   {#if message}<p role="status">{message}</p>{/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 

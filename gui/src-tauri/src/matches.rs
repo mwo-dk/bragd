@@ -175,7 +175,7 @@ pub fn page(cfg: &Config, family: Family, jobs: Result<Vec<Job>, String>) -> Pag
         .collect();
     Page {
         variants,
-        libraries: databases::libraries(cfg).into_iter().map(|l| (l.path, l.name)).collect(),
+        libraries: databases::libraries(cfg, None).into_iter().map(|l| (l.path, l.name)).collect(),
         library: default_library(cfg).map(|p| p.display().to_string()).unwrap_or_default(),
         tablebases: family == Family::Chess,
         cpus: std::thread::available_parallelism().map_or(1, |n| n.get()),

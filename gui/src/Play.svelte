@@ -11,7 +11,7 @@
   import BackgammonBoard from "./BackgammonBoard.svelte";
   import Analysis from "./Analysis.svelte";
   import Known from "./Known.svelte";
-  import { current } from "./current.svelte.js";
+  import { current, handed } from "./current.svelte.js";
   import { guide } from "./guide.svelte.js";
 
   /** @type {{ family: any, mode?: "play" | "analyse", go: (page: any) => void }} */
@@ -72,9 +72,15 @@
   /** Go: the stones marked dead while scoring. @type {string[]} */
   let dead = $state([]);
 
-  // A new Family, or its chosen Variant turned off: start that Family's first Variant.
+  // A Game handed over from a replay; else, a new Family or its chosen Variant turned off:
+  // start that Family's first Variant.
   $effect(() => {
-    if (!variants.some((/** @type {any} */ v) => v.key === key) && variants.length) newGame(variants[0].key);
+    const h = analyse ? handed[family.id] : null;
+    if (h && variants.some((/** @type {any} */ v) => v.key === h.variant)) {
+      delete handed[family.id];
+      key = h.variant;
+      setUp(h.initial, h.entries);
+    } else if (!variants.some((/** @type {any} */ v) => v.key === key) && variants.length) newGame(variants[0].key);
   });
 
   const side = (/** @type {any} */ seat) => t(`side.${seat.name.toLowerCase()}`);
@@ -263,6 +269,8 @@
   }
 
   /** The text for a move that has no square: Pass, Double, Take, Drop, Accept, Resume. */
+  // Analyse has no opponent to double or resign to.
+  const offered = (/** @type {string} */ wire) => wire === "double" || wire.startsWith("resign");
   const plainLabel = (/** @type {any} */ m) => {
     const label = t(`move.${m.notation}`);
     return label.startsWith("move.") ? m.notation : label;
@@ -372,7 +380,7 @@
           {#if st.awaiting === "throw"}
             <button class="primary" onclick={doThrow}>{t("play.throw")}</button>
           {/if}
-          {#each plainMoves(st) as m}
+          {#each plainMoves(st).filter((/** @type {any} */ m) => !analyse || !offered(m.wire)) as m}
             {#if m.wire === "dead:"}
               <button onclick={() => playEntry("dead:" + dead.join(","))}>{t("move.dead")}</button>
             {:else}

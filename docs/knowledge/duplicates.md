@@ -13,7 +13,7 @@ Two Games are Duplicates when they have the same moves from the same starting po
 2. Click a Library's name, then its **Duplicates** tab.
 3. The tab lists the Games merged from several Sources, with their Sources, and each Near-duplicate pair. Click a Game to open it in the Games tab.
 4. **Dedupe now** merges the headers of every Game with several Sources again, by the Source priority.
-5. The Source priority list is at the bottom of the Libraries tab. Drag a Source, or use **↑** and **↓**, to reorder it; **✕** removes it; pick a Source by its name and press **Add** to add one. Only the Sources of the Game families that are on are listed; the others keep their place.
+5. The Source priority list is at the bottom of the Libraries tab. Drag a Source, or use **↑** and **↓**, to reorder it; **✕** removes it; pick a Source by its name and press **Add** to add one. Only the Sources of the page's Family and your custom Sources are listed; the others keep their place.
 
 ## How a Duplicate is found
 

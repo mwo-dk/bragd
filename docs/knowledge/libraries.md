@@ -10,10 +10,14 @@ A Library is Bragd's own store of Games: one SQLite file ending in `.bragd`. Imp
 ## How to reach it
 
 1. In the sidebar, open a Family and choose **Databases**, then the **Libraries** tab.
-2. The table lists every `.bragd` file in the Library folder, with its Games, size, Duplicates and Near-duplicates. Click a name to open it.
+2. The table lists every `.bragd` file in the Library folder, with its Games, Duplicates and Near-duplicates of the Family whose page you are on, and its size. Click a name to open it.
 3. An open Library has its own tabs: **Games**, **Duplicates**, **New Slice**, and one button per saved Slice (a kept copy is marked ⧉). **Export to Parquet** sits under them ([Export to Parquet](parquet-export.md)).
 4. **Games** lists the Library's Games of the Family whose page you are on: chess Games on the chess page, go Games on the go page.
-5. Click a Game to step through it, as in a Foreign database: **←**, **→**, **Home** and **End**. Its comments and move glyphs (`!`, `?!`) show where the file had them.
+5. Click a Game to step through it on its board: **←**, **→**, **Home** and **End**. Its moves are written as its Family writes them, and its comments and move glyphs (`!`, `?!`) show where the file had them.
+6. **Analyse** above the board opens the position in [Analyse](../engines/analyse.md), with the moves that led to it, so the Game can be analysed or reviewed from there.
+
+![A go Game of the Library on the go board, stepped to its last move, its moves listed beside it as 1. e5 2. g7 and so on, with Analyse, Flip board and Close above](../screenshots/library-replay-go-1100.png)
+*Go → Databases → Libraries: a go Game stepped through on its board.*
 
 Games get into a Library in three ways:
 
@@ -25,7 +29,7 @@ Imports are jobs of the [Helper](helper.md). They show in the sidebar's Helper l
 
 ## What it needs
 
-Nothing to install. The Helper does the imports, and a window starts it when none runs. A chess Game from a Library replays with a board, because it is written out as PGN and read back. Games of the other Families list their moves.
+Nothing to install. The Helper does the imports, and a window starts it when none runs. A Game of any Family from a Library replays on its board: a chess Game is written out as PGN and read back, and the others are played again from their start, each move found by the position it leads to.
 
 ## Settings and config.toml
 
@@ -38,6 +42,10 @@ Nothing to install. The Helper does the imports, and a window starts it when non
 `<data>` is your system's data folder: `~/.local/share` on Linux and the BSDs, `~/Library/Application Support` on macOS and `%APPDATA%` on Windows. See [Files on disk](../reference/files.md).
 
 ## Questions
+
+#### Why do the counts change from one Family's page to another?
+
+The Games, Duplicates and Near-duplicates are counted for the page's Family only, as its Games list is. One Library holds the Games of every Family; its size is the whole file's.
 
 #### Is a Library a database server?
 

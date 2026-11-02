@@ -47,7 +47,8 @@ Only the file. These formats open:
 
 A large file is listed while it is read, with the count so far. A very large file is listed up to a cap, and a line says so. A packed file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) is unpacked only as far as an import may unpack it ([Largest unpacking ratio](#why-does-a-packed-file-stop-saying-it-unpacks-too-far)), so a Lichess month opens whole. Only the rows in sight are asked of Rust, so scrolling stays quick.
 
-Replay draws a board for chess (and Chess960, from the `Variant` header) and shogi. Draughts and xiangqi Games list their moves without a board for now, because their readers give no position per move. Go Games show their headers.
+<!-- screenshot: databases-replay-1100.png: a chess Game of demo.pgn in replay, Analyse beside Flip board and Close above the board -->
+Replay draws a board for chess (and Chess960, from the `Variant` header), shogi and go: a go file's Games are played again from the empty board, with their set-up stones. Draughts and xiangqi Games list their moves without a board for now, because their readers give no position per move; import them into a Library to step through them on a board. **Analyse** above the board opens the position in Analyse, with the moves that led to it.
 
 ## Settings and config.toml
 
@@ -74,7 +75,7 @@ Type part of a name in *Player*, or an opening or ECO code in *Opening or ECO*. 
 
 #### Why does a Game list its moves without a board?
 
-Its reader gives no position for each move yet. That is so for draughts and xiangqi files. Chess and shogi Games show a board.
+Its reader gives no position for each move yet. That is so for draughts and xiangqi files. Chess, shogi and go Games show a board, and so does every Game in a [Library](libraries.md).
 
 #### What is the line under the moves?
 

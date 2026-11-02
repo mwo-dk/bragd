@@ -182,7 +182,11 @@ pub fn job_view(j: &Job) -> JobView {
     let status_text = t!(&format!("job.status.{}", serde_json::to_value(j.status).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default()));
     JobView {
         id: j.id,
-        what: what(&j.work),
+        // Background analysis shows under its own heading, which its jobs need not repeat.
+        what: match &j.work {
+            Work::Analyse { job } => t!(if job.low { "job.analyse_game_short" } else { "job.analyse_short" }, "about" => job.about, "engine" => engine_name(&job.engine)),
+            w => what(w),
+        },
         status: j.status,
         status_text,
         progress: fraction(j),

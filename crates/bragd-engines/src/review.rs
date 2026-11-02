@@ -68,6 +68,32 @@ pub struct Setup {
     pub keys: Vec<u64>,
     /// Each position in its Family's notation, as `keys`: chess motifs are read from them.
     pub positions: Vec<String>,
+    /// Each position as the Engine is asked about it, as `keys`, when that is not the Game's
+    /// start and the moves to it (backgammon, `spots`); empty: it is. None: not asked about.
+    pub spots: Vec<Option<Spot>>,
+}
+
+/// A position as the Engine is asked about it, when the moves to it do not say (backgammon: a
+/// position before the roll, or a roll to play).
+#[derive(Clone, Debug)]
+pub struct Spot {
+    pub position: Position,
+    /// The first Side acts in it.
+    pub first: bool,
+    /// The move made in it is judged: a backgammon play, not a throw of the dice or the cube.
+    pub judged: bool,
+}
+
+/// A backgammon Game's positions as GNU Backgammon is asked about them: each before its roll,
+/// or its roll to play. A position waiting on the cube is not asked about.
+pub fn backgammon_spots(variant: &str, initial: Option<&str>, entries: &[String]) -> Vec<Option<Spot>> {
+    (0..=entries.len())
+        .map(|i| {
+            let (position, state) = crate::seam::position(variant, initial, &entries[..i], crate::seam::Notation::Gnubg).ok()?;
+            let judged = position.dice.is_some() && entries.get(i).is_some_and(|e| !matches!(e.as_str(), "double" | "take" | "drop"));
+            Some(Spot { position, first: state.to_move?.index == 0, judged })
+        })
+        .collect()
 }
 
 /// A Game being reviewed, on a thread of its own; dropped or stopped, the engine stops too.
@@ -85,7 +111,8 @@ impl Drop for Reviewer {
 impl Reviewer {
     /// Reviews `game` as `setup` says.
     pub fn start(setup: &Setup, game: &Position) -> Reviewer {
-        let shared = Arc::new(Mutex::new(Review { engine: setup.engine.clone(), total: game.moves.len(), ..Default::default() }));
+        let total = if setup.spots.is_empty() { game.moves.len() } else { setup.spots.iter().flatten().filter(|s| s.judged).count() };
+        let shared = Arc::new(Mutex::new(Review { engine: setup.engine.clone(), total, ..Default::default() }));
         let stop = Arc::new(AtomicBool::new(false));
         let (s, st, g, setup) = (shared.clone(), stop.clone(), game.clone(), setup.clone());
         std::thread::spawn(move || {
@@ -127,11 +154,14 @@ fn run(setup: &Setup, game: &Position, shared: &Mutex<Review>, stop: &AtomicBool
     if setup.keys.len() != n + 1 {
         return Err(std::io::Error::other(format!("{} position keys for {n} moves", setup.keys.len())));
     }
+    let spot = |i: usize| setup.spots.get(i).and_then(Option::as_ref);
+    // A backgammon Evaluation in the store is the one before the roll: a roll's is not kept.
+    let kept = |i: usize| spot(i).is_none_or(|s| s.position.dice.is_none());
     let mut store = setup.store.as_deref().map(Store::open).transpose().map_err(io)?;
     // First what the store has, at once; then the Engine for the rest.
     let mut known = Known { evals: vec![None; n + 1] };
     if let Some(s) = &store {
-        for (i, k) in setup.keys.iter().enumerate() {
+        for (i, k) in setup.keys.iter().enumerate().filter(|(i, _)| kept(*i)) {
             known.evals[i] = s.shown(&setup.family, &setup.variant, *k, &setup.engine).map_err(io)?;
         }
     }
@@ -161,9 +191,17 @@ fn run(setup: &Setup, game: &Position, shared: &Mutex<Review>, stop: &AtomicBool
                 engine.insert((e, edition))
             }
         };
-        let pos = Position { moves: game.moves[..i].to_vec(), ..game.clone() };
+        let pos = match setup.spots.is_empty() {
+            true => Position { moves: game.moves[..i].to_vec(), ..game.clone() },
+            false => match spot(i) {
+                Some(s) => s.position.clone(),
+                None => continue,
+            },
+        };
         let a = think(e, &pos, setup.limit, 2, &halt, &mut |_| {})?;
-        let score = |l: usize| a.lines.get(l).and_then(|l| l.score).map(bragd_positions::Score::from);
+        // `think` turns the scores round by who its position says moves; a Spot knows better.
+        let flip = spot(i).is_some_and(|s| s.first != pos.first_to_move());
+        let score = |l: usize| a.lines.get(l).and_then(|l| l.score).map(|s| if flip { s.flipped() } else { s }).map(bragd_positions::Score::from);
         // No score at all: no move, so nothing to judge it by.
         let Some(best) = score(0) else { continue };
         let pv = |l: usize| a.lines[l].pv.iter().take(LINE).cloned().collect::<Vec<_>>().join(" ");
@@ -178,7 +216,7 @@ fn run(setup: &Setup, game: &Position, shared: &Mutex<Review>, stop: &AtomicBool
             time: now(),
             second: score(1).map(|score| Second { score, line: pv(1) }),
         };
-        if let Some(s) = &mut store {
+        if let Some(s) = store.as_mut().filter(|_| kept(i)) {
             s.put(&eval).map_err(io)?;
         }
         known.evals[i] = Some(eval);
@@ -198,7 +236,8 @@ fn now() -> i64 {
 /// Move `i`'s Annotation, once both Evaluations around it are known: the store's, when it has
 /// one as deep for the same Edition, else made here and put into the store. Shown in `shared`.
 fn annotate(setup: &Setup, game: &Position, known: &Known, store: Option<&mut Store>, shared: &Mutex<Review>, i: usize) -> std::io::Result<()> {
-    let (Some(before), Some(after)) = (&known.evals[i], &known.evals[i + 1]) else { return Ok(()) };
+    let judged = setup.spots.is_empty() || setup.spots.get(i).and_then(Option::as_ref).is_some_and(|s| s.judged);
+    let (Some(before), Some(after), true) = (&known.evals[i], &known.evals[i + 1], judged) else { return Ok(()) };
     let mv = &game.moves[i];
     let depth = before.depth.min(after.depth);
     let stored = match &store {
@@ -219,7 +258,7 @@ fn annotate(setup: &Setup, game: &Position, known: &Known, store: Option<&mut St
         index: i,
         eval: Score::from(after.score).shown(),
         mark: note.mark,
-        better: note.better.split_whitespace().map(String::from).collect(),
+        better: better_line(&note.better, setup.protocol == Protocol::Gnubg),
         motifs: note.motifs,
     };
     let mut r = shared.lock().unwrap_or_else(|e| e.into_inner());
@@ -230,11 +269,32 @@ fn annotate(setup: &Setup, game: &Position, known: &Known, store: Option<&mut St
     Ok(())
 }
 
+/// An Annotation's better line as moves. A GNU Backgammon play (`gnubg`) is one move with
+/// spaces in it (`24/18 13/10`), and its line is that play alone.
+pub fn better_line(better: &str, gnubg: bool) -> Vec<String> {
+    match gnubg {
+        true => Some(better.trim()).filter(|b| !b.is_empty()).map(String::from).into_iter().collect(),
+        false => better.split_whitespace().map(String::from).collect(),
+    }
+}
+
+/// Whether `mv` is the first move of the Engine's `line`: for GNU Backgammon (`gnubg`), the
+/// whole line is one play, the same however its parts are ordered or written.
+fn played_best(line: &str, mv: &str, gnubg: bool) -> bool {
+    match gnubg {
+        true => crate::seam::net(line).is_some_and(|l| crate::seam::net(mv).is_some_and(|m| l == m)),
+        false => line.split_whitespace().next() == Some(mv),
+    }
+}
+
 /// Move `i`'s Annotation from the Evaluations before and after it.
 fn made(setup: &Setup, game: &Position, i: usize, before: &Evaluation, after: &Evaluation) -> Annotation {
     let mv = &game.moves[i];
-    let mover_first = Position { moves: game.moves[..i].to_vec(), ..game.clone() }.first_to_move();
-    let played_best = before.line.split_whitespace().next() == Some(mv.as_str());
+    let mover_first = match setup.spots.get(i).and_then(Option::as_ref) {
+        Some(s) => s.first,
+        None => Position { moves: game.moves[..i].to_vec(), ..game.clone() }.first_to_move(),
+    };
+    let played_best = played_best(&before.line, mv, setup.protocol == Protocol::Gnubg);
     let gap = before.second.as_ref().filter(|_| played_best).and_then(|s| annotation::gap(before.score, s.score, mover_first));
     let mark = annotation::mark(before.score, after.score, mover_first, gap);
     let mut motifs = vec![];
@@ -312,6 +372,7 @@ mod tests {
             variant: "chess".into(),
             keys: keys.to_vec(),
             positions: vec![],
+            spots: vec![],
         }
     }
 
@@ -356,6 +417,52 @@ mod tests {
         assert_eq!((r.error.as_deref(), r.plies.len()), (None, 3));
         assert_eq!(thought(&d), 5);
         std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// A backgammon Game reviewed by GNU Backgammon: each play judged by the equity it lost
+    /// from the best play of its roll to the position it left before the next roll; the throws
+    /// are not judged, and a roll's equity is not kept in the store.
+    #[cfg(unix)]
+    #[test]
+    fn a_backgammon_game_is_reviewed_play_by_play() {
+        let d = crate::test_dir("review-backgammon");
+        // +0.10 before any roll for the side on roll; a roll's best play +0.30, its second +0.20.
+        let p = crate::fake_program(
+            &d,
+            "gnubg",
+            r#"while read l; do case "$l" in "show version") echo '(No game) GNU Backgammon 0.0 fake';; "set prompt"*) echo "(No game) The prompt has been set to \`bragd>'.";; eval) echo 'static: 0.5 0.1 0.0 0.1 0.0 +0.100 +0.1';; hint*) echo '    1. Cubeful 2-ply    24/1 24/2    Eq.:  +0.300'; echo '    2. Cubeful 2-ply    24/3 24/4    Eq.:  +0.200';; "show prompt") echo "bragd>The prompt is set to \`bragd>'.";; quit) exit 0;; esac; done"#,
+        );
+        let mut entries: Vec<String> = vec![];
+        for _ in 0..4 {
+            let st = bragd_games::replay("backgammon", None, &entries).unwrap();
+            entries.push(st.throws.first().cloned().unwrap_or_else(|| st.moves.iter().find(|m| m.from.is_some()).unwrap().wire.clone()));
+        }
+        let spots = backgammon_spots("backgammon", None, &entries);
+        assert_eq!(spots.iter().map(|s| s.as_ref().map(|s| (s.position.dice.is_some(), s.judged))).collect::<Vec<_>>(), [Some((false, false)), Some((true, true)), Some((false, false)), Some((true, true)), Some((false, false))]);
+        let setup = Setup { protocol: Protocol::Gnubg, family: "backgammon".into(), variant: "backgammon".into(), spots, ..setup(&d, &p, &[1, 2, 1, 3, 4]) };
+        let game = Position { moves: entries.clone(), ..Position::new("backgammon", &[]) };
+        let r = wait(&Reviewer::start(&setup, &game));
+        assert_eq!((r.error.as_deref(), r.total), (None, 2));
+        assert_eq!(r.plies.iter().map(|p| (p.index, p.mark)).collect::<Vec<_>>(), [(1, Some(Mark::Blunder)), (3, Some(Mark::Blunder))], "0.40 lost: {:?}", r.plies);
+        assert_eq!(r.plies[0].better, ["24/1 24/2"]);
+        // The store keeps the positions before a roll (keys 1 and 4) only.
+        let store = Store::open(&d.join("positions.sqlite")).unwrap();
+        let equity = |k: u64| store.shown("backgammon", "backgammon", k, "fake").unwrap().map(|e| e.score);
+        assert!(matches!(equity(4), Some(bragd_positions::Score::Equity(e)) if (e - 0.1).abs() < 1e-6), "{:?}", equity(4));
+        assert_eq!((equity(2), equity(3)), (None, None), "a roll's equity is not kept");
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// The move played is the Engine's own when it is the first of its line; a backgammon play
+    /// is the whole line, however its parts are written.
+    #[test]
+    fn the_engines_own_move_is_known() {
+        assert!(played_best("e7e5 g1f3", "e7e5", false));
+        assert!(!played_best("e7e5 g1f3", "g1f3", false));
+        assert!(played_best("6/3 3/2", "6/3 3/2", true));
+        assert!(played_best("8/5 6/5", "6/5 8/5", true));
+        assert!(!played_best("6/3 3/2", "6/3", true));
+        assert!(!played_best("24/18 13/10", "24/21 13/10", true));
     }
 
     /// The Engine's best move earns `!` or `!!` from the second choice kept with the
