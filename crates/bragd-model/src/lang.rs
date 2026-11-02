@@ -57,7 +57,6 @@ pub fn iso1(l: Lang) -> &'static str {
         Lang::Pol => "pl",
         Lang::Por => "pt",
         Lang::Ron => "ro",
-        Lang::Rus => "ru",
         Lang::Sin => "si",
         Lang::Slk => "sk",
         Lang::Slv => "sl",
@@ -77,13 +76,20 @@ pub fn iso1(l: Lang) -> &'static str {
         Lang::Vie => "vi",
         Lang::Yid => "yi",
         Lang::Zul => "zu",
+        _ => l.code(),
     }
 }
 
 /// The language `text` is in, by its two-letter code, when the guess is reliable.
 pub fn guess(text: &str) -> Option<&'static str> {
-    whatlang::detect(text).filter(|info| info.is_reliable()).map(|info| iso1(info.lang()))
+    whatlang::Detector::with_denylist(SKIPPED.to_vec())
+        .detect(text)
+        .filter(|info| info.is_reliable())
+        .map(|info| iso1(info.lang()))
 }
+
+/// Languages Bragd does not guess.
+const SKIPPED: [Lang; 1] = [Lang::Rus];
 
 /// Whether `text` is reliably in the language of the locale `reader` (`"da"`, `"en-AU"`,
 /// `"nn"`): its first subtag matches, and Bokmål and Nynorsk count as one.

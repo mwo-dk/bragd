@@ -481,7 +481,7 @@ pub fn nearest(tag: &str) -> &'static str {
         "he" | "iw" => "he",
         "pl" => "pl",
         "cs" | "sk" => "cs", // Slovak readers read Czech
-        "uk" => "uk",
+        "uk" | "ru" => "uk",
         "el" => "el",
         "ja" => "ja",
         "ko" => "ko",
@@ -753,6 +753,12 @@ macro_rules! tn {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn i18n_a_cyrillic_system_without_its_own_catalogue_reads_ukrainian() {
+        assert_eq!(nearest("ru-RU"), "uk");
+        assert_eq!(pick(&["ru_RU.UTF-8".to_string()]), "uk");
+    }
 
     #[test]
     fn i18n_suggest_url_names_only_the_language_version_and_text() {
