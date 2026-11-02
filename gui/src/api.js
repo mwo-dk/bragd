@@ -19,6 +19,9 @@ export const play = (/** @type {string} */ variant, /** @type {string|null} */ i
 /** @returns {Promise<{entry: string, state: any}>} */
 export const throwDice = (/** @type {string} */ variant, /** @type {string|null} */ initial, /** @type {string[]} */ entries) =>
   invoke("game_throw", { variant, initial, entries });
+/** Backgammon: the checkers moved so far this turn (`part`); `entry` is the whole turn once the dice are used. @returns {Promise<{entry: string|null, state: any}>} */
+export const step = (/** @type {string} */ variant, /** @type {string|null} */ initial, /** @type {string[]} */ entries, /** @type {string[]} */ part) =>
+  invoke("game_step", { variant, initial, entries, part });
 /** @returns {Promise<{html: string, positions: any[]}>} */
 export const rulesPage = (/** @type {string} */ family) => invoke("rules_page", { family });
 /** @returns {Promise<any[]>} */

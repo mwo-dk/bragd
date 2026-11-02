@@ -95,3 +95,59 @@ fn a_side_resigns_at_the_grade_it_names() {
         Err(GameError::Refused { index: 2, .. })
     ));
 }
+
+/// #239: the board moves one checker at a time. After 6-5, 13/8 is the five alone: no whole
+/// turn starts with it, yet it is a legal first checker.
+#[test]
+fn a_turn_is_played_one_checker_at_a_time() {
+    let thrown = replay("backgammon", None, &["6-5"]).unwrap();
+    let step = |from: &str, to: &str| {
+        thrown
+            .steps
+            .iter()
+            .any(|m| m.from.as_deref() == Some(from) && m.to.as_deref() == Some(to))
+    };
+    assert!(step("13", "8"), "13/8 not offered: {:?}", thrown.steps);
+    assert!(step("24", "18") && step("13", "7"));
+
+    let half = bragd_games::step("backgammon", None, &["6-5"], &["13/8"]).unwrap();
+    assert_eq!(half.entry, None, "half a turn is not an entry yet");
+    let count = |s: &State, square: &str| {
+        s.board
+            .pieces
+            .iter()
+            .find(|p| p.square == square)
+            .map_or(0, |p| p.count)
+    };
+    assert_eq!(
+        (count(&half.state, "13"), count(&half.state, "8")),
+        (4, 4),
+        "the checker moved"
+    );
+    assert_eq!(half.state.history, ["6-5"]);
+    assert!(
+        half.state.steps.iter().all(|m| m.wire != "13/8"),
+        "the five is used"
+    );
+
+    let whole = bragd_games::step("backgammon", None, &["6-5"], &["13/8", "13/7"]).unwrap();
+    let entry = whole.entry.expect("both dice played make the turn");
+    assert_eq!(whole.state.history, ["6-5", entry.as_str()]);
+    assert_eq!(whole.state.awaiting, Awaiting::Throw);
+    assert_eq!(whole.state.to_move.unwrap().name, "Black");
+    assert_eq!(
+        (
+            count(&whole.state, "13"),
+            count(&whole.state, "8"),
+            count(&whole.state, "7")
+        ),
+        (3, 4, 1)
+    );
+
+    // A checker that cannot go there is refused, and so is a step before the throw.
+    assert!(matches!(
+        bragd_games::step("backgammon", None, &["6-5"], &["13/9"]),
+        Err(GameError::Refused { .. })
+    ));
+    assert!(bragd_games::step::<&str>("backgammon", None, &[], &["13/8"]).is_err());
+}

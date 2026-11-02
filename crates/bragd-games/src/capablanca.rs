@@ -96,6 +96,7 @@ fn state(game: &Game) -> State {
         to_move: (!over).then(|| seat(to_move)),
         awaiting: if over { Awaiting::Nothing } else { Awaiting::Move },
         moves,
+        steps: Vec::new(),
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.moves().iter().map(|mv| mv.to_uci()).collect(),

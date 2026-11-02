@@ -24,6 +24,19 @@ test("a selection picks Rust's moves by their ends", () => {
   assert.deepEqual(plainMoves(state).map((m) => m.wire), ["pass"]);
 });
 
+test("a backgammon checker moves by its steps, not by a whole turn's first move (#239)", () => {
+  // After 6-5 no whole turn starts 13/8, yet 13/8 is a legal first checker.
+  const state = {
+    moves: [{ wire: "13/7 13/8", from: "13", to: "7" }],
+    steps: [
+      { wire: "13/7", from: "13", to: "7" },
+      { wire: "13/8", from: "13", to: "8" },
+    ],
+  };
+  assert.deepEqual(movesTo(state, { from: "13" }, "8").map((m) => m.wire), ["13/8"]);
+  assert.equal(movesOf(state, { from: "13" }).length, 2);
+});
+
 test("backgammon points run round the board", () => {
   assert.deepEqual(point(1, false), { top: false, col: 12 });
   assert.deepEqual(point(12, false), { top: false, col: 0 });

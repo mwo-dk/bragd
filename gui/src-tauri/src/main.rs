@@ -315,6 +315,13 @@ fn game_throw(variant: String, initial: Option<String>, entries: Vec<String>) ->
     Ok(Thrown { entry, state })
 }
 
+/// Backgammon: the turn so far played one checker at a time (`part`), and the turn's entry
+/// once the dice are used.
+#[tauri::command]
+fn game_step(variant: String, initial: Option<String>, entries: Vec<String>, part: Vec<String>) -> Result<bragd_games::Stepped, GameError> {
+    bragd_games::step(&variant, initial.as_deref(), &entries, &part)
+}
+
 /// The Rules page of a Family: its docs and its teaching positions.
 #[tauri::command(async)]
 fn rules_page(family: String) -> Result<rules::Page, String> {
@@ -372,6 +379,7 @@ fn main() {
             game_replay,
             game_play,
             game_throw,
+            game_step,
             rules_page,
             model::model_status,
             model::model_find,

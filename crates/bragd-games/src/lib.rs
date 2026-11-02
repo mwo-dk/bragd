@@ -41,6 +41,9 @@ pub struct State {
     pub awaiting: Awaiting,
     /// Every legal move, when a move is awaited.
     pub moves: Vec<LegalMove>,
+    /// Backgammon: the checker moves that may come next in the turn being played, one die each,
+    /// such as `13/8`; see [`step`]. Empty in every other Family.
+    pub steps: Vec<LegalMove>,
     /// Legal moves grouped by the square they start from.
     pub targets: BTreeMap<String, Vec<String>>,
     /// Every throw entry the rules accept, when a throw is awaited.
@@ -297,7 +300,7 @@ pub fn replay<S: AsRef<str>>(
     let variant = variant(key)?;
     let entries: Vec<&str> = entries.iter().map(AsRef::as_ref).collect();
     let initial = initial.filter(|text| !text.trim().is_empty());
-    let mut state = match variant.family() {
+    let state = match variant.family() {
         Family::Chess if variant == Variant::Capablanca => capablanca::replay(initial, &entries),
         Family::Chess => chess::replay(variant, initial, &entries),
         Family::Xiangqi => xiangqi::replay(variant, initial, &entries),
@@ -309,11 +312,56 @@ pub fn replay<S: AsRef<str>>(
         Family::Ur => ur::replay(initial, &entries),
         Family::Senet => senet::replay(initial, &entries),
     }?;
+    Ok(finish(state))
+}
+
+fn finish(mut state: State) -> State {
     state.targets = targets(&state.moves);
     if state.numbers.is_empty() {
         state.numbers = (1..=state.history.len()).map(|n| n.to_string()).collect();
     }
-    Ok(state)
+    state
+}
+
+/// What [`step`] gives back.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Stepped {
+    /// The whole turn as the record writes it, once `part` has used the dice; `None` while
+    /// more is to come.
+    pub entry: Option<String>,
+    /// The Game after `entry`, or, before it, with the checkers of `part` moved and
+    /// [`State::steps`] the moves that may come next.
+    pub state: State,
+}
+
+/// Backgammon's turn played one checker at a time, as the board does: `part` holds the moves
+/// made so far in this turn (`13/8`, then `13/7`). The rules say what may come next, from the
+/// whole legal turns, so a checker that would strand a die is refused.
+pub fn step<S: AsRef<str>>(
+    key: &str,
+    initial: Option<&str>,
+    entries: &[S],
+    part: &[S],
+) -> Result<Stepped, GameError> {
+    let entries: Vec<&str> = entries.iter().map(AsRef::as_ref).collect();
+    let part: Vec<&str> = part.iter().map(AsRef::as_ref).collect();
+    if variant(key)?.family() != Family::Backgammon {
+        let reason = "only backgammon moves one checker at a time";
+        return Err(GameError::refused(entries.len(), &part.join(" "), reason));
+    }
+    let initial = initial.filter(|text| !text.trim().is_empty());
+    match backgammon::step(initial, &entries, &part)? {
+        backgammon::Step::Turn(turn) => {
+            let state = apply(key, initial, &entries, &turn)?;
+            let entry = state.history.last().cloned();
+            Ok(Stepped { entry, state })
+        }
+        backgammon::Step::Part(state) => Ok(Stepped {
+            entry: None,
+            state: finish(*state),
+        }),
+    }
 }
 
 /// [`replay`] with one more entry: the Game after `entry`, or why it is refused.

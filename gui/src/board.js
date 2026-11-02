@@ -9,11 +9,13 @@ export function place(/** @type {number} */ x, /** @type {number} */ y, /** @typ
 /**
  * The moves a selection can make: from a square, or a piece dropped from hand. With a gate
  * (a Seirawan piece chosen in the tray), only the moves from its square that bring it in.
- * @param {{moves: any[]}} state
+ * Backgammon's board moves one checker at a time: its `steps`, not its whole turns.
+ * @param {{moves: any[], steps?: any[]}} state
  * @param {{from?: string, drop?: string, gate?: string} | null} sel
  */
 export function movesOf(state, sel) {
   if (!sel) return [];
+  if (state.steps?.length) return state.steps.filter((m) => m.from === sel.from);
   if (sel.drop) return state.moves.filter((m) => m.drop === sel.drop && !m.from);
   if (sel.gate && sel.from) return state.moves.filter((m) => m.from === sel.from && m.drop === sel.gate);
   if (sel.gate) return [];
@@ -21,7 +23,7 @@ export function movesOf(state, sel) {
 }
 
 /** The moves of a selection that end on `to`: one to play, or several to choose from. */
-export function movesTo(/** @type {{moves: any[]}} */ state, /** @type {{from?: string, drop?: string} | null} */ sel, /** @type {string} */ to) {
+export function movesTo(/** @type {{moves: any[], steps?: any[]}} */ state, /** @type {{from?: string, drop?: string} | null} */ sel, /** @type {string} */ to) {
   return movesOf(state, sel).filter((m) => m.to === to);
 }
 
