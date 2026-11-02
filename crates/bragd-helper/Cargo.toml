@@ -43,6 +43,10 @@ libc = "0.2"
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_System_Power", "Win32_Storage_FileSystem", "Win32_System_SystemInformation", "Win32_Foundation"] }
 
+# Links the Visual C++ runtime in on Windows (build.rs).
+[build-dependencies]
+static_vcruntime = "3"
+
 [dev-dependencies]
 bragd-core = { path = "../bragd-core", features = ["test-home"] }
 # Zips of PGN, as TWIC sends them, made for the tests.

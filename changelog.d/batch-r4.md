@@ -1,0 +1,1 @@
+| **The Helper starts on a fresh Windows.** It no longer needs the Visual C++ Redistributable, which a new Windows 11 does not have, so Sources, imports and background analysis run there too. | [Install](getting-started/install.md#what-it-needs) |
