@@ -49,7 +49,7 @@ One switch per Game family, and under it one per Variant. All are on by default 
 | `family_xiangqi` | `variant_xiangqi`, `variant_janggi` |
 | `family_shogi` | `variant_shogi` |
 | `family_go` | `variant_go-9`, `variant_go-13`, `variant_go-19` |
-| `family_draughts` | `variant_checkers`, `variant_draughts`, `variant_draughts-brazilian`, `variant_draughts-russian` |
+| `family_draughts` | `variant_checkers`, `variant_draughts`, `variant_draughts-brazilian` |
 | `family_tafl` | `variant_hnefatafl`, `variant_hnefatafl-fetlar`, `variant_tablut`, `variant_brandubh` |
 | `family_backgammon` | `variant_backgammon` |
 | `family_ur` | `variant_ur` |

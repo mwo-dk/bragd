@@ -1,0 +1,1 @@
+| **Russian draughts is gone.** Draughts has three rulesets: English checkers, International and Brazilian draughts. A PDN file of Russian games still opens, as `gametype-25`. | [Draughts](play/draughts.md) |

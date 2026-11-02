@@ -83,7 +83,7 @@ const GO: &[&str] = &["go-9", "go-13", "go-19"];
 
 /// The engines of the spec, and more UCI chess engines, strongest-known first after Stockfish;
 /// Fairy-Stockfish comes last of the chess ones, as it plays chess as one Variant of many. Igel
-/// has no image: it needs AVX2 and cannot be built for arm64. English, Brazilian and Russian
+/// has no image: it needs AVX2 and cannot be built for arm64. English and Brazilian
 /// draughts have no engine: Scan plays international draughts.
 pub const KNOWN: &[Known] = &[
     Known { key: "stockfish", name: "Stockfish", programs: &["stockfish"], args: &[], variants: CHESS, tag: Some("17.1"), pin: PIN_STOCKFISH, image_size: 65_071_892, site: "https://stockfishchess.org/download/", syzygy: true },

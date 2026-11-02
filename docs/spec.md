@@ -6,7 +6,7 @@ Bragd (Old Norse *bragð*, "a clever move") is a desktop app for playing, studyi
 
 ## Game families and Variants
 
-All 25 Variants of the ten Game families are playable from the start:
+All 24 Variants of the ten Game families are playable from the start:
 
 | Game family | Variants |
 |---|---|
@@ -14,7 +14,7 @@ All 25 Variants of the ten Game families are playable from the start:
 | Xiangqi | xiangqi, janggi |
 | Shogi | shogi |
 | Go | 9×9, 13×13, 19×19 |
-| Draughts | English checkers, international, Brazilian, Russian |
+| Draughts | English checkers, international, Brazilian |
 | Tafl | hnefatafl (Copenhagen), Fetlar, tablut, brandubh |
 | Backgammon | backgammon |
 | Ur | ur (Finkel) |

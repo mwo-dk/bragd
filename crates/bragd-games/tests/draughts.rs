@@ -9,7 +9,6 @@ const GAMES: &[(&str, &[&str])] = &[
     ("checkers", CHECKERS),
     ("draughts", &["33-29", "18-22", "32-27", "19-23", "27x18:22", "13x22:18"]),
     ("draughts-brazilian", SMALL),
-    ("draughts-russian", SMALL),
 ];
 
 #[test]

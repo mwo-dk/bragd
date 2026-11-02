@@ -2,7 +2,7 @@
 
 # Draughts
 
-Four draughts rulesets, each a Variant of its own. They share men, kings and the dark squares, and differ in how men capture, how far kings fly, whether you must take the most, and when a man is crowned. Black moves first in English checkers, as its rules say; White moves first in the other three.
+Three draughts rulesets, each a Variant of its own. They share men, kings and the dark squares, and differ in how men capture, how far kings fly, and whether you must take the most. In all three a man is crowned when its move ends on the far rank. Black moves first in English checkers, as its rules say; White moves first in the other two.
 
 ![International draughts in Play: the 10×10 board with twenty men a Side](../screenshots/play-draughts-1100.png)
 
@@ -12,12 +12,11 @@ Four draughts rulesets, each a Variant of its own. They share men, kings and the
 
 *English checkers, 8×8.*
 
-| Variant | Key | Board | Men capture backwards | Flying kings | Must take the most | Crowned |
-|---|---|---|---|---|---|---|
-| English checkers | `checkers` | 8×8 | No | No | No | When the move ends there |
-| International draughts | `draughts` | 10×10 | Yes | Yes | Yes | When the move ends there |
-| Brazilian draughts | `draughts-brazilian` | 8×8 | Yes | Yes | Yes | When the move ends there |
-| Russian draughts | `draughts-russian` | 8×8 | Yes | Yes | No | Mid-jump, and it goes on jumping as a king |
+| Variant | Key | Board | Men capture backwards | Flying kings | Must take the most |
+|---|---|---|---|---|---|
+| English checkers | `checkers` | 8×8 | No | No | No |
+| International draughts | `draughts` | 10×10 | Yes | Yes | Yes |
+| Brazilian draughts | `draughts-brazilian` | 8×8 | Yes | Yes | Yes |
 
 ## How to reach it
 
@@ -25,7 +24,7 @@ Sidebar → **Draughts** → **Play**, then choose the ruleset in the first list
 
 ## What it needs
 
-Nothing to play against yourself. Against an Engine: Scan, installed or from its image, for International draughts only. English, Brazilian and Russian draughts have no Engine, so the *Opponent* list does not show for them ([Playing against an Engine](against-an-engine.md)).
+Nothing to play against yourself. Against an Engine: Scan, installed or from its image, for International draughts only. English checkers and Brazilian draughts have no Engine, so the *Opponent* list does not show for them ([Playing against an Engine](against-an-engine.md)).
 
 ## Controls
 
@@ -41,23 +40,19 @@ Captures are compulsory: when one exists, only captures are offered. The move li
 
 | Setting | `config.toml` key | Default | What it does |
 |---|---|---|---|
-| The Family on or off | `families.family` | On | `draughts = false` under `[families.family]` hides all four |
-| A ruleset on or off | `families.variant` | All on | `draughts-russian = false` under `[families.variant]` hides Russian draughts |
+| The Family on or off | `families.family` | On | `draughts = false` under `[families.family]` hides all three |
+| A ruleset on or off | `families.variant` | All on | `draughts-brazilian = false` under `[families.variant]` hides Brazilian draughts |
 | Default Engine | `engines.default` | First installed | `draughts = "scan"` |
 
 ## Questions
 
 #### Why does Black move first in English checkers?
 
-Its rules say so. Black's men stand on squares 1 to 12, at the top of the board, so a Game opens with a move such as `11-15`. International, Brazilian and Russian draughts start with White.
+Its rules say so. Black's men stand on squares 1 to 12, at the top of the board, so a Game opens with a move such as `11-15`. International and Brazilian draughts start with White.
 
 #### Why can I not make the capture I want?
 
 In International and Brazilian draughts you must take the most pieces you can. A capture of fewer pieces is not offered. A king counts the same as a man.
-
-#### Why did my man become a king in the middle of a capture?
-
-That is the Russian rule: a man that reaches the far rank mid-jump is crowned at once and goes on capturing as a king.
 
 #### How does a Game end?
 
@@ -65,7 +60,7 @@ A Side with no legal move loses, whether all its pieces are gone or all are bloc
 
 #### Is International draughts a bigger English checkers?
 
-No. They differ in three of the four rules in the table, so they play as different games.
+No. They differ in all three rules in the table, so they play as different games.
 
 ---
 [← Previous: Go](go.md) · [Next: Tafl →](tafl.md)

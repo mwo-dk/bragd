@@ -1,4 +1,4 @@
-//! The nine Game families and their 25 Variants, as data.
+//! The nine Game families and their 24 Variants, as data.
 
 use serde::{Serialize, Serializer};
 
@@ -112,7 +112,6 @@ pub enum Variant {
     Checkers,
     International,
     Brazilian,
-    Russian,
     Hnefatafl,
     Fetlar,
     Tablut,
@@ -177,7 +176,7 @@ const GO: [&str; 2] = ["Black", "White"];
 use Geometry::{Intersections, Points, Squares, Track};
 
 /// Every Variant, Family by Family, in the order the spec lists them.
-pub const VARIANTS: [VariantInfo; 25] = [
+pub const VARIANTS: [VariantInfo; 24] = [
     row(Variant::Chess, "chess", "Chess", Family::Chess, WB, Squares, 8, 8, true),
     row(Variant::Chess960, "chess960", "Chess960", Family::Chess, WB, Squares, 8, 8, true),
     row(Variant::Shatranj, "shatranj", "Shatranj", Family::Chess, WB, Squares, 8, 8, true),
@@ -195,7 +194,6 @@ pub const VARIANTS: [VariantInfo; 25] = [
     row(Variant::Checkers, "checkers", "English checkers", Family::Draughts, WB, Squares, 8, 8, true),
     row(Variant::International, "draughts", "International draughts", Family::Draughts, WB, Squares, 10, 10, true),
     row(Variant::Brazilian, "draughts-brazilian", "Brazilian draughts", Family::Draughts, WB, Squares, 8, 8, true),
-    row(Variant::Russian, "draughts-russian", "Russian draughts", Family::Draughts, WB, Squares, 8, 8, true),
     row(Variant::Hnefatafl, "hnefatafl", "Hnefatafl (Copenhagen)", Family::Tafl, TAFL, Squares, 11, 11, false),
     row(Variant::Fetlar, "hnefatafl-fetlar", "Hnefatafl (Fetlar)", Family::Tafl, TAFL, Squares, 11, 11, false),
     row(Variant::Tablut, "tablut", "Tablut", Family::Tafl, TAFL, Squares, 9, 9, false),
@@ -248,12 +246,12 @@ mod tests {
         let mut keys: Vec<_> = VARIANTS.iter().map(|info| info.key).collect();
         keys.sort();
         keys.dedup();
-        assert_eq!(keys.len(), 25);
+        assert_eq!(keys.len(), 24);
     }
 
     #[test]
     fn every_family_has_a_variant() {
         let counts: Vec<usize> = Family::ALL.iter().map(|f| f.variants().count()).collect();
-        assert_eq!(counts, [8, 2, 1, 3, 4, 4, 1, 1, 1]);
+        assert_eq!(counts, [8, 2, 1, 3, 3, 4, 1, 1, 1]);
     }
 }

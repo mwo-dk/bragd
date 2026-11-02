@@ -440,7 +440,7 @@ mod tests {
         names.sort();
         names.dedup();
         assert_eq!(names.len(), n);
-        assert_eq!(options().filter(|o| o.area == Families).count(), 9 + 25);
+        assert_eq!(options().filter(|o| o.area == Families).count(), 9 + 24);
         for a in Area::ALL {
             assert!(
                 en.contains_key(&format!("settings.area.{}", a.id())),

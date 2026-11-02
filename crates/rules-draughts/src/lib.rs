@@ -1,7 +1,7 @@
 //! Draughts and checkers.
 //!
-//! **International 10×10 is the engine**, and the 8×8 variants — English,
-//! Russian, Brazilian — fall out as flag combinations from the same generator.
+//! **International 10×10 is the engine**, and the 8×8 variants — English and
+//! Brazilian — fall out as flag combinations from the same generator.
 //! That is not generality for its own sake: the variants disagree about four
 //! specific things, each of which is a boolean or a small enum, and the
 //! disagreements are the reason "checkers" cannot be offered as one game.
@@ -28,4 +28,4 @@ pub mod ruleset;
 pub use board::{Bitboard, Direction, Geometry, Square};
 pub use game::{DrawReason, Game, MoveError, Outcome, STALL_LIMIT, WinReason};
 pub use position::{Move, Position, Side};
-pub use ruleset::{BRAZILIAN, CaptureChoice, ENGLISH, INTERNATIONAL, Promotion, RUSSIAN, Ruleset};
+pub use ruleset::{BRAZILIAN, CaptureChoice, ENGLISH, INTERNATIONAL, Ruleset};

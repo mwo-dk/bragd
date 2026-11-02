@@ -4,29 +4,17 @@
 //! **different games with different names**, each with its own federation and
 //! its own literature. "Checkers" is not a game you can offer; one of these is.
 //!
-//! Four rules do the separating, and every field below is one of them, plus who
-//! moves first: White in three, Black in English draughts.
+//! Three rules do the separating, and every field below is one of them, plus who
+//! moves first: White in two, Black in English draughts. A man becomes a king
+//! in all three only when its move ends on the far rank.
 
 use crate::board::Geometry;
 use crate::position::{Move, Side};
 
-/// When a man that reaches the far rank becomes a king.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Promotion {
-    /// Only when the move *ends* there. A man that jumps through the far rank
-    /// and keeps going stays a man — International, Brazilian.
-    OnStopping,
-    /// The moment it arrives, continuing the sequence as a king. Russian.
-    MidSequence,
-    /// Not at all. No mainstream variant; here so the field cannot be a bool
-    /// pretending the question has two answers.
-    Never,
-}
-
 /// How much you are obliged to take.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CaptureChoice {
-    /// Any available capture. English, Russian, Pool.
+    /// Any available capture. English, Pool.
     Any,
     /// The one taking the most pieces, kings counting the same as men.
     /// International, Brazilian.
@@ -49,7 +37,6 @@ pub struct Ruleset {
     /// formality.
     pub flying_kings: bool,
 
-    pub promotion: Promotion,
     pub capture_choice: CaptureChoice,
 
     /// Whether this variant's **published perft tables** count a capture twice
@@ -84,7 +71,6 @@ pub const INTERNATIONAL: Ruleset = Ruleset {
     geometry: Geometry::INTERNATIONAL,
     men_capture_backwards: true,
     flying_kings: true,
-    promotion: Promotion::OnStopping,
     capture_choice: CaptureChoice::Maximum,
     counts_duplicate_captures: false,
     first: Side::White,
@@ -92,7 +78,7 @@ pub const INTERNATIONAL: Ruleset = Ruleset {
 
 /// **English draughts**, 8×8 — what most English speakers mean by "checkers".
 ///
-/// Three of the four rules differ from International, which is why they cannot
+/// All three rules differ from International, which is why they cannot
 /// share a catalogue row: men do not jump backwards, kings do not fly, and you
 /// may take any capture rather than the largest.
 pub const ENGLISH: Ruleset = Ruleset {
@@ -101,7 +87,6 @@ pub const ENGLISH: Ruleset = Ruleset {
     geometry: Geometry::SMALL,
     men_capture_backwards: false,
     flying_kings: false,
-    promotion: Promotion::OnStopping,
     capture_choice: CaptureChoice::Any,
     counts_duplicate_captures: true,
     first: Side::Black,
@@ -114,45 +99,27 @@ pub const BRAZILIAN: Ruleset = Ruleset {
     geometry: Geometry::SMALL,
     men_capture_backwards: true,
     flying_kings: true,
-    promotion: Promotion::OnStopping,
     capture_choice: CaptureChoice::Maximum,
     counts_duplicate_captures: false,
-    first: Side::White,
-};
-
-/// **Russian draughts** — Brazilian's board and pieces, two rules apart.
-///
-/// Kept because those two rules are the classic divergence: a man promotes
-/// *during* a sequence and carries on as a king, and there is no obligation to
-/// take the most.
-pub const RUSSIAN: Ruleset = Ruleset {
-    key: "draughts-russian",
-    name: "Russian draughts",
-    geometry: Geometry::SMALL,
-    men_capture_backwards: true,
-    flying_kings: true,
-    promotion: Promotion::MidSequence,
-    capture_choice: CaptureChoice::Any,
-    counts_duplicate_captures: true,
     first: Side::White,
 };
 
 impl Ruleset {
     /// Every variant this crate plays, in the order Bragd lists them.
     ///
-    /// These are four *different games*, each with its own federation — a man
-    /// jumps backwards in three of them and not in the fourth, kings fly in
-    /// three and not in the fourth, and you are obliged to take the most in two
-    /// of them and not in the other two. So a key that opened the wrong one
+    /// These are three *different games*, each with its own federation — a man
+    /// jumps backwards in two of them and not in the third, kings fly in two
+    /// and not in the third, and you are obliged to take the most in two of
+    /// them and not in the third. So a key that opened the wrong one
     /// would not misplay a game, it would play a different game, and the moves
     /// would replay without erring.
-    pub const ALL: [Ruleset; 4] = [INTERNATIONAL, ENGLISH, BRAZILIAN, RUSSIAN];
+    pub const ALL: [Ruleset; 3] = [INTERNATIONAL, ENGLISH, BRAZILIAN];
 
     /// The variant a stored key names, or nothing.
     ///
     /// **Here rather than at the boundary**, which held a `match` over the same
-    /// four keys with a `_ => None` of its own — a second table with nothing
-    /// holding it to the first, so a fifth variant added here would be a
+    /// keys with a `_ => None` of its own — a second table with nothing
+    /// holding it to the first, so a new variant added here would be a
     /// catalogue row nobody could open.
     pub fn from_key(key: &str) -> Option<Ruleset> {
         Ruleset::ALL.into_iter().find(|rules| rules.key == key)
@@ -189,7 +156,7 @@ mod tests {
         assert_eq!(Ruleset::from_key(""), None);
     }
 
-    /// Four games, four keys. A duplicate would mean one of them was
+    /// Three games, three keys. A duplicate would mean one of them was
     /// unreachable through `from_key` and would look like a typo in a table
     /// nobody reads.
     #[test]

@@ -359,7 +359,6 @@ mod tests {
             ("checkers", &[], None),
             ("draughts", &["scan"], Some("normal")),
             ("draughts-brazilian", &[], None),
-            ("draughts-russian", &[], None),
             ("hnefatafl", &[], None),
             ("hnefatafl-fetlar", &[], None),
             ("tablut", &[], None),
