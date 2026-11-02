@@ -95,4 +95,4 @@ No. It searches the F1 texts in your language: titles, lines, questions and answ
 Not from the app. Hints count their showings in `state.json`; a hint that has shown three times stays away.
 
 ---
-[← Previous: The sidebar](sidebar.md) · [Next: What's new →](whats-new.md)
+[← Previous: Going back](navigation.md) · [Next: What's new →](whats-new.md)

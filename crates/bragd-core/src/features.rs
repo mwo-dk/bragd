@@ -33,6 +33,7 @@ pub const DOCS: &str = "https://github.com/mwo-dk/bragd/blob/master/docs/";
 pub const FEATURES: &[Feature] = &[
     f("wizard", "getting-started/first-start.md", "settings:overview"),
     f("families", "getting-started/game-families.md", "settings:families"),
+    f("back", "getting-started/navigation.md", "page:help"),
     f("tips", "getting-started/tips.md", "settings:tips"),
     f("play", "play/against-yourself.md", "item:play"),
     only("online", "online/playing-online.md", "online:lichess:chess", &["chess"]),
@@ -197,7 +198,7 @@ mod tests {
         let known = |f: &str| bragd_games::Family::from_key(f).is_some();
         for f in FEATURES {
             assert!(f.families.iter().all(|x| known(x)), "{}: {:?}", f.id, f.families);
-            assert!(["settings:", "item:", "page:clubs", "online:"].iter().any(|p| f.open.starts_with(p)), "{}", f.id);
+            assert!(["settings:", "item:", "page:clubs", "page:help", "online:"].iter().any(|p| f.open.starts_with(p)), "{}", f.id);
         }
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../changelog.d");
         // After a release changelog.d/ may be gone: no rows, nothing to check.

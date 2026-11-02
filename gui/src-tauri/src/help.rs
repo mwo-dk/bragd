@@ -5,7 +5,7 @@
 use bragd_core::config::Config;
 use bragd_core::notices::{self, Notice};
 use bragd_core::state::AppState;
-use bragd_core::{features, i18n, t, update};
+use bragd_core::{features, history, i18n, t, update};
 use tauri_plugin_opener::OpenerExt;
 
 use crate::Ctx;
@@ -122,4 +122,24 @@ mod tests {
         let only_go = Config::parse("[families.family]\nchess = false\nxiangqi = false\nshogi = false\ndraughts = false\ntafl = false\nbackgammon = false\nur = false\nsenet = false\n").unwrap();
         assert_eq!(hints(&only_go), ["features", "wizard"]);
     }
+}
+
+/// Back: one way back per window, kept while the window is open (`bragd_core::history`).
+#[derive(Default)]
+pub struct Ways(std::sync::Mutex<std::collections::HashMap<String, history::History>>);
+
+/// The window goes from `from` to `to`; whether Back now has somewhere to go.
+#[tauri::command]
+pub fn nav_go(from: history::Place, to: history::Place, window: tauri::Window, ways: tauri::State<'_, Ways>) -> bool {
+    ways.0.lock().unwrap_or_else(|e| e.into_inner()).entry(window.label().to_owned()).or_default().go(from, &to)
+}
+
+/// Back: where the window was, and whether there is somewhere further back.
+#[tauri::command]
+pub fn nav_back(window: tauri::Window, ways: tauri::State<'_, Ways>) -> Option<(history::Place, bool)> {
+    let mut all = ways.0.lock().unwrap_or_else(|e| e.into_inner());
+    let way = all.get_mut(window.label())?;
+    let place = way.back()?;
+    bragd_core::tips::used("back");
+    Some((place, way.can_back()))
 }

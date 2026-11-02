@@ -81,8 +81,7 @@
   }
   function settings(/** @type {string} */ area) {
     close();
-    guide.area = area;
-    go({ kind: "settings" });
+    go({ kind: "settings", area });
   }
   const theme = (/** @type {string} */ name, /** @type {string} */ value) => save(name, value).then(() => open());
   const tick = (/** @type {string} */ id, /** @type {boolean} */ on) => (chosen = on ? [...chosen, id] : chosen.filter((c) => c !== id));

@@ -350,6 +350,7 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .manage(Ctx { cfg: RwLock::new(cfg) })
         .manage(knowledge::Knowledge::default())
+        .manage(help::Ways::default())
         .manage(clubs::Held::default())
         .plugin(tauri_plugin_dialog::init())
         .manage(engines::Held::default())
@@ -411,6 +412,8 @@ fn main() {
             peers::peers_look,
             peers::peers_sync,
             help::feature_list,
+            help::nav_go,
+            help::nav_back,
             help::notice_list,
             help::notice_dismiss,
             help::update_check,

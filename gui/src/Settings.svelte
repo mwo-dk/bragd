@@ -3,7 +3,7 @@
   // and choices come from Rust, and each change is saved to config.toml there.
   import { t, tn } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
-  import { guide } from "./guide.svelte.js";
+  import { here, set } from "./nav.svelte.js";
   import FamilyToggles from "./FamilyToggles.svelte";
   import SettingsExtras from "./SettingsExtras.svelte";
   import DiskUse from "./DiskUse.svelte";
@@ -12,15 +12,9 @@
 
   /** @type {{ snap: any, save: (name: string, value: any) => Promise<any> }} */
   let { snap, save } = $props();
-  let area = $state("overview");
-  // A link elsewhere (the wizard, a notice) names the area to open.
-  $effect(() => {
-    if (guide.area) [area, guide.area] = [guide.area, null];
-  });
-  // An area Rust no longer lists (its last Family turned off) gives way to Overview.
-  $effect(() => {
-    if (!snap.areas.some((/** @type {any} */ a) => a[0] === area)) area = "overview";
-  });
+  // The area is part of the place (a link elsewhere names it); one Rust no longer lists (its
+  // last Family turned off) gives way to Overview.
+  const area = $derived(snap.areas.some((/** @type {any} */ a) => a[0] === here.view.area) ? here.view.area : "overview");
 
   const opts = $derived(snap.settings.filter((/** @type {any} */ o) => o.listed && o.area === area));
   const byName = $derived(new Map(snap.settings.map((/** @type {any} */ o) => [o.name, o])));
@@ -33,7 +27,7 @@
   <div class="frame">
     <nav class="areas">
       {#each snap.areas as [id, label]}
-        <button class:current={area === id} onclick={() => (area = id)}>{label}</button>
+        <button class:current={area === id} onclick={() => set({ area: id })}>{label}</button>
       {/each}
     </nav>
 

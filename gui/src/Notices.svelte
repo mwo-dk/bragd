@@ -20,18 +20,14 @@
     if (next && !guide.notices.some((n) => n.id === next.id)) guide.notices = [...guide.notices, next];
   }
   function settings(/** @type {any} */ n) {
-    guide.area = n.settings;
-    go({ kind: "settings" });
+    go({ kind: "settings", area: n.settings });
   }
   /** *Show me*: the Settings area, a page of its own (`page:clubs`), Play online on a server (`online:ogs:go`), or the sidebar item of the first Family shown that has it. */
   function showMe(/** @type {any} */ tip) {
     guide.tip = null;
     const [kind, what, family] = tip.open.split(":");
     if (kind === "online") return go({ kind: "online", server: what, family });
-    if (kind === "settings") {
-      guide.area = what;
-      return go({ kind: "settings" });
-    }
+    if (kind === "settings") return go({ kind: "settings", area: what });
     if (kind === "page") return go({ kind: what });
     const sb = snap.sidebar;
     const families = sb.kind === "families" ? sb.families : sb.kind === "one" ? [sb.family] : [];

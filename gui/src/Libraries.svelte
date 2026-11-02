@@ -11,18 +11,20 @@
   import SliceEditor from "./SliceEditor.svelte";
   import Picker from "./Picker.svelte";
   import Player from "./Player.svelte";
+  import { here, set } from "./nav.svelte.js";
 
   /** @type {{ family: string, engine: boolean, variants: any[], slice: any, position: any, onstep: (family: string, step: any) => void, onslices: () => void }} */
   let { family, engine, variants, slice = null, position, onstep, onslices } = $props();
   /** @type {any[]} */
   let libs = $state([]);
-  /** @type {any} */
-  let lib = $state(null);
-  let view = $state("games");
+  // The Library open, its view, the Slice, player and Game in it are part of the place, so Back
+  // returns to them; a Slice chosen in the sidebar opens its Library on it.
+  const lib = $derived(libs.find((l) => l.path === (here.view.library ?? slice?.library)) ?? null);
+  const view = $derived(here.view.library_view ?? (slice ? "slice" : "games"));
+  const editing = $derived(lib?.slices.find((/** @type {any} */ s) => s.name === (here.view.slice_name ?? slice?.name)) ?? null);
   let player = $state("");
-  /** The player whose summary shows, and the view to go back to. */
-  let who = $state("");
-  let back = $state("games");
+  /** The player whose summary shows. */
+  const who = $derived(here.view.player ?? "");
   let find = $state("");
   let notFound = $state("");
   /** @type {[string, number][]} */
@@ -40,8 +42,6 @@
   let newSource = $state("");
   let error = $state("");
   let message = $state("");
-  /** @type {any} */
-  let editing = $state(null);
   /** @type {number | null} */
   let dragging = $state(null);
 
@@ -49,7 +49,6 @@
     try {
       libs = await k.libraries();
       priority = await k.priorityGet();
-      if (lib) lib = libs.find((l) => l.path === lib.path) ?? null;
     } catch (e) {
       error = k.why(e);
     }
@@ -58,12 +57,13 @@
     load();
   });
 
-  // A Slice chosen in the sidebar: its Library, open on it.
+  // The Game the place names, read from the Library.
   $effect(() => {
-    if (!slice || !libs.length) return;
-    const l = libs.find((x) => x.path === slice.library);
-    if (l) (lib = l), (view = "slice"), (editing = l.slices.find((/** @type {any} */ s) => s.name === slice.name) ?? null);
+    const id = here.view.game;
+    if (id == null || !lib) game = null;
+    else k.libraryGame(lib.path, id).then((g) => (game = g), (e) => (error = k.why(e)));
   });
+  const openGame = (/** @type {number} */ id, more = {}) => set({ game: id, ...more });
 
   $effect(() => {
     if (lib && view === "review") k.libraryReview(lib.path).then((r) => (review = r), (e) => (error = k.why(e)));
@@ -72,11 +72,8 @@
   const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(lib.path, { players: player.trim() ? [player] : [], family }, from, count);
 
   function showPlayer(/** @type {string} */ name) {
-    if (view !== "player") back = view;
-    who = name;
-    view = "player";
-    game = null;
     found = [];
+    set({ library: lib.path, library_view: "player", player: name, player_from: view === "player" ? here.view.player_from : view, game: null });
   }
 
   async function search(/** @type {SubmitEvent} */ e) {
@@ -92,11 +89,9 @@
   }
 
   function choose(/** @type {any} */ l) {
-    lib = l;
     found = [];
-    view = "games";
-    game = null;
     review = null;
+    set({ library: l.path, library_view: "games", game: null, player: null, slice_name: null });
   }
 
   async function exportLib() {
@@ -161,10 +156,10 @@
   {#if lib}
     <nav class="tabs">
       {#each ["games", "review", "slice"] as v}
-        <button class:current={view === v} onclick={() => ((view = v), (game = null), v === "slice" && !slice && (editing = null))}>{t(`lib.tab.${v}`)}</button>
+        <button class:current={view === v} onclick={() => set({ library: lib.path, library_view: v, game: null, ...(v === "slice" ? { slice_name: null } : {}) })}>{t(`lib.tab.${v}`)}</button>
       {/each}
       {#each lib.slices.filter((/** @type {any} */ s) => !s.families.length || s.families.includes(family)) as s}
-        <button class:current={view === "slice" && editing?.name === s.name} onclick={() => ((view = "slice"), (editing = s))}>{s.name}{s.materialised ? " ⧉" : ""}</button>
+        <button class:current={view === "slice" && editing?.name === s.name} onclick={() => set({ library: lib.path, library_view: "slice", slice_name: s.name })}>{s.name}{s.materialised ? " ⧉" : ""}</button>
       {/each}
     </nav>
     <form class="bar" role="search" onsubmit={search}>
@@ -185,10 +180,10 @@
 
     {#if view === "games"}
       {#if game}
-        <Replay replay={game} onclose={() => (game = null)} onstep={(s) => onstep(game.family, s)} />
+        <Replay replay={game} onclose={() => set({ game: null })} onstep={(s) => onstep(game.family, s)} />
       {:else}
         <input type="text" bind:value={player} placeholder={t("db.filter_player")} aria-label={t("db.filter_player")} />
-        <GameList {fetch} version={[lib.path, player, lib.games, family]} onplayer={showPlayer} onopen={async (r) => (game = await k.libraryGame(lib.path, r.id))} />
+        <GameList {fetch} version={[lib.path, player, lib.games, family]} onplayer={showPlayer} onopen={(r) => openGame(r.id)} />
       {/if}
     {:else if view === "review"}
       <div class="bar">
@@ -201,7 +196,7 @@
         <ul class="review">
           {#each review.duplicates as [g, sources]}
             <li>
-              <button class="link" onclick={async () => ((game = await k.libraryGame(lib.path, g.id)), (view = "games"))}>{g.white} – {g.black}, {g.date} ({g.result})</button>
+              <button class="link" onclick={() => openGame(g.id, { library_view: "games" })}>{g.white} – {g.black}, {g.date} ({g.result})</button>
               <small>{sources.join(" · ")}</small>
             </li>
           {/each}
@@ -211,9 +206,9 @@
         <ul class="review">
           {#each review.near as [short, long]}
             <li>
-              <button class="link" onclick={async () => ((game = await k.libraryGame(lib.path, short.id)), (view = "games"))}>{short.white} – {short.black} ({t("lib.moves", { n: short.moves })})</button>
+              <button class="link" onclick={() => openGame(short.id, { library_view: "games" })}>{short.white} – {short.black} ({t("lib.moves", { n: short.moves })})</button>
               ⊂
-              <button class="link" onclick={async () => ((game = await k.libraryGame(lib.path, long.id)), (view = "games"))}>{long.white} – {long.black} ({t("lib.moves", { n: long.moves })})</button>
+              <button class="link" onclick={() => openGame(long.id, { library_view: "games" })}>{long.white} – {long.black} ({t("lib.moves", { n: long.moves })})</button>
             </li>
           {/each}
         </ul>
@@ -224,9 +219,9 @@
       {/key}
     {:else if view === "player"}
       {#if game}
-        <Replay replay={game} onclose={() => (game = null)} onstep={(s) => onstep(game.family, s)} />
+        <Replay replay={game} onclose={() => set({ game: null })} onstep={(s) => onstep(game.family, s)} />
       {:else}
-        <Player library={lib.path} name={who} onopen={async (id) => (game = await k.libraryGame(lib.path, id).catch((e) => ((error = k.why(e)), null)))} onclose={() => (view = back)} />
+        <Player library={lib.path} name={who} onopen={(id) => openGame(id)} onclose={() => set({ library_view: here.view.player_from ?? "games", player: null, player_from: null })} />
       {/if}
     {/if}
   {/if}

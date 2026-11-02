@@ -6,17 +6,14 @@
   import ForeignDb from "./ForeignDb.svelte";
   import Libraries from "./Libraries.svelte";
   import Sources from "./Sources.svelte";
+  import { here, set } from "./nav.svelte.js";
 
   /** @type {{ family: any, slice?: any, onslices: () => void, onsnap: (snap: any) => void }} */
   let { family, slice = null, onslices, onsnap } = $props();
-  // svelte-ignore state_referenced_locally
-  let tab = $state(slice ? "libraries" : "files");
+  // A Slice chosen in the sidebar opens on Libraries.
+  const tab = $derived(here.view.tab ?? (slice ? "libraries" : "files"));
   /** @type {{family: string, fen: string} | null} */
   let position = $state(null);
-
-  $effect(() => {
-    if (slice) tab = "libraries";
-  });
 
   const onstep = (/** @type {string} */ fam, /** @type {any} */ step) => (position = step?.fen ? { family: fam, fen: step.fen } : position);
   const TABS = ["files", "libraries", "sources"];
@@ -26,7 +23,7 @@
   <h1>{family.name}: {t("sidebar.databases")}</h1>
   <div class="tabs" role="tablist">
     {#each TABS as id}
-      <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => (tab = id)}>{t(`db.tab.${id}`)}</button>
+      <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => set({ tab: id })}>{t(`db.tab.${id}`)}</button>
     {/each}
   </div>
   {#if tab === "files"}
