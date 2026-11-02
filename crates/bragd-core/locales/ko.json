@@ -1558,7 +1558,7 @@
  "feature.commentary.q1": "사실이 아닌 내용을 만들어 낼 수 있나요?",
  "feature.commentary.a1": "국면 저장소에 있는 것만 전달됩니다. 국면, 수, 두 번째 줄을 포함한 평가, 주석입니다. 아무것도 더하지 말라고 지시되며, 모델과 함께 기계 작성으로 표시됩니다.",
  "feature.commentary.q2": "모든 수에 대해 쓰나요?",
- "feature.commentary.a2": "아니요. 분석에서 해설을 누르거나, 검토된 수 옆에서만 씁니다.",
+ "feature.commentary.a2": "아니요. 분석에서 해설을 누르거나, 검토된 수 옆에서, 또는 슬라이스의 해설 작성을 누를 때만 씁니다. 이때 먼저 수의 개수를 보여 줍니다.",
  "feature.commentary.q3": "저장되나요?",
  "feature.commentary.a3": "네. 언어별로 국면 저장소에 보관되며, 피어는 다음 동기화 때 받습니다.",
  "feature.commentary.tip": "대국을 검토하셨나요? 수 옆의 해설을 누르면 여러분의 언어로 설명합니다.",
@@ -1714,5 +1714,14 @@
  "tour.ogs.title": "OGS에서 두기",
  "tour.ogs.text": "바둑의 두기 → OGS에서 두기는 Bragd 보드에서 online-go.com의 대국을 둡니다. 대국을 찾거나 도전에 응하고, 패스하며, OGS가 계산한 점수를 인정하세요.",
  "format.newer": "{file}은(는) 더 새로운 Bragd에서 저장되었습니다. 열려면 Bragd를 업데이트하세요. 파일은 그대로 둡니다.",
- "format.unknown": "{file}은(는) 이 Bragd에서 읽을 수 없는 형식입니다(버전 {version}). 파일은 그대로 둡니다."
+ "format.unknown": "{file}은(는) 이 Bragd에서 읽을 수 없는 형식입니다(버전 {version}). 파일은 그대로 둡니다.",
+ "job.slice_commentary": "{slice}의 수를 찾아 {language}(으)로 해설 작성",
+ "commentary.slice.action": "해설 작성",
+ "commentary.slice.action_hint": "엔진이 검토한 이 슬라이스의 수에 대해 언어 모델이 해설을 쓰게 합니다",
+ "commentary.slice.counting": "검토된 수를 세는 중…",
+ "commentary.slice.none": "사용 중인 언어로 해설을 기다리는 검토된 {name}의 수가 없습니다. 먼저 분석에서 대국을 검토하세요.",
+ "commentary.slice.ask": {
+  "other": "언어 모델이 {name}의 검토된 수 {n}개에 해설을 씁니다. 수마다 몇 초가 걸립니다. 쓸까요?"
+ },
+ "commentary.slice.write": "쓰기"
 }

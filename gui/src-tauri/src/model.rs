@@ -168,3 +168,27 @@ pub fn commentary_write(variant: String, initial: Option<String>, entries: Vec<S
     bragd_core::tips::used("commentary");
     Ok(Written { text: w.text, model: w.model })
 }
+
+/// *Write Commentary* for a Slice, asked first: how many judged moves of its Games of `family`
+/// (empty: any) the model would write about in the reader's language. Refused without a model
+/// ready here or at a Peer.
+#[tauri::command(async)]
+pub fn slice_commentary_count(library: String, name: String, family: String, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Result<u64, String> {
+    let cfg = ctx.cfg();
+    if !bragd_model::ready(&cfg.model) && !peer_model(&k, cfg.peers.on) {
+        return Err(t!("commentary.no_model"));
+    }
+    let Some(path) = bragd_positions::Store::path().filter(|p| p.exists()) else { return Ok(0) };
+    let store = bragd_positions::Store::open(&path).map_err(|e| e.to_string())?;
+    let lib = bragd_library::library::Library::open(std::path::Path::new(&library)).map_err(|e| e.to_string())?;
+    let found = bragd_helper::commentary::slice(&cfg, &store, &lib, &name, &family, i18n::language(), &|| false, &mut |_, _| {})?;
+    Ok(found.len() as u64)
+}
+
+/// *Write Commentary* for a Slice, once the user has seen the count: the Helper's job, which
+/// queues one Commentary per move (`Work::SliceCommentary`). Its id.
+#[tauri::command(async)]
+pub fn slice_commentary(library: String, name: String, family: String, k: State<'_, Knowledge>) -> Result<u64, String> {
+    bragd_core::tips::used("commentary");
+    k.link.start(&Request::Start { work: Work::SliceCommentary { library: library.into(), slice: name, family, language: i18n::language().into() } })
+}

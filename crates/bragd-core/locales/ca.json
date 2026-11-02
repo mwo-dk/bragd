@@ -1578,7 +1578,7 @@
  "feature.commentary.q1": "Pot inventar-se coses?",
  "feature.commentary.a1": "Només rep el que guarda el Magatzem de posicions: la posició, la jugada, l'avaluació amb la seva segona línia i l'anotació. Se li diu que no hi afegeixi res, i es marca com a escrit per una màquina, amb el seu model.",
  "feature.commentary.q2": "Escriu sobre totes les jugades?",
- "feature.commentary.a2": "No. Només quan premes Explicació a Anàlisi, o al costat d'una jugada revisada.",
+ "feature.commentary.a2": "No. Només quan prems Explicació a Anàlisi, al costat d'una jugada revisada, o Escriu Explicació per a una selecció, que abans diu quantes jugades són.",
  "feature.commentary.q3": "Es guarda?",
  "feature.commentary.a3": "Sí. Es guarda per llengua al Magatzem de posicions, i els teus Parells la reben amb la propera sincronització.",
  "feature.commentary.tip": "Has revisat una partida? Prem Explicació al costat d'una jugada perquè te l'expliquin en la teva llengua.",
@@ -1734,5 +1734,16 @@
  "tour.ogs.title": "Juga a OGS",
  "tour.ogs.text": "Al go, Juga → Juga a OGS juga a online-go.com des del tauler de Bragd: busca una partida o respon a un repte, passa, i accepta la puntuació que compta OGS.",
  "format.newer": "{file} l'ha escrit un Bragd més nou. Actualitza el Bragd per obrir-lo. El fitxer es deixa tal com està.",
- "format.unknown": "{file} té un format que aquest Bragd no pot llegir (versió {version}). El fitxer es deixa tal com està."
+ "format.unknown": "{file} té un format que aquest Bragd no pot llegir (versió {version}). El fitxer es deixa tal com està.",
+ "job.slice_commentary": "Cerca les jugades de {slice} per a Explicació en {language}",
+ "commentary.slice.action": "Escriu Explicació",
+ "commentary.slice.action_hint": "Fes que el model de llenguatge expliqui les jugades d'aquesta selecció que ha revisat el motor",
+ "commentary.slice.counting": "Comptant les jugades revisades…",
+ "commentary.slice.none": "Cap jugada revisada de {name} no espera Explicació en la teva llengua. Revisa abans les partides a Anàlisi.",
+ "commentary.slice.ask": {
+  "one": "El model escriuria l'Explicació de {n} jugada revisada de {name}. Triga uns segons per jugada. L'escriu?",
+  "many": "El model escriuria les Explicacions de {n} jugades revisades de {name}. Triga uns segons per jugada. Les escriu?",
+  "other": "El model escriuria les Explicacions de {n} jugades revisades de {name}. Triga uns segons per jugada. Les escriu?"
+ },
+ "commentary.slice.write": "Escriu"
 }

@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Kan han finne på ting?",
  "feature.commentary.a1": "Han får berre det stillingslageret har: stillinga, trekket, evalueringa med andre line, og annoteringa. Han får beskjed om ikkje å leggje til noko, og han er merkt som maskinskriven, med modellen.",
  "feature.commentary.q2": "Skriv han om kvart trekk?",
- "feature.commentary.a2": "Nei. Berre når du trykkjer Forklaring i Analyse, eller ved sida av eit gjennomgått trekk.",
+ "feature.commentary.a2": "Nei. Berre når du trykkjer Forklaring i Analyse, ved sida av eit gjennomgått trekk, eller Skriv Forklaring for eit utval, som først seier kor mange trekk det gjeld.",
  "feature.commentary.q3": "Blir ho lagra?",
  "feature.commentary.a3": "Ja. Ho blir lagra per språk i stillingslageret, og likemennene dine får henne ved neste synkronisering.",
  "feature.commentary.tip": "Har du gjennomgått eit parti? Trykk Forklaring ved sida av eit trekk for å få det forklart på ditt språk.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Spel på OGS",
  "tour.ogs.text": "Go sin Spel → Spel på OGS speler på online-go.com frå Bragd sitt brett: søk etter eit parti eller svar på ei utfordring, pass, og godta poengsummen OGS tel.",
  "format.newer": "{file} er skriven av ein nyare Bragd. Oppdater Bragd for å opne fila. Fila er uendra.",
- "format.unknown": "{file} har eit format denne Bragd-versjonen ikkje kan lese (versjon {version}). Fila er uendra."
+ "format.unknown": "{file} har eit format denne Bragd-versjonen ikkje kan lese (versjon {version}). Fila er uendra.",
+ "job.slice_commentary": "Finn trekka i {slice} for Forklaring på {language}",
+ "commentary.slice.action": "Skriv Forklaring",
+ "commentary.slice.action_hint": "La språkmodellen forklare trekka i dette utvalet som motoren har gjennomgått",
+ "commentary.slice.counting": "Tel gjennomgåtte trekk…",
+ "commentary.slice.none": "Ingen gjennomgått trekk i {name} ventar på Forklaring på språket ditt. Gå gjennom partia i Analyse først.",
+ "commentary.slice.ask": {
+  "one": "Modellen ville skrive Forklaring på {n} gjennomgått trekk i {name}. Det tek nokre sekund per trekk. Skrive?",
+  "other": "Modellen ville skrive Forklaringar på {n} gjennomgåtte trekk i {name}. Det tek nokre sekund per trekk. Skrive dei?"
+ },
+ "commentary.slice.write": "Skriv"
 }

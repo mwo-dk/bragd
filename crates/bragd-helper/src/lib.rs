@@ -7,6 +7,7 @@
 
 pub mod analysis;
 pub mod battery;
+pub mod commentary;
 pub mod disk;
 pub mod fairplay;
 pub mod helper;

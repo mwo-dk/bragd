@@ -400,6 +400,8 @@ fn main() {
             model::comment_translate,
             model::commentary_view,
             model::commentary_write,
+            model::slice_commentary_count,
+            model::slice_commentary,
             online::online_view,
             online::online_servers,
             online::online_sign_in,

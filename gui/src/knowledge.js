@@ -84,6 +84,10 @@ export const diskLimitsSet = (/** @type {string} */ total, /** @type {string} */
 export const why = (/** @type {any} */ e) => String(e?.reason ?? e);
 export const sliceAnalyse = (/** @type {string} */ library, /** @type {string} */ name, /** @type {string} */ family, /** @type {{engine: string, minVersion: string}[]} */ engines, /** @type {number | null} */ depth, /** @type {number | null} */ seconds, /** @type {number} */ top) =>
   invoke("slice_analyse", { library, name, family, engines, depth, seconds, top });
+/** @returns {Promise<number>} the judged moves of the Slice the model would write Commentary on */
+export const sliceCommentaryCount = (/** @type {string} */ library, /** @type {string} */ name, /** @type {string} */ family) => invoke("slice_commentary_count", { library, name, family });
+/** @returns {Promise<number>} the Helper job's id */
+export const sliceCommentary = (/** @type {string} */ library, /** @type {string} */ name, /** @type {string} */ family) => invoke("slice_commentary", { library, name, family });
 /** @returns {Promise<{engines: {key: string, name: string}[], defaults: string[], more: boolean}>} */
 export const backgroundEngines = (/** @type {string[]} */ variants) => invoke("background_engines", { variants });
 export const storeReport = () => invoke("store_report");

@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Can it make things up?",
  "feature.commentary.a1": "It is given only what the Position store holds: the position, the move, the Evaluation with its second line, and the Annotation. It is told to add nothing, and it is labelled machine-written, with its model.",
  "feature.commentary.q2": "Does it write about every move?",
- "feature.commentary.a2": "No. Only when you press Commentary in Analyse, or beside a reviewed move.",
+ "feature.commentary.a2": "No. Only when you press Commentary in Analyse or beside a reviewed move, or Write Commentary for a Slice, which says how many moves first.",
  "feature.commentary.q3": "Is it kept?",
  "feature.commentary.a3": "Yes. It is kept per language in the Position store, and your Peers get it with the next sync.",
  "feature.commentary.tip": "Reviewed a Game? Press Commentary beside a move to have it explained in your language.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Play on OGS",
  "tour.ogs.text": "Go's Play → Play on OGS plays on online-go.com from Bragd's board: seek a Game or answer a challenge, pass, and accept the score OGS counts.",
  "format.newer": "{file} was written by a newer Bragd. Update Bragd to open it. The file is left as it is.",
- "format.unknown": "{file} has a format this Bragd cannot read (version {version}). The file is left as it is."
+ "format.unknown": "{file} has a format this Bragd cannot read (version {version}). The file is left as it is.",
+ "job.slice_commentary": "Find the moves of {slice} for Commentary in {language}",
+ "commentary.slice.action": "Write Commentary",
+ "commentary.slice.action_hint": "Have the language model explain the moves of this Slice that the Engine has reviewed",
+ "commentary.slice.counting": "Counting the reviewed moves…",
+ "commentary.slice.none": "No reviewed move of {name} is waiting for Commentary in your language. Review its Games in Analyse first.",
+ "commentary.slice.ask": {
+  "one": "The model would write Commentary on {n} reviewed move of {name}. It takes several seconds a move. Write it?",
+  "other": "The model would write Commentary on {n} reviewed moves of {name}. It takes several seconds a move. Write them?"
+ },
+ "commentary.slice.write": "Write"
 }

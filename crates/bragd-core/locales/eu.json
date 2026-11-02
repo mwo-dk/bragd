@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Gauzak asmatu ditzake?",
  "feature.commentary.a1": "Posizio-biltegiak gordetzen duena baino ez dauka: posizioa, jokaldia, ebaluazioa bigarren lerroarekin eta oharra. Ez gehitzeko esaten zaio, eta makinak idatzitako gisa markatzen da, bere ereduarekin batera.",
  "feature.commentary.q2": "Jokaldi guztiez idazten du?",
- "feature.commentary.a2": "Ez. Analisian Iruzkina sakatzen duzunean bakarrik, edo berrikusi den jokaldi baten ondoan.",
+ "feature.commentary.a2": "Ez. Analisian Iruzkina sakatzen duzunean bakarrik, berrikusi den jokaldi baten ondoan, edo hautaketa baten Iruzkina idatzi sakatzean, lehenik jokaldi kopurua erakutsiz.",
  "feature.commentary.q3": "Gordetzen da?",
  "feature.commentary.a3": "Bai. Hizkuntzaka gordetzen da Posizio-biltegian, eta zure parekoek hurrengo sinkronizazioarekin jasoko dute.",
  "feature.commentary.tip": "Partida bat berrikusi duzu? Sakatu Iruzkina jokaldi baten ondoan, zure hizkuntzan azal dadin.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Jokatu OGS-n",
  "tour.ogs.text": "Go-ren Jokatu → Jokatu OGS-n menuak online-go.com-en jokatzen du Bragd-en taulatik: bilatu partida edo erantzun erronka bati, pasa, eta onartu OGS-k zenbatutako puntuazioa.",
  "format.newer": "{file} Bragd berriago batek idatzi du. Eguneratu Bragd irekitzeko. Fitxategia ez da aldatu.",
- "format.unknown": "{file}-k Bragd honek irakurri ezin duen formatua du (bertsioa {version}). Fitxategia ez da aldatu."
+ "format.unknown": "{file}-k Bragd honek irakurri ezin duen formatua du (bertsioa {version}). Fitxategia ez da aldatu.",
+ "job.slice_commentary": "Aurkitu {slice}-ren jokaldiak {language}-ez iruzkintzeko",
+ "commentary.slice.action": "Iruzkina idatzi",
+ "commentary.slice.action_hint": "Hautaketa honen jokaldiak motorrak berrikusi dituen, hizkuntza-ereduak azal ditzan",
+ "commentary.slice.counting": "Berrikusitako jokaldiak zenbatzen…",
+ "commentary.slice.none": "{name}-ren berrikusitako jokaldirik ez dago zure hizkuntzaz iruzkinaren zain. Lehenik berrikusi partidak Analisian.",
+ "commentary.slice.ask": {
+  "one": "Ereduak {name}-ren {n} berrikusitako jokaldiri iruzkina idatziko lioke. Jokaldi bakoitzak segundo batzuk behar ditu. Idatzi?",
+  "other": "Ereduak {name}-ren {n} berrikusitako jokaldiei iruzkina idatziko lieke. Jokaldi bakoitzak segundo batzuk behar ditu. Idatzi?"
+ },
+ "commentary.slice.write": "Idatzi"
 }

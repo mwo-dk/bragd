@@ -1588,7 +1588,7 @@
  "feature.commentary.q1": "Czy może zmyślać?",
  "feature.commentary.a1": "Dostaje tylko to, co zawiera magazyn pozycji: pozycję, ruch, ocenę wraz z jej drugim wierszem oraz adnotację. Ma nie dodawać niczego, a tekst jest oznaczony jako napisany maszynowo, wraz z modelem.",
  "feature.commentary.q2": "Czy pisze o każdym ruchu?",
- "feature.commentary.a2": "Nie. Tylko wtedy, gdy naciśniesz Objaśnienie w Analizie albo obok przejrzanego ruchu.",
+ "feature.commentary.a2": "Nie. Tylko wtedy, gdy naciśniesz Objaśnienie w Analizie, obok przejrzanego ruchu albo Napisz Objaśnienie przy wycinku, który najpierw pokazuje liczbę ruchów.",
  "feature.commentary.q3": "Czy jest zachowywane?",
  "feature.commentary.a3": "Tak. Jest zachowywane osobno dla każdego języka w magazynie pozycji, a twoje sparowane urządzenia dostają je przy następnej synchronizacji.",
  "feature.commentary.tip": "Przejrzałeś partię? Naciśnij Objaśnienie obok ruchu, aby dostać wyjaśnienie w swoim języku.",
@@ -1744,5 +1744,17 @@
  "tour.ogs.title": "Gra na OGS",
  "tour.ogs.text": "W go Gra → Graj na OGS gra na online-go.com z planszy Bragda: szukaj partii lub odpowiedz na wyzwanie, pasuj i zaakceptuj wynik, który liczy OGS.",
  "format.newer": "{file}: zapis pochodzi z nowszego Bragda. Zaktualizuj Bragda, aby to otworzyć. Pozostaje bez zmian.",
- "format.unknown": "{file}: ten Bragd nie potrafi odczytać tego formatu (wersja {version}). Pozostaje bez zmian."
+ "format.unknown": "{file}: ten Bragd nie potrafi odczytać tego formatu (wersja {version}). Pozostaje bez zmian.",
+ "job.slice_commentary": "Znajdź ruchy wycinka {slice} do Objaśnienia w języku: {language}",
+ "commentary.slice.action": "Napisz Objaśnienie",
+ "commentary.slice.action_hint": "Niech model językowy objaśni ruchy z tego wycinka, które przejrzał silnik",
+ "commentary.slice.counting": "Liczenie przejrzanych ruchów…",
+ "commentary.slice.none": "Żaden przejrzany ruch z {name} nie czeka na Objaśnienie w Twoim języku. Najpierw przejrzyj jego partie w Analizie.",
+ "commentary.slice.ask": {
+  "many": "Model napisze Objaśnienia {n} przejrzanych ruchów z {name}. Każdy ruch zajmuje kilka sekund. Napisać?",
+  "one": "Model napisze Objaśnienie {n} przejrzanego ruchu z {name}. Każdy ruch zajmuje kilka sekund. Napisać?",
+  "few": "Model napisze Objaśnienia {n} przejrzanych ruchów z {name}. Każdy ruch zajmuje kilka sekund. Napisać?",
+  "other": "Model napisze Objaśnienia {n} przejrzanych ruchów z {name}. Każdy ruch zajmuje kilka sekund. Napisać?"
+ },
+ "commentary.slice.write": "Napisz"
 }

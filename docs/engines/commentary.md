@@ -18,16 +18,24 @@ Commentary is a few sentences about a move, written in your language by the [lan
 
 ## How to reach it
 
-Commentary needs a language model: one set in *Settings → Language model*, or a [Peer](../peers/sharing.md) that has one. It also needs the Engine to have judged the move first. Bragd never writes it for every move by itself.
+Commentary needs a language model: one set in *Settings → Language model*, or a [Peer](../peers/sharing.md) that has one. It also needs the Engine to have judged the move first. Bragd never writes it for every move by itself, and never for a whole Slice unless you ask and say yes to the count.
 
 | Where | What to do |
 |---|---|
 | Analyse | Play or set up the move, run the Engine or review the Game, then press **Commentary** under the panel. It is about the last move on the board |
 | Analyse → **Review the game** | Press **Commentary** beside a move in the Annotations list |
+| Databases → Libraries → a saved Slice | Press **Write Commentary** beside **Analyse in background**. Bragd counts the reviewed moves of the Slice's Games that have no Commentary in your language yet, says how many, and writes them only when you press **Write** |
+
+![A saved Slice, White wins, in Databases: Write Commentary beside Analyse in background, and the question The model would write Commentary on 6 reviewed moves of White wins, with Write and Cancel](../screenshots/slice-commentary-1100.png)
+*Write Commentary for a Slice says how many moves first.*
+
+![The same at 390 px](../screenshots/slice-commentary-390.png)
 
 While the button cannot be used, the text beside it says why: the move is not analysed yet, or no language model is ready. A Commentary already kept in your language shows at once, without the button.
 
 Commentary goes through the [Helper](../knowledge/helper.md)'s queue, on the same worker as translations. With a model on this machine, it is written here. With none, a paired machine with a model writes it, and it comes back here. Bragd waits up to two minutes for it.
+
+For a Slice, the Helper gathers the facts of each reviewed move and queues one Commentary job per move, so a long Slice runs in the background and shows under **Jobs**. A reviewed move is one the Engine has judged with an [Annotation](review.md), by the Variant's default Engine. A move that appears in several Games is written about once. Cancel the jobs under **Jobs** to stop.
 
 ## What the model is told
 
@@ -68,7 +76,11 @@ No. Once a move has Commentary in your language, it is shown instead of the butt
 
 #### Why does it not write about a whole Game at once?
 
-A model takes several seconds a move, and most moves need no prose. Commentary is written only for the moves you ask about.
+A model takes several seconds a move, and most moves need no prose. Commentary is written only for the moves you ask about. For many moves at once, save the Games as a Slice and use **Write Commentary**: it tells you how many moves that is before anything starts.
+
+#### Why does Write Commentary find no moves?
+
+It takes only moves the Engine has reviewed: review the Slice's Games in Analyse first (**Review the game**). Moves that already have Commentary in your language are left out too.
 
 ---
 [← Previous: Game review](review.md) · [Next: Tablebases →](tablebases.md)

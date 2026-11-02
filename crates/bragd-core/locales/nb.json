@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Kan den finne på ting?",
  "feature.commentary.a1": "Den får bare det stillingslageret har: stillingen, trekket, evalueringen med andre linje, og annoteringen. Den får beskjed om ikke å legge til noe, og den er merket som maskinskrevet, med modellen.",
  "feature.commentary.q2": "Skriver den om hvert trekk?",
- "feature.commentary.a2": "Nei. Bare når du trykker Forklaring i Analyse, eller ved siden av et gjennomgått trekk.",
+ "feature.commentary.a2": "Nei. Bare når du trykker Forklaring i Analyse, eller ved siden av et gjennomgått trekk, eller Skriv forklaring for et utvalg, som først viser hvor mange trekk det er.",
  "feature.commentary.q3": "Blir den lagret?",
  "feature.commentary.a3": "Ja. Den lagres per språk i stillingslageret, og likemennene dine får den ved neste synkronisering.",
  "feature.commentary.tip": "Har du gjennomgått et parti? Trykk Forklaring ved siden av et trekk for å få det forklart på ditt språk.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Spill på OGS",
  "tour.ogs.text": "Go sin Spill → Spill på OGS spiller på online-go.com fra Bragds brett: søk etter et parti eller svar på en utfordring, pass, og godta poengsummen OGS teller.",
  "format.newer": "{file} ble skrevet av en nyere Bragd. Oppdater Bragd for å åpne den. Filen er uendret.",
- "format.unknown": "{file} har et format denne Bragd-versjonen ikke kan lese (versjon {version}). Filen er uendret."
+ "format.unknown": "{file} har et format denne Bragd-versjonen ikke kan lese (versjon {version}). Filen er uendret.",
+ "job.slice_commentary": "Finn trekkene i {slice} for forklaring på {language}",
+ "commentary.slice.action": "Skriv forklaring",
+ "commentary.slice.action_hint": "La språkmodellen forklare trekkene i dette utvalget som motoren har gjennomgått",
+ "commentary.slice.counting": "Teller gjennomgåtte trekk…",
+ "commentary.slice.none": "Ingen gjennomgåtte trekk i {name} venter på forklaring på ditt språk. Gjennomgå partiene i Analyse først.",
+ "commentary.slice.ask": {
+  "one": "Modellen ville skrevet forklaring på {n} gjennomgått trekk i {name}. Det tar noen sekunder per trekk. Skrive?",
+  "other": "Modellen ville skrevet forklaring på {n} gjennomgåtte trekk i {name}. Det tar noen sekunder per trekk. Skrive?"
+ },
+ "commentary.slice.write": "Skriv"
 }

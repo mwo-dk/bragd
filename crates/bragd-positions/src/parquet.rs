@@ -1,6 +1,7 @@
 //! The store exported to Parquet and imported from it: for backups, moving a store by hand,
 //! and reading it in DuckDB. Each row carries its Edition whole, so a file reads on its own.
-//! Evaluations and Annotations share one file: an Annotation's `kind` is `annotation`. An
+//! Evaluations, Annotations and Commentary share one file: an Annotation's `kind` is
+//! `annotation`, a Commentary's `commentary` (its text in `line`). An
 //! import merges by the store's rules (`Store::merge`).
 
 use std::fs::File;
@@ -16,32 +17,34 @@ use parquet::record::{Field, Row, RowAccessor};
 use parquet::schema::parser::parse_message_type;
 use rusqlite::types::Value;
 
-use crate::{Annotation, Edition, Error, Evaluation, Merged, Result, Score, Store, annotation_columns};
+use crate::{Annotation, Commentary, Edition, Error, Evaluation, Merged, Result, Score, Store, annotation_columns};
 
 /// The columns, as SQL selects them from `evaluations` (`v`) and from `annotations` (`a`), each
-/// with `editions` (`d`), and as Parquet holds them, in the same order.
-const COLUMNS: [(&str, &str, &str); 21] = [
-    ("v.family", "a.family", "required binary family (STRING)"),
-    ("v.variant", "a.variant", "required binary variant (STRING)"),
-    ("v.key", "a.key", "required int64 key"),
-    ("d.id", "d.id", "required binary edition (STRING)"),
-    ("d.engine", "d.engine", "required binary engine (STRING)"),
-    ("d.version", "d.version", "required binary version (STRING)"),
-    ("d.network", "d.network", "optional binary network (STRING)"),
-    ("d.image", "d.image", "optional binary image (STRING)"),
-    ("v.kind", "'annotation'", "required binary kind (STRING)"),
-    ("v.score", "0.0", "required double score"),
-    ("v.lead", "0.0", "required double lead"),
-    ("v.depth", "a.depth", "required int32 depth"),
-    ("v.line", "a.better", "required binary line (STRING)"),
-    ("v.time", "a.time", "required int64 time"),
-    ("NULL", "a.move", "optional binary move (STRING)"),
-    ("NULL", "a.mark", "optional binary mark (STRING)"),
-    ("NULL", "a.motifs", "optional binary motifs (STRING)"),
-    ("v.kind2", "NULL", "optional binary kind2 (STRING)"),
-    ("v.score2", "NULL", "optional double score2"),
-    ("v.lead2", "NULL", "optional double lead2"),
-    ("v.line2", "NULL", "optional binary line2 (STRING)"),
+/// with `editions` (`d`), and from `commentary` (`c`), and as Parquet holds them, in that order.
+const COLUMNS: [(&str, &str, &str, &str); 23] = [
+    ("v.family", "a.family", "c.family", "required binary family (STRING)"),
+    ("v.variant", "a.variant", "c.variant", "required binary variant (STRING)"),
+    ("v.key", "a.key", "c.key", "required int64 key"),
+    ("d.id", "d.id", "''", "required binary edition (STRING)"),
+    ("d.engine", "d.engine", "''", "required binary engine (STRING)"),
+    ("d.version", "d.version", "''", "required binary version (STRING)"),
+    ("d.network", "d.network", "NULL", "optional binary network (STRING)"),
+    ("d.image", "d.image", "NULL", "optional binary image (STRING)"),
+    ("v.kind", "'annotation'", "'commentary'", "required binary kind (STRING)"),
+    ("v.score", "0.0", "0.0", "required double score"),
+    ("v.lead", "0.0", "0.0", "required double lead"),
+    ("v.depth", "a.depth", "0", "required int32 depth"),
+    ("v.line", "a.better", "c.text", "required binary line (STRING)"),
+    ("v.time", "a.time", "c.time", "required int64 time"),
+    ("NULL", "a.move", "c.move", "optional binary move (STRING)"),
+    ("NULL", "a.mark", "NULL", "optional binary mark (STRING)"),
+    ("NULL", "a.motifs", "NULL", "optional binary motifs (STRING)"),
+    ("v.kind2", "NULL", "NULL", "optional binary kind2 (STRING)"),
+    ("v.score2", "NULL", "NULL", "optional double score2"),
+    ("v.lead2", "NULL", "NULL", "optional double lead2"),
+    ("v.line2", "NULL", "NULL", "optional binary line2 (STRING)"),
+    ("NULL", "NULL", "c.language", "optional binary language (STRING)"),
+    ("NULL", "NULL", "c.model", "optional binary model (STRING)"),
 ];
 
 /// The export's format, in the file's key-value metadata under `bragd.format`. A file without
@@ -52,7 +55,7 @@ const FORMAT_KEY: &str = "bragd.format";
 /// Rows in one row group.
 const ROWS: usize = 64 * 1024;
 
-/// Writes every Evaluation and Annotation in `store` to the Parquet file `out`
+/// Writes every Evaluation, Annotation and Commentary in `store` to the Parquet file `out`
 /// (Snappy-compressed): the rows written. Written beside it first (`<out>.part`) and then put in place, so a failed export
 /// leaves a file that was there before whole.
 ///
@@ -62,7 +65,10 @@ const ROWS: usize = 64 * 1024;
 /// (double), `depth` (int32), `line` (string), `time` (int64), then for an Annotation (its
 /// `kind` `annotation`, `score` and `lead` 0, `line` the better line) `move`, `mark` and `motifs`
 /// (optional strings, empty for an Evaluation), then `kind2`, `score2`, `lead2` and `line2`
-/// (optional second-choice score kind, score, lead and line, empty for an Evaluation without one).
+/// (optional second-choice score kind, score, lead and line, empty for an Evaluation without one),
+/// then `language` and `model` (optional strings). A Commentary row has `kind` `commentary`, an
+/// empty Edition, `score`, `lead` and `depth` 0, its text in `line`, its move (empty for the
+/// position) in `move`, and its language and model.
 pub fn to_parquet(store: &Store, out: &Path) -> Result<u64> {
     let mut part = out.as_os_str().to_owned();
     part.push(".part");
@@ -78,7 +84,7 @@ pub fn to_parquet(store: &Store, out: &Path) -> Result<u64> {
 }
 
 fn write_parquet(store: &Store, out: &Path) -> Result<u64> {
-    let fields: Vec<&str> = COLUMNS.iter().map(|c| c.2).collect();
+    let fields: Vec<&str> = COLUMNS.iter().map(|c| c.3).collect();
     let schema = Arc::new(parse_message_type(&format!("message evaluations {{ {}; }}", fields.join("; ")))?);
     let props = Arc::new(
         WriterProperties::builder()
@@ -87,12 +93,14 @@ fn write_parquet(store: &Store, out: &Path) -> Result<u64> {
             .build(),
     );
     let mut writer = SerializedFileWriter::new(File::create(out)?, schema, props)?;
-    let select = |i: fn(&(&'static str, &'static str, &'static str)) -> &'static str| COLUMNS.iter().map(i).collect::<Vec<_>>().join(", ");
+    let select = |i: fn(&(&'static str, &'static str, &'static str, &'static str)) -> &'static str| COLUMNS.iter().map(i).collect::<Vec<_>>().join(", ");
     let mut st = store.conn().prepare(&format!(
         "SELECT {} FROM evaluations v JOIN editions d ON d.n = v.edition \
-         UNION ALL SELECT {} FROM annotations a JOIN editions d ON d.n = a.edition ORDER BY 1, 2, 3, 15, 4",
+         UNION ALL SELECT {} FROM annotations a JOIN editions d ON d.n = a.edition \
+         UNION ALL SELECT {} FROM commentary c ORDER BY 1, 2, 3, 15, 4, 22, 23",
         select(|c| c.0),
-        select(|c| c.1)
+        select(|c| c.1),
+        select(|c| c.2)
     ))?;
     let mut rows = st.query([])?;
     let mut batch: Vec<Vec<Value>> = Vec::with_capacity(ROWS);
@@ -120,7 +128,7 @@ fn write_group(writer: &mut SerializedFileWriter<File>, batch: &[Vec<Value>]) ->
     let mut group = writer.next_row_group()?;
     let mut i = 0;
     while let Some(mut col) = group.next_column()? {
-        let decl = COLUMNS[i].2;
+        let decl = COLUMNS[i].3;
         let defs: Vec<i16> = batch.iter().map(|r| i16::from(!matches!(r[i], Value::Null))).collect();
         let defs = decl.starts_with("optional").then_some(defs.as_slice());
         match decl.split_whitespace().nth(1) {
@@ -158,16 +166,38 @@ pub fn from_parquet(store: &mut Store, path: &Path) -> Result<Merged> {
         Some(v) if v >= 1 => {}
         v => return Err(Error::Format(bragd_core::format::Error::Unknown { file: "*.parquet", version: v.unwrap_or(0) })),
     }
-    let (mut evaluations, mut annotations) = (vec![], vec![]);
+    let (mut evaluations, mut annotations, mut commentary) = (vec![], vec![], vec![]);
     for row in reader.get_row_iter(None)? {
         let row = row?;
-        if row.get_string(8)? == "annotation" {
-            annotations.push(annotation(&row)?);
-        } else {
-            evaluations.push(evaluation(&row)?);
+        match row.get_string(8)?.as_str() {
+            "annotation" => annotations.push(annotation(&row)?),
+            "commentary" => commentary.push(said(&row)?),
+            _ => evaluations.push(evaluation(&row)?),
         }
     }
-    store.merge(&evaluations, &annotations)
+    let tx = store.conn.transaction()?;
+    let mut m = crate::merge(&tx, &evaluations, &annotations)?;
+    for c in &commentary {
+        m.read += 1;
+        m.changed += u64::from(crate::commentary::put(&tx, c)?);
+    }
+    tx.commit()?;
+    Ok(m)
+}
+
+/// One row read back as Commentary: its move (empty for the position), language and model.
+fn said(row: &Row) -> Result<Commentary> {
+    let need = |i: usize, what: &str| optional(row, i)?.ok_or_else(|| Error::Bad(format!("Commentary without its {what}")));
+    Ok(Commentary {
+        family: row.get_string(0)?.clone(),
+        variant: row.get_string(1)?.clone(),
+        key: row.get_long(2)? as u64,
+        mv: optional(row, 14)?.unwrap_or_default(),
+        language: need(21, "language")?,
+        model: need(22, "model")?,
+        text: row.get_string(12)?.clone(),
+        time: row.get_long(13)?,
+    })
 }
 
 /// An optional column: None when its value is NULL; any other read error is an error.
@@ -234,6 +264,7 @@ fn annotation(row: &Row) -> Result<Annotation> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commentary::tests::said;
     use crate::tests::{dir, eval, note, sf};
     use crate::{Edition, Evaluation, Mark, Motif, Score};
 
@@ -252,22 +283,27 @@ mod tests {
         let mut a = Store::open(&d.join("a.sqlite")).unwrap();
         a.put_all(&rows()).unwrap();
         a.merge([], &[note(u64::MAX, "e2e4", sf("Stockfish 17"), 20, 100, Some(Mark::Blunder)), note(3, "a7a8q", sf("Stockfish 17.1"), 9, 100, None)]).unwrap();
+        // Commentary rides along, on the position (no move) and on a move, in two languages.
+        a.put_commentary(&said(u64::MAX, "", "da", "qwen3", 7, "Hvid står bedst.")).unwrap();
+        a.put_commentary(&said(u64::MAX, "e2e4", "en-GB", "qwen3", 8, "White takes the centre.")).unwrap();
         let out = d.join("positions.parquet");
-        assert_eq!(to_parquet(&a, &out).unwrap(), 6);
+        assert_eq!(to_parquet(&a, &out).unwrap(), 8);
         let mut b = Store::open(&d.join("b.sqlite")).unwrap();
-        assert_eq!(from_parquet(&mut b, &out).unwrap(), Merged { read: 6, changed: 6 });
+        assert_eq!(from_parquet(&mut b, &out).unwrap(), Merged { read: 8, changed: 8 });
         assert_eq!(b.all().unwrap(), a.all().unwrap());
         assert_eq!(b.annotations().unwrap(), a.annotations().unwrap());
+        assert_eq!(b.commentaries().unwrap(), a.commentaries().unwrap());
+        assert_eq!(b.commentaries().unwrap().len(), 2);
         assert_eq!(b.annotations().unwrap().iter().find(|n| n.mv == "e2e4").unwrap().motifs, [Motif::Hangs, Motif::Fork]);
         // Imported again: read, and nothing changes.
-        assert_eq!(from_parquet(&mut b, &out).unwrap(), Merged { read: 6, changed: 0 });
+        assert_eq!(from_parquet(&mut b, &out).unwrap(), Merged { read: 8, changed: 0 });
     }
 
     #[test]
     fn a_file_from_a_newer_bragd_is_refused() {
         let d = dir("parquet-newer");
         let out = d.join("newer.parquet");
-        let fields: Vec<&str> = COLUMNS.iter().map(|c| c.2).collect();
+        let fields: Vec<&str> = COLUMNS.iter().map(|c| c.3).collect();
         let schema = Arc::new(parse_message_type(&format!("message evaluations {{ {}; }}", fields.join("; "))).unwrap());
         let kv = parquet::file::metadata::KeyValue::new(FORMAT_KEY.into(), (FORMAT + 1).to_string());
         let props = Arc::new(WriterProperties::builder().set_key_value_metadata(Some(vec![kv])).build());

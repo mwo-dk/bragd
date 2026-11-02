@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Kann es sich etwas ausdenken?",
  "feature.commentary.a1": "Es bekommt nur, was der Stellungsspeicher enthält: die Stellung, den Zug, die Bewertung mit ihrer zweiten Zeile und die Anmerkung. Es ist angewiesen, nichts hinzuzufügen, und wird mit seinem Modell als maschinell verfasst gekennzeichnet.",
  "feature.commentary.q2": "Schreibt es zu jedem Zug?",
- "feature.commentary.a2": "Nein. Nur wenn Sie in der Analyse auf Erläuterung drücken oder neben einem geprüften Zug.",
+ "feature.commentary.a2": "Nein. Nur wenn Sie in der Analyse auf Erläuterung drücken oder neben einem geprüften Zug, oder Erläuterung schreiben für einen Ausschnitt, der zuerst die Anzahl der Züge nennt.",
  "feature.commentary.q3": "Wird sie aufbewahrt?",
  "feature.commentary.a3": "Ja. Sie wird je Sprache im Stellungsspeicher gehalten, und Ihre Partnergeräte erhalten sie bei der nächsten Synchronisierung.",
  "feature.commentary.tip": "Eine Partie geprüft? Drücken Sie neben einem Zug auf Erläuterung, um ihn in Ihrer Sprache erklären zu lassen.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Auf OGS spielen",
  "tour.ogs.text": "Beim Go spielt Spielen → Auf OGS auf online-go.com über das Brett von Bragd: Suchen Sie eine Partie oder antworten Sie auf eine Herausforderung, passen Sie und nehmen Sie die Wertung an, die OGS zählt.",
  "format.newer": "{file} wurde von einer neueren Bragd-Version geschrieben. Aktualisieren Sie Bragd, um die Datei zu öffnen. Die Datei bleibt unverändert.",
- "format.unknown": "{file} hat ein Format, das diese Bragd-Version nicht lesen kann (Version {version}). Die Datei bleibt unverändert."
+ "format.unknown": "{file} hat ein Format, das diese Bragd-Version nicht lesen kann (Version {version}). Die Datei bleibt unverändert.",
+ "job.slice_commentary": "Züge von {slice} für Erläuterung in {language} finden",
+ "commentary.slice.action": "Erläuterung schreiben",
+ "commentary.slice.action_hint": "Das Sprachmodell erläutert die von der Engine geprüften Züge dieses Ausschnitts",
+ "commentary.slice.counting": "Geprüfte Züge werden gezählt…",
+ "commentary.slice.none": "Kein geprüfter Zug von {name} wartet auf Erläuterung in Ihrer Sprache. Prüfen Sie zuerst die Partien in der Analyse.",
+ "commentary.slice.ask": {
+  "one": "Das Modell würde eine Erläuterung zu {n} geprüftem Zug von {name} schreiben. Jeder Zug dauert einige Sekunden. Schreiben?",
+  "other": "Das Modell würde Erläuterungen zu {n} geprüften Zügen von {name} schreiben. Jeder Zug dauert einige Sekunden. Schreiben?"
+ },
+ "commentary.slice.write": "Schreiben"
 }

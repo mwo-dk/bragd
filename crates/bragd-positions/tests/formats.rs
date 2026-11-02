@@ -75,6 +75,7 @@ fn the_current_parquet_format_is_the_one_committed() {
     let d = dir("parquet-current");
     let mut s = Store::open(&d.join("positions.sqlite")).unwrap();
     s.merge(&evaluations(), &annotations()).unwrap();
+    s.put_commentary(&commentary()[0]).unwrap();
     let out = d.join("positions.parquet");
     bragd_positions::parquet::to_parquet(&s, &out).unwrap();
     let v = bragd_positions::parquet::FORMAT;
@@ -96,5 +97,6 @@ fn every_committed_parquet_version_imports_with_its_rows() {
         bragd_positions::parquet::from_parquet(&mut s, &fixture.join("positions.parquet")).unwrap();
         assert_eq!(s.all().unwrap(), evaluations(), "v{v}");
         assert_eq!(s.annotations().unwrap(), annotations(), "v{v}");
+        assert_eq!(s.commentaries().unwrap(), commentary(), "v{v}");
     }
 }

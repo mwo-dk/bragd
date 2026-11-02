@@ -1558,7 +1558,7 @@
  "feature.commentary.q1": "でたらめを書くことはありますか？",
  "feature.commentary.a1": "局面ストアにあるもの、つまり局面、指し手、2行目を含む評価、注釈だけが渡されます。何も加えないよう指示され、モデル名とともに機械執筆と表示されます。",
  "feature.commentary.q2": "すべての手について書きますか？",
- "feature.commentary.a2": "いいえ。解析で解説を押したとき、または検討済みの手の横でだけです。",
+ "feature.commentary.a2": "いいえ。解析で解説を押したとき、検討済みの手の横で、またはスライスの「解説を書く」を押したときだけです。その際、先に手の数を示します。",
  "feature.commentary.q3": "保存されますか？",
  "feature.commentary.a3": "はい。言語ごとに局面ストアに保存され、ピアは次の同期で受け取ります。",
  "feature.commentary.tip": "対局を検討しましたか？手の横の解説を押すと、あなたの言語で説明されます。",
@@ -1714,5 +1714,14 @@
  "tour.ogs.title": "OGS で対局",
  "tour.ogs.text": "囲碁の「対局 → OGS で対局」は、Bragd の盤から online-go.com で対局します。対局を探すか挑戦に応じて、パスし、OGS が数えたスコアを受け入れます。",
  "format.newer": "{file} は新しい Bragd で書かれました。開くには Bragd を更新してください。ファイルはそのまま残されます。",
- "format.unknown": "{file} は、この Bragd では読めない形式です（バージョン {version}）。ファイルはそのまま残されます。"
+ "format.unknown": "{file} は、この Bragd では読めない形式です（バージョン {version}）。ファイルはそのまま残されます。",
+ "job.slice_commentary": "{language}の解説のため、{slice}の手を探す",
+ "commentary.slice.action": "解説を書く",
+ "commentary.slice.action_hint": "エンジンが検討した、このスライスの手について言語モデルが解説を書きます",
+ "commentary.slice.counting": "検討済みの手を数えています…",
+ "commentary.slice.none": "{name}の検討済みの手で、お使いの言語の解説を待つものはありません。先に解析で対局を検討してください。",
+ "commentary.slice.ask": {
+  "other": "言語モデルは{name}の検討済みの{n}手に解説を書きます。1手に数秒かかります。書きますか？"
+ },
+ "commentary.slice.write": "書く"
 }

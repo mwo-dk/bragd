@@ -1558,7 +1558,7 @@
  "feature.commentary.q1": "它会编造内容吗？",
  "feature.commentary.a1": "它只获得局面存储中的内容：局面、走法、评估（含第二行）和注释。它被要求不添加任何内容，并标明为机器撰写及其模型。",
  "feature.commentary.q2": "它会为每一步都写解说吗？",
- "feature.commentary.a2": "不会。只有在分析中按下解说，或在已复盘的走法旁边按下时才会。",
+ "feature.commentary.a2": "不会。只有在分析中按下解说，或在已复盘的走法旁按下时才会，或为切片按下撰写解说（会先显示走法数量）。",
  "feature.commentary.q3": "会保存吗？",
  "feature.commentary.a3": "会。它按语言保存在局面存储中，你的配对设备会在下次同步时获得。",
  "feature.commentary.tip": "复盘了对局？在走法旁按下解说，即可用你的语言获得解说。",
@@ -1714,5 +1714,14 @@
  "tour.ogs.title": "在 OGS 上对弈",
  "tour.ogs.text": "围棋的 下棋 → 在 OGS 上对弈 会在 Bragd 的棋盘上与 online-go.com 下棋：寻找对局或应战挑战、停一手，并接受 OGS 计算的得分。",
  "format.newer": "{file} 由较新版本的 Bragd 写入。请更新 Bragd 后再打开。该文件保持原样。",
- "format.unknown": "{file} 的格式当前的 Bragd 无法读取（版本 {version}）。该文件保持原样。"
+ "format.unknown": "{file} 的格式当前的 Bragd 无法读取（版本 {version}）。该文件保持原样。",
+ "job.slice_commentary": "为{language}解说查找{slice}中的走法",
+ "commentary.slice.action": "撰写解说",
+ "commentary.slice.action_hint": "让语言模型为本切片中引擎已复盘的走法撰写解说",
+ "commentary.slice.counting": "正在统计已复盘的走法…",
+ "commentary.slice.none": "{name}中没有已复盘、等待你所用语言的解说的走法。请先在分析中复盘对局。",
+ "commentary.slice.ask": {
+  "other": "语言模型将为{name}的{n}步已复盘走法撰写解说。每步需要数秒。是否撰写？"
+ },
+ "commentary.slice.write": "撰写"
 }

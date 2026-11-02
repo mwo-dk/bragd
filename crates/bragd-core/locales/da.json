@@ -1568,7 +1568,7 @@
  "feature.commentary.q1": "Kan den finde på ting?",
  "feature.commentary.a1": "Den får kun det, Stillingslageret har: stillingen, trækket, vurderingen med dens anden linje og anmærkningen. Den får besked på ikke at tilføje noget, og den er markeret som maskinskrevet med sin model.",
  "feature.commentary.q2": "Skriver den om hvert træk?",
- "feature.commentary.a2": "Nej. Kun når du trykker Forklaring i Analyse, eller ved siden af et gennemgået træk.",
+ "feature.commentary.a2": "Nej. Kun når du trykker Forklaring i Analyse eller ved et gennemgået træk, eller Skriv forklaring for et udsnit, der først viser antallet af træk.",
  "feature.commentary.q3": "Gemmes den?",
  "feature.commentary.a3": "Ja. Den gemmes pr. sprog i Stillingslageret, og dine Partnere får den ved næste synkronisering.",
  "feature.commentary.tip": "Har du gennemgået et parti? Tryk Forklaring ved siden af et træk, så forklares det på dit sprog.",
@@ -1724,5 +1724,15 @@
  "tour.ogs.title": "Spil på OGS",
  "tour.ogs.text": "I go spiller Spil → Spil på OGS på online-go.com fra Bragds bræt: søg et parti eller svar på en udfordring, pas, og accepter den score, OGS tæller.",
  "format.newer": "{file} er skrevet af en nyere Bragd. Opdater Bragd for at åbne den. Filen er uændret.",
- "format.unknown": "{file} har et format, som denne Bragd ikke kan læse (version {version}). Filen er uændret."
+ "format.unknown": "{file} har et format, som denne Bragd ikke kan læse (version {version}). Filen er uændret.",
+ "job.slice_commentary": "Find træk i {slice} til forklaring på {language}",
+ "commentary.slice.action": "Skriv forklaring",
+ "commentary.slice.action_hint": "Lad sprogmodellen forklare de træk i dette udsnit, motoren har gennemgået",
+ "commentary.slice.counting": "Tæller gennemgåede træk…",
+ "commentary.slice.none": "Ingen gennemgåede træk i {name} venter på forklaring på dit sprog. Gennemgå spillene i Analyse først.",
+ "commentary.slice.ask": {
+  "one": "Modellen skriver forklaring på {n} gennemgået træk i {name}. Det tager nogle sekunder pr. træk. Skriv den?",
+  "other": "Modellen skriver forklaring på {n} gennemgåede træk i {name}. Det tager nogle sekunder pr. træk. Skriv dem?"
+ },
+ "commentary.slice.write": "Skriv"
 }
