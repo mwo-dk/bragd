@@ -2,8 +2,10 @@
   // Clubs: the Club files known here, one open with its members, ratings and audit log, and
   // players found in the rating lists. bragd-clubs decides and checks every change; this page
   // shows it and passes the choices back.
+  import { untrack } from "svelte";
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
+  import { here as place, set, replace } from "./nav.svelte.js";
   import Tournaments from "./Tournaments.svelte";
   import Leagues from "./Leagues.svelte";
 
@@ -52,15 +54,34 @@
     if (v) system.value = v.system;
   }
 
-  const load = () =>
-    api.clubsPage().then(
-      (p) => {
-        page = p;
-        show(p.open);
-      },
-      (e) => (error = String(e)),
-    );
-  load();
+  // The Club open is part of the place (`club`: its file, "" for none), so Back reopens it.
+  // Rust holds the open Club with its lock: a place with another Club opens that one as opening
+  // does, or closes it; when it cannot be opened, the error says why.
+  async function load() {
+    try {
+      const p = await api.clubsPage();
+      const want = place.view.club;
+      const have = p.open?.path ?? "";
+      if (want === undefined) replace({ ...place.view, club: have });
+      else if (want !== have) {
+        if (want) p.open = await run(() => api.clubOpen(want));
+        else {
+          await api.clubClose();
+          p.open = null;
+        }
+      }
+      page = p;
+      show(p.open ?? null);
+    } catch (e) {
+      error = String(e);
+    }
+  }
+  $effect(() => {
+    place.view.club;
+    untrack(load);
+  });
+  /** Records the Club now open (or none) as a step Back returns from. */
+  const remember = (/** @type {any} */ v) => set({ club: v?.path ?? "" });
 
   async function run(/** @type {() => Promise<any>} */ f) {
     try {
@@ -82,18 +103,24 @@
     const v = await run(() => api.clubCreate(fresh.name, fresh.system, fresh.director));
     if (v) {
       fresh = { name: "", director: "", system: "glicko2" };
-      await load();
+      remember(v);
     }
   }
   async function open(/** @type {() => Promise<any>} */ f) {
     const v = await run(f);
-    if (v) await load();
+    if (v) remember(v);
   }
   async function close() {
     await api.clubClose();
     club = null;
     form = rate = null;
-    await load();
+    remember(null);
+  }
+  async function forget(/** @type {string} */ path) {
+    const p = await run(() => api.clubForget(path));
+    if (!p) return;
+    page = p;
+    if (!p.open && place.view.club === path) replace({ ...place.view, club: "" });
   }
 
   function edit(/** @type {any} */ m) {
@@ -325,7 +352,7 @@
           <li>
             <button class="link" disabled={!c.there} onclick={() => open(() => api.clubOpen(c.path))}>{c.name}</button>
             <span class="dim">{c.there ? c.path : t("clubs.gone", { path: c.path })}</span>
-            <button onclick={() => run(() => api.clubForget(c.path)).then((p) => p && (page = p))}>{t("clubs.forget")}</button>
+            <button onclick={() => forget(c.path)}>{t("clubs.forget")}</button>
           </li>
         {/each}
       </ul>

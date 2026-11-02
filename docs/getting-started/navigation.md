@@ -27,7 +27,7 @@ A place is what the window shows:
 |---|---|
 | The page | Play, Databases, Clubs, Settings, F1 |
 | Its tab | A Settings area, a Databases tab, a Tournament's or League's tab |
-| What is open on it | A Library, a Slice, a Game in a Library, a player's summary, a Tournament, a League |
+| What is open on it | A Library, a Slice, a Game in a Library, a player's summary, a Club, a Tournament, a League |
 | The scroll | How far down the page was |
 
 Going somewhere new after Back starts a new way back from there: the place you left by Back is not kept. Bragd remembers the last 50 places of each window, and forgets them when the window closes.
@@ -45,6 +45,10 @@ No. A Game under way keeps running, as it does when you pick another page in the
 #### Will Back throw away what I typed?
 
 Not without asking. If you have typed into a field on the page, such as a new member or a Tournament's setup, Back asks first. Search boxes do not count.
+
+#### What happens to a Club when I go back?
+
+Back opens the Club that was open in that place, as opening it from the list does: it takes the Club's lock, or shows it read-only while someone else has it open. The Club open before is closed. A place with no Club open closes the one that is. When the Club's file is gone or cannot be read, the Clubs page says why and shows the list.
 
 #### Why does Esc not go back on other pages?
 
