@@ -141,6 +141,7 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
         to_move: (!over).then(|| seat(variant, to_move)),
         awaiting: if over { Awaiting::Nothing } else { Awaiting::Move },
         moves,
+        steps: Vec::new(),
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.san_history(),

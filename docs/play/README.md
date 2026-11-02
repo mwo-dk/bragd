@@ -14,7 +14,7 @@ Every Variant of every Game family can be played on the board in Bragd: against 
 | [Go](go.md) | Placing stones, passing, marking dead stones, scoring |
 | [Draughts](draughts.md) | Captures with several paths, crowning, the three rulesets |
 | [Tafl](tafl.md) | Attackers and Defenders, the king, the four sizes |
-| [Backgammon](backgammon.md) | Throwing the dice, whole turns, the bar, bearing off, the doubling cube |
+| [Backgammon](backgammon.md) | Throwing the dice, moving checker by checker, the bar, bearing off, the doubling cube |
 | [Ur](ur.md) | Throwing four dice, entering, rosettes |
 | [Senet](senet.md) | Throwing the sticks, the special squares, bearing off |
 

@@ -99,8 +99,9 @@ Two things fell out of writing it:
   `13/8 8/5` needs the checker to arrive on the 8-point before it can leave it, so
   the orderings are not interchangeable while a turn is being assembled.
 
-`bragd-games` offers whole turns. Building a turn a die at a time goes through
-`continue_turn` when a front end needs it.
+`bragd-games` records whole turns. The board builds one a checker at a time
+through `continue_turn` (`bragd_games::step`), and the turn is recorded when the
+dice are used.
 
 **There are no matches.** Every Game is played for its own points, so the Crawford
 rule and match equity do not arise.

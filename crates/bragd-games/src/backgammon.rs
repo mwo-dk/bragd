@@ -18,7 +18,8 @@ use crate::{
 };
 use rules_backgammon::board::{index_of, number_at};
 use rules_backgammon::{
-    Concession, Destination, Game, Needed, Origin, POINTS, Position, Side, Turn, WinReason,
+    Concession, Continuation, Destination, Game, Needed, Origin, POINTS, Play, Position, Side,
+    Turn, WinReason,
 };
 use std::collections::BTreeMap;
 
@@ -37,6 +38,14 @@ fn first_mover(text: &str) -> Result<Side, GameError> {
 }
 
 pub(crate) fn replay(initial: Option<&str>, entries: &[&str]) -> Result<State, GameError> {
+    let (game, resigned) = game(initial, entries)?;
+    let mut state = state(&game, &[]);
+    // A resignation is not one of the crate's entries, so the record carries it here.
+    state.history.extend(resigned);
+    Ok(state)
+}
+
+fn game(initial: Option<&str>, entries: &[&str]) -> Result<(Game, Option<String>), GameError> {
     let first = initial.map(first_mover).transpose()?.unwrap_or(Side::White);
     let mut game = Game::from_position(Position::starting_with(first));
     let mut resigned = None;
@@ -54,10 +63,27 @@ pub(crate) fn replay(initial: Option<&str>, entries: &[&str]) -> Result<State, G
         game.play_wire(entry)
             .map_err(|e| GameError::refused(index, entry, e))?;
     }
-    let mut state = state(&game);
-    // A resignation is not one of the crate's entries, so the record carries it here.
-    state.history.extend(resigned);
-    Ok(state)
+    Ok((game, resigned))
+}
+
+/// A turn played one checker at a time: what `part`, the checkers moved so far in the mover's
+/// numbering (`13/8`), comes to.
+pub(crate) enum Step {
+    /// The dice are used: the whole turn, to play as an entry.
+    Turn(String),
+    /// More to play: the board with `part` moved, and the moves that may come next.
+    Part(Box<State>),
+}
+
+pub(crate) fn step(initial: Option<&str>, entries: &[&str], part: &[&str]) -> Result<Step, GameError> {
+    let (game, _) = game(initial, entries)?;
+    let text = part.join(" ");
+    let refused = || GameError::refused(entries.len(), &text, "that checker cannot go there");
+    let plays = Turn::parse(&text).ok_or_else(refused)?.plays().to_vec();
+    match game.continue_turn(&plays).ok_or_else(refused)? {
+        Continuation::Complete(turn) => Ok(Step::Turn(turn.to_string())),
+        Continuation::More(_) => Ok(Step::Part(Box::new(state(&game, &plays)))),
+    }
 }
 
 /// The three resignations, as entries: the side to act concedes at the grade it names.
@@ -123,8 +149,9 @@ fn all_rolls() -> Vec<String> {
         .collect()
 }
 
-fn state(game: &Game) -> State {
-    let position = game.position();
+/// The Game's state, with the checkers of `part` already moved on the board.
+fn state(game: &Game, part: &[Play]) -> State {
+    let position = &part.iter().fold(*game.position(), |p, &play| p.after_play(play));
     let cube = game.cube();
     let needs = game.needs();
 
@@ -153,6 +180,21 @@ fn state(game: &Game) -> State {
             ],
             Vec::new(),
         ),
+    };
+
+    // The next checker to move, by every legal way to finish the turn.
+    let steps = match (needs, game.continue_turn(part)) {
+        (Some(Needed::Turn { side, .. }), Some(Continuation::More(next))) => next
+            .iter()
+            .map(|&play| LegalMove {
+                wire: play.to_string(),
+                notation: play.to_string(),
+                from: Some(origin(side, play.from)),
+                to: Some(destination(side, play.to)),
+                drop: None,
+            })
+            .collect(),
+        _ => Vec::new(),
     };
 
     // Offered on a roll or a turn; a Side answering a double concedes by dropping.
@@ -225,6 +267,7 @@ fn state(game: &Game) -> State {
         to_move: needs.map(|needed| seat(needed.side())),
         awaiting,
         moves,
+        steps,
         targets: BTreeMap::new(),
         throws,
         history: game.entries().iter().map(|entry| entry.to_wire()).collect(),

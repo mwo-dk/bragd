@@ -156,6 +156,7 @@ fn state(game: &Game, last: Option<(Side, rules_ur::Move)>) -> State {
         to_move: needs.side().map(seat),
         awaiting,
         moves,
+        steps: Vec::new(),
         targets: BTreeMap::new(),
         throws,
         history: game.entries().iter().map(|entry| entry.to_wire()).collect(),

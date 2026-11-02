@@ -130,6 +130,7 @@ fn state(game: &Game) -> State {
             Awaiting::Move
         },
         moves,
+        steps: Vec::new(),
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.moves().iter().map(|mv| mv.to_usi()).collect(),

@@ -27,12 +27,13 @@ Nothing to play against yourself. Against an Engine: GNU Backgammon, installed o
 | Throw the dice | **Throw**, under the turn line. The opening throw is never a double: the rules refuse it, and Bragd throws again |
 | Double | **Double**, before you throw. It shows only when you may double |
 | Answer a double | **Take** keeps playing at twice the stake. **Drop** gives up the Game at the stake before the double |
-| Play a turn | Click a checker's point, then where its first checker goes (a point, or *off*). *Which move?* lists every whole turn that starts that way, such as `8/5 6/5` |
-| Or pick the whole turn | Click it under *Legal moves*. Every legal turn for the dice is listed |
+| Move a checker | Click its point, then a marked point (or *off*), or drag it there. The checker moves at once and uses one die. Move the next the same way; when the dice are used, the turn is played |
+| Take a checker back | **Undo**, before the last die is used. After the turn is played, Undo takes back the whole turn |
+| Or pick the whole turn | Click it under *Legal moves*, before you move a checker. Every legal turn for the dice is listed |
 | Come in from the bar | Click the bar, then the point to enter on |
 | Bear off | Click the checker, then the tray at the right of the board. White bears off into the lower tray, Black into the upper one |
 
-A turn is played whole: you choose all the dice's moves at once, never one die at a time. Points are numbered from White's side, 1 to 24. Board colours: [Board themes](../look/board-themes.md).
+Only checkers that leave a legal way to finish the turn are marked: you must use as many dice as you can, and the larger die when only one fits. Points are numbered from White's side, 1 to 24. Board colours: [Board themes](../look/board-themes.md).
 
 ## Settings and config.toml
 
@@ -43,9 +44,13 @@ A turn is played whole: you choose all the dice's moves at once, never one die a
 
 ## Questions
 
-#### Why can I not move one die at a time?
+#### Why is a point I want not marked?
 
-What is legal depends on both dice together: you must use as many as any sequence allows. Playing one die first could leave the other unplayable. So Bragd offers only whole turns, which the rules crate has already checked. See [Backgammon](../rules/backgammon.md).
+What is legal depends on both dice together: you must use as many as any sequence allows. A checker move that would leave the other die unplayable is not marked, even if it fits one die. The rules crate checks every whole turn, and the board offers only checkers that start one. See [Backgammon](../rules/backgammon.md).
+
+#### Is the record written one die at a time?
+
+No. The record holds whole turns, such as `13/8 13/7`, written once the dice are used. Checkers moved before that are not saved yet.
 
 #### Why is there no Throw button after I press Double?
 

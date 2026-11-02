@@ -65,6 +65,8 @@
   let sel = $state(null);
   /** @type {any[]} */
   let choose = $state([]);
+  /** Backgammon: the checkers moved so far in the turn being played, such as `13/8`. @type {string[]} */
+  let part = $state([]);
   let error = $state("");
   let flipped = $state(false);
   /** Go: the stones marked dead while scoring. @type {string[]} */
@@ -84,6 +86,7 @@
   async function load(/** @type {Promise<any>} */ p, then = () => {}) {
     try {
       const s = await p;
+      part = [];
       then();
       st = s;
       error = "";
@@ -162,6 +165,7 @@
     try {
       const r = await api.throwDice(key, initial, entries);
       entries = [...entries, r.entry];
+      part = [];
       st = r.state;
       error = "";
     } catch (e) {
@@ -169,7 +173,29 @@
     }
   }
 
+  /** Backgammon: one checker moved; once the dice are used, Rust gives the whole turn's entry. */
+  async function step(/** @type {string} */ wire) {
+    const next = [...part, wire];
+    try {
+      const r = await api.step(key, initial, entries, next);
+      if (r.entry) entries = [...entries, r.entry];
+      part = r.entry ? [] : next;
+      st = r.state;
+      error = "";
+    } catch (e) {
+      error = String(/** @type {any} */ (e)?.reason ?? e);
+    }
+    sel = null;
+    choose = [];
+  }
+
   function undo() {
+    // In a turn being played checker by checker, Undo takes back the last checker.
+    if (part.length) {
+      const back = part.slice(0, -1);
+      load(api.step(key, initial, entries, back).then((r) => r.state), () => (part = back));
+      return;
+    }
     // Against an Engine, Undo takes back its reply too.
     const n = opponent === "engine" && !analyse && entries.length > 1 ? 2 : 1;
     entries = entries.slice(0, -n);
@@ -178,6 +204,7 @@
   }
 
   function pick(/** @type {any[]} */ moves) {
+    if (st.steps?.length && moves.length) return step(moves[0].wire);
     if (moves.length === 1) playEntry(moves[0].wire);
     else if (moves.length > 1) choose = moves;
   }
@@ -366,7 +393,7 @@
           </div>
         {/if}
 
-        {#if family.race && st.awaiting === "move" && !choose.length}
+        {#if family.race && st.awaiting === "move" && !choose.length && !part.length}
           <div class="choose">
             <p>{t("play.legal")}</p>
             {#each st.moves.filter((/** @type {any} */ m) => m.from || m.to) as m}

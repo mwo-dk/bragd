@@ -212,6 +212,7 @@ fn state(variant: Variant, game: &Game) -> State {
             Awaiting::Move
         },
         moves,
+        steps: Vec::new(),
         targets: BTreeMap::new(),
         throws: Vec::new(),
         history: game.entries().iter().map(Entry::to_wire).collect(),
