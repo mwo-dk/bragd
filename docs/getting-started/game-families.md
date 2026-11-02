@@ -2,7 +2,7 @@
 
 # Game families and Variants
 
-Bragd knows nine Game families with 25 Variants between them, and all are on at first. Turn off what you do not play, and it leaves the sidebar, New game, the install wizard, engine setup, the Settings items that concern it, What's new and [Tips](tips.md). Someone who plays only chess sees only chess. Nothing is deleted: turn it on again and everything is where it was. In F1 this is the `families` entry.
+Bragd knows nine Game families with 24 Variants between them, and all are on at first. Turn off what you do not play, and it leaves the sidebar, New game, the install wizard, engine setup, the Settings items that concern it, What's new and [Tips](tips.md). Someone who plays only chess sees only chess. Nothing is deleted: turn it on again and everything is where it was. In F1 this is the `families` entry.
 
 ![Settings at Game families: one box per Family with its own switch, and a switch for each of its Variants inside](../screenshots/settings-families-1100.png)
 *Settings → Game families: a switch per Family, and one per Variant.*
@@ -13,7 +13,7 @@ Bragd knows nine Game families with 25 Variants between them, and all are on at 
 | Xiangqi | Xiangqi, Janggi |
 | Shogi | Shogi |
 | Go | Go 9×9, Go 13×13, Go 19×19 |
-| Draughts | English checkers, International draughts, Brazilian draughts, Russian draughts |
+| Draughts | English checkers, International draughts, Brazilian draughts |
 | Tafl | Hnefatafl (Copenhagen), Hnefatafl (Fetlar), Tablut, Brandubh |
 | Backgammon | Backgammon |
 | Ur | Ur (Finkel) |

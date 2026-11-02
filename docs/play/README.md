@@ -12,7 +12,7 @@ Every Variant of every Game family can be played on the board in Bragd: against 
 | [Xiangqi and janggi](xiangqi.md) | The palace, the river, janggi's passes |
 | [Shogi](shogi.md) | Drops, promotion, the hands |
 | [Go](go.md) | Placing stones, passing, marking dead stones, scoring |
-| [Draughts](draughts.md) | Captures with several paths, crowning, the four rulesets |
+| [Draughts](draughts.md) | Captures with several paths, crowning, the three rulesets |
 | [Tafl](tafl.md) | Attackers and Defenders, the king, the four sizes |
 | [Backgammon](backgammon.md) | Throwing the dice, whole turns, the bar, bearing off, the doubling cube |
 | [Ur](ur.md) | Throwing four dice, entering, rosettes |

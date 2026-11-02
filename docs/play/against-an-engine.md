@@ -55,7 +55,7 @@ The Engine, Side, time and strength chosen in the bar are not saved. They go bac
 
 #### Why is there no Opponent list?
 
-The Variant has no Engine Bragd knows of. This is the case for tafl, Ur, senet, English, Brazilian and Russian draughts. Their built-in Bots are not built yet.
+The Variant has no Engine Bragd knows of. This is the case for tafl, Ur, senet, English checkers and Brazilian draughts. Their built-in Bots are not built yet.
 
 #### Why does Undo take back two moves?
 

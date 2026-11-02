@@ -1,4 +1,4 @@
-//! The four draughts Variants, through `rules-draughts`.
+//! The three draughts Variants, through `rules-draughts`.
 //!
 //! Squares are named by their printed numbers. A move is written
 //! `from-to` or `fromxto`, and a capture adds every taken square after a

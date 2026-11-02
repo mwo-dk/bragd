@@ -30,7 +30,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Xiangqi and janggi](play/xiangqi.md) | The palace, the river, janggi's passes |
 | [Shogi](play/shogi.md) | Drops, promotion, the hands |
 | [Go](play/go.md) | Placing stones, passing, marking dead stones, scoring |
-| [Draughts](play/draughts.md) | Captures with several paths, crowning, the four rulesets |
+| [Draughts](play/draughts.md) | Captures with several paths, crowning, the three rulesets |
 | [Tafl](play/tafl.md) | Attackers and Defenders, the king, the four sizes |
 | [Backgammon](play/backgammon.md) | Throwing the dice, whole turns, the bar, bearing off, the doubling cube |
 | [Ur](play/ur.md) | Throwing four dice, entering, rosettes |

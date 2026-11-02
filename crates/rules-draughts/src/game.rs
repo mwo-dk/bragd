@@ -8,7 +8,7 @@
 //! Draws are the part that genuinely diverges between variants, and the part
 //! this engine deliberately does not pretend to settle. International has FMJD
 //! counters for king-only endings; English has its own forty-move convention;
-//! Russian and Italian have others again. They are **not** shared, and none of
+//! Italian has others again. They are **not** shared, and none of
 //! them is a rule about the position — they are all about how long something
 //! has gone on. So what is here is one honest counter and a name that says it
 //! is ours.
@@ -121,7 +121,7 @@ impl Game {
         // A capture or a man's move makes the position irreversible, which is
         // what the stall counter is really measuring.
         let irreversible = mv.is_capture() || !self.position.is_king(mv.from);
-        self.position = self.position.play(&self.rules, mv);
+        self.position = self.position.play(mv);
         self.moves.push(mv);
         if irreversible {
             self.quiet = 0;

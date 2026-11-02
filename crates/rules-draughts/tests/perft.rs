@@ -35,7 +35,7 @@ fn perft(rules: &Ruleset, position: &Position, depth: u32) -> u64 {
     }
     moves
         .into_iter()
-        .map(|mv| perft(rules, &position.play(rules, mv), depth - 1))
+        .map(|mv| perft(rules, &position.play(mv), depth - 1))
         .sum()
 }
 
@@ -122,7 +122,7 @@ fn the_two_counting_conventions_really_do_differ() {
             return;
         }
         for mv in position.legal_moves(rules) {
-            walk(rules, &position.play(rules, mv), depth - 1, diverged);
+            walk(rules, &position.play(mv), depth - 1, diverged);
         }
     }
 
@@ -167,7 +167,7 @@ fn black_moves_first_in_english_draughts() {
     froms.sort();
     froms.dedup();
     assert_eq!(froms, [9, 10, 11, 12]);
-    for rules in [INTERNATIONAL, rules_draughts::ruleset::BRAZILIAN, rules_draughts::ruleset::RUSSIAN] {
+    for rules in [INTERNATIONAL, rules_draughts::ruleset::BRAZILIAN] {
         assert_eq!(Position::start(rules).to_move(), Side::White, "{}", rules.key);
     }
 }

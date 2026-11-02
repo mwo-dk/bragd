@@ -24,8 +24,8 @@ fn by_type(tag: &str) -> Option<Variant> {
     let mut v = match kind {
         20 => INTERNATIONAL,
         21 => ENGLISH,
-        // Pool, Russian, Brazilian: flying kings, men capturing backwards, on 8×8.
-        23 | 25 | 26 => Variant { kind, width: 8, height: 8, black_first: kind == 23, ..INTERNATIONAL },
+        // Pool, Brazilian: flying kings, men capturing backwards, on 8×8.
+        23 | 26 => Variant { kind, width: 8, height: 8, black_first: kind == 23, ..INTERNATIONAL },
         27 => Variant { kind, width: 12, height: 12, ..INTERNATIONAL },
         // Italian, Spanish, Portuguese, Czech and the rest: 8×8, men forward only.
         _ => Variant { kind, black_first: false, ..ENGLISH },
@@ -255,7 +255,7 @@ mod tests {
         let t = |k: &str, v: &str| vec![(k.to_string(), v.to_string())];
         assert_eq!(variant_of(&t("GameType", "21"), None), ENGLISH);
         assert_eq!(variant_of(&t("GameType", "20,W,10,10,N2,0"), None), INTERNATIONAL);
-        let v = variant_of(&t("GameType", "25,W,8,8,A0,0"), None);
+        let v = variant_of(&t("GameType", "26,W,8,8,A0,0"), None);
         assert_eq!((v.width, v.flying, v.men_back), (8, true, true));
         // A size past the largest, or odd, is not taken.
         assert_eq!(variant_of(&t("GameType", "20,W,99,99"), None).width, 10);

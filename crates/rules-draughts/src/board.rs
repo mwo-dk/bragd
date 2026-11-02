@@ -7,7 +7,7 @@
 //!
 //! The board size is carried at runtime rather than fixed, because unlike tafl
 //! this family genuinely needs two: International is 10×10 and every 8×8
-//! variant — English, Russian, Brazilian, Italian — shares the smaller board.
+//! variant — English, Brazilian, Italian — shares the smaller board.
 //! One geometry with a size parameter beats two modules that drift.
 //!
 //! Squares are indexed **rank-major from rank 1**, so index 0 is the dark

@@ -508,7 +508,7 @@ impl Reader {
 /// write it: none, `Standard` or `From Position` is `chess`; `Chess960` or `Fischerandom` is
 /// `chess960`; `King of the Hill` is `kingofthehill`. A Variant `bragd_games` does not have
 /// keeps its name, in lower case without spaces or punctuation but `-` (`three-check`), so the
-/// ids of the other Families (`go-19`, `draughts-russian`) stay as they are.
+/// ids of the other Families (`go-19`, `draughts-brazilian`) stay as they are.
 pub fn chess_variant(tag: &str) -> String {
     let plain: String = tag.chars().filter(|c| c.is_alphanumeric() || *c == '-').flat_map(char::to_lowercase).collect();
     match plain.as_str() {
@@ -527,7 +527,6 @@ pub(crate) fn from_parsed(format: Format, g: &pgn::Game) -> NewGame {
             let name = match (v.kind, v.width) {
                 (20, 10) => "draughts".to_string(),
                 (21, 8) => "checkers".to_string(),
-                (25, 8) => "draughts-russian".to_string(),
                 (26, 8) => "draughts-brazilian".to_string(),
                 (k, _) => format!("gametype-{k}"),
             };

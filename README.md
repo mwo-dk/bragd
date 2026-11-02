@@ -11,7 +11,7 @@ Status: in early development, with no release yet. See [the specification](docs/
 
 ## Highlights
 
-- **Nine Game families, 25 Variants.** Chess, Chess960, shatranj, chaturanga, King of the Hill, Racing Kings, Seirawan and Capablanca chess; xiangqi and janggi; shogi; go on three boards; four draughts rulesets; four tafl rulesets; backgammon, ur and senet. Each one plays against yourself, and every Family with an outside Engine plays against it. Turn off what you do not play.
+- **Nine Game families, 24 Variants.** Chess, Chess960, shatranj, chaturanga, King of the Hill, Racing Kings, Seirawan and Capablanca chess; xiangqi and janggi; shogi; go on three boards; three draughts rulesets; four tafl rulesets; backgammon, ur and senet. Each one plays against yourself, and every Family with an outside Engine plays against it. Turn off what you do not play.
 - **Your games, where they are.** PGN, SCID, ChessBase, SGF, KIF, CSA and PDN files open in place. Imports go into a Library, Bragd's own SQLite store, where each Game appears once and remembers every Source it came from.
 - **Sources on a schedule.** The Helper, a background process shared by every window, fetches TWIC and your own URLs, keeps only the Games your Strip rules allow, and holds what Bragd keeps on disk to your limits.
 - **Engines without the setup.** Stockfish, Fairy-Stockfish, Pikafish, YaneuraOu, KataGo, GNU Go, Scan and GNU Backgammon are found when installed, and all but YaneuraOu can be pulled as sealed container images when they are not. Analyse shows their lines on any position, a review marks the good and bad moves of a Game, and Engine matches play Engines against each other until the SPRT decides.

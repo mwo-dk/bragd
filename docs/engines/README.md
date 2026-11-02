@@ -27,7 +27,7 @@ An Engine plays a Side in Play, analyses a position in Analyse and reviews a who
 | Shogi | shogi | Fairy-Stockfish, YaneuraOu | USI |
 | Go | 9×9, 13×13, 19×19 | KataGo, GNU Go | GTP |
 | Draughts | International draughts | Scan | Hub |
-| Draughts | English, Brazilian and Russian draughts | none yet | |
+| Draughts | English checkers and Brazilian draughts | none yet | |
 | Backgammon | backgammon | GNU Backgammon | its command-line mode |
 | Tafl, Ur, Senet | all | none: built-in Bots come later | |
 

@@ -295,7 +295,6 @@ impl Board {
                 taken.push(c);
                 let crowned = man && self.crowned(land, me);
                 // English draughts: a man that reaches the far row is crowned and stops there.
-                // Russian draughts: it is crowned and captures on as a king.
                 if crowned && self.v.kind == 21 {
                     out.push((path, taken));
                     continue;
@@ -306,7 +305,7 @@ impl Board {
                     Some(false) => continue,
                     Some(true) => {}
                 }
-                stack.push((land, man && !(crowned && self.v.kind == 25), path, taken));
+                stack.push((land, man, path, taken));
             }
         }
         Some(out)
@@ -344,13 +343,11 @@ impl Board {
         } else {
             None
         };
-        let mut crowned = false;
         match found {
-            Some((path, taken)) => {
+            Some((_, taken)) => {
                 for c in taken {
                     b.cells[c] = 0;
                 }
-                crowned = self.v.kind == 25 && path.iter().any(|&c| self.crowned(c, self.white));
             }
             // International and English draughts are played by their rules; another variant's
             // capture the rules here do not know takes the pieces of the other side between
@@ -382,7 +379,7 @@ impl Board {
             return None;
         }
         b.cells[from] = 0;
-        b.cells[to] = if !king(piece) && (crowned || self.crowned(to, self.white)) {
+        b.cells[to] = if !king(piece) && self.crowned(to, self.white) {
             if self.white { WK } else { BK }
         } else {
             piece

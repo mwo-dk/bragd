@@ -59,7 +59,7 @@ Each one is listed here, so the owner can overturn it in the morning.
 - Pikafish is started as UCI, which it speaks. UCCI is there for other xiangqi engines; an engine chosen by its path is tried as UCI, then as UCCI.
 - Fairy-Stockfish speaks USI for shogi, so shogi moves are always in USI notation, and UCI for everything else.
 - GNU Backgammon runs in its own command-line mode over stdin, not in its socket mode (`external`), because a sealed image has no network.
-- Scan plays international draughts only. English, Brazilian and Russian draughts have no engine for now.
+- Scan plays international draughts only. English checkers and Brazilian draughts have no engine for now.
 - An image runs only when pinned by digest. Every pin is `None` (unpublished) until the images are pushed, so for now an engine runs only when installed.
 - An image's entrypoint already speaks its protocol (KataGo with its network and config, GNU Go with `--mode gtp`). Arguments such as `gtp` go only to installed programs.
 - Engine containers also get `--pull=never`, `--user 65534:65534`, a 256 MB `/tmp` and `LC_ALL=C`. The tablebase folder is mounted read-only at `/syzygy`.
@@ -71,7 +71,7 @@ Each one is listed here, so the owner can overturn it in the morning.
 
 ### S1: rules
 
-- There are nine Families, ten rules crates and 25 Variants. Capablanca and seirawan are chess Variants.
+- There are nine Families, ten rules crates and 24 Variants. Capablanca and seirawan are chess Variants.
 - Rules crates are at `crates/rules-<family>`, not `crates/rules/*`.
 - The seam keeps no state: every call replays the whole record. Dice, throws and the doubling cube are entries in the record.
 - Shogi's Sides are Sente and Gote. White moves first in all four draughts rulesets, following the rules crate; English checkers traditionally starts with Black.
@@ -252,7 +252,7 @@ Each one is listed here, so the owner can overturn it in the morning.
 
 - D1: the icon is draft 1, the plain roundel (done).
 - [x] D2: the Pikafish image ships without its network. On first use, Bragd shows the network's licence and, with the user's consent, downloads it from Pikafish's own release (digest-checked) into its data folder and mounts it read-only. Done in 65fc1f0: `bragd_engines::network` downloads the release 7z through the shared fetch client, checks it and `pikafish.nnue` by SHA-256, keeps only the network in `<data>/bragd/networks/pikafish/`, and the image gets it read-only at `/network.nnue` with `EvalFile` set; the Engines page shows the licence (*Read the network's licence…*, *Agree and download*). The licence text is the release's own, compiled in.
-- [x] D3: real draughts rules. Black moves first in English checkers. White moves first in international, Brazilian and Russian. Done in 25ecf7d: `Ruleset::first`; checkers' teaching position was turned half a turn to start with Black.
+- [x] D3: real draughts rules. Black moves first in English checkers. White moves first in international and Brazilian. Done in 25ecf7d: `Ruleset::first`; checkers' teaching position was turned half a turn to start with Black.
 - [x] D4: throws come from the OS random source, with no modulo bias. Done in 6053cfa: `getrandom` bytes, rejection above 252 for a die.
 - [x] D5 (R33): each download has a default cap of 2 GB, which can be changed per Source. A bigger download asks first, using `Content-Length`. If the server gives no size, the cap applies while the download streams. Done in 708049c: *Largest download* per Source; a refused one is remembered (`Memo::too_big`), shown as a notice and on the Source with *Download it anyway* (`AllowDownload`), which allows that size once.
 - [x] D6 (R36): Slice indexes are added now (white, black, eco, date, Elos). The changelog says Libraries are re-indexed. Done in b4a1521; a date-from bound now compares `date >= ?` so it uses its index.

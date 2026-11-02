@@ -2,7 +2,7 @@
 
 # Rules
 
-Bragd plays 25 Variants in nine Game families, on ten rules crates. Each rules
+Bragd plays 24 Variants in nine Game families, on ten rules crates. Each rules
 crate is pure Rust with no dependencies, and it is the authority for what is a
 legal move, in Bragd and on a future game server. `crates/bragd-games` is the one
 seam over all of them: start, replay, legal moves, the board to draw and the
@@ -33,7 +33,6 @@ still open.
 | Draughts | English checkers | `checkers` | 8×8 | `rules-draughts` | [Draughts](draughts.md) | English rules. |
 | Draughts | International draughts | `draughts` | 10×10 | `rules-draughts` | [Draughts](draughts.md) | The FMJD game, and a different game rather than a larger one. |
 | Draughts | Brazilian draughts | `draughts-brazilian` | 8×8 | `rules-draughts` | [Draughts](draughts.md) | International's rules on the small board. |
-| Draughts | Russian draughts | `draughts-russian` | 8×8 | `rules-draughts` | [Draughts](draughts.md) | Any capture; a man crowned mid-jump keeps jumping as a king. |
 | Tafl | Hnefatafl (Copenhagen) | `hnefatafl` | 11×11 | `rules-tafl` | | Copenhagen rules. |
 | Tafl | Hnefatafl (Fetlar) | `hnefatafl-fetlar` | 11×11 | `rules-tafl` | | Copenhagen minus the shieldwall, the exit fort and the repetition ban. |
 | Tafl | Tablut | `tablut` | 9×9 | `rules-tafl` | [Tafl sizes](tafl-sizes.md) | Linnaeus, 1732: the only contemporary account of any tafl. |
@@ -90,12 +89,12 @@ What is thin is **mechanism**:
 | Mechanic | Variants | Which |
 |---|---|---|
 | Checkmate | 11 | chess ×7, Capablanca, xiangqi, janggi, shogi |
-| Jump-capture | 4 | the draughts rulesets |
+| Jump-capture | 3 | the draughts rulesets |
 | Territory | 3 | the Go boards |
 | Siege and escape | 4 | the tafl rulesets |
 | Race | 3 | backgammon, Ur, senet |
 
-Five mechanics in 25 Variants, and eleven of them are the same one. A candidate
+Five mechanics in 24 Variants, and eleven of them are the same one. A candidate
 for a new Family has to bring a mechanic nothing here shares.
 
 ### Shortlisted, and not built

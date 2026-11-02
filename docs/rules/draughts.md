@@ -2,9 +2,9 @@
 
 [← Rules](README.md)
 
-**Built.** Four rulesets on one rules crate, `crates/rules-draughts`: English
-checkers (8×8), International draughts (10×10), Brazilian (8×8) and Russian
-(8×8), each a Variant of the Draughts family.
+**Built.** Three rulesets on one rules crate, `crates/rules-draughts`: English
+checkers (8×8), International draughts (10×10) and Brazilian (8×8), each a
+Variant of the Draughts family.
 
 The family was built early, and the reason is at the top of
 `crates/rules-draughts/tests/perft.rs`: it is the one family with a **published,
@@ -34,25 +34,24 @@ duplicate moves. Here two paths agreeing on origin, destination and captured set
 before anything sees the list.
 
 The cost lands in one place: **the rules cannot answer a question about what
-happened in the middle of a turn.** That is what made Russian draughts' crowning
-rule hard; see the last section.
+happened in the middle of a turn.** No ruleset here needs to: a man is crowned
+only when its move ends on the far rank, so the destination says it all.
 
-## Four rules, and therefore four games
+## Three rules, and therefore three games
 
-`crates/rules-draughts/src/ruleset.rs` carries four constants, and its header says
+`crates/rules-draughts/src/ruleset.rs` carries three constants, and its header says
 why they cannot be collapsed: unlike tafl, the disagreements are not gaps in a
 historical record but **different games with different names**, each with a
 federation and a literature.
 
 Four fields separate them:
 
-| Field | English | International | Brazilian | Russian |
-|---|---|---|---|---|
-| `men_capture_backwards` | no | yes | yes | yes |
-| `flying_kings` | no | yes | yes | yes |
-| `promotion` | `OnStopping` | `OnStopping` | `OnStopping` | `MidSequence` |
-| `capture` | `Any` | `Maximum` | `Maximum` | `Any` |
-| `first` | Black | White | White | White |
+| Field | English | International | Brazilian |
+|---|---|---|---|
+| `men_capture_backwards` | no | yes | yes |
+| `flying_kings` | no | yes | yes |
+| `capture` | `Any` | `Maximum` | `Maximum` |
+| `first` | Black | White | White |
 
 Whether a man may jump backwards is a separate rule from its walking direction;
 conflating them is a real bug that the field's comment warns about. A flying king
@@ -60,14 +59,13 @@ is not only a longer move but a branching decision, because it chooses where to
 stop beyond its victim.
 
 International and Brazilian differ only in board size. International and English
-differ in three of the four rules, so a key that opened the wrong one would not
+differ in all three rules, so a key that opened the wrong one would not
 misplay a game, it would play a different game, and the moves would replay
-without error. Russian is Brazilian's board and pieces with two rules changed,
-and the one that matters is the crowning.
+without error.
 
 `first` is the side that makes the first move. English draughts starts with Black,
 the dark men on printed squares 1 to 12, so its first move is one like `11-15`.
-The other three start with White. The perft counts do not change: the opening
+The other two start with White. The perft counts do not change: the opening
 array turned half a turn is the same position with the colours swapped.
 
 `Ruleset::filter_captures` is where "take the most" lives, and it counts pieces
@@ -84,7 +82,7 @@ counts what it is given; the ruleset owns what a move is.
 
 `&Ruleset` is a parameter of `legal_moves`, `quiet_moves`, `captures`,
 `captures_as_generated`, `moves_as_counted`, `extend` and `extend_probe`, and
-three of its fields are read inside the innermost loop of the capture search.
+two of its fields are read inside the innermost loop of the capture search.
 Chess went the other way for shatranj, giving its pieces their own roles rather
 than threading a variant parameter through move generation, and
 `crates/rules-xiangqi` carries its ruleset **on the `Position`** and branches once
@@ -92,9 +90,9 @@ into two whole bodies.
 
 Both readings are defensible, and the difference is in what varies. Xiangqi and
 janggi share a board and disagree about every piece, so two bodies is the honest
-shape. The four draughts rulesets share every piece and disagree about four
-predicates, so one body with four predicates in it is the honest shape. Four
-near-identical capture searches would be four places for the ghost-capture rule
+shape. The three draughts rulesets share every piece and disagree about three
+predicates, so one body with three predicates in it is the honest shape. Three
+near-identical capture searches would be three places for the ghost-capture rule
 to drift. No timing was measured for this choice.
 
 ## The sequence that cannot be stopped early
@@ -153,7 +151,7 @@ the shallow depths: **two independent implementations, not one mirrored source.*
 The shallow halves run under `cargo test`; the full depths are `#[ignore]`d and
 run with `cargo test --release -- --ignored`. Both pass.
 
-**There is no corpus for Brazilian or Russian**; see below.
+**There is no corpus for Brazilian**; see below.
 
 ## How a game ends
 
@@ -194,58 +192,16 @@ arithmetic.
 
 ## Not done, and honest about it
 
-**Russian's mid-jump crowning was half-implemented, and is now whole.** It was
-wrong at *both* ends of a move:
-
-- The generator crowned the man for **exactly one leg**, the one it made *from*
-  the crowning square. `extend` computed `king` from `is_promotion_rank(at)`, and
-  `at` is the square the piece is standing on, so once it landed anywhere else it
-  was a man again. Captures the rules compel were silently not offered.
-- `Position::play` crowned on the **destination**. A man that touched the far rank
-  in passing and landed elsewhere finished the turn as a man.
-
-The second half was measured before it was fixed. Four thousand random Russian
-games, comparing `legal_moves` under `RUSSIAN` against the same ruleset with
-`promotion` set to `OnStopping`, found 873 positions where the crowning changed
-the move list and 1,703 moves that only Russian offers and that end without a
-crown. Not one kept it.
-
-**The fix is one bit, and it is deliberately not the path.** `Move` gains
-`crowned`, which says whether the man became a king *during* the sequence rather
-than by stopping on the far rank. The generator threads it through the recursion
-so the piece keeps flying for the rest of the turn, and `play` crowns on it as
-well as on arrival. `crowns_here` is the single place that answers "does standing
-here crown this piece", because the bug was two halves disagreeing.
-
-It is in the deduplication key too: under Russian, one path through the far rank
-and one around it can take the same men and stop on the same square, leaving a king
-in one case and a man in the other. Those are different positions and therefore
-different moves.
-
-**Nothing outside Russian can be affected.** `crowned` is only set when
-`promotion == Promotion::MidSequence`, and a test asserts `RUSSIAN` is the only
-ruleset that sets it. International and English deep perft were run in release
-after the change and did not move.
-
-Four tests came with it, each mutation-checked against the bug it is for. Their
-position: a man one jump from the far rank, a second victim beyond it, and a third
-victim **two** steps away with an empty square between. A man sees an empty square
-and stops; a king sees past it and must take. So the third capture happens only if
-the piece is still a king two legs after it was crowned. A position that crowns on
-the last leg cannot show that, and the first version of the test was written that
-way and passed against the bug. Brazilian is the control: the same men, one flag
-different, and the man stops two captures in, still a man.
-
-**Brazilian and Russian still have no perft table.** Brazilian is International's
-four flags on `Geometry::SMALL`, and the geometry is tested at both sizes, so the
-argument that it is covered is nearly airtight. For Russian that argument failed
-once, because `Promotion::MidSequence` was the one flag no tested ruleset set.
-Russian now has four tests of its own; it still has no table.
+**Brazilian has no perft table.** Brazilian is International's flags on
+`Geometry::SMALL`, and the geometry is tested at both sizes, so the argument that
+it is covered is nearly airtight. One test in `position.rs` checks the crowning
+rule on the small board: a man that jumps onto the far rank and off it again
+stops two captures in, still a man, and does not fly on to take a third.
 
 A table needs a position reader, and **the crate has no way to build a
 position.** `Position::start` is the only constructor, there is no FEN reader, and
 the fields are private. Tests outside the crate reach their positions by playing;
-the crowning tests live *inside* `position.rs`, where a position can be stated.
+the crowning test lives *inside* `position.rs`, where a position can be stated.
 
 **Draughts reads no starting position.** Every draughts Game begins from the
 opening array, so every draughts teaching position is a line of moves from the
