@@ -25,7 +25,7 @@ Nothing to play against yourself. Against an Engine: GNU Backgammon, installed o
 | What you want | What you do |
 |---|---|
 | Throw the dice | **Throw**, under the turn line. The opening throw is one die for each Side: the higher die moves first and plays both dice, and a tie is thrown again, so the first turn is never a double. A double is four dice |
-| Double | **Double**, before you throw. It shows only when you may double |
+| Double | **Double**, before you throw. It shows only when you may double: you hold the cube or it is in the middle, and the opening throw is over |
 | Answer a double | **Take** keeps playing at twice the stake. **Drop** gives up the Game at the stake before the double |
 | Move a checker | Click its point, then a marked point (or *off*), or drag it there. The checker moves at once and uses one die, which turns grey. Move the next the same way; when the dice are used, the turn is played |
 | Take a checker back | **Undo**, before the last die is used. After the turn is played, Undo takes back the whole turn |

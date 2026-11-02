@@ -170,7 +170,7 @@ fn state(game: &Game, part: &[Play]) -> State {
         None => (Awaiting::Nothing, Vec::new(), Vec::new()),
         Some(Needed::Roll { side }) => {
             let mut moves = Vec::new();
-            if cube.may_double(side) {
+            if cube.may_double(side) && !game.is_opening() {
                 moves.push(LegalMove::plain("double".to_string()));
             }
             // The opening roll is one die each, thrown again on a tie: never a double.
