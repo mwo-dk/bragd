@@ -73,8 +73,8 @@ pub fn steps(cfg: &Config) -> Vec<StepView> {
 
 /// The Themes shown as swatches on the Welcome step; every other one is in the list below them.
 pub const THEMES: [&str; 6] = [
-    "racing-green",
     "racing-green-dark",
+    "racing-green",
     "light",
     "dark",
     "paper",

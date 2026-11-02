@@ -1,5 +1,6 @@
 /* The base of every page; the Theme's colours arrive as CSS variables from Rust, and looks.css
-   dresses them per Look. Noto Sans Runic (OFL) writes the wordmark. */
+   dresses them per Look. The fallbacks are the default Theme's, Racing green dark. Noto Sans
+   Runic (OFL) writes the wordmark. */
 @font-face {
   font-family: "Noto Sans Runic";
   src: url("../../assets/fonts/NotoSansRunic-Regular.ttf") format("truetype");
@@ -9,8 +10,8 @@
 html,
 body {
   margin: 0;
-  background: var(--bg, #faf7f1);
-  color: var(--fg, #1c2a22);
+  background: var(--bg, #12151a);
+  color: var(--fg, #e7e4dd);
   font-family: var(--font);
   font-size: 15px;
 }

@@ -66,7 +66,7 @@ These rules apply to every contributor and every Claude session in this reposito
 
 ## Screenshots
 
-- Screenshots in `docs/screenshots/` are taken by `docs/screenshots/cap.py`. It runs the app in a bwrap sandbox with a fake home, on GTK Broadway, shown in a headless Chromium. The default Racing green Theme is used.
+- Screenshots in `docs/screenshots/` are taken by `docs/screenshots/cap.py`. It runs the app in a bwrap sandbox with a fake home, on GTK Broadway, shown in a headless Chromium. The default Racing green dark Theme is used.
 - **Look at it before calling it done.** After a UI change, capture the screen at 390 px and 1100 px wide and read the PNG. "It renders" is not proof: a board drawn wrong but without errors is our most common bug.
 - Every Game family's board is captured in every Board theme.
 - A PR that changes what a screen shows retakes that screen's pictures. Otherwise it marks each one `<!-- screenshot: name.png: what it must show -->` and says so in the PR.

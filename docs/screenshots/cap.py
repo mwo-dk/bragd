@@ -8,7 +8,7 @@ appears on the screen, and no key reaches another window (CLAUDE.md, Screenshots
 The app (`bragd-gui`, a release build) runs on GTK's Broadway display, shown by a headless
 Chromium. Keys go to that page through the DevTools protocol (Input.dispatchKeyEvent), pictures
 come from it (Page.captureScreenshot), clipped to the window. The demo home has default Settings,
-so the Racing green Theme and Board theme show. A GIF is frames taken ~12 times a second, then
+so the Racing green dark Theme and the Racing green Board theme show. A GIF is frames taken ~12 times a second, then
 ffmpeg with palettegen/paletteuse.
 
     from cap import Desktop, gif, widths

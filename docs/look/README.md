@@ -14,7 +14,7 @@ How Bragd looks and which language it speaks: the Theme for the app's colours, t
 
 | Setting | `config.toml` key | Default |
 |---|---|---|
-| Theme | `look.theme` | `"racing-green"` |
+| Theme | `look.theme` | `"racing-green-dark"` |
 | Look | `look.look` | `""`, the Theme's own |
 | Board theme | `look.board_theme` | `"racing"` |
 | Language | `language` | `"auto"` |

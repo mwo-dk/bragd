@@ -2,7 +2,7 @@
 
 # Themes
 
-A Theme is the app's named appearance: sixteen colours, and the [Look](looks.md) it brings. Thirty come built in, listed in five groups, and your own `[themes.<name>]` tables follow under *Your own*. **Racing green** is the default, built on the colours of Bragd's icon. In F1 this is the `themes` entry.
+A Theme is the app's named appearance: sixteen colours, and the [Look](looks.md) it brings. Thirty come built in, listed in five groups, and your own `[themes.<name>]` tables follow under *Your own*. **Racing green (dark)** is the default, built on the colours of Bragd's icon. **Racing green** is its light twin. In F1 this is the `themes` entry.
 
 The brand colours (`#00301b` `#004225` `#0b5c39` `#4f9d76` `#e9f0ea`) stay the same in every Theme: the wordmark, the icon and the splash keep them. A Theme never changes how a board is coloured unless you pick the *Match theme* [Board theme](board-themes.md).
 
@@ -16,15 +16,15 @@ The brand colours (`#00301b` `#004225` `#0b5c39` `#4f9d76` `#e9f0ea`) stay the s
 ## How to reach it
 
 - *Settings → Look → Theme*: pick one from the list. The window repaints at once and the choice is saved.
-- Step 1 of the [install wizard](../getting-started/first-start.md) shows six as swatches (Racing green, Racing green (dark), Light, Dark, Paper white, Nord) and all of them in the list below.
+- Step 1 of the [install wizard](../getting-started/first-start.md) shows six as swatches (Racing green (dark), Racing green, Light, Dark, Paper white, Nord) and all of them in the list below.
 - Or write `theme = "nord"` under `[look]` in `config.toml`, and start Bragd again.
 
 ## The built-in Themes
 
 | Id | Shown as | Group | Look |
 |---|---|---|---|
-| `racing-green` | Racing green (the default) | Bragd's own | `modern` |
-| `racing-green-dark` | Racing green (dark) | Bragd's own | `modern` |
+| `racing-green-dark` | Racing green (dark) (the default) | Bragd's own | `modern` |
+| `racing-green` | Racing green | Bragd's own | `modern` |
 | `dark` | Dark | Bragd's own | `modern` |
 | `light` | Light | Bragd's own | `modern` |
 | `midnight` | Tokyo Night | Bragd's own | `modern` |
@@ -58,7 +58,7 @@ The brand colours (`#00301b` `#004225` `#0b5c39` `#4f9d76` `#e9f0ea`) stay the s
 
 ## Your own Theme
 
-A `[themes.<name>]` table in `config.toml` adds a Theme under *Your own*. Each colour you leave out is Racing green's. A table named like a built-in Theme replaces it.
+A `[themes.<name>]` table in `config.toml` adds a Theme under *Your own*. Each colour you leave out is Racing green (dark)'s, the default's. A table named like a built-in Theme replaces it.
 
 ```toml
 [look]
@@ -94,7 +94,7 @@ Nothing. Some Looks ask for their era's font and fall back to a common one when 
 
 | Setting | `config.toml` key | Default | What it does |
 |---|---|---|---|
-| Theme (`theme`) | `look.theme` | `"racing-green"` | The Theme by its id |
+| Theme (`theme`) | `look.theme` | `"racing-green-dark"` | The Theme by its id |
 | Look (`look`) | `look.look` | `""` | Lays another Look over the Theme ([Looks](looks.md)) |
 | Your own Themes | `themes` | none | `[themes.<name>]` tables |
 
@@ -110,7 +110,7 @@ When its page is darker than its text. Your own Theme follows the same rule.
 
 #### What colour values can I use in my own Theme?
 
-`#rrggbb` and `#rgb` are best. `rgb(…)` and other CSS colours work too, but Bragd cannot tell how light they are, so it counts them as mid grey when it decides whether the Theme is dark. A value with anything else in it is replaced with Racing green's.
+`#rrggbb` and `#rgb` are best. `rgb(…)` and other CSS colours work too, but Bragd cannot tell how light they are, so it counts them as mid grey when it decides whether the Theme is dark. A value with anything else in it is replaced with the default Theme's.
 
 #### Why are there 30 Themes and not more?
 
@@ -122,7 +122,7 @@ No. The wordmark, the icon and the splash keep Bragd's own colours in every Them
 
 #### I typed a Theme name wrongly in config.toml. What happens?
 
-Bragd shows Racing green until the name matches a built-in Theme or one of your own tables.
+Bragd shows the default Theme, Racing green (dark), until the name matches a built-in Theme or one of your own tables.
 
 ---
 [← Previous: Look](README.md) · [Next: Looks →](looks.md)

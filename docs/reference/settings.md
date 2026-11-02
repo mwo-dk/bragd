@@ -60,7 +60,7 @@ One switch per Game family, and under it one per Variant. All are on by default 
 | Name | Shown as | `config.toml` key | What it does |
 |---|---|---|---|
 | `language` | Language | `language` | Automatic follows your system's language, or the nearest one Bragd has |
-| `theme` | Theme | `look.theme` | The app's colours, and with some Themes their own shapes. Racing green is the default |
+| `theme` | Theme | `look.theme` | The app's colours, and with some Themes their own shapes. Racing green (dark) is the default |
 | `look` | Look | `look.look` | The shapes and chrome laid over the Theme's colours. Empty: the Theme's own |
 | `board_theme` | Board theme | `look.board_theme` | The four colours of every board. Match theme takes them from the Theme |
 | `file_picker` | File picker | `look.file_picker` | The dialog that opens and saves files: the system's, or with Coxswain installed, Automatic (Coxswain's picker), Coxswain or the system's ([File picker](../look/file-picker.md)) |

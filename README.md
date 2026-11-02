@@ -16,7 +16,7 @@ Status: in early development, with no release yet. See [the specification](docs/
 - **Sources on a schedule.** The Helper, a background process shared by every window, fetches TWIC and your own URLs, keeps only the Games your Strip rules allow, and holds what Bragd keeps on disk to your limits.
 - **Engines without the setup.** Stockfish, Fairy-Stockfish, Pikafish, YaneuraOu, KataGo, GNU Go, Scan and GNU Backgammon are found when installed, and all but YaneuraOu can be pulled as sealed container images when they are not. Analyse shows their lines on any position, a review marks the good and bad moves of a Game, and Engine matches play Engines against each other until the SPRT decides.
 - **Chess extras.** Syzygy tablebases, with the Lichess tablebase as an opt-in fallback, and Polyglot opening books.
-- **Thirty Themes and four Board themes.** Racing green is the default. The others come from old desktops and home computers, and a Board theme can match the Theme.
+- **Thirty Themes and four Board themes.** Racing green dark is the default Theme, and Racing green the default Board theme. The others come from old desktops and home computers, and a Board theme can match the Theme.
 - **In your language.** 55 locales, right to left where the language is.
 - **Nothing leaves the machine unless you ask.** The update check is the one exception, and it can be turned off.
 
