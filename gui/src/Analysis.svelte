@@ -173,6 +173,7 @@
         <li>
           <span class="score">{l.score}</span>
           {#if l.depth}<span class="dim">{t("analyse.depth", { n: l.depth })}</span>{/if}
+          {#if l.from}<span class="dim from">{l.from}</span>{/if}
           <span class="pv">
             {#each l.moves as m, i}
               <button class="mv" onclick={() => play(l.moves, i)}>{m.notation}</button>
@@ -207,7 +208,7 @@
     </div>
   {/if}
 
-  {#if family.id !== "backgammon" && game.entries.length}
+  {#if game.entries.length}
     <div class="row">
       <button onclick={startReview} disabled={review && !review.done}>{t("analyse.review")}</button>
       {#if review}

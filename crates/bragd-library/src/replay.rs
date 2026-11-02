@@ -40,12 +40,7 @@ pub struct Asked {
 pub fn asked(s: &Stored, keys: &[u64], upto: usize) -> Vec<Asked> {
     let Some(variant) = Variant::from_key(&s.variant) else { return vec![] };
     let family = variant.family();
-    let upto = upto.min(s.moves.len());
-    let (initial, states) = match family {
-        Family::Go => go(s, variant, upto),
-        _ if set_up(s, variant) => (s.start.clone(), by_keys(s, variant, keys, upto)),
-        _ => (s.start.clone(), by_words(s, variant, keys, upto)),
-    };
+    let (initial, states) = states(s, variant, keys, upto);
     let texts: Vec<String> = states.iter().map(|(st, _)| st.position.clone()).collect();
     let keyed = position_keys(family.key(), &texts);
     let set_up = family != Family::Go && set_up(s, variant);
@@ -62,6 +57,61 @@ pub fn asked(s: &Stored, keys: &[u64], upto: usize) -> Vec<Asked> {
             }
         })
         .collect()
+}
+
+/// The start (`None`: the Variant's usual one) and the states before the first move and after
+/// each of the first `upto`, as far as the moves can be played.
+fn states(s: &Stored, variant: Variant, keys: &[u64], upto: usize) -> (Option<String>, States) {
+    let upto = upto.min(s.moves.len());
+    match variant.family() {
+        Family::Go => go(s, variant, upto),
+        _ if set_up(s, variant) => (s.start.clone(), by_keys(s, variant, keys, upto)),
+        _ => (s.start.clone(), by_words(s, variant, keys, upto)),
+    }
+}
+
+/// A stored Game as Bragd plays it, to step through on its board.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Played {
+    /// Its Variant, by `bragd_games`' key.
+    pub variant: String,
+    /// Its start; `None` for the Variant's usual one.
+    pub initial: Option<String>,
+    /// Every entry from `initial`, as far as the moves can be played.
+    pub entries: Vec<String>,
+    /// Each step, the start first: how many of `entries` lead to it, and its move as the
+    /// Family writes it, with its number (`1. e4`, `1… e5`, `12. e5`); empty for the start.
+    pub steps: Vec<(usize, String)>,
+}
+
+/// `s` played again (`asked`'s `keys`); None when its Variant is not one Bragd plays.
+pub fn steps(s: &Stored, keys: &[u64]) -> Option<Played> {
+    let variant = Variant::from_key(&s.variant)?;
+    let (initial, states) = states(s, variant, keys, usize::MAX);
+    if states.is_empty() {
+        return None;
+    }
+    let mut entries: Vec<String> = vec![];
+    let mut steps = vec![];
+    for (st, e) in &states {
+        entries.extend(e.iter().cloned());
+        let label = if steps.is_empty() { String::new() } else { label(st, steps.len()) };
+        steps.push((entries.len(), label));
+    }
+    Some(Played { variant: variant.key().to_string(), initial, entries, steps })
+}
+
+/// The last entry of `st`, step `step`, as its move list writes it, with its number: a reply has
+/// none there, so it takes the move's before it, as `3… Qg5`. A Family that numbers each entry
+/// is numbered by step, so go's set-up stones and passes do not count.
+fn label(st: &State, step: usize) -> String {
+    let Some(i) = st.history.len().checked_sub(1) else { return String::new() };
+    let number = match st.numbers.get(i).map_or("", String::as_str) {
+        "" if i > 0 => st.numbers[i - 1].replace('.', "…"),
+        n if !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()) => format!("{step}."),
+        n => n.to_string(),
+    };
+    format!("{number} {}", st.history[i]).trim().to_string()
 }
 
 /// Whether the Family's positions are set up from their own text: the text of the position
@@ -225,10 +275,14 @@ impl crate::library::Library {
     /// The positions of the Game `id` before its first move and after each of its first `upto`
     /// moves, as an Engine is asked about them (`asked`).
     pub fn asked(&self, id: i64, upto: usize) -> crate::library::Result<Vec<Asked>> {
-        let s = self.stored(id)?;
+        Ok(asked(&self.stored(id)?, &self.keys(id, upto)?, upto))
+    }
+
+    /// The keys of the Game `id`'s positions after each of its first `upto` moves, as the
+    /// `positions` table has them.
+    pub fn keys(&self, id: i64, upto: usize) -> crate::library::Result<Vec<u64>> {
         let mut st = self.conn().prepare_cached("SELECT hash FROM positions WHERE game_id = ?1 ORDER BY ply LIMIT ?2")?;
-        let keys: Vec<u64> = st.query_map(rusqlite::params![id, upto.min(i64::MAX as usize) as i64], |r| r.get::<_, i64>(0))?.map(|k| k.map(|k| k as u64)).collect::<rusqlite::Result<_>>()?;
-        Ok(asked(&s, &keys, upto))
+        Ok(st.query_map(rusqlite::params![id, upto.min(i64::MAX as usize) as i64], |r| r.get::<_, i64>(0))?.map(|k| k.map(|k| k as u64)).collect::<rusqlite::Result<_>>()?)
     }
 }
 
@@ -296,6 +350,20 @@ mod tests {
             let last = bragd_games::replay(v, start.as_deref(), &entries).unwrap();
             assert_eq!(position_keys(&g.family, &[last.position])[0], *g.keys.last().unwrap(), "{v}: played whole");
         }
+        // Each Game steps through on its board, from its start, its moves as its Family writes them.
+        for (id, g) in (1..).zip(&games) {
+            let v = g.variant.as_str();
+            let p = steps(&lib.stored(id).unwrap(), &g.keys).unwrap();
+            assert_eq!(p.steps.len(), g.moves.len() + 1, "{v}");
+            let last = bragd_games::replay(v, p.initial.as_deref(), &p.entries[..p.steps[g.moves.len()].0]).unwrap();
+            assert_eq!(position_keys(&g.family, &[last.position])[0], g.keys[g.moves.len() - 1], "{v}");
+            assert!(p.steps[0].1.is_empty() && p.steps.iter().skip(1).all(|(_, l)| !l.is_empty() && !l.contains('[')), "{v}: {:?}", p.steps);
+        }
+        let labels = |id: i64, n: usize| steps(&lib.stored(id).unwrap(), &games[id as usize - 1].keys).unwrap().steps.into_iter().skip(1).take(n).map(|(_, l)| l).collect::<Vec<_>>();
+        assert_eq!(labels(1, 2), ["1. Nf3", "1… Nf6"]);
+        // Go by its moves, its set-up stones not counted; backgammon's throws and turns.
+        assert_eq!(labels(5, 2), ["1. e5", "2. c5"]);
+        assert_eq!(labels(7, 2), ["1. 6-5", "2. 8/2 8/3"]);
         // Go's set-up stones are played first, as a GTP engine takes no set-up.
         let go = lib.asked(5, 1).unwrap();
         assert_eq!((go[0].setup.as_str(), go[0].moves.clone()), ("", vec!["c7".to_string(), "pass".into(), "g3".into()]));

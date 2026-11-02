@@ -894,9 +894,7 @@ def families(only=None):
                 click(d, "Review the game", "main")
                 d.wait(6)
                 js(d, "document.querySelector('main .notes')?.scrollIntoView({block: 'center'})")
-            # Backgammon has no Review yet (docs/engines/review.md).
-            if f != "backgammon":
-                widths(f"review-{f}", review, out=out)
+            widths(f"review-{f}", review, out=out)
 
             def slice_page(d):
                 unfold(d)
@@ -956,7 +954,38 @@ def families(only=None):
             p.unlink(missing_ok=True)
 
 
-ALL = {"matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "families": families, "sources": sources,
+def library():
+    """databases-libraries-390 and -1100 (Chess → Databases → Libraries, main.bragd open, its
+    counts the chess page's), library-replay-go-390 and -1100 (a go Game of the Library stepped
+    to its end on the go board), and into $CAP_OUT (default: here) library-replay-backgammon and
+    library-analyse-go (that go Game handed to Analyse by its Analyse button)."""
+    out = Path(os.environ.get("CAP_OUT", HERE))
+
+    def libs(d, family="chess"):
+        unfold(d)
+        nav(d, family, "Databases")
+        click(d, "Libraries", "main")
+        js(d, "document.querySelector('main td button.link').click()")
+        d.wait(1.5)
+    widths("databases-libraries", libs)
+
+    def game(d, family):
+        libs(d, family)
+        js(d, "document.querySelector('main .list .body .row').click()")
+        d.wait(1.5)
+        d.keys("End")
+        d.wait(1)
+    widths("library-replay-go", lambda d: game(d, "go"))
+    widths("library-replay-backgammon", lambda d: game(d, "backgammon"), out=out)
+
+    def analyse(d):
+        game(d, "go")
+        click(d, "Analyse", "main .replay")
+        d.wait(2)
+    widths("library-analyse-go", analyse, out=out)
+
+
+ALL = {"library": library, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "families": families, "sources": sources,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":

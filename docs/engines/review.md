@@ -87,9 +87,9 @@ The mark is kept for the move from that position, by the Engine's Edition. A new
 
 They are worked out from the board, and so far only chess has them. Every Family with an Engine gets marks and better lines.
 
-#### Why can I not review a backgammon Game?
+#### How is a backgammon Game reviewed?
 
-GNU Backgammon is not set up for reviews in Bragd yet. The button is not shown for backgammon.
+GNU Backgammon judges each play: the equity of the best play for that roll, against the equity of the position the play left, before the next roll. The difference is what the play lost, and the marks follow the Equity row above. Throws of the dice and the cube are not marked. Only the equity before a roll goes into the Position store, since the store keeps a position without its dice.
 
 #### Where are my reviews from before the Position store?
 

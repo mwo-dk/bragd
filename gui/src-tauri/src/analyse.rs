@@ -70,6 +70,8 @@ struct Raw {
     /// Line 1 came from the Position store at this depth: the engine's own replaces it once it
     /// is as deep.
     floor: u32,
+    /// The Edition that judged line 1, while it is the store's.
+    stored: Option<String>,
     done: bool,
     error: Option<String>,
     /// The last move's Annotation, from the store.
@@ -89,6 +91,7 @@ impl Raw {
                 return;
             }
             self.floor = 0;
+            self.stored = None;
         }
         let at = i.line.max(1) - 1;
         if self.lines.len() <= at {
@@ -193,6 +196,7 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
                     let score = Score::from(ev.score);
                     raw.lines = vec![Info { line: 1, depth: Some(ev.depth), score: Some(if second { score.flipped() } else { score }), pv: ev.line.split_whitespace().map(String::from).collect(), ..Default::default() }];
                     raw.floor = ev.depth.max(1);
+                    raw.stored = Some(ev.edition.version.clone());
                 }
                 if let (Some(mv), Some(&before)) = (pos.moves.last(), keys.len().checked_sub(2).and_then(|i| keys.get(i)))
                     && let Ok(Some(note)) = s.annotation(&family, &a.variant, before, mv, &key)
@@ -258,6 +262,9 @@ pub struct LineView {
     score: String,
     depth: Option<u32>,
     moves: Vec<LineMove>,
+    /// Where the line comes from when the Engine did not just find it: "From the Position
+    /// store: Stockfish 17".
+    from: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -295,7 +302,8 @@ pub fn now(held: &Held) -> Option<Now> {
                 .map(|(i, moves)| {
                     let score = i.score.map(|s: Score| if raw.second { s.flipped() } else { s });
                     let moves = moves.into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect();
-                    LineView { score: score.map(Score::shown).unwrap_or_default(), depth: i.depth, moves }
+                    let from = raw.stored.as_deref().filter(|_| i.line <= 1).map(|e| tr("analyse.from_store", &[("edition", e)]));
+                    LineView { score: score.map(Score::shown).unwrap_or_default(), depth: i.depth, moves, from }
                 })
                 .filter(|v| !v.moves.is_empty() || (alone && !v.score.is_empty()))
                 .collect()
@@ -318,10 +326,10 @@ pub fn review_start(cfg: &Config, held: &Held, variant: &str, initial: Option<&s
     let protocol = chosen.protocols[0];
     let name = bragd_engines::known::known(&key).map_or(key.as_str(), |k| k.name);
     let notation = seam::notation(variant, protocol, name);
-    if notation == Notation::Gnubg {
-        return Err(tr("analyse.review_backgammon", &[]));
-    }
-    let (game, _) = seam::position(variant, initial, entries, notation)?;
+    // GNU Backgammon is asked about each position before its roll, and each roll, on its own.
+    let gnubg = notation == Notation::Gnubg;
+    let game = if gnubg { bragd_engines::Position { variant: variant.into(), moves: entries.to_vec(), ..Default::default() } } else { seam::position(variant, initial, entries, notation)?.0 };
+    let spots = if gnubg { bragd_engines::review::backgammon_spots(variant, initial, entries) } else { vec![] };
     let (family, texts, keys) = positions(variant, initial, entries)?;
     let setup = Setup {
         engine: key,
@@ -335,6 +343,7 @@ pub fn review_start(cfg: &Config, held: &Held, variant: &str, initial: Option<&s
         variant: variant.into(),
         keys,
         positions: texts,
+        spots,
     };
     let reviewer = Reviewer::start(&setup, &game);
     let asked = Asked { variant: variant.into(), initial: initial.map(String::from), entries: entries.to_vec() };
@@ -370,7 +379,7 @@ fn note(state: &State, index: usize, mark: Option<Mark>, motifs: &[bragd_positio
 }
 
 fn note_view(state: &State, a: &Annotation, index: usize, variant: &str, initial: Option<&str>, entries: &[String], notation: Notation) -> Option<NoteView> {
-    let better: Vec<String> = a.better.split_whitespace().map(String::from).collect();
+    let better = bragd_engines::review::better_line(&a.better, notation == Notation::Gnubg);
     note(state, index, a.mark, &a.motifs, &better, variant, initial, entries, notation)
 }
 
@@ -687,11 +696,12 @@ mod tests {
         let n = wait(&held);
         assert_eq!(n.error, None);
         assert_eq!((n.lines[0].score.as_str(), n.lines[0].depth), ("−0.50", Some(30)), "the store's, deeper than the engine got");
+        assert!(n.lines[0].from.as_deref().is_some_and(|f| f.contains("Store 0")), "it says it is the store's: {:?}", n.lines[0].from);
         assert_eq!(n.lines[0].moves[0].notation, "c4");
         // Elsewhere, the engine's own line is kept with its Edition.
         start(&cfg, &held, "chess", None, entries(&["e2e4"]), Some("storefake".into()), Some(1)).unwrap();
         let n = wait(&held);
-        assert_eq!((n.lines[0].score.as_str(), n.lines[0].depth), ("−0.25", Some(5)));
+        assert_eq!((n.lines[0].score.as_str(), n.lines[0].depth, n.lines[0].from.as_deref()), ("−0.25", Some(5), None));
         let (_, _, keys) = positions("chess", None, &entries(&["e2e4"])).unwrap();
         let kept = store.shown("chess", "chess", keys[1], "storefake").unwrap().unwrap();
         assert_eq!((kept.edition.version.as_str(), kept.score, kept.depth), ("Store 1", bragd_positions::Score::Cp(-25), 5));

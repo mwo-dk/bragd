@@ -47,8 +47,8 @@
 
   async function load() {
     try {
-      libs = await k.libraries();
-      priority = await k.priorityGet();
+      libs = await k.libraries(family);
+      priority = await k.priorityGet(family);
     } catch (e) {
       error = k.why(e);
     }
@@ -66,7 +66,7 @@
   const openGame = (/** @type {number} */ id, more = {}) => set({ game: id, ...more });
 
   $effect(() => {
-    if (lib && view === "review") k.libraryReview(lib.path).then((r) => (review = r), (e) => (error = k.why(e)));
+    if (lib && view === "review") k.libraryReview(lib.path, family).then((r) => (review = r), (e) => (error = k.why(e)));
   });
 
   const fetch = (/** @type {number} */ from, /** @type {number} */ count) => k.libraryRows(lib.path, { players: player.trim() ? [player] : [], family }, from, count);
@@ -106,7 +106,7 @@
   async function saveOrder(/** @type {string[]} */ list) {
     error = message = "";
     try {
-      priority = await k.prioritySave(list);
+      priority = await k.prioritySave(list, family);
       message = t("priority.saved");
     } catch (e) {
       error = k.why(e);

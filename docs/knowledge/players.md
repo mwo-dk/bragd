@@ -23,7 +23,7 @@ Each Game family the player has Games in gets a section of its own, and only the
 |---|---|---|
 | Games, score | How many Games, and the points of the finished ones in percent (a win 1, a draw ½) | Every Family |
 | As White, as Black | Wins, draws and losses with each side, and unfinished Games. The sides take the Family's names: Red and Black in xiangqi, Sente and Gote in shogi | Every Family |
-| Rating | The player's rating by date, as a line, from first to last, with the lowest and highest | Games whose headers give a rating (`WhiteElo`, `BlackElo`) and a year |
+| Rating | The player's rating by date, as a line, from first to last, with the lowest and highest. A single rating is a sentence, *Rated 2010 on 2025.02.08* | Games whose headers give a rating (`WhiteElo`, `BlackElo`) and a year |
 | Openings as each side | The five ECO codes played most, with the opening's name and the results | Chess |
 | Best wins, worst losses | The five wins against the highest rated opponents, and the five losses against the lowest rated | Games whose opponent has a rating |
 | First Game, last Game | The oldest and newest Game of a known year | Games with a year |

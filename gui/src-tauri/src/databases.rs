@@ -15,7 +15,7 @@ use bragd_helper::disk;
 use bragd_library::chess::{self, Format, Query, Table, games::Limits, pgn};
 use bragd_library::go::Collection;
 use bragd_library::library::comment_text;
-use bragd_library::library::{Library, Stored, position_keys};
+use bragd_library::library::{Library, NewGame, Stored, position_keys};
 use bragd_library::player::{self, PlayerSummary, Seen};
 use bragd_library::slice;
 use serde::Serialize;
@@ -88,6 +88,19 @@ pub struct RowView {
 pub struct Rows {
     pub total: usize,
     pub rows: Vec<RowView>,
+    /// The names of the two Sides, for the `white` and `black` columns: Red and Black for
+    /// xiangqi, Sente and Gote for shogi.
+    pub sides: [String; 2],
+}
+
+/// The names of the Sides of `family`, the one in the `white` column first.
+pub fn sides(family: &str) -> [String; 2] {
+    let keys = match family {
+        "xiangqi" => ["red", "black"],
+        "shogi" => ["sente", "gote"],
+        _ => ["white", "black"],
+    };
+    keys.map(|k| t!(&format!("side.{k}")))
 }
 
 /// A Game laid out for replay: a step for the start and one for each move of the main line.
@@ -100,6 +113,10 @@ pub struct Replay {
     /// positions cannot be drawn, and only the moves are listed.
     pub variant: String,
     pub headers: Vec<(String, String)>,
+    /// A Game played again from its start (every Family but a chess file's): the start (`None`:
+    /// the Variant's usual one) and every entry; each step plays `Step::upto` of them.
+    pub initial: Option<String>,
+    pub entries: Vec<String>,
     pub steps: Vec<Step>,
     pub result: String,
     /// The first move that could not be played.
@@ -115,6 +132,8 @@ pub struct Step {
     pub label: String,
     /// The position after it, in the Family's notation.
     pub fen: Option<String>,
+    /// Else how many of `Replay::entries` lead to it.
+    pub upto: Option<usize>,
     pub comment: String,
     /// Where it is on the evaluation graph, from 0 to `Evp::width`.
     pub evp_x: Option<f64>,
@@ -234,7 +253,7 @@ impl OpenFile {
                     opening: r.opening,
                     moves: r.moves,
                 });
-                Rows { total: ids.len(), rows: rows.collect() }
+                Rows { total: ids.len(), rows: rows.collect(), sides: sides(family_of(t.format)) }
             }
             Reader::Go(c) => {
                 // shortcut: a go file is filtered by player only and not sorted; enough for the
@@ -255,7 +274,7 @@ impl OpenFile {
                     opening: g.name.clone(),
                     moves: g.moves,
                 });
-                Rows { total: all.len(), rows: rows.collect() }
+                Rows { total: all.len(), rows: rows.collect(), sides: sides("go") }
             }
         }
     }
@@ -297,17 +316,10 @@ impl OpenFile {
         match &self.reader {
             Reader::Table(t) => Ok(replay(&t.game(i).map_err(|e| e.to_string())?, family_of(t.format))),
             Reader::Go(c) => {
-                // shortcut: go Games are listed with their headers only; replay them on the go
-                // board once the go reader hands over positions bragd-games can draw.
-                let g = c.info(i as usize).ok_or_else(|| t!("db.no_game"))?;
-                Ok(Replay {
-                    title: format!("{} – {}", g.black, g.white),
-                    family: "go".into(),
-                    headers: vec![("Black".into(), g.black), ("White".into(), g.white), ("Result".into(), g.result.clone()), ("Date".into(), g.date), ("Event".into(), g.event)],
-                    result: g.result,
-                    error: t!("db.no_board"),
-                    ..Default::default()
-                })
+                c.info(i as usize).ok_or_else(|| t!("db.no_game"))?;
+                let g = NewGame::from_go(&c.game(i as usize).map_err(|e| e.to_string())?);
+                let s = Stored { family: g.family, variant: g.variant, start: g.start, moves: g.moves, result: g.result, headers: g.headers.into_iter().map(|(k, v)| (k, v.into())).collect(), notes: g.notes, id: 0 };
+                Ok(stored_replay(&s, &g.keys))
             }
         }
     }
@@ -325,9 +337,14 @@ fn board_variant(family: &str, variant_tag: Option<&str>) -> &'static str {
     }
 }
 
-fn title(tags: &[(String, String)]) -> String {
-    let tag = |k: &str| tags.iter().find(|(n, _)| n.eq_ignore_ascii_case(k)).map(|(_, v)| v.trim()).filter(|v| !v.is_empty() && *v != "?").unwrap_or("?");
-    format!("{} – {}", tag("White"), tag("Black"))
+fn header<'a>(tags: &'a [(String, String)], k: &str) -> &'a str {
+    tags.iter().find(|(n, _)| n.eq_ignore_ascii_case(k)).map(|(_, v)| v.trim()).filter(|v| !v.is_empty() && *v != "?").unwrap_or("?")
+}
+
+/// The players, the one who moves first first (Black in go).
+fn title(tags: &[(String, String)], family: &str) -> String {
+    let (a, b) = if family == "go" { ("Black", "White") } else { ("White", "Black") };
+    format!("{} – {}", header(tags, a), header(tags, b))
 }
 
 fn comment(before: &str, after: &str) -> String {
@@ -340,12 +357,12 @@ pub fn replay(g: &pgn::Game, family: &str) -> Replay {
     let profile = g.eval_profile.as_ref().filter(|p| p.centipawns.len() > 1);
     // The ply each point stands for: the profile's start, then one a ply.
     let x_of = |ply: usize| profile.and_then(|p| ply.checked_sub(p.start_ply as usize)).filter(|&i| profile.is_some_and(|p| i < p.centipawns.len())).map(|i| i as f64 * EVP_W / (profile.map_or(1, |p| p.centipawns.len()) - 1) as f64);
-    let mut steps = vec![Step { label: String::new(), fen: Some(g.start.clone()), comment: comment_text(&g.comment), evp_x: x_of(0) }];
+    let mut steps = vec![Step { label: String::new(), fen: Some(g.start.clone()), comment: comment_text(&g.comment), evp_x: x_of(0), upto: None }];
     for (ply, &i) in line.iter().enumerate() {
         let n = &g.nodes[i as usize];
         let label = if n.white { format!("{}. {}", n.number, n.san) } else { format!("{}… {}", n.number, n.san) };
         let nags = chess::nags(&n.nags).0;
-        steps.push(Step { label: format!("{label}{nags}"), fen: n.fen.clone(), comment: comment(&n.before, &n.after), evp_x: x_of(ply + 1) });
+        steps.push(Step { label: format!("{label}{nags}"), fen: n.fen.clone(), comment: comment(&n.before, &n.after), evp_x: x_of(ply + 1), upto: None });
     }
     let variant = board_variant(family, g.tag("Variant"));
     // A board only when the start replays there; else the moves alone.
@@ -365,7 +382,7 @@ pub fn replay(g: &pgn::Game, family: &str) -> Replay {
         Evp { width: EVP_W, height: EVP_H, points }
     });
     Replay {
-        title: title(&g.tags),
+        title: title(&g.tags, family),
         family: family.into(),
         variant: variant.into(),
         headers: g.tags.clone(),
@@ -373,13 +390,15 @@ pub fn replay(g: &pgn::Game, family: &str) -> Replay {
         result: g.result.clone(),
         error: g.error.clone().map(|e| t!("db.unplayable", "move" => e)).unwrap_or_default(),
         evp,
+        ..Default::default()
     }
 }
 
-/// A Game from a Library, laid out for replay, with its Comments and NAGs. Chess Games are read
-/// again as PGN, so each step has its position; the other Families list their moves.
-pub fn stored_replay(s: &Stored) -> Replay {
-    let mut r = stored_steps(s);
+/// A Game from a Library, laid out for replay, with its Comments and NAGs; `keys`: its positions'
+/// keys (`Library::keys`). Chess Games are read again as PGN, so each step has its position;
+/// the other Families are played again from their start (`replay::steps`).
+pub fn stored_replay(s: &Stored, keys: &[u64]) -> Replay {
+    let mut r = stored_steps(s, keys);
     for n in &s.notes {
         if let Some(step) = r.steps.get_mut(n.ply) {
             step.comment = n.comment.clone();
@@ -389,7 +408,7 @@ pub fn stored_replay(s: &Stored) -> Replay {
     r
 }
 
-fn stored_steps(s: &Stored) -> Replay {
+fn stored_steps(s: &Stored, keys: &[u64]) -> Replay {
     let headers: Vec<(String, String)> = s.headers.iter().map(|(k, v)| (k.clone(), v.as_str().map_or_else(|| v.to_string(), String::from))).collect();
     if s.family == "chess" {
         let mut text: String = headers.iter().filter(|(k, _)| !k.eq_ignore_ascii_case("FEN")).map(|(k, v)| format!("[{k} \"{}\"]\n", v.replace('"', "'"))).collect();
@@ -411,9 +430,18 @@ fn stored_steps(s: &Stored) -> Replay {
         }
         return r;
     }
-    let mut steps = vec![Step::default()];
-    steps.extend(s.moves.iter().enumerate().map(|(i, m)| Step { label: format!("{}. {m}", i + 1), ..Default::default() }));
-    Replay { title: title(&headers), family: s.family.clone(), headers, steps, result: s.result.clone(), error: t!("db.no_board"), ..Default::default() }
+    let r = Replay { title: title(&headers, &s.family), family: s.family.clone(), headers, result: s.result.clone(), ..Default::default() };
+    let Some(p) = bragd_library::replay::steps(s, keys) else {
+        // A Variant Bragd does not play: its moves as the file wrote them.
+        let mut steps = vec![Step::default()];
+        steps.extend(s.moves.iter().enumerate().map(|(i, m)| Step { label: format!("{}. {m}", i + 1), ..Default::default() }));
+        return Replay { steps, error: t!("db.no_board"), ..r };
+    };
+    // Each move has a key; a move that could not be played ends the Game there.
+    let short = p.steps.len() <= keys.len();
+    let error = if short { t!("db.unplayable", "move" => s.moves.get(p.steps.len() - 1).map_or("?", String::as_str)) } else { String::new() };
+    let steps = p.steps.into_iter().map(|(upto, label)| Step { label, upto: Some(upto), ..Default::default() }).collect();
+    Replay { variant: p.variant, initial: p.initial, entries: p.entries, steps, error, ..r }
 }
 
 // ---------------------------------------------------------------- Libraries
@@ -454,8 +482,9 @@ pub struct SliceView {
 /// The most Duplicates and Near-duplicates the review lists.
 const REVIEW: usize = 500;
 
-/// Every `*.bragd` file in the Library folder, by name.
-pub fn libraries(cfg: &Config) -> Vec<LibraryView> {
+/// Every `*.bragd` file in the Library folder, by name, its Games, Duplicates and
+/// Near-duplicates counted for `family`'s page (every Family with None).
+pub fn libraries(cfg: &Config, family: Option<&str>) -> Vec<LibraryView> {
     let Some(dir) = library_folder(cfg) else { return vec![] };
     let mut files: Vec<PathBuf> = std::fs::read_dir(&dir).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == "bragd")).collect();
     files.sort();
@@ -465,14 +494,19 @@ pub fn libraries(cfg: &Config) -> Vec<LibraryView> {
             let mut v = LibraryView { path: p.display().to_string(), name: file_name(p), games: 0, size: bragd_core::i18n::bytes(disk::size(p)), duplicates: 0, near_duplicates: 0, slices: vec![], error: String::new() };
             match Library::open(p) {
                 Ok(lib) => {
-                    v.games = lib.count().unwrap_or(0);
+                    v.games = lib.count_of(family).unwrap_or(0);
                     v.size = bragd_core::i18n::bytes(lib.size());
-                    v.duplicates = lib.merged_count().map_or(0, |n| n as usize);
-                    v.near_duplicates = lib.near_duplicate_count().map_or(0, |n| n as usize);
-                    // The Library's Families, scanned at most once and only when a Slice needs them.
-                    let held = std::cell::OnceCell::new();
-                    let held = || held.get_or_init(|| lib.families().unwrap_or_default()).clone();
-                    v.slices = lib.slices().unwrap_or_default().into_iter().map(|s| slice_view(p, s, held)).collect();
+                    v.duplicates = lib.merged_count(family).map_or(0, |n| n as usize);
+                    v.near_duplicates = lib.near_duplicate_count(family).map_or(0, |n| n as usize);
+                    v.slices = lib
+                        .slices()
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|s| {
+                            let q = s.query.clone();
+                            slice_view(p, s, || lib.families_of(&q).unwrap_or_default())
+                        })
+                        .collect();
                 }
                 Err(e) => v.error = e.to_string(),
             }
@@ -493,7 +527,7 @@ pub fn slice_view(library: &Path, s: slice::Slice, held: impl FnOnce() -> Vec<St
 }
 
 /// The Families a Slice of `q` can hold: its Family, else its Variant's, else `held()`, those of
-/// the Games in its Library.
+/// the Games it holds now.
 fn slice_families(q: &slice::Query, held: impl FnOnce() -> Vec<String>) -> Vec<String> {
     let of_variant = || q.variant.as_deref().and_then(bragd_games::Variant::from_key).map(|v| v.family().key().to_string());
     match q.family.clone().filter(|f| !f.is_empty()).or_else(of_variant) {
@@ -534,11 +568,13 @@ fn row_of(lib: &Library, id: i64) -> RowView {
     let h = lib.headers(id).unwrap_or_default();
     let get = |k: &str| h.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
     let s = lib.stored(id).ok();
+    // The players as the Library reads them (`Red` is xiangqi's first Side).
+    let (white, black) = lib.sides_of(id).unwrap_or_default();
     RowView {
         id,
         n: id,
-        white: get("White"),
-        black: get("Black"),
+        white,
+        black,
         white_elo: get("WhiteElo"),
         black_elo: get("BlackElo"),
         result: s.as_ref().map(|s| s.result.clone()).filter(|r| !r.is_empty()).unwrap_or_else(|| get("Result")),
@@ -560,7 +596,7 @@ impl Databases {
             *last = Some((path.to_path_buf(), q.clone(), lib.find(q).map_err(|e| e.to_string())?));
         }
         let ids = last.as_ref().map(|l| &l.2[..]).unwrap_or_default();
-        Ok(Rows { total: ids.len(), rows: ids.iter().skip(from).take(count).map(|&id| row_of(&lib, id)).collect() })
+        Ok(Rows { total: ids.len(), rows: ids.iter().skip(from).take(count).map(|&id| row_of(&lib, id)).collect(), sides: sides(q.family.as_deref().unwrap_or("")) })
     }
 }
 
@@ -574,16 +610,17 @@ pub struct Review {
     pub near: Vec<(RowView, RowView)>,
 }
 
-pub fn review(path: &Path) -> Result<Review, String> {
+/// The Duplicates and Near-duplicates of `family` (every Family with None).
+pub fn review(path: &Path, family: Option<&str>) -> Result<Review, String> {
     let lib = Library::open(path).map_err(|e| e.to_string())?;
     let e = |e: bragd_library::library::Error| e.to_string();
     let duplicates = lib
-        .merged(REVIEW)
+        .merged(REVIEW, family)
         .map_err(e)?
         .into_iter()
         .map(|id| (row_of(&lib, id), lib.sources(id).unwrap_or_default().into_iter().map(|(s, r, _)| format!("{s}: {}", r.rsplit(['/', '\\']).next().unwrap_or(&r))).collect()))
         .collect();
-    let near = lib.near_duplicates(REVIEW).map_err(e)?.into_iter().map(|(a, b)| (row_of(&lib, a), row_of(&lib, b))).collect();
+    let near = lib.near_duplicates(REVIEW, family).map_err(e)?.into_iter().map(|(a, b)| (row_of(&lib, a), row_of(&lib, b))).collect();
     Ok(Review { duplicates, near })
 }
 
@@ -599,7 +636,7 @@ pub fn materialise(library: &Path, name: &str) -> Result<String, String> {
 /// Every Slice of every Library, for the sidebar.
 pub fn all_slices(cfg: &Config) -> BTreeMap<String, Vec<SliceView>> {
     let mut out: BTreeMap<String, Vec<SliceView>> = BTreeMap::new();
-    for l in libraries(cfg) {
+    for l in libraries(cfg, None) {
         for s in l.slices {
             if s.families.is_empty() {
                 out.entry(String::new()).or_default().push(s);
@@ -642,12 +679,48 @@ mod tests {
     #[test]
     fn a_stored_chess_game_replays_on_the_board() {
         let s = Stored { id: 1, family: "chess".into(), variant: "chess".into(), moves: vec!["e4".into(), "e5".into(), "Qh5".into()], result: "*".into(), ..Default::default() };
-        let r = stored_replay(&s);
+        let r = stored_replay(&s, &[]);
         assert_eq!((r.variant.as_str(), r.steps.len()), ("chess", 4));
         assert_eq!(r.steps[3].label, "2. Qh5");
-        let d = Stored { family: "draughts".into(), moves: vec!["32-28".into()], ..s };
-        let r = stored_replay(&d);
-        assert_eq!((r.variant.as_str(), r.steps.len()), ("", 2));
+        // A Variant Bragd does not play lists its moves.
+        let d = Stored { family: "draughts".into(), variant: "gametype-23".into(), moves: vec!["9-13".into()], ..s };
+        let r = stored_replay(&d, &[]);
+        assert_eq!((r.variant.as_str(), r.steps.len(), r.error.is_empty()), ("", 2, false));
+    }
+
+    /// A go or draughts Game from a Library steps through on its board, its moves in its
+    /// Family's notation; one cut short says where.
+    #[test]
+    fn a_stored_game_of_every_family_replays_on_its_board() {
+        let d = std::env::temp_dir().join(format!("bragd-every-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let mut lib = Library::open(&d.join("e.bragd")).unwrap();
+        let go = NewGame::from_go(&bragd_library::go::parse(b"(;FF[4]GM[1]SZ[9];B[ee]C[Centre];W[gc];B[])"));
+        let draughts = bragd_library::library::read_game(Format::Pdn, b"[GameType \"20\"]\n\n1. 32-28 19-23 2. 28x19 14x23 *");
+        for g in [&go, &draughts] {
+            lib.add(g, "test", &g.variant).unwrap();
+        }
+        for (id, g) in (1..).zip([&go, &draughts]) {
+            let r = stored_replay(&lib.stored(id).unwrap(), &lib.keys(id, usize::MAX).unwrap());
+            assert_eq!((r.variant.as_str(), r.steps.len(), r.error.as_str()), (g.variant.as_str(), g.moves.len() + 1, ""), "{}", g.variant);
+            let last = r.steps.last().unwrap();
+            let st = bragd_games::replay(&r.variant, r.initial.as_deref(), &r.entries[..last.upto.unwrap()]).unwrap();
+            assert_eq!(position_keys(&g.family, &[st.position])[0], *g.keys.last().unwrap(), "{}", g.variant);
+        }
+        let r = stored_replay(&lib.stored(1).unwrap(), &lib.keys(1, usize::MAX).unwrap());
+        assert_eq!((r.title.as_str(), r.steps[1].label.as_str(), r.steps[3].label.as_str(), r.steps[1].comment.as_str()), ("? – ?", "1. e5", "3. pass", "Centre"));
+        // A move that cannot be played ends the Game there.
+        let mut keys = lib.keys(2, usize::MAX).unwrap();
+        keys[1] ^= 1;
+        let r = stored_replay(&lib.stored(2).unwrap(), &keys);
+        assert_eq!(r.steps.len(), 2);
+        assert!(r.error.contains("19-23"), "{}", r.error);
+        // A xiangqi Game lists Red as its first Side, under Red.
+        let xq = bragd_library::library::read_game(Format::Xiangqi, "[Game \"Chinese Chess\"]\n[Red \"Hu\"]\n[Black \"Xu\"]\n\n1. 炮二平五 马８进７ *".as_bytes());
+        lib.add(&xq, "test", "xq").unwrap();
+        assert_eq!((row_of(&lib, 3).white.as_str(), row_of(&lib, 3).black.as_str()), ("Hu", "Xu"));
+        assert_eq!(sides("xiangqi")[0], "Red");
+        let _ = std::fs::remove_dir_all(&d);
     }
 
     /// A Library Game replays with its Comments and NAGs where they stood.
@@ -659,7 +732,7 @@ mod tests {
         std::fs::write(&file, include_str!("../../../crates/bragd-library/tests/annotated.pgn")).unwrap();
         let mut lib = Library::open(&d.join("n.bragd")).unwrap();
         lib.import(&file, "mine", &|| false, &mut |_| {}).unwrap();
-        let r = stored_replay(&lib.stored(1).unwrap());
+        let r = stored_replay(&lib.stored(1).unwrap(), &lib.keys(1, usize::MAX).unwrap());
         let _ = std::fs::remove_dir_all(&d);
         assert_eq!(r.steps[0].comment, "Gespielt in der Oper.");
         assert_eq!((r.steps[4].label.as_str(), r.steps[4].comment.as_str()), ("2… d6?!", "Weiß hätte hier besser den Springer ziehen sollen."));

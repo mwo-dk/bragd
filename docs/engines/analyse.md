@@ -38,7 +38,7 @@ Analyse reads the [Position store](../knowledge/position-store.md) first. When t
 
 #### Why does a line show at depth 30 at once?
 
-The Engine judged the position before, in Analyse or in a review, and the [Position store](../knowledge/position-store.md) kept it. The same position reached by another move order shows it too.
+The Engine judged the position before, in Analyse or in a review, and the [Position store](../knowledge/position-store.md) kept it. The line says so: *From the Position store*, with the Edition that judged it. The same position reached by another move order shows it too. Once the Engine is as deep, its own line takes the place.
 
 #### How long does the Engine think?
 

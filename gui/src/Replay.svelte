@@ -1,10 +1,14 @@
 <script>
   // A Game in replay: its board at the step chosen, the moves to step through (← and →, Home and
   // End), the comments, and its evaluation profile as a small graph when it has one. Each
-  // step's board is replayed in Rust from the position Rust laid out for it.
+  // step's board is replayed in Rust, from the position Rust laid out for it or from the Game's
+  // start. *Analyse* hands the Game as far as the step to the Family's Analyse page.
   import * as api from "./api.js";
   import { t, i18n } from "./i18n.svelte.js";
   import Board from "./Board.svelte";
+  import BackgammonBoard from "./BackgammonBoard.svelte";
+  import { handed } from "./current.svelte.js";
+  import { go as visit } from "./nav.svelte.js";
 
   /** @type {{ replay: any, onclose: () => void, onstep?: (step: any) => void }} */
   let { replay, onclose, onstep } = $props();
@@ -35,11 +39,30 @@
       .finally(() => (translating = false));
   }
 
+  /** The step's Game: from its own position, or from the Game's start. */
+  const game = (/** @type {any} */ s) => (s.fen ? { initial: s.fen, entries: [] } : { initial: replay.initial, entries: replay.entries.slice(0, s.upto) });
+
   $effect(() => {
     const s = replay.steps[at];
-    onstep?.(s);
-    if (!replay.variant || !s?.fen) return void (st = null);
-    api.replay(replay.variant, s.fen, []).then((x) => (st = x), () => (st = null));
+    if (!replay.variant || !s || (!s.fen && s.upto == null)) return void ((st = null), onstep?.(s));
+    const g = game(s);
+    api.replay(replay.variant, g.initial, g.entries).then(
+      (x) => ((st = x), onstep?.({ ...s, fen: x.position })),
+      () => ((st = null), onstep?.(s)),
+    );
+  });
+
+  function analyse() {
+    handed[replay.family] = { variant: replay.variant, ...game(step) };
+    visit({ kind: "item", family: replay.family, item: "analyse" });
+  }
+
+  // Opened below a list: brought into sight once its board is drawn, so it is seen whole.
+  /** @type {HTMLElement | undefined} */
+  let el = $state();
+  let seen = false;
+  $effect(() => {
+    if (st && el && !seen) (seen = true), el.scrollIntoView({ block: "start" });
   });
 
   const go = (/** @type {number} */ n) => (at = Math.max(0, Math.min(replay.steps.length - 1, n)));
@@ -56,15 +79,18 @@
 
 <svelte:window onkeydown={keys} />
 
-<section class="replay">
+<section class="replay" bind:this={el}>
   <header class="bar">
     <h2>{replay.title} <small>{replay.result}</small></h2>
+    {#if st}<button onclick={analyse} title={t("replay.analyse_hint")}>{t("replay.analyse")}</button>{/if}
     <button onclick={() => (flipped = !flipped)} aria-pressed={flipped}>{t("play.flip")}</button>
     <button onclick={onclose}>{t("common.close")}</button>
   </header>
   <div class="game">
     <div class="board-side">
-      {#if st}
+      {#if st && replay.family === "backgammon"}
+        <BackgammonBoard state={st} {flipped} />
+      {:else if st}
         <Board state={st} family={replay.family} {flipped} />
       {:else if replay.error}
         <p class="dim">{replay.error}</p>
@@ -137,7 +163,7 @@
     gap: 0.4rem;
   }
   h2 {
-    flex: 1;
+    flex: 1 1 12rem;
     font-size: 1.1rem;
     margin: 0;
   }

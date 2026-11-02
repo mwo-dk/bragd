@@ -12,7 +12,7 @@ A Slice is a named query over a Library, such as "Grünfeld" or "both players 25
 1. In the sidebar, open a Family and choose **Databases**, then **Libraries**.
 2. Click a Library's name, then **New Slice**. A saved Slice has a button of its own beside it.
 3. Fill in the fields. *Games in this Slice now* updates as you type.
-4. Press **Save Slice**. The Slice is stored in the Library and shows under the Family's **Databases** in the sidebar, and only there: a Slice belongs to its Family, or to its Variant's. An older Slice that names neither shows under the Families whose Games its Library holds.
+4. Press **Save Slice**. The Slice is stored in the Library and shows under the Family's **Databases** in the sidebar, and only there: a Slice belongs to its Family, or to its Variant's. An older Slice that names neither shows under the Families of the Games it holds now, and on a Family's page it lists that Family's Games.
 5. **Keep as a separate copy** copies the Slice's Games into a new Library beside this one.
 6. **Analyse in background** (a saved Slice of a Game family with an Engine) queues the Slice's most frequent positions for the Engines you choose ([Background analysis](../engines/background-analysis.md)).
 
@@ -69,11 +69,11 @@ No Game has been stepped through in replay on the Databases page yet. Open one, 
 
 #### Why does a Slice show under every Family?
 
-A Slice with no Family shows under every Family's **Databases** in the sidebar. A new Slice takes the Family of the page you made it on.
+It shows under every Family whose Games it holds: an older Slice that names no Family, such as *White wins*, holds chess and shogi Games alike. A new Slice takes the Family of the page you made it on.
 
-#### Why does position search find nothing in my go or shogi Games?
+#### Does position search work in every Family?
 
-Only chess positions match for now. Go has a key of its move sequence only, and the other Families key positions in a way the search does not use yet.
+Yes. Step through a Game of the Family in replay, to the position, and press **Use current board position**: the Slice finds the Games of its Library that reach that position, by the key the Library keeps for it.
 
 ---
 [← Previous: Duplicates](duplicates.md) · [Next: Player summary →](players.md)

@@ -29,7 +29,8 @@ export const dbSaveAs = () => invoke("db_save_as");
 export const dbSaveTo = () => invoke("db_save_to");
 
 /** @returns {Promise<any[]>} */
-export const libraries = () => invoke("libraries_list");
+/** The Libraries, counted for `family`'s page (every Family without one). */
+export const libraries = (/** @type {string|null} */ family = null) => invoke("libraries_list", { family });
 /** @returns {Promise<any>} */
 export const libraryRows = (/** @type {string} */ path, /** @type {Obj} */ query, /** @type {number} */ from, /** @type {number} */ count) =>
   invoke("library_rows", { path, query, from, count });
@@ -41,7 +42,7 @@ export const libraryPlayer = (/** @type {string} */ path, /** @type {string} */ 
 /** @returns {Promise<[string, number][]>} */
 export const libraryPlayers = (/** @type {string} */ path, /** @type {string} */ text) => invoke("library_players", { path, text });
 /** @returns {Promise<any>} */
-export const libraryReview = (/** @type {string} */ path) => invoke("library_review", { path });
+export const libraryReview = (/** @type {string} */ path, /** @type {string|null} */ family = null) => invoke("library_review", { path, family });
 /** @returns {Promise<number>} */
 export const libraryDedupe = (/** @type {string} */ path) => invoke("library_dedupe", { path });
 export const libraryExport = (/** @type {string} */ path) => invoke("library_export", { path });
@@ -50,9 +51,9 @@ export const positionsImport = () => invoke("positions_import");
 /** @returns {Promise<number>} */
 export const libraryPrune = (/** @type {boolean} */ dryRun) => invoke("library_prune", { dryRun });
 /** @returns {Promise<{list: {id: string, name: string}[], choices: {id: string, name: string}[]}>} */
-export const priorityGet = () => invoke("priority_get");
+export const priorityGet = (/** @type {string|null} */ family = null) => invoke("priority_get", { family });
 /** @returns {Promise<{list: {id: string, name: string}[], choices: {id: string, name: string}[]}>} */
-export const prioritySave = (/** @type {string[]} */ list) => invoke("priority_save", { list });
+export const prioritySave = (/** @type {string[]} */ list, /** @type {string|null} */ family = null) => invoke("priority_save", { list, family });
 
 /** @returns {Promise<Record<string, any[]>>} */
 export const slices = () => invoke("slices_list");

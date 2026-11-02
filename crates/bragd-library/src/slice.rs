@@ -99,6 +99,14 @@ impl Library {
         Ok(ids.collect::<rusqlite::Result<_>>()?)
     }
 
+    /// The Game families of the Games `q` lets through, by key.
+    pub fn families_of(&self, q: &Query) -> Result<Vec<String>> {
+        let (cond, args) = condition(q);
+        let mut st = self.conn().prepare(&format!("SELECT DISTINCT family FROM games WHERE {cond} ORDER BY family"))?;
+        let rows = st.query_map(rusqlite::params_from_iter(args), |r| r.get(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
     /// Keeps the Slice `name` (a new query for an old name replaces it, live again).
     pub fn save_slice(&self, name: &str, q: &Query) -> Result<()> {
         let json = serde_json::to_string(q).map_err(io::Error::other)?;
@@ -366,6 +374,9 @@ mod tests {
         // The position after 1.e4 c5 2.Nf3: only the Sicilian reaches it.
         let b = pgn::board("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2").unwrap();
         assert_eq!(find(Query { position: Some(polyglot::key(&b)), ..Default::default() }), [3]);
+        // The Families of the Games a query lets through: none when it lets none through.
+        assert_eq!(lib.families_of(&Query { result: Some("1-0".into()), ..Default::default() }).unwrap(), ["chess"]);
+        assert!(lib.families_of(&Query { result: Some("B+R".into()), ..Default::default() }).unwrap().is_empty());
         // A wildcard in a name is a plain character.
         assert_eq!(find(Query { players: vec!["%".into()], ..Default::default() }), Vec::<i64>::new());
     }

@@ -62,7 +62,10 @@
       </tbody>
     </table>
 
-    {#if f.ratings.length}
+    {#if f.ratings.length === 1}
+      <h5>{t("player.rating")}</h5>
+      <p class="dim">{t("player.rated_once", { rating: f.ratings[0][1], date: f.ratings[0][0] })}</p>
+    {:else if f.ratings.length}
       {@const elos = f.ratings.map((/** @type {any} */ r) => r[1])}
       <h5>{t("player.rating")}</h5>
       <svg class="rating" viewBox="-2 -2 104 34" preserveAspectRatio="none" role="img" aria-label={t("player.rating_from", { from: f.ratings[0][1], to: f.ratings.at(-1)[1], low: Math.min(...elos), high: Math.max(...elos) })}>
