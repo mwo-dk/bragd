@@ -4,7 +4,7 @@
 //! Bragd never sees the password.
 
 use std::io::{BufRead, BufReader, Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
@@ -216,7 +216,7 @@ mod tests {
 
     fn browser(redirect: &str, query: &str) -> String {
         let addr = redirect.trim_start_matches("http://").trim_end_matches('/');
-        let mut c = TcpStream::connect(addr).unwrap();
+        let mut c = std::net::TcpStream::connect(addr).unwrap();
         write!(c, "GET /?{query} HTTP/1.1\r\nHost: {addr}\r\n\r\n").unwrap();
         let mut s = String::new();
         c.read_to_string(&mut s).unwrap();
