@@ -407,13 +407,32 @@ impl Position {
         }
     }
 
-    /// Every legal *ordering* of plays for `roll`.
+    /// The dice still to play once `played` is on the board, in the order [`Roll::dice`] gives
+    /// them, or `None` when `played` cannot be finished into a legal turn. What the board shows as
+    /// unused while a turn is moved one checker at a time.
+    pub fn dice_left(&self, roll: Roll, played: &[Play]) -> Option<Vec<u8>> {
+        let sequence = self.sequences_with_dice(roll).into_iter().find(|sequence| {
+            sequence.len() >= played.len()
+                && sequence[..played.len()]
+                    .iter()
+                    .map(|(play, _)| play.placement())
+                    .eq(played.iter().map(|play| play.placement()))
+        })?;
+        let mut left = roll.dice();
+        for (_, die) in &sequence[..played.len()] {
+            let used = left.iter().position(|d| d == die)?;
+            left.remove(used);
+        }
+        Some(left)
+    }
+
+    /// Every legal *ordering* of plays for `roll`, each with the die it uses.
     ///
     /// What [`Position::turns_for`] is built from, before the orderings of one
     /// turn are collapsed into it, and what [`Position::continue_turn`] matches
     /// a half-finished turn against. The two whole-turn rules are applied here
     /// so that there is exactly one place they live.
-    fn legal_sequences(&self, roll: Roll) -> Vec<Vec<Play>> {
+    fn sequences_with_dice(&self, roll: Roll) -> Vec<Vec<(Play, u8)>> {
         let mut maximal: Vec<Vec<(Play, u8)>> = Vec::new();
         self.extend(&roll.dice(), &mut Vec::new(), &mut maximal);
 
@@ -429,6 +448,11 @@ impl Position {
         }
 
         maximal
+    }
+
+    /// [`Position::sequences_with_dice`] without the dice.
+    fn legal_sequences(&self, roll: Roll) -> Vec<Vec<Play>> {
+        self.sequences_with_dice(roll)
             .into_iter()
             .map(|sequence| sequence.into_iter().map(|(play, _)| play).collect())
             .collect()
@@ -874,6 +898,20 @@ mod tests {
         let turn = Turn::parse(text).unwrap_or_else(|| panic!("{text} is not a play"));
         assert_eq!(turn.plays().len(), 1, "{text} is more than one play");
         turn.plays()[0]
+    }
+
+    /// The dice a half-played turn has left: one die gone after one checker, two of a
+    /// double's four after two, and none of them for a play that cannot be finished.
+    #[test]
+    fn dice_left_drops_the_die_each_checker_used() {
+        let start = Position::starting();
+        let roll = |a, b| Roll::new(a, b).expect("a roll");
+        assert_eq!(start.dice_left(roll(3, 1), &[]), Some(vec![3, 1]));
+        assert_eq!(start.dice_left(roll(3, 1), &[play("8/5")]), Some(vec![1]));
+        assert_eq!(start.dice_left(roll(3, 1), &[play("6/5")]), Some(vec![3]));
+        assert_eq!(start.dice_left(roll(6, 5), &[play("24/18")]), Some(vec![5]));
+        assert_eq!(start.dice_left(roll(4, 4), &[play("13/9"), play("13/9")]), Some(vec![4, 4]));
+        assert_eq!(start.dice_left(roll(3, 1), &[play("8/6")]), None);
     }
 
     /// The opening: every first tap is on offer, and the turn is not finished

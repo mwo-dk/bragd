@@ -9,7 +9,10 @@ fn a_short_game_replays_with_its_rolls() {
     let mut record: Vec<&str> = Vec::new();
     let start = replay("backgammon", None, &record).unwrap();
     assert_eq!(start.awaiting, Awaiting::Throw);
-    assert_eq!(start.throws.len(), 21);
+    // The opening roll is one die each: the 15 rolls that are not doubles.
+    assert_eq!(start.throws.len(), 15);
+    assert!(!start.throws.contains(&"6-6".to_string()));
+    assert!(apply("backgammon", None, &record, "6-6").is_err(), "the rules refuse an opening double");
     assert_eq!(start.to_move.unwrap().name, "White");
 
     for (roll, turn, mover) in [("3-1", "8/5 6/5", "White"), ("6-5", "24/18 18/13", "Black")] {
@@ -25,6 +28,14 @@ fn a_short_game_replays_with_its_rolls() {
     assert_eq!(state.awaiting, Awaiting::Throw);
     assert_eq!(state.to_move.unwrap().name, "White");
     assert!(offered(&state, "double"), "the cube is in the middle");
+    assert_eq!(state.throws.len(), 21, "doubles after the opening");
+}
+
+#[test]
+fn the_opening_throw_seats_the_higher_die() {
+    assert_eq!(bragd_games::backgammon_opening(2, 5), Some(("black".into(), "5-2".into())));
+    assert_eq!(bragd_games::backgammon_opening(6, 1), Some(("white".into(), "6-1".into())));
+    assert_eq!(bragd_games::backgammon_opening(4, 4), None);
 }
 
 #[test]
@@ -129,6 +140,10 @@ fn a_turn_is_played_one_checker_at_a_time() {
         half.state.steps.iter().all(|m| m.wire != "13/8"),
         "the five is used"
     );
+    assert_eq!(thrown.board.dice, [6, 5]);
+    assert_eq!(thrown.board.used, [false, false]);
+    assert_eq!(half.state.board.dice, [6, 5]);
+    assert_eq!(half.state.board.used, [false, true], "the board greys the five");
 
     let whole = bragd_games::step("backgammon", None, &["6-5"], &["13/8", "13/7"]).unwrap();
     let entry = whole.entry.expect("both dice played make the turn");
@@ -150,4 +165,15 @@ fn a_turn_is_played_one_checker_at_a_time() {
         Err(GameError::Refused { .. })
     ));
     assert!(bragd_games::step::<&str>("backgammon", None, &[], &["13/8"]).is_err());
+}
+
+/// #248: a double is four dice, and each checker moved uses one of them.
+#[test]
+fn a_double_shows_four_dice_and_greys_each_one_used() {
+    let record = ["3-1", "8/5 6/5", "4-4"];
+    let state = replay("backgammon", None, &record).unwrap();
+    assert_eq!(state.board.dice, [4, 4, 4, 4]);
+    assert_eq!(state.board.used, [false; 4]);
+    let half = bragd_games::step("backgammon", None, &record, &["13/9", "13/9"]).unwrap();
+    assert_eq!(half.state.board.used, [true, true, false, false]);
 }

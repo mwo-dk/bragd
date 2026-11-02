@@ -86,6 +86,17 @@ pub(crate) fn step(initial: Option<&str>, entries: &[&str], part: &[&str]) -> Re
     }
 }
 
+/// The opening throw from White's die and Black's: who moves first (`white` or
+/// `black`, the initial position) and the roll, or `None` on a tie.
+pub(crate) fn opening(white: u8, black: u8) -> Option<(String, String)> {
+    let (side, roll) = rules_backgammon::dice::opening(white, black)?;
+    let first = match side {
+        Side::White => "white",
+        Side::Black => "black",
+    };
+    Some((first.to_string(), roll.to_string()))
+}
+
 /// The three resignations, as entries: the side to act concedes at the grade it names.
 const RESIGNATIONS: [(&str, Concession); 3] = [
     ("resign", Concession::Single),
@@ -162,7 +173,13 @@ fn state(game: &Game, part: &[Play]) -> State {
             if cube.may_double(side) {
                 moves.push(LegalMove::plain("double".to_string()));
             }
-            (Awaiting::Throw, moves, all_rolls())
+            // The opening roll is one die each, thrown again on a tie: never a double.
+            let opening = game.is_opening();
+            let throws = all_rolls()
+                .into_iter()
+                .filter(|roll| !opening || roll.split_once('-').is_some_and(|(a, b)| a != b))
+                .collect();
+            (Awaiting::Throw, moves, throws)
         }
         Some(Needed::Turn { side, .. }) => (
             Awaiting::Move,
@@ -260,6 +277,22 @@ fn state(game: &Game, part: &[Play]) -> State {
         })
         .collect();
 
+    let dice = game.pending_roll().map(|roll| roll.dice()).unwrap_or_default();
+    // A die is unused while one of its value is left. Matched from the right, so a double
+    // greys its dice from the left.
+    let mut left = game.dice_left(part).unwrap_or_default();
+    let mut used: Vec<bool> = dice
+        .iter()
+        .rev()
+        .map(|die| match left.iter().position(|d| d == die) {
+            Some(i) => {
+                left.remove(i);
+                false
+            }
+            None => true,
+        })
+        .collect();
+    used.reverse();
     let info = Variant::Backgammon.info();
     State {
         variant: Variant::Backgammon,
@@ -298,10 +331,8 @@ fn state(game: &Game, part: &[Play]) -> State {
                 value: cube.value(),
                 owner: cube.owner().map(|side| seat(side).index),
             }),
-            dice: game
-                .pending_roll()
-                .map(|roll| roll.dice())
-                .unwrap_or_default(),
+            dice: dice.clone(),
+            used,
             ..Board::default()
         },
     }

@@ -1,0 +1,1 @@
+| **Backgammon opens the way the game does.** The opening throw is one die for each Side: the higher die moves first and plays both, a tie is thrown again, and the first turn is never a double. While you move checker by checker, each used die turns grey, and a double shows four dice. | [Backgammon](play/backgammon.md#controls) |

@@ -65,8 +65,23 @@ fn cast(family: Family, next: &mut impl FnMut() -> u8) -> Option<String> {
     }
 }
 
-/// A throw the rules accept now: one of `allowed`, thrown again until it is (the opening roll
-/// of backgammon takes no doubles).
+/// Backgammon's opening throw, for a Game with nothing played: one die each, thrown again on a
+/// tie, so it is never a double. Gives who moves first (the Game's initial, `white` or `black`)
+/// and the roll they play. `None` for other Families and once the Game is under way.
+pub fn opening<S>(family: Family, entries: &[S]) -> Option<(String, String)> {
+    (family == Family::Backgammon && entries.is_empty()).then(|| opening_from(&mut os_byte))
+}
+
+fn opening_from(next: &mut impl FnMut() -> u8) -> (String, String) {
+    loop {
+        let (white, black) = (uniform(6, next) + 1, uniform(6, next) + 1);
+        if let Some(opening) = bragd_games::backgammon_opening(white, black) {
+            return opening;
+        }
+    }
+}
+
+/// A throw the rules accept now: one of `allowed`, thrown again until it is.
 pub fn throw(family: Family, allowed: &[String]) -> Option<String> {
     if allowed.is_empty() {
         return None;
@@ -137,6 +152,31 @@ mod tests {
         assert_eq!(cast(Family::Ur, &mut bytes(&[0xF0])).as_deref(), Some("0"));
         assert_eq!(cast(Family::Senet, &mut bytes(&[0xF0])).as_deref(), Some("5"));
         assert_eq!(cast(Family::Chess, &mut bytes(&[1])), None);
+    }
+
+    /// Every pair of opening dice: never a double, the higher die's Side moves first, and a tie
+    /// is thrown again (here as 1 against 2, so Black starts).
+    #[test]
+    fn the_opening_throw_is_never_a_double_and_seats_the_higher_die() {
+        let mut seated = [0; 2];
+        for white in 0..6u8 {
+            for black in 0..6u8 {
+                let (first, roll) = opening_from(&mut bytes(&[white, black, 0, 1]));
+                let (high, low) = roll.split_once('-').unwrap();
+                assert_ne!(high, low, "{roll}");
+                let expected = if white > black { "white" } else { "black" };
+                assert_eq!(first, expected, "{white} against {black}");
+                if white == black {
+                    assert_eq!(roll, "2-1");
+                }
+                seated[(first == "black") as usize] += 1;
+            }
+        }
+        assert_eq!(seated, [15, 21]);
+        assert!(opening(Family::Backgammon, &["3-1"]).is_none());
+        assert!(opening::<&str>(Family::Ur, &[]).is_none());
+        let (first, roll) = opening::<&str>(Family::Backgammon, &[]).unwrap();
+        assert!(bragd_games::apply::<&str>("backgammon", Some(&first), &[], &roll).is_ok());
     }
 
     #[test]

@@ -11,12 +11,25 @@
 //! breaks, no test goes red, and the damage appears the first time somebody
 //! opens an old game and finds a different one.
 //!
-//! The opening roll — one die each, higher goes first, equal is thrown again —
-//! is not modelled here either. It decides who moves first, which is a fact
-//! about the Game rather than about the position, so the platform decides it and
-//! hands the engine the resulting roll and the side to play it.
+//! The opening roll is one die each: the higher goes first and plays both, and
+//! equal dice are thrown again, so the first turn is never a double. The caller
+//! throws the two dice; [`opening`] says who they seat and what roll they make.
+//! Who moves first is a fact about the Game rather than about the position, so
+//! the platform keeps it beside the record ([`crate::Position::starting_with`]).
 
+use crate::board::Side;
 use core::fmt;
+
+/// The opening roll from White's die and Black's: the Side that threw higher moves
+/// first, with both dice as its roll. `None` on a tie, which is thrown again.
+pub fn opening(white: u8, black: u8) -> Option<(Side, Roll)> {
+    let roll = Roll::new(white, black)?;
+    match white.cmp(&black) {
+        core::cmp::Ordering::Greater => Some((Side::White, roll)),
+        core::cmp::Ordering::Less => Some((Side::Black, roll)),
+        core::cmp::Ordering::Equal => None,
+    }
+}
 
 /// Two dice, kept high first.
 ///
@@ -117,6 +130,31 @@ mod tests {
         assert_eq!(Roll::new(0, 3), None);
         assert_eq!(Roll::new(3, 7), None);
         assert_eq!(Roll::new(7, 7), None);
+    }
+
+    /// Over all 36 pairs of opening dice: the six ties are thrown again, the other
+    /// 30 are never a double, and the higher die's Side starts with both dice.
+    #[test]
+    fn the_opening_roll_is_never_a_double_and_seats_the_higher_die() {
+        let mut ties = 0;
+        for white in 1..=6 {
+            for black in 1..=6 {
+                match opening(white, black) {
+                    None => {
+                        assert_eq!(white, black);
+                        ties += 1;
+                    }
+                    Some((side, roll)) => {
+                        assert!(!roll.is_double(), "{roll}");
+                        assert_eq!(roll, Roll::new(white, black).unwrap());
+                        let expected = if white > black { Side::White } else { Side::Black };
+                        assert_eq!(side, expected, "{white} against {black}");
+                    }
+                }
+            }
+        }
+        assert_eq!(ties, 6);
+        assert_eq!(opening(0, 3), None);
     }
 
     #[test]

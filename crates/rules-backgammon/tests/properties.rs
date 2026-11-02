@@ -44,9 +44,16 @@ impl Rng {
         (self.below(6) + 1) as u8
     }
 
-    fn roll(&mut self) -> Roll {
-        let (one, two) = (self.die(), self.die());
-        Roll::new(one, two).expect("two dice")
+    /// A roll for `game`, thrown again while it is a double on the opening roll,
+    /// as the platform does.
+    fn roll(&mut self, game: &Game) -> Roll {
+        loop {
+            let (one, two) = (self.die(), self.die());
+            let roll = Roll::new(one, two).expect("two dice");
+            if !(roll.is_double() && game.is_opening()) {
+                return roll;
+            }
+        }
     }
 }
 
@@ -75,7 +82,7 @@ fn play_out(seed: u64, check: &mut impl FnMut(&Game, Roll, &[Turn])) -> Game {
             "the game did not ask to be thrown for\n{:?}",
             game.position()
         );
-        let roll = rng.roll();
+        let roll = rng.roll(&game);
         game.roll(roll).expect("nothing is on the table");
         assert_eq!(
             game.needs(),
@@ -274,7 +281,7 @@ fn the_pip_count_only_ever_falls_and_reaches_zero_for_the_winner() {
         let mut game = Game::new();
         let mut rng = Rng(seed);
         while !game.is_over() {
-            let roll = rng.roll();
+            let roll = rng.roll(&game);
             let mover = game.position().to_move();
             let before = game.position().pip_count(mover);
             let turns = game.turns_for(roll);
@@ -417,13 +424,13 @@ fn a_game_abandoned_between_the_throw_and_the_turn_remembers_the_throw() {
     let mut rng = Rng(31_337);
     let mut game = Game::new();
     for _ in 0..7 {
-        let roll = rng.roll();
+        let roll = rng.roll(&game);
         game.roll(roll).expect("thrown");
         let turns = game.turns();
         let turn = turns[rng.below(turns.len())].clone();
         game.play_turn(&turn).expect("legal");
     }
-    let showing = rng.roll();
+    let showing = rng.roll(&game);
     game.roll(showing).expect("thrown, and then nobody moved");
 
     let written: Vec<String> = game.entries().iter().map(Entry::to_wire).collect();
@@ -462,7 +469,7 @@ fn a_game_with_the_cube_in_it_replays_too() {
     // An odd number of turns, so that it comes round to Black — who now holds
     // the cube and is the only one who may double next.
     for _ in 0..9 {
-        let roll = rng.roll();
+        let roll = rng.roll(&game);
         let turns = game.turns_for(roll);
         let turn = turns[rng.below(turns.len())].clone();
         game.play(roll, &turn).expect("legal");

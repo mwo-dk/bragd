@@ -363,6 +363,19 @@ impl Game {
         self.position.continue_turn(self.pending_roll()?, played)
     }
 
+    /// The dice of the roll on the table still to play once `played` is on the
+    /// board, or `None` with no roll showing or when `played` cannot be finished.
+    pub fn dice_left(&self, played: &[Play]) -> Option<Vec<u8>> {
+        self.position.dice_left(self.pending_roll()?, played)
+    }
+
+    /// Whether the next roll is the opening one: nothing played yet, from the
+    /// starting array. Its dice are one each, so it is never a double
+    /// ([`crate::dice::opening`]).
+    pub fn is_opening(&self) -> bool {
+        self.entries.is_empty() && self.initial == Position::starting_with(self.initial.to_move())
+    }
+
     /// Writes a roll into the record.
     ///
     /// **The dice come from outside** and this is the door they come
@@ -379,6 +392,9 @@ impl Game {
         }
         if self.pending_roll().is_some() {
             return Err(PlayError::AlreadyRolled);
+        }
+        if roll.is_double() && self.is_opening() {
+            return Err(PlayError::OpeningDouble);
         }
         self.entries.push(Entry::Roll(roll));
         Ok(())
@@ -625,6 +641,8 @@ pub enum PlayError {
     NoRoll,
     /// A turn offered with dice other than the ones on the table.
     WrongRoll,
+    /// A double as the opening roll, which is one die each and thrown again on a tie.
+    OpeningDouble,
     Cube(CubeError),
 }
 
@@ -646,6 +664,7 @@ impl fmt::Display for PlayError {
             PlayError::AlreadyRolled => f.write_str("the dice are already on the table"),
             PlayError::NoRoll => f.write_str("nothing has been rolled yet"),
             PlayError::WrongRoll => f.write_str("that is not the roll on the table"),
+            PlayError::OpeningDouble => f.write_str("the opening roll is never a double"),
             PlayError::Cube(error) => write!(f, "{error}"),
         }
     }
@@ -829,11 +848,11 @@ mod tests {
     #[test]
     fn a_double_may_not_be_offered_once_the_dice_are_on_the_table() {
         let mut game = Game::new();
-        game.roll(roll("6-6")).expect("thrown");
+        game.roll(roll("3-1")).expect("thrown");
         assert_eq!(
             game.offer_double(Side::White),
             Err(PlayError::AlreadyRolled),
-            "White has seen the best roll in the game and wants to double"
+            "White has seen the best opening roll and wants to double"
         );
         assert_eq!(game.cube().value(), 1);
         assert_eq!(game.entries().len(), 1);
@@ -950,6 +969,18 @@ mod tests {
             }),
             "a gammon on a cube of two"
         );
+    }
+
+    /// The opening roll is one die each, so a double is refused there and only there.
+    #[test]
+    fn the_opening_roll_may_not_be_a_double() {
+        let mut game = Game::from_position(Position::starting_with(Side::Black));
+        assert!(game.is_opening());
+        assert_eq!(game.roll(Roll::new(6, 6).unwrap()), Err(PlayError::OpeningDouble));
+        game.roll(Roll::new(6, 5).unwrap()).expect("not a double");
+        assert!(!game.is_opening());
+        game.play_wire("24/18 13/8").expect("a legal turn for Black");
+        game.roll(Roll::new(6, 6).unwrap()).expect("a double after the opening");
     }
 
     #[test]

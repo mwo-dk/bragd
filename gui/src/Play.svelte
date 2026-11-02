@@ -164,6 +164,7 @@
   async function doThrow() {
     try {
       const r = await api.throwDice(key, initial, entries);
+      initial = r.initial;
       entries = [...entries, r.entry];
       part = [];
       st = r.state;

@@ -24,10 +24,10 @@ Nothing to play against yourself. Against an Engine: GNU Backgammon, installed o
 
 | What you want | What you do |
 |---|---|
-| Throw the dice | **Throw**, under the turn line. The opening throw is never a double: the rules refuse it, and Bragd throws again |
+| Throw the dice | **Throw**, under the turn line. The opening throw is one die for each Side: the higher die moves first and plays both dice, and a tie is thrown again, so the first turn is never a double. A double is four dice |
 | Double | **Double**, before you throw. It shows only when you may double |
 | Answer a double | **Take** keeps playing at twice the stake. **Drop** gives up the Game at the stake before the double |
-| Move a checker | Click its point, then a marked point (or *off*), or drag it there. The checker moves at once and uses one die. Move the next the same way; when the dice are used, the turn is played |
+| Move a checker | Click its point, then a marked point (or *off*), or drag it there. The checker moves at once and uses one die, which turns grey. Move the next the same way; when the dice are used, the turn is played |
 | Take a checker back | **Undo**, before the last die is used. After the turn is played, Undo takes back the whole turn |
 | Or pick the whole turn | Click it under *Legal moves*, before you move a checker. Every legal turn for the dice is listed |
 | Come in from the bar | Click the bar, then the point to enter on |
@@ -51,6 +51,10 @@ What is legal depends on both dice together: you must use as many as any sequenc
 #### Is the record written one die at a time?
 
 No. The record holds whole turns, such as `13/8 13/7`, written once the dice are used. Checkers moved before that are not saved yet.
+
+#### Who moves first?
+
+The Side that throws the higher die on the opening throw. Bragd throws one die for White and one for Black, again on a tie, and the winner plays those two dice as the first turn. That is why the first turn is never a double.
 
 #### Why is there no Throw button after I press Double?
 

@@ -76,9 +76,9 @@
     {/if}
   {/each}
 
-  <!-- The dice of the roll being played, and the cube. -->
+  <!-- The dice of the roll being played (four on a double), greyed once used, and the cube. -->
   {#each b.dice as d, i}
-    <g transform="translate({flipped ? 1.5 + i * 1.2 : 8.5 + i * 1.2} {H / 2 - 0.5})">
+    <g class:used={b.used?.[i]} transform="translate({flipped ? 1.2 + i * 1.15 : 8.2 + i * 1.15} {H / 2 - 0.5})">
       <rect class="die" width="1" height="1" rx="0.15" />
       {#each pips(d) as [x, y]}
         <circle class="pip" cx={x} cy={y} r="0.09" />
@@ -200,6 +200,9 @@
   }
   .pip {
     fill: #222;
+  }
+  .used {
+    opacity: 0.35;
   }
   .cube-value {
     font-size: 0.45px;
