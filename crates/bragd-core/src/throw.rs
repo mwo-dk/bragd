@@ -46,16 +46,16 @@ pub fn chess960_array() -> u16 {
     uniform16(960, &mut os_byte)
 }
 
-/// One throw of the Family's implements, written as its entry.
-fn cast(family: Family, next: &mut impl FnMut() -> u8) -> Option<String> {
+/// One throw of the Family's implements, written as its entry. `dice` is how many Ur throws.
+fn cast(family: Family, dice: u8, next: &mut impl FnMut() -> u8) -> Option<String> {
     match family {
         // Two dice, the higher first: `6-5`.
         Family::Backgammon => {
             let (a, b) = (uniform(6, next) + 1, uniform(6, next) + 1);
             Some(format!("{}-{}", a.max(b), a.min(b)))
         }
-        // Four tetrahedral dice, each with two marked tips of four: the marked ones count.
-        Family::Ur => Some((next() & 0xF).count_ones().to_string()),
+        // Tetrahedral dice, each with two marked tips of four: the marked ones count.
+        Family::Ur => Some((next() & ((1u8 << dice) - 1)).count_ones().to_string()),
         // Four sticks: the light faces up count, and none up counts five.
         Family::Senet => {
             let sides = (next() & 0xF).count_ones();
@@ -87,8 +87,11 @@ pub fn throw(family: Family, allowed: &[String]) -> Option<String> {
         return None;
     }
     let mut next = os_byte;
+    // Ur's throws are nought to the number of dice its Variant throws, so the rules' list
+    // says how many dice to throw.
+    let dice = (allowed.len() - 1).min(4) as u8;
     (0..1000)
-        .filter_map(|_| cast(family, &mut next))
+        .filter_map(|_| cast(family, dice, &mut next))
         .find(|t| allowed.contains(t))
 }
 
@@ -141,17 +144,20 @@ mod tests {
             // Bytes under 252, so no die needs a third.
             let mut seen: Vec<String> = (0..252u8)
                 .flat_map(|a| (0..252u8).map(move |b| [a, b]))
-                .filter_map(|pair| cast(family, &mut bytes(&pair[..])))
+                .filter_map(|pair| cast(family, 4, &mut bytes(&pair[..])))
                 .collect::<Vec<_>>();
             seen.sort();
             seen.dedup();
             seen
         };
         assert_eq!(all(Family::Backgammon).len(), 21);
-        assert_eq!(cast(Family::Backgammon, &mut bytes(&[5, 0])).as_deref(), Some("6-1"));
-        assert_eq!(cast(Family::Ur, &mut bytes(&[0xF0])).as_deref(), Some("0"));
-        assert_eq!(cast(Family::Senet, &mut bytes(&[0xF0])).as_deref(), Some("5"));
-        assert_eq!(cast(Family::Chess, &mut bytes(&[1])), None);
+        assert_eq!(cast(Family::Backgammon, 4, &mut bytes(&[5, 0])).as_deref(), Some("6-1"));
+        assert_eq!(cast(Family::Ur, 4, &mut bytes(&[0xF0])).as_deref(), Some("0"));
+        // Three dice for Masters: the fourth bit is no die.
+        assert_eq!(cast(Family::Ur, 3, &mut bytes(&[0x0F])).as_deref(), Some("3"));
+        assert_eq!(cast(Family::Ur, 3, &mut bytes(&[0x08])).as_deref(), Some("0"));
+        assert_eq!(cast(Family::Senet, 4, &mut bytes(&[0xF0])).as_deref(), Some("5"));
+        assert_eq!(cast(Family::Chess, 4, &mut bytes(&[1])), None);
     }
 
     /// Every pair of opening dice: never a double, the higher die's Side moves first, and a tie
@@ -187,6 +193,10 @@ mod tests {
             assert!(state.throws.contains(&t), "{t}");
         }
         assert_eq!(throw(Family::Ur, &[]), None);
-        assert_eq!(throw(Family::Ur, &["3".to_string()]).as_deref(), Some("3"));
+        // Masters throws three dice: nought to three, and three does come up.
+        let masters = bragd_games::replay::<&str>("ur-masters", None, &[]).unwrap();
+        let thrown: Vec<String> = (0..200).filter_map(|_| throw(Family::Ur, &masters.throws)).collect();
+        assert!(thrown.iter().all(|t| masters.throws.contains(t)));
+        assert!(thrown.iter().any(|t| t == "3"));
     }
 }

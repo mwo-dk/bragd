@@ -52,7 +52,7 @@ One switch per Game family, and under it one per Variant. All are on by default 
 | `family_draughts` | `variant_checkers`, `variant_draughts`, `variant_draughts-brazilian` |
 | `family_tafl` | `variant_hnefatafl`, `variant_hnefatafl-fetlar`, `variant_tablut`, `variant_brandubh` |
 | `family_backgammon` | `variant_backgammon` |
-| `family_ur` | `variant_ur` |
+| `family_ur` | `variant_ur`, `variant_ur-masters`, `variant_ur-blitz`, `variant_ur-aseb` |
 | `family_senet` | `variant_senet` |
 
 ## Look
@@ -63,6 +63,7 @@ One switch per Game family, and under it one per Variant. All are on by default 
 | `theme` | Theme | `look.theme` | The app's colours, and with some Themes their own shapes. Racing green (dark) is the default |
 | `look` | Look | `look.look` | The shapes and chrome laid over the Theme's colours. Empty: the Theme's own |
 | `board_theme` | Board theme | `look.board_theme` | The four colours of every board. Match theme takes them from the Theme |
+| `play_forced` | Play forced moves by themselves | `play.forced` | In backgammon, Ur and senet, a throw with one legal move plays it after a short pause ([Forced moves](../play/against-yourself.md#forced-moves)). Listed while one of them is on |
 | `file_picker` | File picker | `look.file_picker` | The dialog that opens and saves files: the system's, or with Coxswain installed, Automatic (Coxswain's picker), Coxswain or the system's ([File picker](../look/file-picker.md)) |
 
 ## Engines

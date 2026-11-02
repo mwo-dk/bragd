@@ -17,7 +17,7 @@ All 24 Variants of the ten Game families are playable from the start:
 | Draughts | English checkers, international, Brazilian |
 | Tafl | hnefatafl (Copenhagen), Fetlar, tablut, brandubh |
 | Backgammon | backgammon |
-| Ur | ur (Finkel) |
+| Ur | ur (Finkel), Masters, Blitz, Aseb |
 | Senet | senet (Kendall) |
 
 - Every Family and Variant can be turned off in Settings and in the install wizard, and all are on by default.
@@ -103,7 +103,8 @@ The Helper is a separate background process shared by every Bragd window ([ADR 0
 | Go | KataGo, GNU Go | GTP |
 | Draughts | Scan | Hub |
 | Backgammon | GNU Backgammon | CLI |
-| Tafl, ur, senet | built-in Bots | — |
+| Ur | Bragd's Bot (built) | — |
+| Tafl, senet | built-in Bots | — |
 
 How engines run:
 - An installed Engine is used first. Otherwise Bragd pulls a sealed container image from `ghcr.io/mwo-dk/bragd-<engine>`, with podman or docker.

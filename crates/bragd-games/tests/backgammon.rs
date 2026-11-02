@@ -181,3 +181,39 @@ fn a_double_shows_four_dice_and_greys_each_one_used() {
     let half = bragd_games::step("backgammon", None, &record, &["13/9", "13/9"]).unwrap();
     assert_eq!(half.state.board.used, [true, true, false, false]);
 }
+
+/// A roll whose next checker move is the only one, or that can play nothing, is reported as
+/// forced; any choice is not. Played out from fixed rolls, taking the first turn each time.
+#[test]
+fn a_roll_with_one_way_to_play_is_forced_and_a_choice_is_not() {
+    let words = ["resign", "double", "take", "drop"];
+    let mut record: Vec<String> = Vec::new();
+    let (mut forced, mut free) = (0, 0);
+    let mut seed: u32 = 7;
+    for _ in 0..400 {
+        let state = replay("backgammon", None, &record).unwrap();
+        if state.outcome.is_some() {
+            break;
+        }
+        let turns: Vec<&str> = state.moves.iter().map(|m| m.wire.as_str()).filter(|w| !words.iter().any(|x| w.starts_with(x))).collect();
+        if state.awaiting == bragd_games::Awaiting::Throw {
+            assert_eq!(state.forced, None, "nothing is forced before the roll");
+            seed = seed.wrapping_mul(1_103_515_245).wrapping_add(12_345);
+            let roll = state.throws[(seed >> 16) as usize % state.throws.len()].clone();
+            record.push(roll);
+            continue;
+        }
+        if state.steps.len() == 1 {
+            assert_eq!(state.forced.as_deref(), Some(state.steps[0].wire.as_str()), "{record:?}");
+            forced += 1;
+        } else if state.steps.is_empty() && turns.len() == 1 {
+            assert_eq!(state.forced.as_deref(), Some(turns[0]), "{record:?}");
+            forced += 1;
+        } else {
+            assert_eq!(state.forced, None, "{record:?}");
+            free += 1;
+        }
+        record.push(turns[0].to_string());
+    }
+    assert!(forced > 0 && free > 0, "forced {forced}, free {free}");
+}

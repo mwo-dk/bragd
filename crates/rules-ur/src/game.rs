@@ -6,7 +6,7 @@
 //! is the property a Library rests on, and `tests/properties.rs` asserts it
 //! over thousands of played games rather than hoping.
 
-use crate::board::{Side, Spot};
+use crate::board::{Rules, Side};
 use crate::dice::Throw;
 use crate::position::{Move, Offer, Position};
 
@@ -22,33 +22,23 @@ pub enum Entry {
 impl Entry {
     /// The wire spelling. One entry, one token, no spaces — so a record joins on
     /// whitespace and a reader never has to know how many words an entry is.
-    pub fn to_wire(self) -> String {
+    pub fn to_wire(self, rules: &Rules) -> String {
         match self {
             Entry::Throw(throw) => throw.to_wire(),
-            Entry::Move(chosen) => chosen.to_wire(),
+            Entry::Move(chosen) => chosen.to_wire(rules),
         }
     }
 
-    /// Reads an entry back.
-    pub fn parse(text: &str) -> Option<Entry> {
+    /// Reads an entry back. A move's ends are read against the rule set's path.
+    pub fn parse(rules: &Rules, text: &str) -> Option<Entry> {
         if let Some(throw) = Throw::parse(text) {
             return Some(Entry::Throw(throw));
         }
         let (from, to) = Move::parse(text)?;
         Some(Entry::Move(Move {
-            from: spot_at(from)?,
-            to: spot_at(to)?,
+            from: rules.spot(from)?,
+            to: rules.spot(to)?,
         }))
-    }
-}
-
-/// A distance back into a spot, for the parser.
-fn spot_at(distance: u8) -> Option<Spot> {
-    match distance {
-        0 => Some(Spot::Waiting),
-        step if (step as usize) <= crate::board::PATH => Some(Spot::Step(step)),
-        step if (step as usize) == crate::board::PATH + 1 => Some(Spot::Off),
-        _ => None,
     }
 }
 
@@ -130,9 +120,14 @@ pub struct Game {
 }
 
 impl Game {
-    /// A new game, with the given side throwing first.
-    pub fn new(first: Side) -> Game {
-        Game::from_position(Position::starting_with(first))
+    /// A new game under a rule set, with the given side throwing first.
+    pub fn new(rules: &'static Rules, first: Side) -> Game {
+        Game::from_position(Position::starting_with(rules, first))
+    }
+
+    /// The rule set the game is played under.
+    pub fn rules(&self) -> &'static Rules {
+        self.position.rules()
     }
 
     /// A game from a position, for a teaching board.
@@ -216,6 +211,10 @@ impl Game {
         if self.pending.is_some() {
             return Err(PlayError::OutOfTurn);
         }
+        // Three dice cannot show four marks.
+        if self.rules().throw(throw.marks()).is_none() {
+            return Err(PlayError::Illegal);
+        }
         self.entries.push(Entry::Throw(throw));
         if self.position.moves_for(throw).is_empty() {
             self.position.pass();
@@ -262,7 +261,7 @@ impl Game {
 
     /// Plays an entry given as its wire token.
     pub fn play_wire(&mut self, text: &str) -> Result<(), PlayError> {
-        let entry = Entry::parse(text)
+        let entry = Entry::parse(self.rules(), text)
             .ok_or_else(|| PlayError::Unreadable(format!("cannot read {text:?} as an entry")))?;
         self.play_entry(entry)
     }
@@ -321,7 +320,9 @@ impl Game {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::board::PIECES;
+    use crate::board::{FINKEL, Spot};
+
+    const PIECES: u8 = FINKEL.pieces;
 
     fn throw(marks: u8) -> Throw {
         Throw::new(marks).unwrap()
@@ -330,7 +331,7 @@ mod tests {
     #[test]
     fn a_new_game_waits_for_a_throw_from_the_side_that_starts() {
         for first in [Side::White, Side::Black] {
-            let game = Game::new(first);
+            let game = Game::new(&FINKEL, first);
             assert_eq!(game.needs(), Needed::Throw { side: first });
             assert_eq!(game.needs().side(), Some(first));
             assert!(game.moves().is_empty());
@@ -341,7 +342,7 @@ mod tests {
 
     #[test]
     fn a_throw_puts_the_game_in_want_of_a_move() {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         game.throw(throw(2)).unwrap();
         assert_eq!(game.needs(), Needed::Move { side: Side::White });
         assert_eq!(game.pending_throw(), Some(throw(2)));
@@ -351,14 +352,14 @@ mod tests {
 
     #[test]
     fn throwing_twice_is_refused() {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         game.throw(throw(2)).unwrap();
         assert_eq!(game.throw(throw(3)), Err(PlayError::OutOfTurn));
     }
 
     #[test]
     fn moving_before_throwing_is_refused() {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         let chosen = Move {
             from: Spot::Waiting,
             to: Spot::Step(1),
@@ -368,7 +369,7 @@ mod tests {
 
     #[test]
     fn an_illegal_move_is_refused_and_changes_nothing() {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         game.throw(throw(1)).unwrap();
         let wrong = Move {
             from: Spot::Waiting,
@@ -381,7 +382,7 @@ mod tests {
 
     #[test]
     fn a_nought_writes_only_itself_and_hands_over() {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         game.throw(throw(0)).unwrap();
         assert_eq!(
             game.entries(),
@@ -394,7 +395,7 @@ mod tests {
 
     #[test]
     fn a_rosette_keeps_the_turn() {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         game.throw(throw(4)).unwrap();
         let chosen = game.moves()[0];
         assert!(chosen.again);
@@ -408,7 +409,7 @@ mod tests {
 
     #[test]
     fn an_ordinary_move_hands_over() {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         game.throw(throw(1)).unwrap();
         game.play(game.moves()[0].chosen).unwrap();
         assert_eq!(game.needs(), Needed::Throw { side: Side::Black });
@@ -419,14 +420,14 @@ mod tests {
         // Contrive a position where White's only piece cannot move: six home,
         // one on the last step, and a throw of four cannot bear off.
         let picture = {
-            let mut glyphs = vec!['.'; crate::board::SQUARES];
+            let mut glyphs = vec!['.'; 20];
             glyphs[4] = 'W'; // White's step 14
             // Black's seven are all still waiting; a picture whose pieces do not
             // add up to seven a side is refused, which is how this fixture first
             // failed.
             format!("{} 07 60 w", glyphs.into_iter().collect::<String>())
         };
-        let position = Position::from_picture(&picture).expect("the contrived picture should read");
+        let position = Position::from_picture(&FINKEL, &picture).expect("the contrived picture should read");
         let mut game = Game::from_position(position);
         assert_eq!(game.needs(), Needed::Throw { side: Side::White });
         game.throw(throw(4)).unwrap();
@@ -441,14 +442,14 @@ mod tests {
     #[test]
     fn bringing_the_last_piece_home_ends_it() {
         let picture = {
-            let mut glyphs = vec!['.'; crate::board::SQUARES];
+            let mut glyphs = vec!['.'; 20];
             glyphs[4] = 'W';
             // Black's seven are all still waiting; a picture whose pieces do not
             // add up to seven a side is refused, which is how this fixture first
             // failed.
             format!("{} 07 60 w", glyphs.into_iter().collect::<String>())
         };
-        let mut game = Game::from_position(Position::from_picture(&picture).unwrap());
+        let mut game = Game::from_position(Position::from_picture(&FINKEL, &picture).unwrap());
         game.throw(throw(1)).unwrap();
         let home = game
             .moves()
@@ -472,7 +473,7 @@ mod tests {
 
     #[test]
     fn a_resignation_ends_it_and_is_not_an_entry() {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         game.throw(throw(2)).unwrap();
         game.play(game.moves()[0].chosen).unwrap();
         let before = game.entries().len();
@@ -494,7 +495,7 @@ mod tests {
 
     #[test]
     fn a_game_replays_from_its_entries() {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         for (marks, _) in [(4, ()), (1, ()), (0, ()), (2, ()), (3, ()), (1, ())] {
             if game.is_over() {
                 break;
@@ -523,7 +524,7 @@ mod tests {
             from: Spot::Waiting,
             to: Spot::Step(1),
         })];
-        let error = Game::replay(Position::starting_with(Side::White), &entries).unwrap_err();
+        let error = Game::replay(Position::starting_with(&FINKEL, Side::White), &entries).unwrap_err();
         assert!(matches!(error, PlayError::Unreadable(_)), "got {error:?}");
     }
 
@@ -542,12 +543,12 @@ mod tests {
             }),
         ];
         for entry in cases {
-            let wire = entry.to_wire();
+            let wire = entry.to_wire(&FINKEL);
             assert!(
                 !wire.contains(' '),
                 "an entry must be one token, got {wire:?}"
             );
-            assert_eq!(Entry::parse(&wire), Some(entry), "{wire:?} did not survive");
+            assert_eq!(Entry::parse(&FINKEL, &wire), Some(entry), "{wire:?} did not survive");
         }
     }
 
@@ -556,7 +557,7 @@ mod tests {
         for text in [
             "", " ", "5", "16-0", "0-16", "x", "pass ", "PASS", "1-2-3", "--",
         ] {
-            assert_eq!(Entry::parse(text), None, "{text:?} should not parse");
+            assert_eq!(Entry::parse(&FINKEL, text), None, "{text:?} should not parse");
         }
     }
 }

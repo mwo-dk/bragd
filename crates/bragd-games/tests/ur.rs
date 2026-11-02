@@ -1,4 +1,4 @@
-use bragd_games::{Awaiting, GameError, HighlightKind, apply, replay};
+use bragd_games::{Awaiting, GameError, HighlightKind, apply, bot_move, replay};
 
 #[test]
 fn a_short_game_replays_with_its_throws() {
@@ -64,4 +64,71 @@ fn the_board_is_drawn_on_its_own_grid() {
     assert!(marked.iter().any(|h| (h.x, h.y) == (0, 0)));
     assert_eq!(state.board.hands[0].pieces[0].count, 6);
     assert_eq!(state.board.hands[1].pieces[0].count, 7);
+}
+
+#[test]
+fn each_variant_draws_its_own_board_path_and_dice() {
+    // (key, columns, path length, dice, pieces)
+    for (key, files, path, dice, pieces) in [
+        ("ur", 8, 14, 4, 7),
+        ("ur-masters", 8, 16, 3, 7),
+        ("ur-blitz", 8, 16, 4, 5),
+        ("ur-aseb", 12, 16, 4, 5),
+    ] {
+        let state = replay(key, None, &["1"]).unwrap();
+        assert_eq!(state.board.files, files, "{key}");
+        assert_eq!(state.board.cells.len(), 20, "{key}");
+        assert_eq!(state.board.paths.len(), 2, "{key}");
+        assert!(state.board.paths.iter().all(|p| p.len() == path), "{key}");
+        assert_eq!(state.board.pyramids.len(), dice, "{key}");
+        assert_eq!(state.board.pyramids.iter().filter(|&&m| m).count(), 1, "{key}");
+        assert_eq!(state.board.hands[0].pieces[0].count, pieces, "{key}");
+        let start = replay::<&str>(key, None, &[]).unwrap();
+        assert_eq!(start.throws.len(), dice + 1, "{key}: nought to {dice}");
+    }
+    // Aseb's long middle row reaches column 11.
+    let aseb = replay::<&str>("ur-aseb", None, &[]).unwrap();
+    assert!(aseb.board.cells.iter().any(|c| (c.x, c.y) == (11, 1)));
+}
+
+#[test]
+fn masters_throws_three_dice_and_a_nought_moves_four() {
+    assert!(apply("ur-masters", None, &[] as &[&str], "4").is_err(), "three dice cannot show four");
+    let state = replay("ur-masters", None, &["0"]).unwrap();
+    assert_eq!(state.board.dice, [4]);
+    assert_eq!(state.moves.iter().map(|m| m.wire.as_str()).collect::<Vec<_>>(), ["0-4"]);
+    assert_eq!(state.board.pyramids, [false; 3], "no marked tip is up");
+}
+
+#[test]
+fn a_lone_legal_move_is_forced_and_a_choice_is_not() {
+    // The opening throw allows only the entry: forced.
+    let state = replay("ur", None, &["2"]).unwrap();
+    assert_eq!(state.forced.as_deref(), Some("0-2"));
+    // A piece on the board and another waiting: two moves, a choice.
+    let state = replay("ur", None, &["2", "0-2", "0", "1"]).unwrap();
+    assert!(state.moves.len() > 1);
+    assert_eq!(state.forced, None);
+    // Waiting for a throw, nothing is forced.
+    assert_eq!(replay::<&str>("ur", None, &[]).unwrap().forced, None);
+}
+
+#[test]
+fn a_throw_with_no_move_is_reported_as_passed() {
+    let state = replay("ur", None, &["0"]).unwrap();
+    assert_eq!(state.passed.as_deref(), Some("0"));
+    assert_eq!(state.to_move.unwrap().name, "Dark");
+    let state = replay("ur", None, &["2"]).unwrap();
+    assert_eq!(state.passed, None, "a throw with a move waiting has not passed");
+}
+
+#[test]
+fn the_bot_answers_a_throw_with_a_legal_move_in_every_variant() {
+    for key in ["ur", "ur-masters", "ur-blitz", "ur-aseb"] {
+        let entries = ["3"];
+        let chosen = bot_move(key, None, &entries).unwrap().expect("a move");
+        assert!(apply(key, None, &entries, &chosen).is_ok(), "{key}: {chosen}");
+        assert_eq!(bot_move::<&str>(key, None, &[]).unwrap(), None, "{key}: no throw yet");
+    }
+    assert_eq!(bot_move::<&str>("chess", None, &[]).unwrap(), None);
 }

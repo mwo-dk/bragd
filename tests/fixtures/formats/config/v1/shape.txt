@@ -47,6 +47,8 @@
 .peers object
 .peers.interface string
 .peers.on bool
+.play object
+.play.forced bool
 .tablebases object
 .tablebases.online bool
 .tablebases.path string

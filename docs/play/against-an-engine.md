@@ -36,7 +36,8 @@ An Engine for the Variant that is ready: installed on your machine, added by its
 | Go | KataGo, GNU Go |
 | Draughts | Scan, International draughts only |
 | Backgammon | GNU Backgammon |
-| Tafl, Ur, senet | None. Built-in Bots for them are not built yet |
+| Ur | Bragd's Bot, in every Ur rule set |
+| Tafl, senet | None. Built-in Bots for them are not built yet |
 
 An Engine that is not installed plays from Bragd's sealed container image, once you pull it from its card on the Engines page ([Engine container images](../engines/container-images.md)).
 
@@ -54,7 +55,7 @@ The Engine, Side, time and strength chosen in the bar are not saved. They go bac
 
 #### Why is there no Opponent list?
 
-The Variant has no Engine Bragd knows of. This is the case for tafl, Ur, senet, English checkers and Brazilian draughts. Their built-in Bots are not built yet.
+The Variant has no Engine Bragd knows of. This is the case for tafl, senet, English checkers and Brazilian draughts. Their built-in Bots are not built yet. Ur has Bragd's Bot ([Ur](ur.md)).
 
 #### Why does Undo take back two moves?
 

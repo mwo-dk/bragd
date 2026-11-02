@@ -218,6 +218,8 @@ fn state(variant: Variant, game: &Game) -> State {
         history: game.entries().iter().map(Entry::to_wire).collect(),
         numbers: Vec::new(),
         check: false,
+        forced: None,
+        passed: None,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {
             cells: position.board().points().map(|p| crate::Cell { x: p.column(), y: p.row(), square: p.name() }).collect(),

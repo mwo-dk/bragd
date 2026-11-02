@@ -11,7 +11,11 @@
 //! result into the record, and passes it in. This crate has no dependencies,
 //! contains no generator, and cannot grow one by accident.
 //!
-//! **The rules are Irving Finkel's reading, and that is part of the product.**
+//! **Four rule sets, each a [`Rules`] value.** Finkel's, Masters', RoyalUr.net's
+//! Blitz and Aseb differ in board, path, pieces, dice and three switches, and
+//! nothing else; `docs/rules/ur.md` names the source of each.
+//!
+//! **The default rules are Irving Finkel's reading, and that is part of the product.**
 //! The game was played for three thousand years and nobody wrote the rules down
 //! until a Babylonian tablet did, partially, around 177 BC; Finkel's
 //! reconstruction from BM 33333b is the one with a named argument behind it. So
@@ -40,11 +44,12 @@
 #![forbid(unsafe_code)]
 
 pub mod board;
+pub mod bot;
 pub mod dice;
 pub mod game;
 pub mod position;
 
-pub use board::{BOARD, PATH, PIECES, ROSETTES, SAFE, SQUARES, Side, Spot, Square};
-pub use dice::{DICE, Throw, WAYS};
+pub use board::{ALL, ASEB, BLITZ, FINKEL, MASTERS, Rules, Side, Spot, Square};
+pub use dice::Throw;
 pub use game::{Entry, Game, Needed, Outcome, PlayError, WinReason};
 pub use position::{Move, Offer, Position};

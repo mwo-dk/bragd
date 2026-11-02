@@ -8,6 +8,7 @@
   import Picker from "./Picker.svelte";
   import { gates, movesOf, movesTo, plainMoves } from "./board.js";
   import Board from "./Board.svelte";
+  import UrDice from "./UrDice.svelte";
   import BackgammonBoard from "./BackgammonBoard.svelte";
   import Analysis from "./Analysis.svelte";
   import Known from "./Known.svelte";
@@ -29,8 +30,16 @@
   let engineSeat = $state(1);
   let thinkMs = $state(1000);
   let skill = $state(20);
-  /** The Engines there to run, and whether more could be got. @type {{engines: {key: string, name: string}[], more: boolean, sides: string[]}} */
+  /** The Engines there to run (Bragd's own Bot among them), and whether more could be got. @type {{engines: {key: string, name: string}[], more: boolean, sides: string[]}} */
   let choices = $state({ engines: [], more: false, sides: [] });
+  /** Settings → Look: a throw that leaves one legal move plays it by itself. */
+  let forcedOn = $state(true);
+  api.snapshot().then((s) => (forcedOn = s.settings.find((/** @type {any} */ o) => o.name === "play_forced")?.value !== false));
+  /** The piece sliding to its square while a move is played. @type {any} */
+  let glide = $state(null);
+  /** How long the dice stay in view before a forced or an Engine's move. */
+  const PAUSE = 600;
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   /** The servers that play the Families that are on (Play online). @type {any[]} */
   let online = $state([]);
   api.onlineServers().then((o) => (online = o));
@@ -111,8 +120,8 @@
   $effect(() => {
     if (!analyse && key)
       api.engineChoices(key).then((c) => {
-        choices = c;
-        engineKey = c.default ?? c.engines[0]?.key ?? "";
+        choices = { ...c, engines: [...c.engines, ...(c.bot ? [c.bot] : [])] };
+        engineKey = c.default ?? c.engines[0]?.key ?? c.bot?.key ?? "";
         if (!c.engines.length) opponent = "self";
       });
   });
@@ -128,12 +137,59 @@
     if (st.awaiting === "throw") doThrow().finally(done);
     else if (st.moves.some((/** @type {any} */ m) => m.wire === "take")) playEntry("take").finally(done);
     else
-      api
-        .engineMove(g, engineKey || null, thinkMs, skill)
-        .then((m) => playEntry(m.entry))
+      // In a race the dice show a moment before the Engine moves.
+      new Promise((ok) => setTimeout(ok, family.race ? PAUSE : 0))
+        .then(() => api.engineMove(g, engineKey || null, thinkMs, skill))
+        .then((m) => slideAndPlay(m.entry))
         .catch((e) => (error = String(e)))
         .finally(done);
   });
+
+  // A throw that leaves one legal move: the dice show, then Rust's one move plays by itself.
+  $effect(() => {
+    if (analyse || !forcedOn || !st?.forced || thinking || error) return;
+    if (opponent === "engine" && st.toMove?.index === engineSeat) return;
+    const at = entries.length + part.length;
+    const forced = st.forced;
+    // Backgammon's one next checker move is a step of the turn; anything else is an entry.
+    const checker = st.steps?.some((/** @type {any} */ m) => m.wire === forced);
+    thinking = true;
+    setTimeout(() => {
+      if (entries.length + part.length !== at) thinking = false;
+      else (checker ? step(forced) : slideAndPlay(forced)).finally(() => (thinking = false));
+    }, PAUSE);
+  });
+
+  /** Plays `entry`, first sliding its piece along the cells it passes (not with reduced motion,
+   * nor on a backgammon board). The cells come from Rust: a track's path, or the move's ends. */
+  async function slideAndPlay(/** @type {string} */ entry) {
+    const m = st?.moves.find((/** @type {any} */ x) => x.wire === entry);
+    if (m && !still && family.id !== "backgammon" && st.toMove) {
+      const cellAt = (/** @type {string} */ sq) => st.board.cells.find((/** @type {any} */ c) => c.square === sq);
+      const path = st.board.paths?.[st.toMove.index] ?? [];
+      const on = (/** @type {string} */ sq) => path.findIndex((/** @type {number[]} */ [x, y]) => x === cellAt(sq)?.x && y === cellAt(sq)?.y);
+      const a = m.from === "waiting" ? 0 : on(m.from);
+      const b = m.to === "home" ? path.length - 1 : on(m.to);
+      const ends = [cellAt(m.from), cellAt(m.to)].filter(Boolean).map((/** @type {any} */ c) => [c.x, c.y]);
+      const pts = a >= 0 && b >= a ? path.slice(a, b + 1) : ends;
+      const sprite = st.board.pieces.find((/** @type {any} */ p) => p.square === m.from)?.sprite ?? hands(st.toMove.index)[0]?.pieces[0]?.sprite;
+      if (sprite && pts.length) {
+        glide = { sprite, from: m.from, pts, p: 0 };
+        const ms = 120 * Math.max(pts.length - 1, 1) + 120;
+        await new Promise((done) => {
+          const t0 = performance.now();
+          const step = (/** @type {number} */ now) => {
+            glide.p = Math.min(1, (now - t0) / ms);
+            if (glide.p < 1) requestAnimationFrame(step);
+            else done(null);
+          };
+          requestAnimationFrame(step);
+        });
+      }
+    }
+    await playEntry(entry);
+    glide = null;
+  }
 
   /** A list of entries from Analyse (a line clicked): the Game after them. */
   async function setEntries(/** @type {string[]} */ list) {
@@ -293,8 +349,10 @@
       {#if opponent === "engine"}
         <Picker value={engineKey} choices={choices.engines.map((c) => ({ value: c.key, label: c.name }))} label={t("analyse.engine")} onchange={(v) => (engineKey = v)} />
         <Picker value={engineSeat} choices={choices.sides.map((side, seat) => ({ value: seat, label: t("play.engine_plays", { side }) }))} label={t("play.engine_side")} onchange={(v) => (engineSeat = v)} />
-        <Picker value={thinkMs} choices={[100, 1000, 3000, 10000].map((ms) => ({ value: ms, label: t("play.seconds", { n: ms / 1000 }) }))} label={t("play.think_time")} onchange={(v) => (thinkMs = v)} />
-        <label class="skill">{t("play.strength")} <input type="range" min="0" max="20" bind:value={skill} /></label>
+        {#if engineKey !== "bot"}
+          <Picker value={thinkMs} choices={[100, 1000, 3000, 10000].map((ms) => ({ value: ms, label: t("play.seconds", { n: ms / 1000 }) }))} label={t("play.think_time")} onchange={(v) => (thinkMs = v)} />
+          <label class="skill">{t("play.strength")} <input type="range" min="0" max="20" bind:value={skill} /></label>
+        {/if}
       {/if}
     {/if}
     {#if !analyse}
@@ -350,7 +408,7 @@
           {#if family.id === "backgammon"}
             <BackgammonBoard state={st} {flipped} selected={sel?.from ?? null} {targets} oncell={cell} onpress={press} />
           {:else}
-            <Board state={st} family={family.id} {flipped} selected={sel?.from ?? null} {targets} {dead} oncell={cell} onpress={press} />
+            <Board state={st} family={family.id} {flipped} selected={sel?.from ?? null} {targets} {dead} {glide} oncell={cell} onpress={press} />
           {/if}
           {#if st.outcome}
             <div class="banner" role="status">
@@ -372,8 +430,14 @@
         {#if array !== null}
           <p class="hint">{t("play.chess960_array", { n: array })}</p>
         {/if}
+        {#if st.board.pyramids?.length}
+          <UrDice pyramids={st.board.pyramids} roll={st.history.length - (st.awaiting === "move" ? 0 : 1)} />
+        {/if}
         {#if st.board.dice.length && family.id !== "backgammon"}
           <p class="dice">{t("play.thrown", { n: st.board.dice.join(" ") })}</p>
+        {/if}
+        {#if st.passed}
+          <p class="dice" role="status">{t("play.no_move", { n: st.passed })}</p>
         {/if}
 
         <div class="actions">

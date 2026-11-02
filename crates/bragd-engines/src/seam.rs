@@ -365,6 +365,9 @@ mod tests {
             ("brandubh", &[], None),
             ("backgammon", &["gnubg"], None),
             ("ur", &[], None),
+            ("ur-masters", &[], None),
+            ("ur-blitz", &[], None),
+            ("ur-aseb", &[], None),
             ("senet", &[], None),
         ];
         assert_eq!(want.len(), bragd_games::VARIANTS.len());

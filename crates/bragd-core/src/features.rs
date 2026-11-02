@@ -36,6 +36,8 @@ pub const FEATURES: &[Feature] = &[
     f("back", "getting-started/navigation.md", "page:help"),
     f("tips", "getting-started/tips.md", "settings:tips"),
     f("play", "play/against-yourself.md", "item:play"),
+    only("ur", "play/ur.md", "item:play", &["ur"]),
+    only("forced", "play/against-yourself.md", "settings:look", &["backgammon", "ur", "senet"]),
     only("online", "online/playing-online.md", "online:lichess:chess", &["chess"]),
     only("lishogi", "online/lishogi.md", "online:lishogi:shogi", &["shogi"]),
     only("ogs", "online/ogs.md", "online:ogs:go", &["go"]),

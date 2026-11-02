@@ -1,14 +1,18 @@
-//! The board, the two paths across it, and the rosettes.
+//! The boards, the paths across them, the rosettes, and the rule sets that use them.
 //!
 //! Ur is the first game in Bragd where **the two players do not share a
 //! board in the sense the other families mean it.** A chess square is the same
 //! square to both sides; here, square 0 is on White's own row and Black can
-//! never stand on it. Eight of the twenty squares are shared and twelve are
-//! private, six to each side, and every rule that matters — capture, safety,
-//! blocking — is a rule about which of those two kinds a square is.
+//! never stand on it. Some squares are shared and some are private, and every
+//! rule that matters — capture, safety, blocking — is a rule about which of
+//! those two kinds a square is.
 //!
-//! So the geometry is written down once, here, as two paths, and everything
-//! else asks it a question rather than knowing the answer.
+//! So the geometry is written down once per rule set, here, as two paths, and
+//! everything else asks [`Rules`] a question rather than knowing the answer.
+//! A rule set is data, not code: the four rule sets Bragd plays differ only in
+//! the board, the paths, the number of pieces and dice, and three switches.
+
+use crate::dice::Throw;
 
 /// A side. Named for the seats, not for a colour — Bragd's own word is Side
 /// and storage calls the two seats `white` and `black` because chess arrived
@@ -46,28 +50,14 @@ impl Side {
             _ => None,
         }
     }
+
+    fn index(self) -> usize {
+        match self {
+            Side::White => 0,
+            Side::Black => 1,
+        }
+    }
 }
-
-/// How many pieces each side brings. Seven, which is what the excavated boards
-/// were found with — fourteen shell counters in two sets of seven, in the grave
-/// at Ur that gives the game its name.
-pub const PIECES: u8 = 7;
-
-/// The number of squares on the board.
-pub const SQUARES: usize = 20;
-
-/// How many steps a piece takes from entering to bearing off.
-///
-/// Fourteen, not twenty: a piece walks four squares of its own row, then the
-/// eight shared ones, then two more of its own, and the twentieth step is off
-/// the board rather than onto a square.
-pub const PATH: usize = 14;
-
-/// The board is three rows of eight, with four squares missing from the middle
-/// of the top and bottom rows — the waist that makes the shape everybody
-/// recognises.
-pub const ROWS: usize = 3;
-pub const COLUMNS: usize = 8;
 
 /// Where a piece is, from its owner's point of view.
 ///
@@ -80,42 +70,16 @@ pub const COLUMNS: usize = 8;
 /// The ordering is declaration order — `Waiting` before every `Step` before
 /// `Off` — which is the order a piece passes through them, and it is what lets a
 /// side's pieces be kept in a canonical order. They are interchangeable, so two
-/// positions that differ only in which array slot holds which piece are the same
+/// positions that differ only in which slot holds which piece are the same
 /// position, and sorting is what makes `==` say so.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum Spot {
     /// Waiting to enter. Step zero.
     Waiting,
-    /// On the board, at this many steps along its owner's path (1..=PATH).
+    /// On the board, at this many steps along its owner's path (1..=path length).
     Step(u8),
     /// Home, and out of the game.
     Off,
-}
-
-impl Spot {
-    /// How far along the path this is, counting `Waiting` as nought and `Off` as
-    /// one past the end. This is the number the arithmetic is done in.
-    pub fn distance(self) -> u8 {
-        match self {
-            Spot::Waiting => 0,
-            Spot::Step(step) => step,
-            Spot::Off => PATH as u8 + 1,
-        }
-    }
-
-    /// The spot this many steps further on, or `None` if that would overshoot
-    /// bearing off. **An exact throw is required to come home** — see
-    /// [`crate::position::Position::moves_for`] for why that is the reading this
-    /// engine takes.
-    pub fn advance(self, steps: u8) -> Option<Spot> {
-        let to = self.distance() + steps;
-        match to {
-            0 => Some(Spot::Waiting),
-            step if step as usize <= PATH => Some(Spot::Step(step)),
-            step if step as usize == PATH + 1 => Some(Spot::Off),
-            _ => None,
-        }
-    }
 }
 
 /// A square of the board, as a row and a column, so that a drawing can place it
@@ -126,259 +90,341 @@ pub struct Square {
     pub column: u8,
 }
 
-impl Square {
-    const fn new(row: u8, column: u8) -> Square {
-        Square { row, column }
+const fn sq(row: u8, column: u8) -> Square {
+    Square { row, column }
+}
+
+/// One rule set: a board, the two paths across it, and the rules that differ
+/// between the reconstructions. Sources for each are in `docs/rules/ur.md`.
+#[derive(PartialEq, Eq, Debug)]
+pub struct Rules {
+    /// Its name in the code and the docs: `finkel`, `masters`, `blitz`, `aseb`.
+    pub name: &'static str,
+    /// The squares, in a fixed order that the wire and the picture use as an index.
+    pub board: &'static [Square],
+    /// The columns and rows the board spans, for a drawing.
+    pub columns: u8,
+    pub rows: u8,
+    /// White's path and Black's, as indices into `board`, in the order a piece walks them.
+    paths: [&'static [usize]; 2],
+    /// The rosettes, as indices into `board`. Landing on one earns another throw.
+    pub rosettes: &'static [usize],
+    /// How many pieces each side brings.
+    pub pieces: u8,
+    /// How many tetrahedral dice are thrown. A throw counts their marked tips up.
+    pub dice: u8,
+    /// How many steps a throw of nought moves: nothing, or (with three dice) four.
+    pub nought: u8,
+    /// Whether a piece on a shared rosette cannot be taken.
+    pub safe_rosettes: bool,
+    /// Whether taking a piece earns another throw.
+    pub capture_again: bool,
+}
+
+/// Finkel's reconstruction: the board found at Ur, R. C. Bell's path of fourteen
+/// squares, seven pieces, four dice, and the middle rosette safe.
+pub const FINKEL: Rules = Rules {
+    name: "finkel",
+    board: &STANDARD,
+    columns: 8,
+    rows: 3,
+    paths: [&BELL_WHITE, &BELL_BLACK],
+    rosettes: &STANDARD_ROSETTES,
+    pieces: 7,
+    dice: 4,
+    nought: 0,
+    safe_rosettes: true,
+    capture_again: false,
+};
+
+/// James Masters' path of sixteen squares, a rosette every fourth; three dice, a
+/// throw of nought moves four, and no square is safe.
+pub const MASTERS: Rules = Rules {
+    name: "masters",
+    board: &STANDARD,
+    columns: 8,
+    rows: 3,
+    paths: [&MASTERS_WHITE, &MASTERS_BLACK],
+    rosettes: &STANDARD_ROSETTES,
+    pieces: 7,
+    dice: 3,
+    nought: 4,
+    safe_rosettes: false,
+    capture_again: false,
+};
+
+/// RoyalUr.net's Blitz: Masters' path, four dice, five pieces, no safe square,
+/// and a capture earns another throw.
+pub const BLITZ: Rules = Rules {
+    name: "blitz",
+    board: &STANDARD,
+    columns: 8,
+    rows: 3,
+    paths: [&MASTERS_WHITE, &MASTERS_BLACK],
+    rosettes: &STANDARD_ROSETTES,
+    pieces: 5,
+    dice: 4,
+    nought: 0,
+    safe_rosettes: false,
+    capture_again: true,
+};
+
+/// Aseb, the game of twenty squares on its own board: four squares to each side,
+/// twelve shared, five rosettes, five pieces, four dice.
+pub const ASEB: Rules = Rules {
+    name: "aseb",
+    board: &ASEB_BOARD,
+    columns: 12,
+    rows: 3,
+    paths: [&ASEB_WHITE, &ASEB_BLACK],
+    rosettes: &ASEB_ROSETTES,
+    pieces: 5,
+    dice: 4,
+    nought: 0,
+    safe_rosettes: true,
+    capture_again: false,
+};
+
+/// Every rule set, Finkel's first.
+pub const ALL: [&Rules; 4] = [&FINKEL, &MASTERS, &BLITZ, &ASEB];
+
+impl Rules {
+    /// The squares a side walks, in order.
+    pub fn path(&self, side: Side) -> &'static [usize] {
+        self.paths[side.index()]
+    }
+
+    /// How many steps a piece takes from entering to its last square.
+    pub fn path_len(&self) -> u8 {
+        self.paths[0].len() as u8
+    }
+
+    /// How far along the path a spot is, counting `Waiting` as nought and `Off` as
+    /// one past the end. This is the number the arithmetic and the wire use.
+    pub fn distance(&self, spot: Spot) -> u8 {
+        match spot {
+            Spot::Waiting => 0,
+            Spot::Step(step) => step,
+            Spot::Off => self.path_len() + 1,
+        }
+    }
+
+    /// The spot at this distance, if there is one.
+    pub fn spot(&self, distance: u8) -> Option<Spot> {
+        match distance {
+            0 => Some(Spot::Waiting),
+            step if step <= self.path_len() => Some(Spot::Step(step)),
+            step if step == self.path_len() + 1 => Some(Spot::Off),
+            _ => None,
+        }
+    }
+
+    /// The spot this many steps further on, or `None` if that would overshoot
+    /// bearing off. **An exact throw is required to come home** in every rule set
+    /// Bragd plays.
+    pub fn advance(&self, spot: Spot, steps: u8) -> Option<Spot> {
+        self.spot(self.distance(spot).checked_add(steps)?)
+    }
+
+    /// Which board square a side's piece stands on, or `None` if it is not on the
+    /// board at all.
+    pub fn square_at(&self, side: Side, spot: Spot) -> Option<usize> {
+        match spot {
+            Spot::Step(step) => Some(self.path(side)[step as usize - 1]),
+            _ => None,
+        }
+    }
+
+    /// Whether this board square carries a rosette.
+    pub fn is_rosette(&self, square: usize) -> bool {
+        self.rosettes.contains(&square)
+    }
+
+    /// Whether both sides walk this square. This is the question capture asks, and
+    /// it is asked of the *square*: on Masters' path the sides reach the same
+    /// square at different steps.
+    pub fn is_shared(&self, square: usize) -> bool {
+        self.paths[0].contains(&square) && self.paths[1].contains(&square)
+    }
+
+    /// Whether a piece on this square cannot be taken.
+    pub fn is_safe(&self, square: usize) -> bool {
+        self.safe_rosettes && self.is_rosette(square) && self.is_shared(square)
+    }
+
+    /// A throw these dice can make: nought to the number of dice.
+    pub fn throw(&self, marks: u8) -> Option<Throw> {
+        (marks <= self.dice).then(|| Throw::new(marks)).flatten()
+    }
+
+    /// Every throw these dice can make, nought first.
+    pub fn throws(&self) -> impl Iterator<Item = Throw> + '_ {
+        (0..=self.dice).filter_map(|marks| self.throw(marks))
+    }
+
+    /// How many steps a throw moves a piece.
+    pub fn steps(&self, throw: Throw) -> u8 {
+        match throw.marks() {
+            0 => self.nought,
+            marks => marks,
+        }
+    }
+
+    /// How many of the `2^dice` equally likely ways the dice can fall make this
+    /// throw: the binomial coefficient, so 1, 4, 6, 4, 1 for four dice.
+    pub fn ways(&self, throw: Throw) -> u32 {
+        let (n, k) = (self.dice as u32, throw.marks() as u32);
+        (0..k).fold(1, |acc, i| acc * (n - i) / (i + 1))
     }
 }
 
-/// The twenty squares, in a fixed order that the wire uses as an index.
-///
-/// Row 0 is White's own row, row 1 is the shared middle, row 2 is Black's. The
-/// order within a row is left to right, and the four squares that do not exist
-/// — the waist — are simply absent, which is why this is a table and not
-/// arithmetic over `ROWS * COLUMNS`.
-pub const BOARD: [Square; SQUARES] = [
-    // White's row: columns 0-3 and 6-7. Columns 4 and 5 are the waist.
-    Square::new(0, 0),
-    Square::new(0, 1),
-    Square::new(0, 2),
-    Square::new(0, 3),
-    Square::new(0, 6),
-    Square::new(0, 7),
-    // The shared middle row, all eight columns.
-    Square::new(1, 0),
-    Square::new(1, 1),
-    Square::new(1, 2),
-    Square::new(1, 3),
-    Square::new(1, 4),
-    Square::new(1, 5),
-    Square::new(1, 6),
-    Square::new(1, 7),
-    // Black's row, mirroring White's.
-    Square::new(2, 0),
-    Square::new(2, 1),
-    Square::new(2, 2),
-    Square::new(2, 3),
-    Square::new(2, 6),
-    Square::new(2, 7),
+/// The board found at Ur: three rows of eight, with the waist missing from the
+/// top and bottom rows. Row 0 is White's own row, row 1 the middle, row 2
+/// Black's; within a row left to right.
+const STANDARD: [Square; 20] = [
+    sq(0, 0), sq(0, 1), sq(0, 2), sq(0, 3), sq(0, 6), sq(0, 7),
+    sq(1, 0), sq(1, 1), sq(1, 2), sq(1, 3), sq(1, 4), sq(1, 5), sq(1, 6), sq(1, 7),
+    sq(2, 0), sq(2, 1), sq(2, 2), sq(2, 3), sq(2, 6), sq(2, 7),
 ];
+const STANDARD_ROSETTES: [usize; 5] = [0, 9, 4, 14, 18];
 
-/// White's path, as indices into [`BOARD`], in the order a piece walks them.
-///
-/// It runs **backwards along its own row** — a piece enters at column 3 and
-/// works left to column 0 — then turns into the shared row at column 0 and runs
-/// right to column 7, then turns back into its own row for the last two
-/// squares. That is the route the board's own decoration implies and the one
-/// Finkel reads; it is also the only route on which the five rosettes fall
-/// where a rosette is useful.
-const WHITE_PATH: [usize; PATH] = [3, 2, 1, 0, 6, 7, 8, 9, 10, 11, 12, 13, 5, 4];
+/// Bell's path, which Finkel plays: backwards along its own row from column 3 to
+/// column 0, the whole middle row, then the last two squares of its own row.
+const BELL_WHITE: [usize; 14] = [3, 2, 1, 0, 6, 7, 8, 9, 10, 11, 12, 13, 5, 4];
+const BELL_BLACK: [usize; 14] = [17, 16, 15, 14, 6, 7, 8, 9, 10, 11, 12, 13, 19, 18];
 
-/// Black's path, the mirror of White's through the middle row.
-const BLACK_PATH: [usize; PATH] = [17, 16, 15, 14, 6, 7, 8, 9, 10, 11, 12, 13, 19, 18];
+/// Masters' path: its own four, the middle row to column 6, across the far end
+/// through the other side's last two squares, and back into its own.
+const MASTERS_WHITE: [usize; 16] = [3, 2, 1, 0, 6, 7, 8, 9, 10, 11, 12, 18, 19, 13, 5, 4];
+const MASTERS_BLACK: [usize; 16] = [17, 16, 15, 14, 6, 7, 8, 9, 10, 11, 12, 4, 5, 13, 19, 18];
 
-/// The squares a side walks, in order.
-pub fn path(side: Side) -> &'static [usize; PATH] {
-    match side {
-        Side::White => &WHITE_PATH,
-        Side::Black => &BLACK_PATH,
-    }
-}
-
-/// Which board square a side's piece stands on at this many steps, or `None` if
-/// it is not on the board at all.
-pub fn square_at(side: Side, spot: Spot) -> Option<usize> {
-    match spot {
-        Spot::Step(step) => Some(path(side)[step as usize - 1]),
-        _ => None,
-    }
-}
-
-/// The five rosettes, as indices into [`BOARD`].
-///
-/// Landing on one is worth an extra throw, and the middle one is worth more than
-/// that: it is the only square in the shared row where a piece cannot be taken.
-pub const ROSETTES: [usize; 5] = [0, 9, 4, 14, 18];
-
-/// Whether this board square carries a rosette.
-pub fn is_rosette(square: usize) -> bool {
-    ROSETTES.contains(&square)
-}
-
-/// The one rosette in the shared row, which is the safe square.
-///
-/// **Named rather than derived.** It is the fourth square of the middle row and
-/// also the eighth step of either path, and both of those are true by
-/// coincidence of layout rather than by rule. A reader that worked it out from
-/// the geometry would keep working if the geometry changed and stop meaning what
-/// it means.
-pub const SAFE: usize = 9;
-
-/// Whether a square is one of the eight both sides walk.
-///
-/// This is the question capture asks, and it is asked of the *square* rather
-/// than of the step, because the two paths meet on the same squares at the same
-/// step numbers and that coincidence is not something to rely on.
-pub fn is_shared(square: usize) -> bool {
-    (6..=13).contains(&square)
-}
+/// The board of twenty squares: four to each side at one end, and a middle row
+/// of twelve.
+const ASEB_BOARD: [Square; 20] = [
+    sq(0, 0), sq(0, 1), sq(0, 2), sq(0, 3),
+    sq(1, 0), sq(1, 1), sq(1, 2), sq(1, 3), sq(1, 4), sq(1, 5),
+    sq(1, 6), sq(1, 7), sq(1, 8), sq(1, 9), sq(1, 10), sq(1, 11),
+    sq(2, 0), sq(2, 1), sq(2, 2), sq(2, 3),
+];
+const ASEB_ROSETTES: [usize; 5] = [0, 16, 7, 11, 15];
+const ASEB_WHITE: [usize; 16] = [3, 2, 1, 0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const ASEB_BLACK: [usize; 16] = [19, 18, 17, 16, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn rosette_steps(rules: &Rules, side: Side) -> Vec<u8> {
+        rules
+            .path(side)
+            .iter()
+            .enumerate()
+            .filter(|&(_, &square)| rules.is_rosette(square))
+            .map(|(step, _)| step as u8 + 1)
+            .collect()
+    }
+
+    fn shared(rules: &Rules) -> Vec<usize> {
+        let mut squares: Vec<usize> = (0..rules.board.len()).filter(|&s| rules.is_shared(s)).collect();
+        squares.sort_unstable();
+        squares
+    }
+
     #[test]
     fn every_path_square_exists_and_no_side_repeats_one() {
-        for side in [Side::White, Side::Black] {
-            let walk = path(side);
-            for &square in walk.iter() {
-                assert!(
-                    square < SQUARES,
-                    "{side:?} walks square {square}, which is not on the board"
-                );
+        for rules in ALL {
+            assert_eq!(rules.path(Side::White).len(), rules.path(Side::Black).len());
+            for side in [Side::White, Side::Black] {
+                let mut seen = rules.path(side).to_vec();
+                assert!(seen.iter().all(|&s| s < rules.board.len()), "{} {side:?}", rules.name);
+                seen.sort_unstable();
+                seen.dedup();
+                assert_eq!(seen.len(), rules.path_len() as usize, "{} {side:?} walks a square twice", rules.name);
             }
-            let mut seen = walk.to_vec();
+            for rosette in rules.rosettes {
+                assert!(*rosette < rules.board.len());
+            }
+        }
+    }
+
+    #[test]
+    fn every_board_has_twenty_distinct_squares_inside_its_frame() {
+        for rules in ALL {
+            assert_eq!(rules.board.len(), 20, "{}", rules.name);
+            let mut seen: Vec<(u8, u8)> = rules.board.iter().map(|s| (s.row, s.column)).collect();
+            assert!(rules.board.iter().all(|s| s.row < rules.rows && s.column < rules.columns));
             seen.sort_unstable();
             seen.dedup();
-            assert_eq!(seen.len(), PATH, "{side:?} walks a square twice");
+            assert_eq!(seen.len(), 20, "{} lists a square twice", rules.name);
         }
+        // The waist of the board found at Ur.
+        assert!(!STANDARD.iter().any(|s| s.row != 1 && (s.column == 4 || s.column == 5)));
     }
 
     #[test]
-    fn the_two_paths_share_exactly_the_middle_row() {
-        let white: Vec<usize> = WHITE_PATH.to_vec();
-        let shared: Vec<usize> = BLACK_PATH
-            .iter()
-            .copied()
-            .filter(|s| white.contains(s))
-            .collect();
-        assert_eq!(
-            shared,
-            vec![6, 7, 8, 9, 10, 11, 12, 13],
-            "the shared stretch is not the middle row"
-        );
-        assert_eq!(shared.len(), 8);
-        for &square in &shared {
-            assert!(
-                is_shared(square),
-                "{square} is walked by both and is_shared says no"
-            );
-        }
-        for square in 0..SQUARES {
-            if !shared.contains(&square) {
-                assert!(
-                    !is_shared(square),
-                    "{square} is private and is_shared says yes"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn both_sides_meet_the_shared_squares_at_the_same_step() {
-        // Relied on by nothing — asserted so that if it ever stops being true
-        // the tests say so rather than a capture quietly going wrong.
-        for step in 0..PATH {
-            let white = WHITE_PATH[step];
-            if is_shared(white) {
-                assert_eq!(
-                    BLACK_PATH[step], white,
-                    "the paths diverge over the shared row at step {step}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn the_rosettes_are_five_and_two_are_private_to_each_side() {
-        assert_eq!(ROSETTES.len(), 5);
-        let mut sorted = ROSETTES;
-        sorted.sort_unstable();
-        let mut deduped = sorted.to_vec();
-        deduped.dedup();
-        assert_eq!(deduped.len(), 5, "a rosette is listed twice");
-
-        let shared: Vec<usize> = ROSETTES.iter().copied().filter(|&s| is_shared(s)).collect();
-        assert_eq!(
-            shared,
-            vec![SAFE],
-            "exactly one rosette is in the shared row"
-        );
-
+    fn finkel_shares_the_middle_row_and_keeps_rosettes_at_4_8_14() {
+        assert_eq!(FINKEL.path_len(), 14);
+        assert_eq!(shared(&FINKEL), (6..=13).collect::<Vec<_>>());
         for side in [Side::White, Side::Black] {
-            let own = path(side)
-                .iter()
-                .filter(|&&s| is_rosette(s) && !is_shared(s))
-                .count();
-            assert_eq!(own, 2, "{side:?} should walk two private rosettes");
+            assert_eq!(rosette_steps(&FINKEL, side), [4, 8, 14]);
         }
+        let safe: Vec<usize> = (0..20).filter(|&s| FINKEL.is_safe(s)).collect();
+        assert_eq!(safe, [9], "only the middle rosette is safe");
+        assert_eq!(FINKEL.board[9], sq(1, 3));
     }
 
     #[test]
-    fn a_side_walks_three_rosettes_and_they_are_where_the_rules_say() {
-        for side in [Side::White, Side::Black] {
-            let steps: Vec<usize> = path(side)
-                .iter()
-                .enumerate()
-                .filter(|&(_, &square)| is_rosette(square))
-                .map(|(step, _)| step + 1)
-                .collect();
-            assert_eq!(
-                steps,
-                vec![4, 8, 14],
-                "{side:?}'s rosettes are not at steps 4, 8 and 14"
-            );
-        }
-    }
-
-    #[test]
-    fn the_safe_square_is_the_middle_rosette_and_is_shared() {
-        assert!(is_rosette(SAFE));
-        assert!(is_shared(SAFE));
-        assert_eq!(BOARD[SAFE], Square::new(1, 3));
-    }
-
-    #[test]
-    fn the_board_is_twenty_squares_with_the_waist_missing() {
-        assert_eq!(BOARD.len(), SQUARES);
-        for square in BOARD.iter() {
-            assert!((square.row as usize) < ROWS);
-            assert!((square.column as usize) < COLUMNS);
-            if square.row != 1 {
-                assert!(
-                    square.column != 4 && square.column != 5,
-                    "the waist at row {} column {} should not exist",
-                    square.row,
-                    square.column
-                );
+    fn masters_path_is_sixteen_with_a_rosette_every_fourth_and_crosses_the_far_end() {
+        for rules in [&MASTERS, &BLITZ] {
+            assert_eq!(rules.path_len(), 16);
+            for side in [Side::White, Side::Black] {
+                assert_eq!(rosette_steps(rules, side), [4, 8, 12, 16], "{}", rules.name);
             }
+            // The middle row to column 6, then the far two columns of all three rows.
+            assert_eq!(shared(rules), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 18, 19]);
+            assert!((0..20).all(|s| !rules.is_safe(s)), "no square is safe");
         }
-        let mut seen: Vec<(u8, u8)> = BOARD.iter().map(|s| (s.row, s.column)).collect();
-        seen.sort_unstable();
-        seen.dedup();
-        assert_eq!(seen.len(), SQUARES, "a square is listed twice");
+        // White reaches Black's rosette at step 12, where Black stands at step 16.
+        assert_eq!(MASTERS.square_at(Side::White, Spot::Step(12)), Some(18));
+        assert_eq!(MASTERS.square_at(Side::Black, Spot::Step(16)), Some(18));
+    }
+
+    #[test]
+    fn aseb_shares_twelve_and_keeps_three_safe_rosettes() {
+        assert_eq!(ASEB.path_len(), 16);
+        assert_eq!(shared(&ASEB), (4..=15).collect::<Vec<_>>());
+        for side in [Side::White, Side::Black] {
+            assert_eq!(rosette_steps(&ASEB, side), [4, 8, 12, 16]);
+        }
+        let safe: Vec<usize> = (0..20).filter(|&s| ASEB.is_safe(s)).collect();
+        assert_eq!(safe, [7, 11, 15]);
+    }
+
+    #[test]
+    fn the_dice_and_what_a_nought_moves() {
+        assert_eq!(FINKEL.throws().map(|t| FINKEL.steps(t)).collect::<Vec<_>>(), [0, 1, 2, 3, 4]);
+        assert_eq!(MASTERS.throws().map(|t| MASTERS.steps(t)).collect::<Vec<_>>(), [4, 1, 2, 3]);
+        assert_eq!(FINKEL.throws().map(|t| FINKEL.ways(t)).collect::<Vec<_>>(), [1, 4, 6, 4, 1]);
+        assert_eq!(MASTERS.throws().map(|t| MASTERS.ways(t)).collect::<Vec<_>>(), [1, 3, 3, 1]);
+        assert_eq!(MASTERS.throw(4), None, "three dice cannot show four marks");
     }
 
     #[test]
     fn a_spot_advances_to_off_only_on_an_exact_throw() {
-        assert_eq!(Spot::Waiting.advance(1), Some(Spot::Step(1)));
-        assert_eq!(Spot::Step(PATH as u8).advance(1), Some(Spot::Off));
-        assert_eq!(
-            Spot::Step(PATH as u8).advance(2),
-            None,
-            "overshooting should not bear off"
-        );
-        assert_eq!(Spot::Step(PATH as u8 - 1).advance(3), None);
-        assert_eq!(Spot::Step(PATH as u8 - 1).advance(2), Some(Spot::Off));
+        for rules in ALL {
+            let last = rules.path_len();
+            assert_eq!(rules.advance(Spot::Waiting, 1), Some(Spot::Step(1)));
+            assert_eq!(rules.advance(Spot::Step(last), 1), Some(Spot::Off));
+            assert_eq!(rules.advance(Spot::Step(last), 2), None, "overshooting should not bear off");
+            assert_eq!(rules.advance(Spot::Step(last - 1), 2), Some(Spot::Off));
+        }
     }
 
     #[test]
     fn square_at_answers_only_for_pieces_on_the_board() {
-        assert_eq!(square_at(Side::White, Spot::Waiting), None);
-        assert_eq!(square_at(Side::White, Spot::Off), None);
-        assert_eq!(square_at(Side::White, Spot::Step(1)), Some(3));
-        assert_eq!(square_at(Side::White, Spot::Step(4)), Some(0));
-        assert_eq!(square_at(Side::Black, Spot::Step(1)), Some(17));
-        assert_eq!(square_at(Side::Black, Spot::Step(8)), Some(SAFE));
+        assert_eq!(FINKEL.square_at(Side::White, Spot::Waiting), None);
+        assert_eq!(FINKEL.square_at(Side::White, Spot::Off), None);
+        assert_eq!(FINKEL.square_at(Side::White, Spot::Step(1)), Some(3));
+        assert_eq!(FINKEL.square_at(Side::Black, Spot::Step(8)), Some(9));
     }
 }

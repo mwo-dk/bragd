@@ -60,7 +60,7 @@ fn every_move_and_piece_stands_on_a_named_cell() {
         let key = info.key;
         // Ur and senet are past their first throw, backgammon past its opening roll.
         let entries: &[&str] = match key {
-            "ur" => &["2"],
+            "ur" | "ur-masters" | "ur-blitz" | "ur-aseb" => &["2"],
             "senet" => &["1"],
             "backgammon" => &["3-1"],
             _ => &[],

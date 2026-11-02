@@ -192,6 +192,8 @@ fn state(variant: Variant, game: &Game) -> State {
         history: game.moves().iter().map(|&mv| notation(geometry, mv)).collect(),
         numbers: Vec::new(),
         check: false,
+        forced: None,
+        passed: None,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {
             cells: labels.iter().map(|l| crate::Cell { x: l.x, y: l.y, square: l.text.clone() }).collect(),

@@ -74,7 +74,7 @@ fn state(game: &Game, last: Option<rules_senet::Move>) -> State {
         Needed::Move { .. } => (Awaiting::Move, Vec::new()),
         Needed::Nothing => (Awaiting::Nothing, Vec::new()),
     };
-    let moves = game
+    let moves: Vec<LegalMove> = game
         .moves()
         .iter()
         .map(|offer| LegalMove {
@@ -145,13 +145,21 @@ fn state(game: &Game, last: Option<rules_senet::Move>) -> State {
         position: position.to_picture(),
         to_move: needs.side().map(seat),
         awaiting,
-        moves,
+        moves: moves.clone(),
         steps: Vec::new(),
         targets: BTreeMap::new(),
         throws,
         history: game.entries().iter().map(|entry| entry.to_wire()).collect(),
         numbers: Vec::new(),
         check: false,
+        forced: match moves.as_slice() {
+            [only] => Some(only.wire.clone()),
+            _ => None,
+        },
+        passed: match game.entries().last() {
+            Some(Entry::Throw(throw)) if game.pending_throw().is_none() => Some(throw.steps().to_string()),
+            _ => None,
+        },
         outcome: game.outcome().map(|outcome| Outcome {
             winner: Some(seat(outcome.winner)),
             reason: match outcome.reason {

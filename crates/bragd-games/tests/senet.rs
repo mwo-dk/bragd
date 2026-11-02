@@ -59,3 +59,11 @@ fn the_houses_snake_and_are_numbered() {
     assert_eq!((house("11").x, house("11").y), (9, 1));
     assert_eq!(board.pieces.len(), 14);
 }
+
+#[test]
+fn senet_reports_a_lone_move_as_forced_and_a_choice_as_not() {
+    // A first throw of 2 has one move; a 1 has seven.
+    assert_eq!(replay("senet", None, &["2"]).unwrap().forced.as_deref(), Some("14-16"));
+    assert_eq!(replay("senet", None, &["1"]).unwrap().forced, None);
+    assert_eq!(replay::<&str>("senet", None, &[]).unwrap().forced, None, "nothing is forced before a throw");
+}

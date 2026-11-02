@@ -23,6 +23,8 @@ The F1 entries and the pages *Show me* opens:
 | `wizard` | Install wizard and What's new | [The install wizard](first-start.md) |
 | `families` | Game families | [Game families and Variants](game-families.md) |
 | `play` | Play | [Playing against yourself](../play/against-yourself.md) |
+| `ur` | Ur rule sets and pyramid dice | [Ur](../play/ur.md) |
+| `forced` | Forced moves play by themselves | [Playing against yourself](../play/against-yourself.md#forced-moves) |
 | `databases` | Databases | [Foreign databases](../knowledge/foreign-databases.md) |
 | `players` | Player summary | [Player summary](../knowledge/players.md) |
 | `parquet` | Export to Parquet | [Export to Parquet](../knowledge/parquet-export.md) |

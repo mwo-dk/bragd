@@ -26,6 +26,8 @@ The cards of the coming version, 1.0.0:
 | `matches` | Engine matches |
 | `players` | Player summary |
 | `back` | Back |
+| `ur` | Ur: four rule sets and pyramid dice |
+| `forced` | Forced moves play by themselves |
 
 A card shows only to someone who plays a Game family it concerns. Most concern everyone; one about tablebases, say, would name chess and skip a user with chess turned off, both after the upgrade and in the list.
 
