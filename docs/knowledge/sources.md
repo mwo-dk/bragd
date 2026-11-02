@@ -59,6 +59,7 @@ The Sources marked *Not yet* are listed so you know they are coming. They are gr
 
 ## Routes
 
+<!-- screenshot: sources-routes-1100.png: The Routes of The Week in Chess: Route 1 into main keeping everything, Route 2 into a new Library named elite keeping Games where both players are rated 2600 or more, in the default Racing green dark Theme -->
 ![The Routes of The Week in Chess: Route 1 into main keeping everything, Route 2 into a new Library named elite keeping Games where both players are rated 2600 or more](../screenshots/sources-routes-1100.png)
 *Databases → Sources → Options → Routes.*
 
@@ -114,6 +115,7 @@ Into the Helper's folder, `<data>/bragd/helper/sources/<source>/`, one folder pe
 
 #### Why does a Source ask before a big download?
 
+<!-- screenshot: sources-too-big-1100.png: A custom URL Source whose next download is 3.4 GB, more than its limit of 2 GB, with Download it anyway, in the default Racing green dark Theme -->
 ![A custom URL Source whose next download is 3.4 GB, more than its limit of 2 GB, with Download it anyway](../screenshots/sources-too-big-1100.png)
 
 Each download may take at most 2 GB, or what you set as *Largest download*. When the server says a file is bigger, nothing is downloaded. The Source's line then says how big it is, with **Download it anyway**, and a notice says so. Your yes covers that one download, and the limit applies again after it. When the server does not say how big a file is, the download stops as it passes the limit. Raise *Largest download* to take it.

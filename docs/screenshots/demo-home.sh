@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The demo home the screenshots are taken in (sandbox.sh), made fresh: nothing of the owner's,
-# nothing downloaded. Its Settings are the defaults, so the Racing green Theme and Board theme
-# show. It holds a few games, and a demo Library made from them with the library crate
+# nothing downloaded. Its Settings are the defaults, so the Racing green dark Theme and the Racing green
+# Board theme show. It holds a few games, and a demo Library made from them with the library crate
 # (`bragd-library`'s `demo_library` example, run here outside the sandbox, writing only into
 # <dir>): a Duplicate from two Sources, a Near-duplicate cut short, a Slice, and a player's Games.
 # It also holds a few Games of every Family with an Engine (go, shogi, xiangqi, draughts and

@@ -4,12 +4,15 @@
 
 A Foreign database is a game file in someone else's format. Bragd opens it where it is and reads it in place: it does not copy it, convert it or change it. You can list its Games, filter and sort them, step through one, import the file into a Library, or save a copy. In F1 this is the `databases` entry.
 
+<!-- screenshot: databases-1100.png: The Databases page at its Files tab: a PGN file open, its Games listed with players, ratings, result, date, event and ECO, a filter for player and one for opening, in the default Racing green dark Theme -->
 ![The Databases page at its Files tab: a PGN file open, its Games listed with players, ratings, result, date, event and ECO, a filter for player and one for opening](../screenshots/databases-1100.png)
 *Databases → Files, with a PGN file open.*
 
+<!-- screenshot: databases-replay-1100.png: One Game in replay: the board, the moves with a comment, the evaluation profile under them and the headers, in the default Racing green dark Theme -->
 ![One Game in replay: the board, the moves with a comment, the evaluation profile under them and the headers](../screenshots/databases-replay-1100.png)
 *A Game in replay, with its evaluation profile.*
 
+<!-- screenshot: databases-390.png: The same page in a narrow window: the sidebar folded away, the list below the buttons, in the default Racing green dark Theme -->
 ![The same page in a narrow window: the sidebar folded away, the list below the buttons](../screenshots/databases-390.png)
 *The Files tab at 390 px wide.*
 

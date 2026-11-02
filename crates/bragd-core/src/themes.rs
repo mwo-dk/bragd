@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::Config;
 
 /// A Theme: the Look it brings, whether it has a tube's glow (`crt`), and its colours. In a
-/// `[themes.<name>]` table every colour not given is Racing green's.
+/// `[themes.<name>]` table every colour not given is Racing green dark's, the default's.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Theme {
@@ -39,7 +39,7 @@ pub struct Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        racing_green()
+        racing_green_dark()
     }
 }
 
@@ -94,7 +94,7 @@ pub const BRAND: [(&str, &str); 5] = [
     ("--brand-pale", "#e9f0ea"),
 ];
 
-/// Racing green, the default: the brand on a warm paper page.
+/// Racing green: the brand on a warm paper page.
 fn racing_green() -> Theme {
     pal(
         "modern",
@@ -120,7 +120,7 @@ fn racing_green() -> Theme {
     )
 }
 
-/// Racing green at night: the brand's light green on a dark slate.
+/// Racing green at night, the default: the brand's light green on a dark slate.
 fn racing_green_dark() -> Theme {
     pal(
         "modern",
@@ -852,8 +852,8 @@ pub type Builtin = (&'static str, &'static str, fn() -> Theme);
 
 /// Every built-in Theme, in the order Settings lists them: a group's Themes stand together.
 pub const BUILTIN: &[Builtin] = &[
-    ("racing-green", "theme.group.bragd", racing_green),
     ("racing-green-dark", "theme.group.bragd", racing_green_dark),
+    ("racing-green", "theme.group.bragd", racing_green),
     ("dark", "theme.group.bragd", dark),
     ("light", "theme.group.bragd", light),
     ("midnight", "theme.group.bragd", midnight),
@@ -954,7 +954,7 @@ fn safe(c: &str) -> bool {
 }
 
 /// The Theme `cfg` names (a user's own table first, then a built-in one), its unsafe colours
-/// replaced with Racing green's and its Look with `[look] look` when that is set.
+/// replaced with the default's and its Look with `[look] look` when that is set.
 pub fn theme(cfg: &Config) -> Theme {
     let name = &cfg.look.theme;
     let mut t = cfg
@@ -963,7 +963,7 @@ pub fn theme(cfg: &Config) -> Theme {
         .cloned()
         .or_else(|| builtin(name))
         .unwrap_or_default();
-    let base = racing_green();
+    let base = Theme::default();
     for (mine, theirs) in t.colours_mut().into_iter().zip(base.colours()) {
         if !safe(mine) {
             *mine = theirs.to_string();
@@ -1172,10 +1172,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn themes_catalogue_has_racing_green_first() {
+    fn themes_catalogue_has_the_default_first() {
         assert_eq!(BUILTIN.len(), 30);
-        assert_eq!(BUILTIN[0].0, "racing-green");
-        assert_eq!(theme(&Config::default()), racing_green());
+        assert_eq!(BUILTIN[0].0, "racing-green-dark");
+        assert_eq!(BUILTIN[0].0, Config::default().look.theme);
+        assert_eq!(theme(&Config::default()), racing_green_dark());
         let mut names: Vec<&str> = BUILTIN.iter().map(|(n, ..)| *n).collect();
         names.sort();
         names.dedup();
@@ -1189,15 +1190,15 @@ mod tests {
     }
 
     #[test]
-    fn themes_user_theme_fills_from_racing_green_and_is_made_safe() {
+    fn themes_user_theme_fills_from_the_default_and_is_made_safe() {
         let cfg = Config::parse(
             "[look]\ntheme = \"mine\"\nlook = \"aqua\"\n[themes.mine]\naccent = \"#ff0000\"\nfg = \"red; } body { x: y\"\n",
         )
         .unwrap();
         let t = theme(&cfg);
         assert_eq!(t.accent, "#ff0000");
-        assert_eq!(t.fg, racing_green().fg);
-        assert_eq!(t.bg, racing_green().bg);
+        assert_eq!(t.fg, racing_green_dark().fg);
+        assert_eq!(t.bg, racing_green_dark().bg);
         assert_eq!(t.look, "aqua");
         assert_eq!(group("mine"), "theme.group.own");
         assert!(
@@ -1205,9 +1206,9 @@ mod tests {
                 .iter()
                 .any(|(n, g)| n == "mine" && *g == "theme.group.own")
         );
-        // An unknown Theme falls back to Racing green.
+        // An unknown Theme falls back to the default.
         let cfg = Config::parse("[look]\ntheme = \"nope\"\n").unwrap();
-        assert_eq!(theme(&cfg), racing_green());
+        assert_eq!(theme(&cfg), racing_green_dark());
     }
 
     #[test]
@@ -1236,12 +1237,12 @@ mod tests {
     fn themes_appearance_gives_every_variable() {
         let a = appearance(&Config::default());
         assert_eq!(a.look, "modern");
-        assert!(!a.dark);
+        assert!(a.dark);
         let get = |k: &str| a.vars.iter().find(|(n, _)| n == k).map(|(_, v)| v.as_str());
-        assert_eq!(get("--bg"), Some("#faf7f1"));
+        assert_eq!(get("--bg"), Some("#12151a"));
         assert_eq!(get("--brand"), Some("#004225"));
         assert_eq!(get("--board-dark"), Some("#17553a"));
-        assert_eq!(get("--accent-fg"), Some("#faf7f1"));
+        assert_eq!(get("--accent-fg"), Some("#12151a"));
         assert_eq!(a.vars.len(), 16 + 5 + 4);
     }
 }

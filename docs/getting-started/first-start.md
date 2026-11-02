@@ -45,7 +45,7 @@ The wizard writes the same keys as Settings.
 | Setting | `config.toml` key | Default | What it does |
 |---|---|---|---|
 | Language | `language` | `"auto"` | Step 1 |
-| Theme | `look.theme` | `"racing-green"` | Step 1 |
+| Theme | `look.theme` | `"racing-green-dark"` | Step 1 |
 | Board theme | `look.board_theme` | `"racing"` | Step 1 |
 | Game families and Variants | `families.family`, `families.variant` | all on | Step 2 |
 | Start with my session | `helper.start_with_session` | `false` | Step 6 |
@@ -64,7 +64,7 @@ The Sources of your Game families that this version cannot fetch yet, in one lin
 
 #### Which Themes are on the Welcome step?
 
-Six as swatches: Racing green, Racing green (dark), Light, Dark, Paper white and Nord. The list under them holds all 30 and your own ([Themes](../look/themes.md)).
+Six as swatches: Racing green (dark), Racing green, Light, Dark, Paper white and Nord. The list under them holds all 30 and your own ([Themes](../look/themes.md)).
 
 #### I closed the wizard by mistake. How do I get it back?
 

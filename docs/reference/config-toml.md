@@ -28,7 +28,7 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`. The top-le
 | Key | Default | What it does |
 |---|---|---|
 | `language` | `"auto"` | The language. `auto` follows the system, or the nearest language Bragd has. Otherwise a code such as `"da"`, `"en-AU"` or `"es-AR"` ([Languages](../look/languages.md)) |
-| `look.theme` | `"racing-green"` | The Theme: a built-in name, or one of your `themes` ([Themes](../look/themes.md)) |
+| `look.theme` | `"racing-green-dark"` | The Theme: a built-in name, or one of your `themes` ([Themes](../look/themes.md)) |
 | `look.look` | `""` | The Look laid over the Theme. Empty: the Theme's own ([Looks](../look/looks.md)) |
 | `look.board_theme` | `"racing"` | `racing`, `slate`, `walnut`, or `match` for colours taken from the Theme ([Board themes](../look/board-themes.md)) |
 | `families.family` | every Family on | A table: Family key → `true` or `false`. Only what is off needs writing ([Game families and Variants](../getting-started/game-families.md)) |
@@ -59,7 +59,7 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`. The top-le
 | `analysis.on_battery` | `false` | Background analysis runs on the battery too |
 | `peers.on` | `false` | The Helper listens for your other machines and announces itself on the home network ([Pairing your machines](../peers/peers.md)) |
 | `peers.interface` | `""` | The interface the Helper listens on for Peers. Empty: the home network's private addresses |
-| `themes` | none | Your own Themes, one table `[themes.<name>]` each. A colour not given is Racing green's. A name like a built-in one replaces it ([Themes](../look/themes.md)) |
+| `themes` | none | Your own Themes, one table `[themes.<name>]` each. A colour not given is Racing green (dark)'s. A name like a built-in one replaces it ([Themes](../look/themes.md)) |
 
 ## An example
 

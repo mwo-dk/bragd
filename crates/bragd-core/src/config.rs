@@ -30,7 +30,7 @@ pub struct Config {
     pub analysis: AnalysisConfig,
     pub peers: PeersConfig,
     pub online: OnlineConfig,
-    /// The user's own Themes, `[themes.<name>]`: each colour not given is Racing green's. One
+    /// The user's own Themes, `[themes.<name>]`: each colour not given is Racing green dark's. One
     /// named like a built-in Theme replaces it.
     pub themes: BTreeMap<String, Theme>,
     /// The areas config.toml gives that could not be used, each left at its default
@@ -64,7 +64,7 @@ pub struct LookConfig {
 impl Default for LookConfig {
     fn default() -> Self {
         LookConfig {
-            theme: "racing-green".into(),
+            theme: "racing-green-dark".into(),
             look: String::new(),
             board_theme: "racing".into(),
             file_picker: "auto".into(),
@@ -567,7 +567,7 @@ mod tests {
     fn config_defaults_have_everything_on() {
         let c = Config::parse("").unwrap();
         assert_eq!(c, Config::default());
-        assert_eq!(c.look.theme, "racing-green");
+        assert_eq!(c.look.theme, "racing-green-dark");
         assert_eq!(c.look.board_theme, "racing");
         assert_eq!(c.knowledge.source_priority, ["twic", "lichess-db"]);
         assert!(c.updates.check && c.tablebases.online && !c.helper.start_with_session);
