@@ -70,8 +70,13 @@ pub struct Working {
 enum Ask {
     /// Rows changed after `since` in the store `store` (`Store::changes`).
     Changes { store: String, since: u64 },
-    /// A job of `lane` to borrow, if there is one.
-    Take { lane: Lane },
+    /// A job of `lane` to borrow, if there is one; first one for an Engine the asker runs from
+    /// its image (`containers`, Engine keys).
+    Take {
+        lane: Lane,
+        #[serde(default)]
+        containers: Vec<String>,
+    },
     Renew { id: u64, done: u64, total: Option<u64> },
     GiveBack { id: u64, outcome: Outcome },
     /// What it works on, and whether it has a model ready.
@@ -123,7 +128,7 @@ impl Share {
         let now = bragd_core::fs::now();
         let ok: Result<Value, String> = match ask {
             Ask::Changes { store, since } => Store::open(&self.store).and_then(|mut s| s.changes(&store, since, BATCH_ROWS, BATCH_BYTES)).map(|c| json!(c)).map_err(|e| e.to_string()),
-            Ask::Take { lane } => Ok(json!(self.jobs.lend(peer, &self.name_of(peer), lane, now).map(|(id, work)| Lent { id, work }))),
+            Ask::Take { lane, containers } => Ok(json!(self.jobs.lend(peer, &self.name_of(peer), lane, &containers, now).map(|(id, work)| Lent { id, work }))),
             Ask::Renew { id, done, total } => Ok(json!(self.jobs.renew(peer, id, done, total, now))),
             Ask::GiveBack { id, outcome } => {
                 let analysed = matches!(outcome, Outcome::Done { .. });
@@ -245,8 +250,10 @@ impl Peers for Share {
         if !self.on.load(Ordering::Relaxed) {
             return None;
         }
-        self.node.peers().into_iter().find_map(|p| {
-            let lent: Option<Lent> = serde_json::from_value(self.ask(&p.key, &Ask::Take { lane }).ok()?).ok()?;
+        let peers = self.node.peers();
+        let containers = if lane == Lane::Analysis && !peers.is_empty() { bragd_engines::local::containers(&bragd_core::config::Config::load().unwrap_or_default()) } else { vec![] };
+        peers.into_iter().find_map(|p| {
+            let lent: Option<Lent> = serde_json::from_value(self.ask(&p.key, &Ask::Take { lane, containers: containers.clone() }).ok()?).ok()?;
             lent.map(|l| (Owner { peer: p.key, name: p.name, id: l.id }, l.work))
         })
     }

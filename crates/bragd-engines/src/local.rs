@@ -131,6 +131,12 @@ pub fn resolve(cfg: &Config, key: &str, variant: &str) -> Result<Chosen, String>
     Ok(Chosen { key: key.into(), program: Program::Installed { path, args: vec![] }, protocols: seam::protocols(family).to_vec() })
 }
 
+/// The known Engines that run here from their image, pinned by digest: the same Edition on
+/// every machine, so a Peer's shared jobs of theirs come here first.
+pub fn containers(cfg: &Config) -> Vec<String> {
+    known::KNOWN.iter().filter(|k| matches!(resolve(cfg, k.key, ""), Ok(Chosen { program: Program::Container { .. }, .. }))).map(|k| k.key.to_string()).collect()
+}
+
 fn missing(cfg: &Config, k: &Known, m: &Missing) -> String {
     match m {
         Missing::NotPulled { .. } => i18n::tr("engines.state.get", &[("size", &bragd_core::i18n::bytes(k.image_size))]),

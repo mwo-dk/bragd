@@ -39,7 +39,7 @@ The job carries its positions, so the other machine needs neither the Library no
 
 A job is lent for ten minutes, and renewed every minute while it runs. If the other machine goes away, the lease runs out and the job goes back to the queue: here, or to another Peer. Positions already analysed are not analysed again. A machine that cannot do a job, for want of the Engine, too old an Edition, or because it failed there, gives it back, and is not offered that job again.
 
-Container Engines run the same Edition on every machine, pinned by image digest, so they suit shared jobs best ([Engine container images](../engines/container-images.md)).
+Container Engines run the same Edition on every machine, pinned by image digest, so they suit shared jobs best ([Engine container images](../engines/container-images.md)). A machine asking for a job says which Engines it runs from their image, and is lent the jobs for those Engines first. The jobs you asked for still go before those from Games you opened.
 
 ### Model jobs
 

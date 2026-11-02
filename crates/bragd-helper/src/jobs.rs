@@ -723,19 +723,23 @@ impl Jobs {
     }
 
     /// The first job of `lane` queued here that the Peer `peer` may take, lent to it for
-    /// `LEASE`; for analysis, the ones asked for before those from Games opened. Never a job
-    /// borrowed from another Peer, nor one that Peer could not do.
-    pub fn lend(&self, peer: &str, name: &str, lane: Lane, now: u64) -> Option<(u64, Work)> {
+    /// `LEASE`; for analysis, the ones asked for before those from Games opened, and among
+    /// those the ones whose Engine it runs from its image (`containers`): the same Edition on
+    /// every machine. Never a job borrowed from another Peer, nor one that Peer could not do.
+    pub fn lend(&self, peer: &str, name: &str, lane: Lane, containers: &[String], now: u64) -> Option<(u64, Work)> {
         if !matches!(lane, Lane::Analysis | Lane::Model) {
             return None;
         }
         self.expire(now);
         let declined = self.declined.lock().unwrap_or_else(|e| e.into_inner()).clone();
         let mut st = self.lock();
-        let ok = |j: &Job, low: bool| {
-            j.status == Status::Queued && j.from.is_none() && Lane::of(&j.work) == lane && matches!(&j.work, Work::Analyse { job } if job.low) == low && !declined.contains(&(j.id, peer.to_string()))
+        let ok = |j: &Job| j.status == Status::Queued && j.from.is_none() && Lane::of(&j.work) == lane && !declined.contains(&(j.id, peer.to_string()));
+        let rank = |j: &Job| match &j.work {
+            Work::Analyse { job } => (job.low, !containers.contains(&job.engine)),
+            _ => (false, false),
         };
-        let i = st.jobs.iter().position(|j| ok(j, false)).or_else(|| st.jobs.iter().position(|j| ok(j, true)))?;
+        // The first of the best: `min_by_key` keeps the earliest of equals.
+        let i = st.jobs.iter().enumerate().filter(|(_, j)| ok(j)).min_by_key(|(_, j)| rank(j))?.0;
         let j = &mut st.jobs[i];
         j.status = Status::Running;
         j.lent = Some(Lease { peer: peer.into(), name: name.into(), until: now + LEASE });
@@ -1247,6 +1251,22 @@ pub(crate) mod tests {
         use bragd_positions::queue::{Job, Per, Spot};
         let spots = keys.iter().map(|&(key, count)| Spot { key, setup: bragd_library::chess::pgn::START.into(), moves: vec![], count }).collect();
         Job::new("chess", "chess", engine, Some(min.into()), Per::Depth(20), spots, low, "test")
+    }
+
+    /// A Peer is lent first the jobs of Engines it runs from their image, so it answers with the
+    /// same Edition as every other machine; the jobs asked for still go before those from Games opened.
+    #[test]
+    fn a_peer_is_lent_the_jobs_of_its_container_engines_first() {
+        let d = crate::tests::Dir::new("lend");
+        let jobs = jobs_with(&d.0, &d.0.join("data"), Recorded::default(), Arc::default());
+        let native = jobs.add(Work::Analyse { job: analyse_job("stockfish", &[(1, 1)], "", false) });
+        let low = jobs.add(Work::Analyse { job: analyse_job("fairy-stockfish", &[(2, 1)], "", true) });
+        let boxed = jobs.add(Work::Analyse { job: analyse_job("fairy-stockfish", &[(3, 1)], "", false) });
+        let lent = |containers: &[String]| jobs.lend("p", "P", Lane::Analysis, containers, 0).map(|(id, _)| id);
+        let fairy = ["fairy-stockfish".to_string()];
+        assert_eq!(lent(&fairy), Some(boxed));
+        assert_eq!(lent(&fairy), Some(native));
+        assert_eq!(lent(&[]), Some(low));
     }
 
     /// Background analysis takes the jobs asked for before those from Games opened, the most
