@@ -143,6 +143,8 @@ pub struct Board {
     pub cube: Option<CubeView>,
     /// The dice or sticks of the throw being played, for backgammon, Ur and senet.
     pub dice: Vec<u8>,
+    /// Beside `dice`, which of them a backgammon turn moved checker by checker has used.
+    pub used: Vec<bool>,
     /// Printed cell labels: draughts square numbers, senet house numbers.
     pub labels: Vec<Label>,
     /// Every cell a piece can stand on or move to, with its name in the Family's
@@ -289,6 +291,12 @@ pub fn start_position(key: &str) -> Result<String, GameError> {
 /// The starting FEN of Chess960 arrangement `index` (taken modulo 960; 518 is standard chess).
 pub fn chess960_start(index: u16) -> String {
     chess::chess960(index)
+}
+
+/// Backgammon's opening throw from White's die and Black's: who moves first (`white` or
+/// `black`, the Game's initial) and the roll they play, or `None` on a tie, which is thrown again.
+pub fn backgammon_opening(white: u8, black: u8) -> Option<(String, String)> {
+    backgammon::opening(white, black)
 }
 
 /// Plays `entries` from `initial` (or the Variant's start) and describes the result.

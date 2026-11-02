@@ -16,7 +16,7 @@ export const replay = (/** @type {string} */ variant, /** @type {string|null} */
 /** @returns {Promise<any>} */
 export const play = (/** @type {string} */ variant, /** @type {string|null} */ initial, /** @type {string[]} */ entries, /** @type {string} */ entry) =>
   invoke("game_play", { variant, initial, entries, entry });
-/** @returns {Promise<{entry: string, state: any}>} */
+/** @returns {Promise<{initial: string|null, entry: string, state: any}>} */
 export const throwDice = (/** @type {string} */ variant, /** @type {string|null} */ initial, /** @type {string[]} */ entries) =>
   invoke("game_throw", { variant, initial, entries });
 /** Backgammon: the checkers moved so far this turn (`part`); `entry` is the whole turn once the dice are used. @returns {Promise<{entry: string|null, state: any}>} */

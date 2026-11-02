@@ -225,15 +225,21 @@ pub type Table<'a> = &'a (dyn Fn(&State, Option<i32>) -> Option<Ended> + Sync);
 #[allow(clippy::too_many_arguments, reason = "a clock or a limit per move, and each thing a Game ends by")]
 pub fn play(variant: &str, opening: &Opening, players: &mut [Player; 2], limit: Limit, clock: Option<TimeControl>, adj: &Adjudication, table: Table, stop: &dyn Fn() -> bool) -> Result<Played, String> {
     let family = bragd_games::variant(variant).map_err(|e| e.to_string())?.family();
-    let initial = opening.initial.as_deref();
+    let mut seated = opening.initial.clone();
     let mut entries = opening.moves.clone();
+    // Backgammon's opening throw seats whoever throws the higher die.
+    if let Some((first, roll)) = bragd_core::throw::opening(family, &entries) {
+        seated = Some(first);
+        entries.push(roll);
+    }
+    let initial = seated.as_deref();
     // Each engine move's score, centipawns from the first Side's view, with whose move it was.
     let mut scores: Vec<(usize, Option<i32>)> = vec![];
     let mut moves = 0u32;
     let mut clocks = clock.map(Clocks::new);
     let end = |entries: Vec<String>, ended: Ended, reason: &str| -> Result<Played, String> {
         let state = bragd_games::replay(variant, initial, &entries).map_err(|e| e.to_string())?;
-        Ok(Played { initial: opening.initial.clone(), history: state.history, entries, ended, result: ended.result().into(), reason: reason.into() })
+        Ok(Played { initial: seated.clone(), history: state.history, entries, ended, result: ended.result().into(), reason: reason.into() })
     };
     loop {
         if stop() {
@@ -246,7 +252,7 @@ pub fn play(variant: &str, opening: &Opening, players: &mut [Player; 2], limit: 
                 Some(s) if s.index == 0 => Ended::First,
                 Some(_) => Ended::Second,
             };
-            return Ok(Played { initial: opening.initial.clone(), history: state.history, entries, ended, result: o.result.clone(), reason: o.reason.clone() });
+            return Ok(Played { initial: seated.clone(), history: state.history, entries, ended, result: o.result.clone(), reason: o.reason.clone() });
         }
         let Some(seat) = state.to_move else { return end(entries, Ended::Draw, "length") };
         let me = seat.index as usize;

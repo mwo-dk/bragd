@@ -298,21 +298,31 @@ fn game_play(variant: String, initial: Option<String>, entries: Vec<String>, ent
 
 #[derive(Serialize)]
 struct Thrown {
+    /// Who moves first, which backgammon's opening throw decides; else the `initial` passed in.
+    initial: Option<String>,
     entry: String,
     state: State,
 }
 
 /// Throws the dice or sticks for the side to act, and plays the throw.
 #[tauri::command]
-fn game_throw(variant: String, initial: Option<String>, entries: Vec<String>) -> Result<Thrown, GameError> {
+fn game_throw(variant: String, mut initial: Option<String>, entries: Vec<String>) -> Result<Thrown, GameError> {
     let state = bragd_games::replay(&variant, initial.as_deref(), &entries)?;
-    let entry = bragd_core::throw::throw(state.variant.family(), &state.throws).ok_or_else(|| GameError::Refused {
+    let family = state.variant.family();
+    let entry = match bragd_core::throw::opening(family, &entries) {
+        Some((first, roll)) => {
+            initial = Some(first);
+            Some(roll)
+        }
+        None => bragd_core::throw::throw(family, &state.throws),
+    }
+    .ok_or_else(|| GameError::Refused {
         index: entries.len(),
         entry: String::new(),
         reason: "no throw is awaited".into(),
     })?;
     let state = bragd_games::apply(&variant, initial.as_deref(), &entries, &entry)?;
-    Ok(Thrown { entry, state })
+    Ok(Thrown { initial, entry, state })
 }
 
 /// Backgammon: the turn so far played one checker at a time (`part`), and the turn's entry

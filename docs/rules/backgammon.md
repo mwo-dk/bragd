@@ -62,10 +62,11 @@ because it is the same question: where did this Game begin. A Game should not be
 opened without it: entries alone replay into the wrong game about half the time,
 and the result looks reasonable.
 
-The opening roll is then thrown separately, **rethrown until the dice differ**.
-Who goes first is already settled, so all that is left of the higher-die rule is
-the absence of doubles. Leaving it out would hand the first player an opening 6-6
-that no backgammon player has ever seen.
+In Play and in Engine matches the opening throw decides it: one die for each
+Side, **thrown again until they differ**. The Side with the higher die moves
+first and plays both dice as its roll, so the first turn is never a double, and
+the rules refuse a double as the opening roll. Leaving that out would hand the
+first player an opening 6-6 that no backgammon player has ever seen.
 
 ### A result is not one point
 
