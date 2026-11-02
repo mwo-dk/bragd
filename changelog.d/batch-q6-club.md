@@ -1,0 +1,1 @@
+| **Back reopens the Club you had open.** Going back to a place on the Clubs page opens the Club that was open there, taking its lock as opening it does. When it cannot be opened, the page says why. | [Going back](getting-started/navigation.md#what-happens-to-a-club-when-i-go-back) |
