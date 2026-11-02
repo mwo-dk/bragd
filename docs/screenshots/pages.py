@@ -122,7 +122,7 @@ def engine():
     try:
         with Desktop(size=W1100) as d:
             nav(d, "chess")
-            select(d, "Opponent", "Against an engine")
+            select(d, "Opponent", "Against an Engine")
             for a, b in (m.split() for m in ["e2 e4", "g1 f3", "f1 c4"]):
                 move(d, a, b)
                 d.wait(2.5)
