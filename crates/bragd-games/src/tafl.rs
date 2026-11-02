@@ -163,6 +163,8 @@ fn state(variant: Variant, game: &Game) -> State {
         history: game.moves().iter().map(|mv| mv.to_wire()).collect(),
         numbers: Vec::new(),
         check: false,
+        forced: None,
+        passed: None,
         outcome: game.outcome().map(|outcome| outcome_of(variant, outcome)),
         board: Board {
             cells: (0..size).flat_map(|y| (0..size).map(move |x| (x, y))).map(|(x, y)| crate::Cell { x, y, square: Square::from_file_rank(x, y).expect("on the board").to_string() }).collect(),

@@ -136,6 +136,8 @@ fn state(game: &Game) -> State {
         history: game.moves().iter().map(|mv| mv.to_usi()).collect(),
         numbers: Vec::new(),
         check,
+        forced: None,
+        passed: None,
         outcome: game.outcome().map(outcome_of),
         board: Board {
             cells: (0..SQUARES as u8).map(Square::at).map(|s| crate::Cell { x: s.file(), y: s.rank(), square: s.name() }).collect(),

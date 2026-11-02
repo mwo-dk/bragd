@@ -38,7 +38,10 @@ still open.
 | Tafl | Tablut | `tablut` | 9×9 | `rules-tafl` | [Tafl sizes](tafl-sizes.md) | Linnaeus, 1732: the only contemporary account of any tafl. |
 | Tafl | Brandubh | `brandubh` | 7×7 | `rules-tafl` | [Tafl sizes](tafl-sizes.md) | The Irish game. The thinnest evidence of the three. |
 | Backgammon | Backgammon | `backgammon` | 24 points | `rules-backgammon` | [Backgammon](backgammon.md) | Dice as inputs, and a doubling cube. |
-| Ur | The Royal Game of Ur | `ur` | 20 squares | `rules-ur` | [Ur and senet](ur-and-senet-rules.md) | Finkel's reconstruction; four tetrahedral dice. |
+| Ur | The Royal Game of Ur | `ur` | 20 squares | `rules-ur` | [Ur rule sets](ur.md) | Finkel's reconstruction; four tetrahedral dice. |
+| Ur | Ur (Masters) | `ur-masters` | 20 squares | `rules-ur` | [Ur rule sets](ur.md) | Masters' 16-square path; three dice, and 0 moves four. |
+| Ur | Ur (Blitz) | `ur-blitz` | 20 squares | `rules-ur` | [Ur rule sets](ur.md) | RoyalUr.net's: five pieces, and a capture throws again. |
+| Ur | Aseb (twenty squares) | `ur-aseb` | 4 + 12 + 4 | `rules-ur` | [Ur rule sets](ur.md) | The game of twenty squares on its own board. |
 | Senet | Senet | `senet` | 3×10 | `rules-senet` | [Ur and senet](ur-and-senet-rules.md) | Kendall's reconstruction; throwsticks, and nothing is captured. |
 
 **One rules crate per board, not per Variant.** Seven of the 25 share
@@ -65,6 +68,8 @@ xiangqi's because it is played on xiangqi's board.
 - [The tafl sizes](tafl-sizes.md): what adding brandubh and tablut cost against
   the estimate.
 - [Backgammon](backgammon.md): a roll is an input, not an event.
+- [Ur rule sets](ur.md): Finkel's, Masters', Blitz and Aseb, with the source of
+  each and the rule sets left out.
 - [Ur and senet](ur-and-senet-rules.md): two named reconstructions, with every
   point where the sources disagree.
 

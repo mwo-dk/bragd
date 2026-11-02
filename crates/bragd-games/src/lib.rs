@@ -56,6 +56,11 @@ pub struct State {
     pub numbers: Vec<String>,
     /// The side to move is in check (chess-like Families only).
     pub check: bool,
+    /// The one legal move, when a throw of the dice left exactly one: a front end
+    /// may play it by itself. `None` when there is a choice, or no dice.
+    pub forced: Option<String>,
+    /// The throw just made, when it allowed no move and so passed the turn by itself.
+    pub passed: Option<String>,
     pub outcome: Option<Outcome>,
     pub board: Board,
 }
@@ -145,6 +150,10 @@ pub struct Board {
     pub dice: Vec<u8>,
     /// Beside `dice`, which of them a backgammon turn moved checker by checker has used.
     pub used: Vec<bool>,
+    /// Ur's pyramid dice in the last throw: each one, whether a marked tip is up.
+    pub pyramids: Vec<bool>,
+    /// Each Side's path across a race track, as `[x, y]` cells in the order walked.
+    pub paths: Vec<Vec<[u8; 2]>>,
     /// Printed cell labels: draughts square numbers, senet house numbers.
     pub labels: Vec<Label>,
     /// Every cell a piece can stand on or move to, with its name in the Family's
@@ -283,7 +292,7 @@ pub fn start_position(key: &str) -> Result<String, GameError> {
         Family::Draughts => draughts::start(variant),
         Family::Tafl => tafl::start(variant),
         Family::Backgammon => backgammon::start(),
-        Family::Ur => ur::start(),
+        Family::Ur => ur::start(variant),
         Family::Senet => senet::start(),
     })
 }
@@ -317,7 +326,7 @@ pub fn replay<S: AsRef<str>>(
         Family::Draughts => draughts::replay(variant, initial, &entries),
         Family::Tafl => tafl::replay(variant, initial, &entries),
         Family::Backgammon => backgammon::replay(initial, &entries),
-        Family::Ur => ur::replay(initial, &entries),
+        Family::Ur => ur::replay(variant, initial, &entries),
         Family::Senet => senet::replay(initial, &entries),
     }?;
     Ok(finish(state))
@@ -369,6 +378,18 @@ pub fn step<S: AsRef<str>>(
             entry: None,
             state: finish(*state),
         }),
+    }
+}
+
+/// The move Bragd's Bot plays now in a Variant it plays (Ur's), or `None` when the
+/// Game waits for no move or the Variant has no Bot.
+pub fn bot_move<S: AsRef<str>>(key: &str, initial: Option<&str>, entries: &[S]) -> Result<Option<String>, GameError> {
+    let variant = variant(key)?;
+    let entries: Vec<&str> = entries.iter().map(AsRef::as_ref).collect();
+    let initial = initial.filter(|text| !text.trim().is_empty());
+    match variant.family() {
+        Family::Ur => ur::bot_move(variant, initial, &entries),
+        _ => Ok(None),
     }
 }
 

@@ -96,6 +96,9 @@ impl Opt {
     pub fn families(&self) -> &'static [&'static str] {
         if self.name.starts_with("tablebases_") {
             &["chess"]
+        } else if self.name == "play_forced" {
+            // The dice Families.
+            &["backgammon", "ur", "senet"]
         } else if self.name.starts_with("online_") {
             // The Families of Lichess, Lishogi and OGS (`bragd_online::server`).
             &["chess", "shogi", "go"]
@@ -152,7 +155,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 29] = [
+const OTHER_OPTS: [Opt; 30] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -163,6 +166,7 @@ const OTHER_OPTS: [Opt; 29] = [
         "setting.board_theme",
     ),
     opt("file_picker", &["look", "file_picker"], Look, "setting.file_picker"),
+    opt("play_forced", &["play", "forced"], Look, "setting.play_forced"),
     opt(
         "engines_containers",
         &["engines", "containers"],
@@ -440,7 +444,7 @@ mod tests {
         names.sort();
         names.dedup();
         assert_eq!(names.len(), n);
-        assert_eq!(options().filter(|o| o.area == Families).count(), 9 + 24);
+        assert_eq!(options().filter(|o| o.area == Families).count(), 9 + 27);
         for a in Area::ALL {
             assert!(
                 en.contains_key(&format!("settings.area.{}", a.id())),
@@ -521,6 +525,23 @@ mod tests {
     }
 
     #[test]
+    fn settings_forced_moves_show_only_for_the_dice_families() {
+        let only = |keep: &str| {
+            let mut c = Config::default();
+            for f in Family::ALL.iter().filter(|f| f.key() != keep) {
+                c.families.family.insert(f.key().into(), false);
+            }
+            c
+        };
+        let forced = find("play_forced").unwrap();
+        assert!(Config::default().play.forced, "on by default");
+        for id in ["backgammon", "ur", "senet"] {
+            assert!(forced.listed_for(&only(id)), "{id}");
+        }
+        assert!(!forced.listed_for(&only("chess")));
+    }
+
+    #[test]
     fn settings_a_number_typed_as_text_is_saved_as_a_number() {
         let total = find("disk_total").unwrap();
         assert_eq!(as_number(total, &Value::from(" 5000000000 ")).unwrap(), Value::from(5_000_000_000u64));
@@ -587,7 +608,9 @@ mod tests {
 
         // A Family whose Variants are all off is gone too.
         let mut c = off(&["go", "ur"]);
-        c.families.variant.insert("ur".into(), false);
+        for v in ["ur", "ur-masters", "ur-blitz", "ur-aseb"] {
+            c.families.variant.insert(v.into(), false);
+        }
         assert!(matches!(sidebar(&c), Sidebar::One { family } if family.id == "go"));
     }
 }

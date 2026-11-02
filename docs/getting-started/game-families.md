@@ -16,7 +16,7 @@ Bragd knows nine Game families with 24 Variants between them, and all are on at 
 | Draughts | English checkers, International draughts, Brazilian draughts |
 | Tafl | Hnefatafl (Copenhagen), Hnefatafl (Fetlar), Tablut, Brandubh |
 | Backgammon | Backgammon |
-| Ur | Ur (Finkel) |
+| Ur | Ur (Finkel), Ur (Masters), Ur (Blitz), Aseb (twenty squares) |
 | Senet | Senet (Kendall) |
 
 The rules of each are in [Rules](../rules/README.md).

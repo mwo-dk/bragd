@@ -34,6 +34,12 @@ Nothing. Every Variant can be played against yourself, with no Engine and no dow
 
 The families with dice or sticks have a **Throw** button first ([Backgammon](backgammon.md), [Ur](ur.md), [Senet](senet.md)). Go has **Pass** and a scoring step ([Go](go.md)).
 
+## Forced moves
+
+In backgammon, Ur and senet, a throw that leaves exactly one legal move plays it by itself. The dice show first, then after about half a second the piece moves. On Ur's and senet's boards it slides along the squares it passes. A throw with no legal move shows, *No move with n* says so, and the turn passes.
+
+Bragd's rules decide that a move is forced; the board only animates it. With *reduce motion* set in your system, the piece does not slide, but the pause stays so you can read the dice. Turn it off in **Settings → Look → Play forced moves by themselves**; then you click the one move as any other.
+
 ## Settings and config.toml
 
 | Setting | `config.toml` key | Default | What it does |
@@ -41,8 +47,13 @@ The families with dice or sticks have a **Throw** button first ([Backgammon](bac
 | A Family on or off | `families.family` | All on | A Family that is off has no Play page |
 | A Variant on or off | `families.variant` | All on | A Variant that is off is not in the Variant list |
 | Board theme | `look.board_theme` | `racing` | The board's four colours ([Board themes](../look/board-themes.md)) |
+| Play forced moves by themselves | `play.forced` | On | In backgammon, Ur and senet, a throw with one legal move plays it after a short pause |
 
 ## Questions
+
+#### Why did my piece move by itself?
+
+The throw left one legal move, so Bragd played it ([Forced moves](#forced-moves)). Settings → Look turns this off.
 
 #### Can I make an illegal move?
 

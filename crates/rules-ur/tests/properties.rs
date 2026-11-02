@@ -13,8 +13,7 @@
 //! reproducible from its seed. `crates/rules-ur` itself has no dependencies and no
 //! randomness; this file is where that line is drawn.
 
-use rules_ur::board::{PATH, is_shared, square_at};
-use rules_ur::{Entry, Game, Needed, PIECES, Position, SAFE, SQUARES, Side, Spot, Throw, WinReason};
+use rules_ur::{ALL, Entry, FINKEL, Game, Needed, Position, Rules, Side, Spot, Throw, WinReason};
 
 /// The dice the library refuses to own.
 struct Dice(u64);
@@ -34,10 +33,10 @@ impl Dice {
 
     /// Four dice, each showing a mark or not — which is what makes the 1-4-6-4-1
     /// distribution rather than a uniform one over nought to four.
-    fn throw(&mut self) -> Throw {
+    fn throw(&mut self, rules: &Rules) -> Throw {
         let bits = self.next();
-        let marks = (0..4).map(|die| ((bits >> die) & 1) as u8).sum();
-        Throw::new(marks).expect("four dice cannot show more than four marks")
+        let marks = (0..rules.dice).map(|die| ((bits >> die) & 1) as u8).sum();
+        rules.throw(marks).expect("the dice cannot show more marks than there are dice")
     }
 
     fn below(&mut self, limit: usize) -> usize {
@@ -47,14 +46,14 @@ impl Dice {
 
 /// Plays one game to its end, or until the cap, checking everything that must be
 /// true at every step along the way. Returns the finished game.
-fn play_a_game(seed: u64) -> Game {
+fn play_a_game(rules: &'static Rules, seed: u64) -> Game {
     let mut dice = Dice::new(seed);
     let first = if seed.is_multiple_of(2) {
         Side::White
     } else {
         Side::Black
     };
-    let mut game = Game::new(first);
+    let mut game = Game::new(rules, first);
 
     // A cap so a stuck game fails loudly rather than hanging the suite. A real
     // game is a few hundred entries; ten thousand is far past any of them.
@@ -74,7 +73,7 @@ fn play_a_game(seed: u64) -> Game {
                     game.moves().is_empty(),
                     "there are moves offered before a throw"
                 );
-                let throw = dice.throw();
+                let throw = dice.throw(rules);
                 game.throw(throw)
                     .expect("a throw should be accepted when one is owed");
             }
@@ -101,6 +100,8 @@ fn play_a_game(seed: u64) -> Game {
 /// Everything that must be true of any position this engine can reach.
 fn check_the_position(game: &Game) {
     let position = game.position();
+    let rules = game.rules();
+    let square_at = |side, spot| rules.square_at(side, spot);
 
     for side in [Side::White, Side::Black] {
         // **Material never changes.** Seven pieces, always, wherever they are.
@@ -108,7 +109,7 @@ fn check_the_position(game: &Game) {
         let pieces = position.pieces(side);
         assert_eq!(
             pieces.len(),
-            PIECES as usize,
+            rules.pieces as usize,
             "{side:?} does not have seven pieces"
         );
 
@@ -116,7 +117,7 @@ fn check_the_position(game: &Game) {
         for &spot in pieces {
             if let Spot::Step(step) = spot {
                 assert!(
-                    step >= 1 && step as usize <= PATH,
+                    step >= 1 && step <= rules.path_len(),
                     "{side:?} has a piece at step {step}"
                 );
             }
@@ -140,13 +141,13 @@ fn check_the_position(game: &Game) {
         let on_board = pieces.iter().filter(|s| matches!(s, Spot::Step(_))).count() as u8;
         assert_eq!(
             on_board + position.waiting(side) + position.off(side),
-            PIECES
+            rules.pieces
         );
     }
 
     // **No square holds two pieces.** This is the cross-side version, and it is
     // the one a capture could break.
-    for square in 0..SQUARES {
+    for square in 0..rules.board.len() {
         let holders = [Side::White, Side::Black]
             .into_iter()
             .filter(|&side| {
@@ -165,7 +166,7 @@ fn check_the_position(game: &Game) {
     for side in [Side::White, Side::Black] {
         for &spot in position.pieces(side) {
             if let Some(square) = square_at(side, spot)
-                && !is_shared(square) {
+                && !rules.is_shared(square) {
                     assert_eq!(
                         position.occupant(square),
                         Some(side),
@@ -177,10 +178,10 @@ fn check_the_position(game: &Game) {
 
     // The game is over exactly when somebody is home.
     match position.winner() {
-        Some(winner) => assert_eq!(position.off(winner), PIECES),
+        Some(winner) => assert_eq!(position.off(winner), rules.pieces),
         None => {
             for side in [Side::White, Side::Black] {
-                assert!(position.off(side) < PIECES);
+                assert!(position.off(side) < rules.pieces);
             }
         }
     }
@@ -202,7 +203,7 @@ fn check_the_position(game: &Game) {
 fn a_thousand_games_hold_every_property() {
     let mut finished = 0;
     for seed in 0..1_000u64 {
-        let game = play_a_game(seed.wrapping_mul(0x2545_F491_4F6C_DD1D).wrapping_add(1));
+        let game = play_a_game(ALL[seed as usize % ALL.len()], seed.wrapping_mul(0x2545_F491_4F6C_DD1D).wrapping_add(1));
         assert!(game.is_over());
         finished += 1;
     }
@@ -215,7 +216,7 @@ fn a_thousand_games_hold_every_property() {
 fn every_game_replays_to_exactly_itself() {
     let mut checked = 0;
     for seed in 0..300u64 {
-        let game = play_a_game(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15).wrapping_add(7));
+        let game = play_a_game(ALL[seed as usize % ALL.len()], seed.wrapping_mul(0x9E37_79B9_7F4A_7C15).wrapping_add(7));
         let replayed = Game::replay(game.initial_position().clone(), game.entries())
             .expect("a game this engine produced must replay");
 
@@ -244,11 +245,11 @@ fn every_game_replays_to_exactly_itself() {
 fn every_record_survives_the_wire_as_text() {
     let mut checked = 0;
     for seed in 0..200u64 {
-        let game = play_a_game(seed.wrapping_mul(0xD1B5_4A32_D192_ED03).wrapping_add(3));
-        let wire: Vec<String> = game.entries().iter().map(|entry| entry.to_wire()).collect();
+        let game = play_a_game(ALL[seed as usize % ALL.len()], seed.wrapping_mul(0xD1B5_4A32_D192_ED03).wrapping_add(3));
+        let wire: Vec<String> = game.entries().iter().map(|entry| entry.to_wire(game.rules())).collect();
         let read: Vec<Entry> = wire
             .iter()
-            .map(|text| Entry::parse(text).unwrap_or_else(|| panic!("{text:?} did not parse back")))
+            .map(|text| Entry::parse(game.rules(), text).unwrap_or_else(|| panic!("{text:?} did not parse back")))
             .collect();
         assert_eq!(read, game.entries(), "seed {seed} did not survive as text");
         for token in &wire {
@@ -264,7 +265,8 @@ fn every_position_survives_its_picture() {
     let mut checked = 0;
     for seed in 0..200u64 {
         let mut dice = Dice::new(seed.wrapping_mul(0x94D0_49BB_1331_11EB).wrapping_add(11));
-        let mut game = Game::new(Side::White);
+        let rules = ALL[seed as usize % ALL.len()];
+        let mut game = Game::new(rules, Side::White);
         // Stop partway through, so the pictures checked are middlegame boards
         // rather than only opening and finished ones.
         for _ in 0..dice.below(80) {
@@ -272,7 +274,7 @@ fn every_position_survives_its_picture() {
                 break;
             }
             match game.needs() {
-                Needed::Throw { .. } => game.throw(dice.throw()).unwrap(),
+                Needed::Throw { .. } => game.throw(dice.throw(rules)).unwrap(),
                 Needed::Move { .. } => {
                     let moves = game.moves();
                     game.play(moves[dice.below(moves.len())].chosen).unwrap()
@@ -280,7 +282,7 @@ fn every_position_survives_its_picture() {
                 Needed::Nothing => break,
             }
             let picture = game.position().to_picture();
-            let read = Position::from_picture(&picture).unwrap_or_else(|| {
+            let read = Position::from_picture(rules, &picture).unwrap_or_else(|| {
                 panic!("seed {seed} produced an unreadable picture {picture:?}")
             });
             assert_eq!(&read, game.position(), "seed {seed} picture lost something");
@@ -302,7 +304,7 @@ fn the_distribution_of_throws_is_one_four_six_four_one() {
     let mut counts = [0u32; 5];
     let rounds = 400_000;
     for _ in 0..rounds {
-        counts[dice.throw().steps() as usize] += 1;
+        counts[dice.throw(&FINKEL).marks() as usize] += 1;
     }
     let expected = [1.0, 4.0, 6.0, 4.0, 1.0];
     for (marks, &count) in counts.iter().enumerate() {
@@ -317,16 +319,17 @@ fn the_distribution_of_throws_is_one_four_six_four_one() {
 
 #[test]
 fn a_piece_is_never_taken_on_the_safe_square() {
+    const SAFE: usize = 9;
     // The property that most directly encodes a rule. Played over many games,
     // watching the one square where a capture must never happen.
     let mut dice = Dice::new(0x5EED_1234_5678_9ABC);
     let mut times_held = 0;
     for _ in 0..400 {
-        let mut game = Game::new(Side::White);
+        let mut game = Game::new(&FINKEL, Side::White);
         while !game.is_over() {
             let holder_before = game.position().occupant(SAFE);
             match game.needs() {
-                Needed::Throw { .. } => game.throw(dice.throw()).unwrap(),
+                Needed::Throw { .. } => game.throw(dice.throw(&FINKEL)).unwrap(),
                 Needed::Move { side } => {
                     let moves = game.moves();
                     let chosen = moves[dice.below(moves.len())];
@@ -359,11 +362,11 @@ fn a_piece_is_never_taken_on_the_safe_square() {
 fn a_side_that_wins_has_every_piece_home_and_the_other_does_not() {
     let mut wins = [0, 0];
     for seed in 0..400u64 {
-        let game = play_a_game(seed.wrapping_mul(0xBF58_476D_1CE4_E5B9).wrapping_add(5));
+        let game = play_a_game(ALL[seed as usize % ALL.len()], seed.wrapping_mul(0xBF58_476D_1CE4_E5B9).wrapping_add(5));
         let outcome = game.outcome().expect("a finished game has an outcome");
         assert_eq!(outcome.reason, WinReason::Home, "nothing here resigns");
-        assert_eq!(game.position().off(outcome.winner), PIECES);
-        assert!(game.position().off(outcome.winner.other()) < PIECES);
+        assert_eq!(game.position().off(outcome.winner), game.rules().pieces);
+        assert!(game.position().off(outcome.winner.other()) < game.rules().pieces);
         match outcome.winner {
             Side::White => wins[0] += 1,
             Side::Black => wins[1] += 1,

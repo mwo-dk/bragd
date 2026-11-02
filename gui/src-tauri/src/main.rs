@@ -284,6 +284,9 @@ struct Started {
 #[tauri::command]
 fn game_new(variant: String) -> Result<Started, GameError> {
     bragd_core::tips::used("play");
+    if bragd_games::variant(&variant)?.family() == bragd_games::Family::Ur {
+        bragd_core::tips::used("ur");
+    }
     let array = (bragd_games::variant(&variant)? == Variant::Chess960).then(bragd_core::throw::chess960_array);
     let initial = array.map(bragd_games::chess960_start);
     let state = bragd_games::replay::<&str>(&variant, initial.as_deref(), &[])?;

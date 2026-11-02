@@ -19,13 +19,14 @@ pub const WEEK: u64 = 7 * DAY;
 pub const FREQUENCIES: [&str; 3] = ["often", "sometimes", "off"];
 
 /// The settings whose change is a use of a Feature: (name or name prefix, Feature).
-pub const SETTINGS: [(&str, &str); 6] = [
+pub const SETTINGS: [(&str, &str); 7] = [
     ("family_", "families"),
     ("variant_", "families"),
     ("theme", "themes"),
     ("board_theme", "themes"),
     ("look", "themes"),
     ("tips", "tips"),
+    ("play_forced", "forced"),
 ];
 
 /// The Feature whose use saving the setting `name` is.

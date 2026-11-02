@@ -55,7 +55,7 @@ A **helper** (a shared disc, tile or gradient) is `<sheet>-<words>`, all lower c
 | `ur` | `l` light, `d` dark | none | `ur-l` |
 | `senet` | `e` Evens (cones), `o` Odds (spools) | none | `senet-o` |
 
-Helpers: `xiangqi-disc-red`, `xiangqi-disc-black`, `janggi-tile-{general,major,minor}-{cho,han}`, `go-stone-black`, `go-stone-white`.
+Helpers: `xiangqi-disc-red`, `xiangqi-disc-black`, `janggi-tile-{general,major,minor}-{cho,han}`, `go-stone-black`, `go-stone-white`, and Ur's pyramid dice `ur-die-marked` and `ur-die-plain` (a marked or a plain tip up).
 
 Shogi's `T` stands for *turned*: a promoted piece is the same tile turned over. An id cannot hold the `+` of SFEN.
 

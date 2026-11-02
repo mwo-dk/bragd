@@ -118,6 +118,9 @@ pub enum Variant {
     Brandubh,
     Backgammon,
     Ur,
+    UrMasters,
+    UrBlitz,
+    UrAseb,
     Senet,
 }
 
@@ -173,10 +176,11 @@ const fn row(
 const WB: [&str; 2] = ["White", "Black"];
 const TAFL: [&str; 2] = ["Attackers", "Defenders"];
 const GO: [&str; 2] = ["Black", "White"];
+const UR: [&str; 2] = ["Light", "Dark"];
 use Geometry::{Intersections, Points, Squares, Track};
 
 /// Every Variant, Family by Family, in the order the spec lists them.
-pub const VARIANTS: [VariantInfo; 24] = [
+pub const VARIANTS: [VariantInfo; 27] = [
     row(Variant::Chess, "chess", "Chess", Family::Chess, WB, Squares, 8, 8, true),
     row(Variant::Chess960, "chess960", "Chess960", Family::Chess, WB, Squares, 8, 8, true),
     row(Variant::Shatranj, "shatranj", "Shatranj", Family::Chess, WB, Squares, 8, 8, true),
@@ -199,7 +203,10 @@ pub const VARIANTS: [VariantInfo; 24] = [
     row(Variant::Tablut, "tablut", "Tablut", Family::Tafl, TAFL, Squares, 9, 9, false),
     row(Variant::Brandubh, "brandubh", "Brandubh", Family::Tafl, TAFL, Squares, 7, 7, false),
     row(Variant::Backgammon, "backgammon", "Backgammon", Family::Backgammon, WB, Points, 12, 2, false),
-    row(Variant::Ur, "ur", "The Royal Game of Ur", Family::Ur, ["Light", "Dark"], Track, 8, 3, false),
+    row(Variant::Ur, "ur", "The Royal Game of Ur", Family::Ur, UR, Track, 8, 3, false),
+    row(Variant::UrMasters, "ur-masters", "Ur (Masters)", Family::Ur, UR, Track, 8, 3, false),
+    row(Variant::UrBlitz, "ur-blitz", "Ur (Blitz)", Family::Ur, UR, Track, 8, 3, false),
+    row(Variant::UrAseb, "ur-aseb", "Aseb", Family::Ur, UR, Track, 12, 3, false),
     row(Variant::Senet, "senet", "Senet", Family::Senet, ["Evens", "Odds"], Track, 10, 3, false),
 ];
 
@@ -246,12 +253,12 @@ mod tests {
         let mut keys: Vec<_> = VARIANTS.iter().map(|info| info.key).collect();
         keys.sort();
         keys.dedup();
-        assert_eq!(keys.len(), 24);
+        assert_eq!(keys.len(), 27);
     }
 
     #[test]
     fn every_family_has_a_variant() {
         let counts: Vec<usize> = Family::ALL.iter().map(|f| f.variants().count()).collect();
-        assert_eq!(counts, [8, 2, 1, 3, 3, 4, 1, 1, 1]);
+        assert_eq!(counts, [8, 2, 1, 3, 3, 4, 1, 4, 1]);
     }
 }

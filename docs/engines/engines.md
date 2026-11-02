@@ -98,7 +98,7 @@ The program at the path you gave is no longer there. Install it again, or remove
 
 #### Why does English checkers have no Engine?
 
-Scan, the draughts Engine Bragd knows, plays international draughts only. English checkers and Brazilian draughts have none for now. Tafl, Ur and Senet will get built-in Bots.
+Scan, the draughts Engine Bragd knows, plays international draughts only. English checkers and Brazilian draughts have none for now. Ur is played by Bragd's own Bot ([Ur](../play/ur.md)); tafl and senet will get built-in Bots.
 
 #### Are Engine options shared between Variants?
 

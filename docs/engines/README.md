@@ -30,7 +30,8 @@ An Engine plays a Side in Play, analyses a position in Analyse and reviews a who
 | Draughts | International draughts | Scan | Hub |
 | Draughts | English checkers and Brazilian draughts | none yet | |
 | Backgammon | backgammon | GNU Backgammon | its command-line mode |
-| Tafl, Ur, Senet | all | none: built-in Bots come later | |
+| Ur | all | Bragd's Bot, built in | [Ur](../play/ur.md) |
+| Tafl, Senet | all | none: built-in Bots come later | |
 
 A Family with no Engine shows only Play, Databases and Rules in the sidebar. You can also add any other program that speaks the Family's protocol ([The Engines page](engines.md#how-do-i-add-an-engine-bragd-does-not-know)).
 

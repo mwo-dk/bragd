@@ -86,7 +86,7 @@ export const matchesPage = (/** @type {string} */ familyKey) => invoke("matches_
 export const matchStart = (/** @type {any} */ setup) => invoke("match_start", { setup });
 /** Asks for an opening book or a file of opening lines. @returns {Promise<string|null>} */
 export const matchBookPick = () => invoke("match_book_pick");
-/** The engines there to run for a Variant, and whether more could be got. @returns {Promise<{engines: {key: string, name: string}[], default: string|null, more: boolean, sides: string[]}>} */
+/** The engines there to run for a Variant, whether more could be got, and Bragd's own Bot where it plays. @returns {Promise<{engines: {key: string, name: string}[], default: string|null, more: boolean, sides: string[], bot: {key: string, name: string}|null}>} */
 export const engineChoices = (/** @type {string} */ variant) => invoke("engine_choices", { variant });
 /** @returns {Promise<{entry: string, notation: string}>} */
 export const engineMove = (/** @type {Game} */ g, /** @type {string|null} */ engine, /** @type {number} */ ms, /** @type {number|null} */ skill) =>

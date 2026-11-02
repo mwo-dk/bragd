@@ -300,12 +300,20 @@ fn state(game: &Game, part: &[Play]) -> State {
         to_move: needs.map(|needed| seat(needed.side())),
         awaiting,
         moves,
-        steps,
+        steps: steps.clone(),
         targets: BTreeMap::new(),
         throws,
         history: game.entries().iter().map(|entry| entry.to_wire()).collect(),
         numbers: Vec::new(),
         check: false,
+        // One possible next checker move, played by itself through `step`; or a roll that
+        // can play nothing, whose `(no play)` is the whole turn.
+        forced: match (needs, steps.as_slice(), game.turns().as_slice()) {
+            (Some(Needed::Turn { .. }), [only], _) => Some(only.wire.clone()),
+            (Some(Needed::Turn { .. }), [], [only]) if part.is_empty() => Some(only.to_string()),
+            _ => None,
+        },
+        passed: None,
         outcome: game.outcome().map(|outcome| Outcome {
             winner: Some(seat(outcome.winner)),
             reason: match outcome.reason {

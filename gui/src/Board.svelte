@@ -4,8 +4,11 @@
   // the look (chequered, ruled, lines with a river and palaces, a track); the rules are not here.
   import { place } from "./board.js";
 
-  /** @type {{ state: any, family: string, flipped?: boolean, selected?: string | null, targets?: string[], dead?: string[], oncell?: (square: string) => void, onpress?: (square: string, e: PointerEvent) => void }} */
-  let { state, family, flipped = false, selected = null, targets = [], dead = [], oncell, onpress } = $props();
+  /** A piece sliding along cells as a move is played: its sprite, the square it leaves, the
+   * cells it passes, and how far along it is, 0 to 1.
+   * @typedef {{ sprite: string, from: string, pts: number[][], p: number }} Glide */
+  /** @type {{ state: any, family: string, flipped?: boolean, selected?: string | null, targets?: string[], dead?: string[], glide?: Glide | null, oncell?: (square: string) => void, onpress?: (square: string, e: PointerEvent) => void }} */
+  let { state, family, flipped = false, selected = null, targets = [], dead = [], glide = null, oncell, onpress } = $props();
 
   const b = $derived(state.board);
   const at = (/** @type {number} */ x, /** @type {number} */ y) => place(x, y, b.files, b.ranks, flipped);
@@ -19,6 +22,29 @@
   const lines = $derived(b.geometry === "intersections");
   // Shogi pieces face their owner: turned with the board.
   const turn = $derived(flipped && family === "shogi");
+
+  /** Each Side's path across a track, through the cells' centres, nudged apart so both show. */
+  const paths = $derived(
+    (b.paths ?? []).map((/** @type {number[][]} */ path, /** @type {number} */ side) =>
+      path
+        .map(([x, y]) => {
+          const p = at(x, y);
+          return `${p.col + 0.5},${p.row + 0.5 + (side ? -0.12 : 0.12) * (flipped ? -1 : 1)}`;
+        })
+        .join(" "),
+    ),
+  );
+  /** Where the sliding piece is now: along its cells, at `p` of the way. */
+  const glideAt = $derived.by(() => {
+    if (!glide || !glide.pts.length) return null;
+    const n = glide.pts.length - 1;
+    const f = glide.p * n;
+    const i = Math.min(Math.floor(f), Math.max(n - 1, 0));
+    const [a, c] = [glide.pts[i], glide.pts[Math.min(i + 1, n)]];
+    const [pa, pc] = [at(a[0], a[1]), at(c[0], c[1])];
+    const k = f - i;
+    return { col: pa.col + (pc.col - pa.col) * k, row: pa.row + (pc.row - pa.row) * k };
+  });
 </script>
 
 <svg
@@ -67,6 +93,17 @@
     </g>
   {/if}
 
+  {#if paths.length}
+    <defs>
+      <marker id="path-end" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+        <path d="M0 0 L10 5 L0 10 Z" class="path-arrow" />
+      </marker>
+    </defs>
+    {#each paths as points, side}
+      <polyline class="path side{side}" {points} marker-end="url(#path-end)" />
+    {/each}
+  {/if}
+
   {#if family === "shogi"}
     {#each [[3, 3], [3, 6], [6, 3], [6, 6]] as [x, y]}
       <circle class="star" cx={x} cy={y} r="0.06" />
@@ -106,7 +143,7 @@
     {/each}
   {/if}
 
-  {#each b.pieces as pc (pc.square + pc.sprite + pc.x)}
+  {#each b.pieces.filter((/** @type {any} */ pc) => pc.square !== glide?.from) as pc (pc.square + pc.sprite + pc.x)}
     {@const p = at(pc.x, pc.y)}
     <use
       href="#{pc.sprite}"
@@ -123,6 +160,10 @@
       <path class="dead" d="M{p.col + 0.25} {p.row + 0.25}l0.5 0.5m0 -0.5l-0.5 0.5" />
     {/if}
   {/each}
+
+  {#if glide && glideAt}
+    <use class="gliding" href="#{glide.sprite}" x={glideAt.col} y={glideAt.row} width="1" height="1" />
+  {/if}
 
   {#each b.cells.filter((/** @type {any} */ c) => targets.includes(c.square)) as c}
     {@const p = at(c.x, c.y)}
@@ -213,6 +254,20 @@
     fill: var(--board-marker);
     stroke: var(--board-dark);
     stroke-width: 0.02;
+  }
+  .path {
+    fill: none;
+    stroke: var(--board-dark);
+    stroke-width: 0.035;
+    stroke-dasharray: 0.08 0.08;
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .path-arrow {
+    fill: var(--board-dark);
+  }
+  .gliding {
+    pointer-events: none;
   }
   .lastMove {
     fill: var(--board-highlight);

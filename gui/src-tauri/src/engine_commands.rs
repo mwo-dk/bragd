@@ -89,7 +89,12 @@ pub struct Choices {
     more: bool,
     /// The Variant's two Sides, named in the current language.
     sides: Vec<String>,
+    /// Bragd's own Bot, for a Variant it plays: Play offers it, Analyse does not.
+    bot: Option<Choice>,
 }
+
+/// The key Play sends for Bragd's own Bot.
+const BOT: &str = "bot";
 
 #[tauri::command(async)]
 pub fn engine_choices(variant: String, ctx: Managed<'_, Ctx>) -> Choices {
@@ -98,7 +103,10 @@ pub fn engine_choices(variant: String, ctx: Managed<'_, Ctx>) -> Choices {
     let ready: Vec<String> = all.iter().filter(|k| engines::availability(&cfg, k).ready()).cloned().collect();
     let engines = ready.iter().map(|key| Choice { key: key.clone(), name: bragd_engines::known::known(key).map_or_else(|| key.clone(), |k| k.name.to_string()) }).collect();
     let sides = bragd_games::Variant::from_key(&variant).map(|v| v.info().sides.iter().map(|s| tr(&format!("side.{}", s.to_lowercase()), &[])).collect()).unwrap_or_default();
-    Choices { engines, default: engines::default_for(&cfg, &variant).filter(|d| ready.contains(d)), more: all.len() > ready.len(), sides }
+    let bot = bragd_games::Variant::from_key(&variant)
+        .is_some_and(|v| v.family() == bragd_games::Family::Ur)
+        .then(|| Choice { key: BOT.into(), name: tr("engines.bot", &[]) });
+    Choices { engines, default: engines::default_for(&cfg, &variant).filter(|d| ready.contains(d)), more: all.len() > ready.len(), sides, bot }
 }
 
 #[tauri::command(async)]
@@ -109,6 +117,12 @@ pub fn engine_move(variant: String, initial: Option<String>, entries: Vec<String
     // Counted once a Game, at the Engine's first move, not at every move.
     if entries.len() < 2 {
         bragd_core::tips::used("engines");
+    }
+    if engine.as_deref() == Some(BOT) {
+        let entry = bragd_games::bot_move(&variant, initial.as_deref(), &entries)
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| tr("engines.no_move", &[]))?;
+        return Ok(engines::Moved { entry: entry.clone(), notation: entry });
     }
     engines::engine_move(&ctx.cfg(), &held, &variant, initial.as_deref(), &entries, engine.as_deref(), ms, skill)
 }

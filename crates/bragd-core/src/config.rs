@@ -28,6 +28,7 @@ pub struct Config {
     pub tips: TipsConfig,
     pub model: ModelConfig,
     pub analysis: AnalysisConfig,
+    pub play: PlayConfig,
     pub peers: PeersConfig,
     pub online: OnlineConfig,
     /// The user's own Themes, `[themes.<name>]`: each colour not given is Racing green dark's. One
@@ -237,6 +238,20 @@ impl AnalysisConfig {
     }
 }
 
+/// Play (`play`).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PlayConfig {
+    /// In backgammon, Ur and senet, a throw that leaves one legal move plays it by itself.
+    pub forced: bool,
+}
+
+impl Default for PlayConfig {
+    fn default() -> Self {
+        PlayConfig { forced: true }
+    }
+}
+
 /// How often a Tip may show (`tips`).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -297,6 +312,7 @@ impl Default for Config {
             tips: TipsConfig::default(),
             model: ModelConfig::default(),
             analysis: AnalysisConfig::default(),
+            play: PlayConfig::default(),
             peers: PeersConfig::default(),
             online: OnlineConfig::default(),
             themes: BTreeMap::new(),
@@ -627,7 +643,7 @@ on = true
 
     #[test]
     fn config_family_off_hides_its_variants() {
-        let c = Config::parse("[families.family]\ngo = false\n[families.variant]\nur = false\n")
+        let c = Config::parse("[families.family]\ngo = false\n[families.variant]\nur = false\nur-masters = false\nur-blitz = false\nur-aseb = false\n")
             .unwrap();
         assert!(!c.variant_on("go-9"));
         assert!(!c.family_shown("go"));
