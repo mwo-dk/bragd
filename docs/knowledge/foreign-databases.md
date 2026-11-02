@@ -77,6 +77,10 @@ Its reader gives no position for each move yet. That is so for draughts and xian
 
 The evaluation profile, when the file carries one (ChessBase's `[%evp]` comment). White's advantage is up, Black's down, capped at ten pawns. A mark shows where you are in the Game.
 
+#### Where did the clock times and evaluations go?
+
+Lichess and other sites put commands such as `[%clk 0:03:00]` and `[%eval 0.17]` in the comment of every move. Bragd leaves them out of the comments it shows, as a Library replay does. The rest of the comment is kept.
+
 #### Why does a Game stop part way?
 
 The file has a move that cannot be played from the position before it. Bragd shows the moves up to that one and names it.

@@ -1,0 +1,1 @@
+| **A Foreign database replay no longer shows `[%clk]` and `[%eval]` commands as text.** Its comments leave them out, as a Library replay does. | [Docs](knowledge/foreign-databases.md#where-did-the-clock-times-and-evaluations-go) |

@@ -199,8 +199,8 @@ pub struct Note {
 /// move's comments (before and after it, in one) and NAGs. Commands such as `[%clk …]` and
 /// `[%eval …]` are left out: a Lichess file has them at every move, and no one reads them as text.
 fn pgn_notes(g: &pgn::Game, plies: usize) -> Vec<Note> {
-    let join = |a: &str, b: &str| [text(a), text(b)].into_iter().filter(|c| !c.is_empty()).collect::<Vec<_>>().join(" ");
-    let first = Note { ply: 0, comment: text(&g.comment), nags: vec![] };
+    let join = |a: &str, b: &str| [comment_text(a), comment_text(b)].into_iter().filter(|c| !c.is_empty()).collect::<Vec<_>>().join(" ");
+    let first = Note { ply: 0, comment: comment_text(&g.comment), nags: vec![] };
     let moves = g.main_line().into_iter().take(plies).enumerate().map(|(i, n)| {
         let n = &g.nodes[n as usize];
         Note { ply: i + 1, comment: join(&n.before, &n.after), nags: n.nags.clone() }
@@ -208,8 +208,8 @@ fn pgn_notes(g: &pgn::Game, plies: usize) -> Vec<Note> {
     std::iter::once(first).chain(moves).filter(|n| !n.comment.is_empty() || !n.nags.is_empty()).collect()
 }
 
-/// Comment `c` without its `[%…]` commands.
-fn text(c: &str) -> String {
+/// Comment `c` without its `[%…]` commands, as every replay shows it.
+pub fn comment_text(c: &str) -> String {
     let mut out = String::new();
     let mut rest = c;
     while let Some(i) = rest.find("[%") {
