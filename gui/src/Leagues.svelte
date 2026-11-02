@@ -5,13 +5,15 @@
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
   import Why from "./Why.svelte";
+  import { here, set } from "./nav.svelte.js";
 
   /** @type {{ club: any, by: number|null, role: string|null, onclub: (v: any) => void, onopen: (open: boolean) => void }} */
   let { club, by, role, onclub, onopen } = $props();
 
   /** The open League's view. @type {any} */
   let lv = $state(null);
-  let tab = $state("teams");
+  /** The open League and its tab are part of the place, so Back returns to them. */
+  const tab = $derived(here.view.league_tab ?? "teams");
   let error = $state("");
   const today = () => new Date().toISOString().slice(0, 10);
   const blank = () => ({ name: "", boards: 4, double: false, date: today() });
@@ -24,6 +26,13 @@
   let whyBox;
   // An open League takes the page (Clubs folds the rest away).
   $effect(() => onopen(lv !== null));
+  // Back (or a link) names the League to show.
+  $effect(() => {
+    const id = here.view.league;
+    if (id == null) lv = null;
+    else if (lv?.id !== id) open(id);
+  });
+  const close = () => set({ league: null, league_tab: null });
 
   const official = $derived(by !== null && (role === "director" || role === "arbiter") && !club.held_by);
   const director = $derived(by !== null && role === "director" && !club.held_by);
@@ -48,7 +57,7 @@
     const v = await run(() => api.leagueView(id));
     if (v) {
       lv = v;
-      tab = v.league.played.length ? "rounds" : "teams";
+      if (here.view.league !== id) set({ league: id, league_tab: v.league.played.length ? "rounds" : "teams" });
     }
   }
   async function create(/** @type {SubmitEvent} */ e) {
@@ -64,7 +73,7 @@
     if (!confirm(t("leagues.remove_confirm", { name: L.name }))) return;
     const v = await run(() => api.leagueRemove(by, lv.id));
     if (v) {
-      lv = null;
+      close();
       onclub(v);
     }
   }
@@ -149,13 +158,13 @@
         <p class="dim">{[L.date, t("leagues.boards_of", { boards: num(L.boards) }), t("leagues.progress", { paired: num(L.played.length), rounds: num(lv.rounds), teams: num(L.teams.length) })].filter(Boolean).join(" · ")}</p>
       </div>
       <div class="row">
-        <button onclick={() => (lv = null)}>{t("clubs.back", { name: club.name })}</button>
+        <button onclick={close}>{t("clubs.back", { name: club.name })}</button>
         <button disabled={!director} onclick={remove}>{t("leagues.remove")}</button>
       </div>
     </div>
     <div class="tabs" role="tablist">
       {#each TABS as id}
-        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => ((tab = id), (error = ""))}>{t(`leagues.tab.${id}`)}</button>
+        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => (set({ league_tab: id }), (error = ""))}>{t(`leagues.tab.${id}`)}</button>
       {/each}
     </div>
 

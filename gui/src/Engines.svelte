@@ -6,7 +6,6 @@
   import * as api from "./api.js";
   import { t, i18n } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
-  import { guide } from "./guide.svelte.js";
 
   /** @type {{ family: any, go: (page: any) => void }} */
   let { family, go } = $props();
@@ -55,7 +54,7 @@
   }
 
   /** Settings → Engines, where images and the runtime are chosen. */
-  const engineSettings = () => ((guide.area = "engines"), go({ kind: "settings" }));
+  const engineSettings = () => go({ kind: "settings", area: "engines" });
 
   async function showOptions(/** @type {any} */ e) {
     const variant = page.variants.find((/** @type {any} */ v) => v.engines.includes(e.key))?.key;

@@ -15,6 +15,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [The install wizard](getting-started/first-start.md) | The six steps of the first start, skipping, running it again |
 | [Game families and Variants](getting-started/game-families.md) | Turning Families and Variants on and off, what disappears and what stays |
 | [The sidebar](getting-started/sidebar.md) | Families and their items, collapsing, the Helper line, Settings, Help and What's new |
+| [Going back](getting-started/navigation.md) | Back, Alt+←, the mouse's back button and Esc on F1; what a place is |
 | [Help (F1) and notices](getting-started/help.md) | F1 → Features, the filter, *Show me*, notices and hints |
 | [What's new](getting-started/whats-new.md) | Tour cards after an upgrade, the list of every version |
 | [Tips](getting-started/tips.md) | One-line suggestions of features you have not used, and how often they come |

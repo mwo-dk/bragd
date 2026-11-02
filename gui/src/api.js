@@ -23,6 +23,10 @@ export const throwDice = (/** @type {string} */ variant, /** @type {string|null}
 export const rulesPage = (/** @type {string} */ family) => invoke("rules_page", { family });
 /** @returns {Promise<any[]>} */
 export const featureList = (/** @type {string} */ query) => invoke("feature_list", { query });
+/** Back (bragd_core::history): report a move from one place to another; true when Back has somewhere to go. */
+export const navGo = (/** @type {any} */ from, /** @type {any} */ to) => invoke("nav_go", { from, to });
+/** Back: [place, more] or null. */
+export const navBack = () => invoke("nav_back");
 /** @returns {Promise<{wizard: boolean, cards: any[]}>} */
 export const guideDue = () => invoke("guide_due");
 /** @returns {Promise<any>} */

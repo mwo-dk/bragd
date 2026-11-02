@@ -71,4 +71,4 @@ No. They follow the catalogue: chess, xiangqi, shogi, go, draughts, tafl, backga
 The window could not find or start `bragd-helper` beside its own program. It asks again after 30 seconds, or at once with *Try again* on the Jobs page.
 
 ---
-[← Previous: Game families and Variants](game-families.md) · [Next: Help (F1) and notices →](help.md)
+[← Previous: Game families and Variants](game-families.md) · [Next: Going back →](navigation.md)

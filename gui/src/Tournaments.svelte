@@ -5,13 +5,15 @@
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
   import Why from "./Why.svelte";
+  import { here as place, set } from "./nav.svelte.js";
 
   /** @type {{ club: any, by: number|null, role: string|null, onclub: (v: any) => void, onopen: (open: boolean) => void }} */
   let { club, by, role, onclub, onopen } = $props();
 
   /** The open Tournament's view. @type {any} */
   let tv = $state(null);
-  let tab = $state("players");
+  /** The open Tournament and its tab are part of the place, so Back returns to them. */
+  const tab = $derived(place.view.tournament_tab ?? "players");
   let error = $state("");
   let note = $state("");
   const today = () => new Date().toISOString().slice(0, 10);
@@ -50,6 +52,13 @@
   });
   // An open Tournament takes the page (Clubs folds the rest away).
   $effect(() => onopen(tv !== null));
+  // Back (or a link) names the Tournament to show.
+  $effect(() => {
+    const id = place.view.tournament;
+    if (id == null) tv = null;
+    else if (tv?.id !== id) open(id);
+  });
+  const close = () => set({ tournament: null, tournament_tab: null });
 
   const official = $derived(by !== null && (role === "director" || role === "arbiter") && !club.held_by);
   const director = $derived(by !== null && role === "director" && !club.held_by);
@@ -91,7 +100,7 @@
     const v = await run(() => api.tournamentView(id));
     if (v) {
       tv = v;
-      tab = v.tournament.played.length ? "round" : "players";
+      if (place.view.tournament !== id) set({ tournament: id, tournament_tab: v.tournament.played.length ? "round" : "players" });
       edit = order = warnings = null;
     }
   }
@@ -114,7 +123,7 @@
     if (!confirm(t("tournaments.remove_confirm", { name: T.name }))) return;
     const v = await run(() => api.tournamentRemove(by, tv.id));
     if (v) {
-      tv = null;
+      close();
       onclub(v);
     }
   }
@@ -313,13 +322,13 @@
         <p class="dim">{[T.date, T.place, T.variant === "chess" ? "" : tv.variant, T.match_to ? t("tournaments.match_of", { points: num(T.match_to) }) : "", tv.system, t("tournaments.progress", { paired: num(T.played.length), rounds: num(T.rounds), players: num(T.players.length) })].filter(Boolean).join(" · ")}</p>
       </div>
       <div class="row">
-        <button onclick={() => (tv = null)}>{t("clubs.back", { name: club.name })}</button>
+        <button onclick={close}>{t("clubs.back", { name: club.name })}</button>
         <button disabled={!director} onclick={remove}>{t("tournaments.remove")}</button>
       </div>
     </div>
     <div class="tabs" role="tablist">
       {#each TABS as id}
-        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => ((tab = id), (error = note = ""))}>{t(`tournaments.tab.${id}`)}</button>
+        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => (set({ tournament_tab: id }), (error = note = ""))}>{t(`tournaments.tab.${id}`)}</button>
       {/each}
     </div>
 
