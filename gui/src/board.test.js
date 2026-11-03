@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { place, sideways, movesOf, movesTo, plainMoves, point, gates, groups, nextCell } from "./board.js";
+import { place, sideways, movesOf, movesTo, plainMoves, point, gates, groups, nextCell, wide } from "./board.js";
 
 test("a move's number keeps the moves after it on its line", () => {
   assert.deepEqual(groups(["1.", "", "2.", ""]), [[0, 1], [2, 3]]);
@@ -105,4 +105,13 @@ test("the arrows move the board's focus to the next cell on the screen (#300)", 
   assert.equal(nextCell(dark, "a", "ArrowRight"), "c");
   assert.equal(nextCell(dark, "a", "ArrowDown"), "b", "no cell straight down: the nearest below");
   assert.equal(nextCell(dark, "zz", "ArrowRight"), "a", "an unknown focus starts at the first cell");
+});
+
+test("a long, low track has the whole width on a wide window, with the panel under it", () => {
+  const ur = { files: 8, ranks: 3 };
+  assert.equal(wide({ id: "ur" }, ur, 1100), true);
+  assert.equal(wide({ id: "senet" }, { files: 10, ranks: 3 }, 1100), true);
+  assert.equal(wide({ id: "ur" }, ur, 760), false, "a narrow window stacks everything already");
+  assert.equal(wide({ id: "backgammon" }, { files: 26, ranks: 2 }, 1100), false);
+  assert.equal(wide({ id: "chess" }, { files: 8, ranks: 8 }, 1100), false);
 });

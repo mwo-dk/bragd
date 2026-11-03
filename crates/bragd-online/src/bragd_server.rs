@@ -26,7 +26,7 @@ pub const SERVER: Server = Server {
     name: "Bragd",
     site: "",
     url: "",
-    url_var: "BRAGD_FRIENDS_URL",
+    url_var: bragd_core::config::BRAGD_SERVER_VAR,
     token_var: "BRAGD_FRIENDS_TOKEN",
     terms: "",
     families: FAMILIES,
@@ -39,8 +39,7 @@ const SIGN_IN: Duration = Duration::from_secs(300);
 
 /// The address set in Settings, or the one `BRAGD_FRIENDS_URL` names; empty when none is set.
 pub fn address() -> String {
-    let set = std::env::var(SERVER.url_var).ok().filter(|u| !u.trim().is_empty());
-    set.or_else(|| bragd_core::config::Config::load().ok().map(|c| c.online.server)).unwrap_or_default().trim().trim_end_matches('/').to_string()
+    bragd_core::config::Config::load().unwrap_or_default().bragd_server()
 }
 
 /// What the game service says before signing in (`/v1/config`).

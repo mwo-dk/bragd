@@ -4,6 +4,7 @@
 //! settings) is dialled again once. Also here: the Helper's status and its jobs as the sidebar
 //! footer and the Jobs page draw them, every text made here.
 
+use std::io;
 use std::sync::Mutex;
 
 use crate::lock;
@@ -36,13 +37,14 @@ impl Link {
                 {
                     return Err(e.clone());
                 }
-                match helper::program().and_then(|p| helper::connect_or_start(&p)) {
+                let program = helper::program();
+                match program.as_ref().map_err(|e| io::Error::new(e.kind(), e.to_string())).and_then(|p| helper::connect_or_start(p)) {
                     Ok(c) => {
                         *conn = Some(c);
                         *lock(&self.failed) = None;
                     }
                     Err(e) => {
-                        let e = t!("helper.unreachable", "why" => e);
+                        let e = unreachable(program.as_deref().ok(), &e);
                         *lock(&self.failed) = Some((Instant::now(), e.clone()));
                         return Err(e);
                     }
@@ -117,6 +119,15 @@ pub struct JobView {
     pub live: bool,
     /// Background analysis (`Work::Analyse`): the Jobs page lists it apart.
     pub analysis: bool,
+}
+
+/// Why the Helper could not be reached, in words a user can act on: a program that is not
+/// there is named, with what to do; any other failure keeps the system's own words.
+fn unreachable(program: Option<&std::path::Path>, e: &io::Error) -> String {
+    match program {
+        Some(p) if !p.is_file() => t!("helper.missing", "path" => p.display()),
+        _ => t!("helper.unreachable", "why" => e),
+    }
 }
 
 fn file_name(p: &std::path::Path) -> String {
@@ -244,6 +255,18 @@ mod tests {
     use super::*;
     use bragd_library::library::Pruned;
     use bragd_library::strip::Rewritten;
+
+    /// A Helper program that is not there is named, with what to do, not as "os error 2".
+    #[test]
+    fn a_missing_helper_is_named_with_what_to_do() {
+        let gone = std::path::Path::new("/nowhere/bragd-helper");
+        let e = io::Error::from(io::ErrorKind::NotFound);
+        let text = unreachable(Some(gone), &e);
+        assert!(text.contains("/nowhere/bragd-helper") && text.contains("Reinstall"), "{text}");
+        assert!(!text.contains("os error"), "{text}");
+        let here = std::env::current_exe().unwrap();
+        assert_eq!(unreachable(Some(&here), &e), t!("helper.unreachable", "why" => e));
+    }
 
     #[test]
     fn a_strip_report_says_what_goes() {

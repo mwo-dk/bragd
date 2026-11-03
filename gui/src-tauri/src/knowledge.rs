@@ -413,10 +413,7 @@ pub struct SourceView {
     /// About how much one fetch downloads.
     pub size: String,
     pub url: String,
-    pub fetchable: bool,
     pub custom: bool,
-    /// Why it cannot be fetched yet, or empty.
-    pub notice: String,
     pub options: Options,
     /// Its disk cap as its field shows it; empty for none.
     pub disk_cap: String,
@@ -472,25 +469,26 @@ fn sources_of(k: &Knowledge) -> Res<Vec<(sources::About, Options, sources::Memo)
     }
 }
 
-/// A Source's size as its row shows it: about so much a day, week or month on its schedule. One
-/// this version cannot fetch yet has no schedule to keep, so only its size per fetch shows.
+/// A Source's size as its row shows it: about so much a day, week or month on its schedule.
 fn size_text(a: &sources::About, o: &Options) -> String {
     if a.size == 0 {
         return t!("source.size_unknown");
     }
     let size = bragd_core::i18n::bytes(a.size);
-    if !a.fetchable {
-        return t!("wizard.size_off", "size" => size);
-    }
     t!(&format!("wizard.size_{}", serde_json::to_value(o.schedule).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default()), "size" => size)
+}
+
+/// The Sources the page lists: those this version can fetch. The others wait, unlisted, until
+/// it can; the install wizard names them in one line (`wizard::coming`).
+fn listed(all: Vec<(sources::About, Options, sources::Memo)>) -> impl Iterator<Item = (sources::About, Options, sources::Memo)> {
+    all.into_iter().filter(|(a, _, _)| a.fetchable)
 }
 
 #[tauri::command(async)]
 pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<SourcesPage> {
     let now = bragd_core::fs::now();
     let tags = bragd_core::i18n::locale_tags();
-    let sources = sources_of(&k)?
-        .into_iter()
+    let sources = listed(sources_of(&k)?)
         .map(|(a, o, m)| {
             let list = bragd_clubs::lists::LISTS.iter().find(|l| l.id == a.id);
             (a, o, m, list)
@@ -499,7 +497,6 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
             more: list.is_some_and(|l| !l.suggested(&tags)) && !o.enabled,
             family_name: if a.family.is_empty() { t!("source.any_family") } else { t!(&format!("family.{}", a.family)) },
             size: size_text(&a, &o),
-            notice: a.notice.as_deref().map(|n| t!(n, "source" => a.name)).unwrap_or_default(),
             custom: a.id.starts_with(sources::CUSTOM),
             rating_list: a.kind == sources::Kind::RatingList,
             last: ago(m.last_fetch, now),
@@ -513,7 +510,6 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
             name: list.map_or(a.name, |l| l.title()),
             family: a.family,
             url: a.url,
-            fetchable: a.fetchable,
             options: o,
         })
         .collect();
@@ -708,15 +704,14 @@ pub fn library_prune(dry_run: bool, k: State<'_, Knowledge>) -> Res<u64> {
 mod tests {
     use super::*;
 
+    /// The page lists only what this version can fetch: TWIC, not the Lichess database.
     #[test]
-    fn a_source_not_fetched_yet_shows_no_schedule() {
-        let all: Vec<sources::About> = sources::builtin().iter().map(|s| s.about()).collect();
-        let lichess = all.iter().find(|a| a.id == "lichess-db").unwrap();
-        assert!(!lichess.fetchable);
-        let text = size_text(lichess, &lichess.defaults());
-        assert!(text.contains("30") && !text.contains("month"), "{text}");
-        let twic = all.iter().find(|a| a.id == "twic").unwrap();
-        assert!(size_text(twic, &twic.defaults()).ends_with("a week"), "a Source fetched on its schedule still says how often");
+    fn sources_this_version_cannot_fetch_are_not_listed() {
+        let all = sources::builtin().iter().map(|s| (s.about(), s.about().defaults(), sources::Memo::default())).collect();
+        let ids: Vec<String> = listed(all).map(|(a, _, _)| a.id).collect();
+        assert!(ids.contains(&"twic".to_string()) && !ids.contains(&"lichess-db".to_string()), "{ids:?}");
+        let twic = sources::builtin().into_iter().find(|s| s.about().id == "twic").unwrap().about();
+        assert!(size_text(&twic, &twic.defaults()).ends_with("a week"), "a Source says how often it is fetched");
     }
 
     #[test]

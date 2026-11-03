@@ -4,7 +4,7 @@
 
 The Egyptian race game, as Timothy Kendall reconstructed it. Thirty houses in three rows are walked as a snake. Each Side starts with seven pieces on the board and races them off the end. Nothing is captured: landing on a lone enemy swaps the two pieces. The last houses carry special rules, and house 27 is the water. Bragd throws the four sticks for you.
 
-![Senet in Play: the 3×10 board with the pieces of both Sides on the first row, the marked houses at the end, Throw under the turn line](../screenshots/play-senet-1100.png)
+![Senet in Play, 1100 px wide: the 3×10 board across the whole width with the pieces of both Sides on the first row and the marked houses at the end, and under it the turn line, Throw and the move list](../screenshots/play-senet-1100.png)
 
 *Senet: the opening position, Evens and Odds alternating along the first row.*
 

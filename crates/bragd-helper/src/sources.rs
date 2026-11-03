@@ -171,8 +171,6 @@ pub struct About {
     pub url: String,
     /// False for the Sources this version lists but cannot fetch yet.
     pub fetchable: bool,
-    /// The text key of the notice shown for it, if any.
-    pub notice: Option<String>,
     /// Games for a Library, or a rating list.
     #[serde(default)]
     pub kind: Kind,
@@ -217,7 +215,7 @@ pub trait Source: Send + Sync {
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>>;
 }
 
-/// The text key of the notice for a Source this version does not fetch.
+/// The text key of the error a Source this version does not fetch gives when asked to.
 pub const OUT_OF_SCOPE: &str = "notice.source_out_of_scope";
 
 /// The Week in Chess: a zip of PGN every week, numbered.
@@ -259,7 +257,6 @@ impl Source for Twic {
             schedule: Schedule::Weekly,
             url: TWIC_URL.into(),
             fetchable: true,
-            notice: None,
             kind: Kind::Games,
         }
     }
@@ -314,7 +311,6 @@ impl Source for CustomUrl {
             schedule: Schedule::Weekly,
             url: self.url.clone(),
             fetchable: true,
-            notice: None,
             kind: Kind::Games,
         }
     }
@@ -357,7 +353,7 @@ pub struct RatingList(pub &'static bragd_clubs::lists::List);
 impl Source for RatingList {
     fn about(&self) -> About {
         let l = self.0;
-        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, notice: None, kind: Kind::RatingList }
+        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, kind: Kind::RatingList }
     }
 
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>> {
@@ -381,7 +377,6 @@ fn later(id: &str, name: &str, family: &str, size: u64, schedule: Schedule, url:
         schedule,
         url: url.into(),
         fetchable: false,
-        notice: Some(OUT_OF_SCOPE.into()),
         kind: Kind::Games,
     }))
 }
@@ -530,7 +525,7 @@ pub(crate) mod tests {
         assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings"]);
         for s in builtin().iter().skip(1).filter(|s| s.about().kind == Kind::Games) {
             let a = s.about();
-            assert!(!a.fetchable && a.notice.as_deref() == Some(OUT_OF_SCOPE) && a.size > 0, "{}", a.id);
+            assert!(!a.fetchable && a.size > 0, "{}", a.id);
         }
         let d = crate::tests::Dir::new("later");
         let net = Recorded::default();

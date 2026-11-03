@@ -85,6 +85,8 @@ It starts again from its beginning when the next Helper starts. That is safe, be
 
 The window could not start or dial a Helper. It asks again after 30 seconds, or at once with **Try again** on the Jobs page. `helper.log` says why.
 
+When the Helper's program is missing, Settings → Knowledge, Settings → Peers and Sources say so and name where Bragd looked for it: `bragd-helper` beside `bragd-gui`. Reinstall Bragd to put it back.
+
 #### Does the Helper use the network?
 
 Only to fetch the Sources you turned on, and never on a metered connection for a Source set to avoid one. It listens only on a socket in its own folder, or on loopback on Windows.

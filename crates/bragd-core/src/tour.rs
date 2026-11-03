@@ -54,9 +54,9 @@ pub const CARDS: &[Card] = &[
     card("1.0.0", "keys"),
 ];
 
-/// Whether the card shows to the user of `cfg`: its feature concerns one of their Families.
+/// Whether the card shows to the user of `cfg`: its feature shows to them (`features::shown`).
 fn shown(c: &Card, cfg: &crate::config::Config) -> bool {
-    crate::features::find(c.id).is_none_or(|f| crate::features::concerns(cfg, f.families))
+    crate::features::find(c.id).is_none_or(|f| crate::features::shown(cfg, f))
 }
 
 /// A card as the app shows it, in the current language.
@@ -156,6 +156,7 @@ mod tests {
         assert!(newer_than("tips", "0.0.1") && !newer_than("tips", "") && !newer_than("nope", "0.0.1"));
         assert_eq!(newest(&cards), "0.10.0");
         assert_eq!(newest(&[]), crate::update::VERSION);
+        let cfg = crate::config::Config::parse("[online]\nserver = \"https://bragd.example\"\n").unwrap();
         let all: usize = by_version(&cfg).iter().map(|(_, l)| l.len()).sum();
         assert_eq!(all, CARDS.len());
     }

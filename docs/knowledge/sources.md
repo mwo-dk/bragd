@@ -4,7 +4,7 @@
 
 A Source is where Games come from, such as The Week in Chess. When a Source is on, the [Helper](helper.md) fetches it on its schedule and imports its Games through its Routes: into `main.bragd` unless you add others. Every Source is off until you turn it on, and its size per fetch and schedule, such as *about 1.5 MB a week*, is shown before it downloads anything. You can also add any address of a game file as a custom URL Source, and remove it again.
 
-![The Sources tab for chess: The Week in Chess with its size, last fetch, Options and Fetch now, the big Sources greyed out with their notice, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
+![The Sources tab for chess: The Week in Chess with its size, last fetch, Options and Fetch now, the rating lists with More lists folded, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
 *Databases → Sources.*
 
 ## How to reach it
@@ -19,26 +19,18 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 
 ## The Sources
 
-| Id | Source | Family | About a fetch | Default schedule | Fetched in this version |
-|---|---|---|---|---|---|
-| `twic` | The Week in Chess | chess | 1.5 MB | Weekly | Yes |
-| `custom:<name>` | A custom URL | any | unknown | Weekly | Yes |
-| `lichess-db` | Lichess database | chess | 30 GB | Monthly | Not yet |
-| `fics` | FICS games database | chess | 300 MB | Monthly | Not yet |
-| `pgnmentor` | PGN Mentor | chess | 200 MB | Monthly | Not yet |
-| `lumbras` | LumbrasGigaBase | chess | 4 GB | Monthly | Not yet |
-| `ogs` | OGS archive | go | 1 GB | Monthly | Not yet |
-| `kgs` | KGS archive | go | 100 MB | Monthly | Not yet |
-| `pychess` | pychess exports | chess | 500 MB | Monthly | Not yet |
-| `lishogi` | Lishogi exports | shogi | 500 MB | Monthly | Not yet |
-| `fide-ratings` | International Chess Federation (FIDE) | chess | 45 MB | Monthly | Yes |
-| `dsu-ratings` | Danish Chess Union (DSU) | chess | 0.5 MB | Monthly | Yes |
-| `ecf-ratings` | English Chess Federation (ECF) | chess | 4.5 MB | Monthly | Yes |
-| `cfc-ratings` | Chess Federation of Canada (CFC) | chess | 5.4 MB | Monthly | Yes |
-| `sshl-ratings` | Finnish Chess Federation (SShL) | chess | 0.75 MB | Monthly | Yes |
-| `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly | Yes |
+| Id | Source | Family | About a fetch | Default schedule |
+|---|---|---|---|---|
+| `twic` | The Week in Chess | chess | 1.5 MB | Weekly |
+| `custom:<name>` | A custom URL | any | unknown | Weekly |
+| `fide-ratings` | International Chess Federation (FIDE) | chess | 45 MB | Monthly |
+| `dsu-ratings` | Danish Chess Union (DSU) | chess | 0.5 MB | Monthly |
+| `ecf-ratings` | English Chess Federation (ECF) | chess | 4.5 MB | Monthly |
+| `cfc-ratings` | Chess Federation of Canada (CFC) | chess | 5.4 MB | Monthly |
+| `sshl-ratings` | Finnish Chess Federation (SShL) | chess | 0.75 MB | Monthly |
+| `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly |
 
-The Sources marked *Not yet* are listed so you know they are coming. They are greyed out, they show only their size per fetch, such as *about 30 GB*, with no schedule and no last fetch, and a notice says this version cannot fetch them.
+Some Sources are planned but not fetched by this version: the Lichess database, the FICS games database, PGN Mentor, LumbrasGigaBase, pychess and Lishogi exports, and the OGS and KGS archives. Sources does not list them until a version of Bragd can fetch them. The install wizard names those of your Families in one line, *Coming later*.
 
 **TWIC.** The first fetch takes only the newest issue. Each later fetch takes the new issues in order, at most 26 at a time. The zips are imported as they are, without unpacking.
 
@@ -100,9 +92,9 @@ A packed game file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) is unpacked as it is read
 
 No. Every Source starts off. Nothing is fetched until you tick it, or tick it in the install wizard and press Done.
 
-#### Why is a Source greyed out?
+#### Why is the Lichess database not listed?
 
-This version lists it so you know it is coming, but cannot fetch it yet. Its notice says so.
+This version of Bragd cannot fetch it yet, so Sources leaves it out rather than show a box you cannot tick. The same goes for the other planned Sources named under [The Sources](#the-sources). Until then, a month you downloaded yourself can be opened in place as a [Foreign database](foreign-databases.md).
 
 #### What does "metered" mean here?
 

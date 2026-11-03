@@ -8,6 +8,8 @@ legal move, in Bragd and on a future game server. `crates/bragd-games` is the on
 seam over all of them: start, replay, legal moves, the board to draw and the
 result.
 
+In the app, each Game family's **Rules** item shows its teaching positions first: a board with a common mistake in it and a paragraph on why it loses, in the language you chose. When a side holds pieces in hand (shogi, Seirawan) or has pieces waiting to enter (Ur, senet), they show above and below the board, as on Play. The pages below follow.
+
 These pages are records rather than plans. Each says what was built, what was
 decided along the way and why, which sources a reconstruction follows, and what is
 still open.

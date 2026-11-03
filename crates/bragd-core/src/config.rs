@@ -289,6 +289,9 @@ pub struct PeersConfig {
     pub interface: String,
 }
 
+/// The variable that sets the Bragd server's address ahead of Settings, for tests and staging.
+pub const BRAGD_SERVER_VAR: &str = "BRAGD_FRIENDS_URL";
+
 /// Playing online (`bragd-online`).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -555,6 +558,13 @@ impl Config {
     pub fn variant_on(&self, id: &str) -> bool {
         bragd_games::Variant::from_key(id).is_some_and(|v| self.family_on(v.family().key()))
             && self.families.variant.get(id) != Some(&false)
+    }
+
+    /// The Bragd server's address: `BRAGD_FRIENDS_URL` when set, else Settings'; empty when
+    /// there is none, and then *Play with Friends* and all that comes with it stay hidden.
+    pub fn bragd_server(&self) -> String {
+        let set = std::env::var(BRAGD_SERVER_VAR).ok().filter(|u| !u.trim().is_empty());
+        set.unwrap_or_else(|| self.online.server.clone()).trim().trim_end_matches('/').to_string()
     }
 
     /// Whether the Family `id` shows: it is on, and so is one of its Variants at least.

@@ -112,9 +112,12 @@ impl Opt {
     }
 
     /// Listed in its area for the user of `cfg`: [`Opt::listed`], and one of its Families shows.
+    /// What Play with Friends asks (Chat, voice, camera, the filter) waits for a Bragd server
+    /// address; the address itself is always there to fill in.
     pub fn listed_for(&self, cfg: &Config) -> bool {
         let f = self.families();
-        self.listed() && (f.is_empty() || f.iter().any(|f| cfg.family_shown(f)))
+        let waits = self.name.starts_with("bragd_") && self.name != "bragd_server" && cfg.bragd_server().is_empty();
+        self.listed() && !waits && (f.is_empty() || f.iter().any(|f| cfg.family_shown(f)))
     }
 
     /// Its explanation, or empty.
@@ -500,6 +503,19 @@ mod tests {
         let tb = find("tablebases_path").unwrap();
         assert!(tb.listed_for(&Config::default()) && !tb.listed_for(&cfg));
         assert!(find("theme").unwrap().listed_for(&cfg));
+    }
+
+    /// Play with Friends' Chat, voice, camera and filter wait for a Bragd server address; the
+    /// address is always listed.
+    #[test]
+    fn friends_settings_wait_for_a_bragd_server() {
+        let none = Config::default();
+        let set = Config::parse("[online]\nserver = \"https://bragd.example\"\n").unwrap();
+        assert!(find("bragd_server").unwrap().listed_for(&none));
+        for name in ["bragd_chat", "bragd_filter", "bragd_voice", "bragd_camera"] {
+            let o = find(name).unwrap();
+            assert!(!o.listed_for(&none) && o.listed_for(&set), "{name}");
+        }
     }
 
     #[test]
