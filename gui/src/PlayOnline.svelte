@@ -8,6 +8,7 @@
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
   import Board from "./Board.svelte";
+  import BackgammonBoard from "./BackgammonBoard.svelte";
   import Call from "./Call.svelte";
   import { movesOf, movesTo, plainMoves } from "./board.js";
   import { guide } from "./guide.svelte.js";
@@ -125,6 +126,8 @@
     return h ? `${h}:${two(m)}:${two(x)}` : `${m}:${two(x)}`;
   }
   const variantName = (/** @type {any} */ c) => (c.variant ? t(`variant.${c.variant}`) : c.variantName);
+  /** The Game has a clock: a Game on the Bragd server may have none. */
+  const timed = $derived(!!game && (game.running !== null || game.clocks.some((/** @type {number} */ c) => c > 0)));
   /** The seats from the top of the board down: the opponent's first. */
   const seats = $derived(game ? (game.seat === 1 ? [0, 1] : [1, 0]) : []);
 </script>
@@ -180,15 +183,16 @@
     <div class="lobby">
       <div class="panel">
         <h2>{t("online.new_game")}</h2>
+        {#if view.ratings.length}
+          <p class="hint">{t("friends.your_ratings")} {view.ratings.map((/** @type {any} */ r) => `${r.name} ${r.rating}`).join(" · ")}</p>
+        {/if}
         <div class="form">
           <Picker value={variant} choices={view.variants} label={t("play.variant")} onchange={(v) => (variant = v)} />
-          {#if view.clocks}<Picker value={time} choices={view.times} label={t("online.time")} onchange={(v) => (time = v)} />{/if}
-          {#if view.ratedGames}<label class="check"><input type="checkbox" bind:checked={rated} /> {t("online.rated")}</label>{/if}
+          <Picker value={time} choices={view.times} label={t("online.time")} onchange={(v) => (time = v)} />
+          <label class="check"><input type="checkbox" bind:checked={rated} /> {t("online.rated")}</label>
         </div>
         {#if rated}<p class="hint">{t("online.rated_hint", { server: name })}</p>{/if}
-        {#if !view.seek}
-          <p class="hint">{t(`online.intro.${server}`)}</p>
-        {:else if view.seeking}
+        {#if view.seeking}
           <p class="hint" role="status">{t("online.seeking")}</p>
           <button onclick={() => api.onlineSeekCancel(server)}>{t("common.cancel")}</button>
         {:else}
@@ -212,7 +216,7 @@
             <li>
               <span>
                 <strong>{c.incoming ? t("online.from", { name: c.who }) : t("online.to", { name: c.who })}</strong>
-                · {variantName(c)}{#if view.clocks} · {c.time}{/if}{#if view.ratedGames} · {c.rated ? t("online.rated") : t("online.casual")}{/if}
+                · {variantName(c)} · {c.time} · {c.rated ? t("online.rated") : t("online.casual")}
               </span>
               {#if c.incoming}
                 {#if c.variant}
@@ -233,13 +237,17 @@
     <div class="game">
       <div class="board-side">
         {#if st}
-          <div class="player"><span>{game.names[seats[0]]}</span>{#if view.clocks}<span class="clock" class:running={game.running === seats[0]}>{clock(game.clocks[seats[0]])}{#if game.byoyomi}<small class="byo">+ {game.periods[seats[0]] > 1 ? `${game.periods[seats[0]]} × ` : ""}{game.byoyomi} s</small>{/if}</span>{/if}</div>
+          <div class="player"><span>{game.names[seats[0]]}</span>{#if timed}<span class="clock" class:running={game.running === seats[0]}>{clock(game.clocks[seats[0]])}{#if game.byoyomi}<small class="byo">+ {game.periods[seats[0]] > 1 ? `${game.periods[seats[0]]} × ` : ""}{game.byoyomi} s</small>{/if}</span>{/if}</div>
           {@render tray(seats[0])}
           <div class="board-wrap">
-            <Board state={st} family={view.gameFamily ?? family.id} flipped={game.seat === 1} selected={sel?.from ?? null} {targets} oncell={cell} onpress={press} />
+            {#if (view.gameFamily ?? family.id) === "backgammon"}
+              <BackgammonBoard state={st} flipped={game.seat === 1} selected={sel?.from ?? null} {targets} oncell={cell} onpress={press} />
+            {:else}
+              <Board state={st} family={view.gameFamily ?? family.id} flipped={game.seat === 1} selected={sel?.from ?? null} {targets} oncell={cell} onpress={press} />
+            {/if}
           </div>
           {@render tray(seats[1])}
-          <div class="player"><span>{game.names[seats[1]]}</span>{#if view.clocks}<span class="clock" class:running={game.running === seats[1]}>{clock(game.clocks[seats[1]])}{#if game.byoyomi}<small class="byo">+ {game.periods[seats[1]] > 1 ? `${game.periods[seats[1]]} × ` : ""}{game.byoyomi} s</small>{/if}</span>{/if}</div>
+          <div class="player"><span>{game.names[seats[1]]}</span>{#if timed}<span class="clock" class:running={game.running === seats[1]}>{clock(game.clocks[seats[1]])}{#if game.byoyomi}<small class="byo">+ {game.periods[seats[1]] > 1 ? `${game.periods[seats[1]]} × ` : ""}{game.byoyomi} s</small>{/if}</span>{/if}</div>
         {:else}
           <p>{t("online.no_rules", { variant: game.variantName, site: view.server.site })}</p>
           <button class="link" onclick={() => api.openUrl(game.url)}>{t("online.open_on", { site: view.server.site })}</button>
@@ -250,7 +258,7 @@
         <p class="turn">
           {#if game.over}{game.result}{:else if mine}{t("online.your_turn")}{:else}{t("online.their_turn")}{/if}
         </p>
-        <p class="hint">{variantName(game)}{#if view.ratedGames} · {game.rated ? t("online.rated") : t("online.casual")}{/if}</p>
+        <p class="hint">{variantName(game)} · {game.rated ? t("online.rated") : t("online.casual")}</p>
         {#if game.rated && game.againstPerson && !game.over}
           <p class="lock" role="status">{t("online.locked")}</p>
         {/if}

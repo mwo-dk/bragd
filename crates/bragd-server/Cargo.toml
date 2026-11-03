@@ -11,6 +11,8 @@ description = "The Bragd server's game service: referees Games between Bragd pla
 bragd-games = { path = "../bragd-games" }
 # The dice and sticks the referee throws, from the operating system's random source.
 bragd-core = { path = "../bragd-core" }
+# Glicko-2, as Clubs rate their members.
+bragd-clubs = { path = "../bragd-clubs" }
 # Postgres, with TLS to Supabase's database over rustls on ring, as the rest of Bragd's TLS.
 postgres = { version = "0.19", features = ["with-serde_json-1", "with-uuid-1"] }
 tokio-postgres-rustls = "0.13"

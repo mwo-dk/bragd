@@ -126,7 +126,7 @@ pub fn entry(f: &Feature) -> Entry {
         id: f.id,
         title: t("title"),
         what: t("what"),
-        qa: (1..=4)
+        qa: (1..=5)
             .map_while(|i| {
                 Some((
                     text(&format!("feature.{}.q{i}", f.id))?,

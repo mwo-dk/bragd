@@ -546,7 +546,7 @@ mod tests {
             c
         };
         let listed = areas(&only("backgammon"));
-        assert!(!listed.contains(&Online), "Online holds only settings of Families played online: {listed:?}");
+        assert!(listed.contains(&Online), "backgammon is played on the Bragd server: {listed:?}");
         assert!(areas(&only("tafl")).contains(&Online), "tafl is played on the Bragd server");
         assert!(listed.contains(&Look) && listed.contains(&Families));
         assert!(areas(&only("go")).contains(&Online), "go is played on OGS");

@@ -946,7 +946,7 @@ def online():
 def friends():
     """Play with Friends against the fake Bragd server (`fake-online bragd`), never a real one:
     friends-sign-in before signing in, friends signed in with Anna's challenge, Carl's request and
-    the Club, friends-game after accepting Anna's challenge and 1. e4, friends-chat with the Game's Chat open, friends-call asking Anna for voice, friends-delete with Delete my account's form filled in, and friends-dice with a backgammon Game waiting for Throw or Double; each -390.png and
+    the Club, friends-seek with the lobby's seek, ratings and Bo's seek, friends-game after accepting Anna's challenge and 1. e4, friends-chat with the Game's Chat open, friends-call asking Anna for voice, friends-delete with Delete my account's form filled in, and friends-dice with a backgammon Game waiting for Throw or Double; each -390.png and
     -1100.png. BRAGD_FRIENDS_URL points the app at the fake, and BRAGD_FRIENDS_TOKEN stands in for
     the keychain the sandbox does not have."""
     import subprocess
@@ -968,6 +968,9 @@ def friends():
             with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url, "BRAGD_FRIENDS_TOKEN": "fake-refresh"}) as d:
                 open_page(d)
                 d.shot(HERE / f"friends-{w}.png")
+                js(d, "document.querySelector('main .lobby')?.scrollIntoView();")
+                d.wait(0.5)
+                d.shot(HERE / f"friends-seek-{w}.png")
                 click(d, "Accept", "main .online")
                 d.wait(2.5)
                 move(d, "e2", "e4")

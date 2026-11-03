@@ -75,6 +75,10 @@ pub(crate) struct Inner {
     tried: bool,
     /// The Call with the opponent of the Game shown, when they are a Friend.
     pub(crate) call: Option<crate::call::CallState>,
+    /// When `state` came, for the clock that runs meanwhile.
+    polled: Option<Instant>,
+    /// The seeks the user declined: not shown again.
+    hidden: Vec<String>,
 }
 
 /// The Bragd server for this window. Clones share it.
@@ -129,6 +133,17 @@ pub struct FriendsView {
     pub club_friends: bool,
     pub error: Option<String>,
     pub notice: Option<String>,
+}
+
+/// A rating on the Bragd server, as the page shows it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct Rated {
+    /// The Family's key, for the Settings filter, and its name.
+    pub family: String,
+    pub name: String,
+    /// `1612`, or `1500?` while it is provisional.
+    pub rating: String,
+    pub games: u64,
 }
 
 /// A Chat line.
@@ -326,9 +341,18 @@ impl BragdServer {
     /// Asks how things stand now.
     pub fn poll(&self) -> Result<(), String> {
         let v = self.call("GET", "/v1/state", &json!({}))?;
-        let mut i = self.lock();
-        i.state = v;
-        i.error = None;
+        let flagged: Vec<String> = {
+            let mut i = self.lock();
+            i.state = v;
+            i.polled = Some(Instant::now());
+            i.error = None;
+            // A clock that ran out: the referee is asked to see it, and decides.
+            i.state["games"].as_array().into_iter().flatten().filter(|g| run_out(g)).map(|g| s(&g["id"])).collect()
+        };
+        for id in flagged {
+            // The other player may have asked first; the next state tells.
+            let _ = self.call("POST", &format!("/v1/games/{id}/flag"), &json!({}));
+        }
         Ok(())
     }
 
@@ -472,6 +496,24 @@ impl BragdServer {
         }
     }
 
+    /// The user's rating in each Family they played a rated Game in.
+    pub fn ratings(&self) -> Vec<Rated> {
+        self.lock().state["ratings"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .map(|r| {
+                        let family = s(&r["family"]);
+                        // Glicko-2's deviation: above 110 the rating is still provisional (docs/adr/0007).
+                        let sure = r["deviation"].as_f64().unwrap_or(350.0) <= 110.0;
+                        let rating = format!("{}{}", r["rating"].as_f64().unwrap_or(1500.0).round(), if sure { "" } else { "?" });
+                        Rated { name: t!(&format!("family.{family}")), family, rating, games: r["games"].as_u64().unwrap_or(0) }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     /// The Games in the last state.
     fn games(&self) -> Vec<Value> {
         self.lock().state["games"].as_array().cloned().unwrap_or_default()
@@ -487,7 +529,8 @@ impl BragdServer {
         }
     }
 
-    fn game_view(g: &Value) -> GameView {
+    /// The Game `g`, its running clock `since` ms lower than the state said.
+    fn game_view(g: &Value, since: u64) -> GameView {
         let variant = bragd_games::variant(&s(&g["variant"])).ok().map(|v| v.key());
         let entries = strings(&g["moves"]);
         let initial = g["initial"].as_str().map(str::to_string);
@@ -502,25 +545,32 @@ impl BragdServer {
         let them = opponent(g);
         let names = if first { [me, them] } else { [them, me] };
         let over = g["status"] == "over";
-        let result = if over {
-            let why = t!(&format!("friends.reason.{}", s(&g["reason"])));
-            format!("{} · {why}", s(&g["result"]))
-        } else {
-            String::new()
+        // The referee's own reasons have words; the rules' show in the result itself.
+        let key = format!("friends.reason.{}", s(&g["reason"]));
+        let result = match t!(&key) {
+            _ if !over => String::new(),
+            why if why != key => format!("{} · {why}", s(&g["result"])),
+            _ => s(&g["result"]),
+        };
+        let c = &g["clock"];
+        let running = c["running"].as_u64().map(|r| r as u8);
+        let left = |i: usize| {
+            let l = c["left"][i].as_u64().unwrap_or(0);
+            if running == Some(i as u8) { l.saturating_sub(since) } else { l }
         };
         GameView {
             id: s(&g["id"]),
             url: String::new(),
             variant,
             variant_name: variant.map(|v| t!(&format!("variant.{v}"))).unwrap_or_default(),
-            rated: false,
+            rated: g["rated"].as_bool().unwrap_or(false),
             against_person: true,
             names,
             seat: Some(if first { 0 } else { 1 }),
-            clocks: [0, 0],
+            clocks: [left(0), left(1)],
             byoyomi: 0,
             periods: [0, 0],
-            running: None,
+            running,
             over,
             result,
             offered: (g["draw_offered"].as_bool().unwrap_or(false), false),
@@ -590,8 +640,12 @@ impl Play for BragdServer {
         bragd_games::Family::ALL.iter().filter(|f| FAMILIES.contains(&f.key())).flat_map(|f| f.variants().map(|v| v.key)).collect()
     }
 
+    /// No clock, or a few time controls. shortcut: none under five minutes, since the page asks
+    /// the server how things stand every two seconds; a faster pace would need a live channel.
     fn times(&self) -> Vec<(String, String)> {
-        vec![("none".into(), t!("friends.no_clock"))]
+        std::iter::once(("none".to_string(), t!("friends.no_clock")))
+            .chain(["10+5", "5+3", "15+10", "30+20"].iter().filter_map(|t| Some((t.to_string(), board::Time::parse(t)?.label()))))
+            .collect()
     }
 
     fn colours(&self) -> [&'static str; 2] {
@@ -608,29 +662,44 @@ impl Play for BragdServer {
 
     fn view(&self) -> View {
         let games = self.games();
-        let challenges = games
+        let challenge = |id: String, incoming: bool, who: String, variant: &Value, rated: bool, minutes: Option<u64>, increment: u64| {
+            let variant = bragd_games::variant(&s(variant)).ok().map(|v| v.key());
+            ChallengeView {
+                id,
+                incoming,
+                who,
+                variant,
+                variant_name: variant.map(|v| t!(&format!("variant.{v}"))).unwrap_or_default(),
+                rated,
+                time: minutes.map_or_else(|| t!("friends.no_clock"), |m| t!("online.minutes_plus", "m" => m, "s" => increment)),
+            }
+        };
+        let mut challenges: Vec<ChallengeView> = games
             .iter()
             .filter(|g| g["status"] == "offered")
             .map(|g| {
-                let variant = bragd_games::variant(&s(&g["variant"])).ok().map(|v| v.key());
-                ChallengeView {
-                    id: s(&g["id"]),
-                    incoming: !g["challenger"].as_bool().unwrap_or(false),
-                    who: s(&g["opponent"]),
-                    variant,
-                    variant_name: variant.map(|v| t!(&format!("variant.{v}"))).unwrap_or_default(),
-                    rated: false,
-                    time: t!("friends.no_clock"),
-                }
+                let c = &g["clock"];
+                let minutes = c["left"][0].as_u64().map(|ms| ms / 60_000);
+                challenge(s(&g["id"]), !g["challenger"].as_bool().unwrap_or(false), s(&g["opponent"]), &g["variant"], g["rated"].as_bool().unwrap_or(false), minutes, c["increment"].as_u64().unwrap_or(0) / 1000)
             })
             .collect();
-        let game = self.shown().map(|g| Self::game_view(&g));
+        let (seeks, seeking, since, hidden) = {
+            let i = self.lock();
+            let seeks = i.state["seeks"].as_array().cloned().unwrap_or_default();
+            let seeking = seeks.iter().any(|k| k["mine"] == true);
+            (seeks, seeking, i.polled.map_or(0, |p| p.elapsed().as_millis() as u64), i.hidden.clone())
+        };
+        // Other players' seeks, as challenges anyone may accept.
+        challenges.extend(seeks.iter().filter(|k| k["mine"] != true).map(|k| (format!("{SEEK}{}", s(&k["id"])), k)).filter(|(id, _)| !hidden.contains(id)).map(|(id, k)| {
+            challenge(id, true, s(&k["name"]), &k["variant"], k["rated"].as_bool().unwrap_or(false), k["minutes"].as_u64(), k["increment"].as_u64().unwrap_or(0))
+        }));
+        let game = self.shown().map(|g| Self::game_view(&g, since));
         let i = self.lock();
         View {
             signed_in: i.session.as_ref().and(i.state["me"].as_str().map(str::to_string)),
             signing_in: i.signing_in.is_some(),
             connected: i.poll.is_some(),
-            seeking: false,
+            seeking,
             challenges,
             game,
             chat: vec![],
@@ -639,7 +708,7 @@ impl Play for BragdServer {
     }
 
     fn live(&self) -> Option<(bool, bool, bool)> {
-        self.shown().map(|g| (false, true, g["status"] == "over"))
+        self.shown().map(|g| (g["rated"] == true, true, g["status"] == "over"))
     }
 
     fn open(&self) -> Result<(), String> {
@@ -693,25 +762,48 @@ impl Play for BragdServer {
         bragd_model::key::set_in(SERVICE, &base, "")
     }
 
-    fn seek(&self, _variant: &str, _time: &str, _rated: bool) -> Result<(), String> {
-        Err(t!("friends.error.no_seek"))
+    fn seek(&self, variant: &str, time: &str, rated: bool) -> Result<(), String> {
+        let mut body = time_body(time);
+        body["variant"] = json!(variant);
+        body["rated"] = json!(rated);
+        self.call("POST", "/v1/seeks", &body)?;
+        self.poll()
     }
 
-    fn seek_cancel(&self) {}
+    fn seek_cancel(&self) {
+        // Its error shows on the page; the seek lapses after an hour anyway.
+        if self.call("DELETE", "/v1/seeks", &json!({})).is_ok() {
+            let _ = self.poll();
+        }
+    }
 
-    fn challenge(&self, user: &str, variant: &str, _time: &str, _rated: bool, color: &str) -> Result<(), String> {
+    fn challenge(&self, user: &str, variant: &str, time: &str, rated: bool, color: &str) -> Result<(), String> {
         let side = match color {
             "white" => "first",
             "black" => "second",
             _ => "random",
         };
-        self.call("POST", "/v1/games", &json!({ "opponent": user.trim(), "variant": variant, "side": side }))?;
+        let mut body = time_body(time);
+        body["opponent"] = json!(user.trim());
+        body["variant"] = json!(variant);
+        body["side"] = json!(side);
+        body["rated"] = json!(rated);
+        self.call("POST", "/v1/games", &body)?;
         self.poll()
     }
 
     fn answer(&self, id: &str, what: &str) -> Result<(), String> {
         if !matches!(what, "accept" | "decline" | "cancel") {
             return Err(error_text("not_found"));
+        }
+        if let Some(seek) = id.strip_prefix(SEEK) {
+            if what != "accept" {
+                self.lock().hidden.push(id.to_string());
+                return Ok(());
+            }
+            let v = self.call("POST", &format!("/v1/seeks/{seek}/accept"), &json!({}))?;
+            self.lock().game = Some(s(&v["id"]));
+            return self.poll();
         }
         self.call("POST", &format!("/v1/games/{id}/{what}"), &json!({}))?;
         if what == "accept" {
@@ -722,7 +814,7 @@ impl Play for BragdServer {
 
     fn play(&self, entry: &str) -> Result<(), String> {
         let g = self.shown().ok_or_else(|| t!("online.error.no_game"))?;
-        let view = Self::game_view(&g);
+        let view = Self::game_view(&g, 0);
         let st = view.state.as_ref().ok_or_else(|| t!("online.error.no_game"))?;
         if st.to_move.map(|s| s.index) != view.seat {
             return Err(t!("online.error.not_your_turn"));
@@ -769,6 +861,22 @@ impl Play for BragdServer {
     fn say(&self, text: &str) -> Result<(), String> {
         self.act("say", json!({ "text": text.trim() }))
     }
+}
+
+/// A seek's id on the page, apart from a challenge's.
+const SEEK: &str = "seek:";
+
+/// The time control `10+5` as the game service takes it; nothing for `none`.
+fn time_body(time: &str) -> Value {
+    match board::Time::parse(time) {
+        Some(t) => json!({ "minutes": t.minutes, "increment": t.increment }),
+        None => json!({}),
+    }
+}
+
+/// The Game is under way and the clock that runs reached nought.
+fn run_out(g: &Value) -> bool {
+    g["status"] == "playing" && g["clock"]["running"].as_u64().is_some_and(|r| g["clock"]["left"][r as usize].as_u64() == Some(0))
 }
 
 /// What Delete my account asks to be typed, and the label asking for it: the user's name, or a
@@ -863,7 +971,7 @@ mod tests {
     #[test]
     fn bragd_server_names_a_deleted_opponent() {
         let g = json!({ "opponent": null, "first": true, "variant": "chess", "status": "over", "moves": [] });
-        assert_eq!(BragdServer::game_view(&g).names[1], t!("friends.deleted_player"));
+        assert_eq!(BragdServer::game_view(&g, 0).names[1], t!("friends.deleted_player"));
     }
 
     #[test]
@@ -895,10 +1003,10 @@ mod tests {
     fn bragd_server_plays_a_game_checked_by_the_rules_first() {
         let (b, fake, _) = signed_in();
         let v = b.view();
-        assert_eq!(v.challenges.len(), 1);
-        assert!(v.challenges[0].incoming);
-        assert_eq!(v.challenges[0].who, "Anna");
-        b.answer(&v.challenges[0].id, "accept").unwrap();
+        let anna = v.challenges.iter().find(|c| !c.id.starts_with(SEEK)).unwrap();
+        assert!(anna.incoming);
+        assert_eq!(anna.who, "Anna");
+        b.answer(&anna.id, "accept").unwrap();
         let g = b.view().game.unwrap();
         assert_eq!(g.seat, Some(0));
         assert_eq!(g.names[1], "Anna");
@@ -921,14 +1029,78 @@ mod tests {
     #[test]
     fn bragd_server_challenges_with_the_side_asked_for() {
         let (b, fake, world) = signed_in();
-        b.challenge("Bo", "xiangqi", "none", false, "black").unwrap();
+        b.challenge("Bo", "xiangqi", "10+5", true, "black").unwrap();
         let sent = fake.seen().into_iter().find(|r| r.path == "/v1/games").unwrap();
         let body: Value = serde_json::from_str(&sent.body).unwrap();
-        assert_eq!(body, json!({ "opponent": "Bo", "variant": "xiangqi", "side": "second" }));
+        assert_eq!(body, json!({ "opponent": "Bo", "variant": "xiangqi", "side": "second", "minutes": 10, "increment": 5, "rated": true }));
         assert!(!world.lock().unwrap().games.last().unwrap().first);
-        assert!(b.seek("chess", "none", false).is_err());
+        let v = b.view();
+        let c = v.challenges.iter().find(|c| c.who == "Bo" && !c.incoming).unwrap();
+        assert_eq!((c.rated, c.time.as_str()), (true, t!("online.minutes_plus", "m" => 10, "s" => 5).as_str()));
+        b.challenge("Bo", "xiangqi", "none", false, "random").unwrap();
+        let sent = fake.seen().into_iter().rfind(|r| r.path == "/v1/games").unwrap();
+        assert_eq!(serde_json::from_str::<Value>(&sent.body).unwrap()["minutes"], Value::Null, "no clock");
         assert!(b.variants().contains(&"backgammon"));
         assert!(b.variants().contains(&"brandubh"));
+    }
+
+    /// The user seeks and takes the seek back; Bo's seek shows as a challenge anyone may take,
+    /// and taking it starts a rated Game with its clock.
+    #[test]
+    fn bragd_server_seeks_and_takes_a_seek() {
+        let (b, fake, _) = signed_in();
+        b.seek("chess", "5+3", false).unwrap();
+        assert!(b.view().seeking);
+        let sent = fake.seen().into_iter().find(|r| r.path == "/v1/seeks").unwrap();
+        assert_eq!(serde_json::from_str::<Value>(&sent.body).unwrap(), json!({ "variant": "chess", "minutes": 5, "increment": 3, "rated": false }));
+        b.seek_cancel();
+        assert!(!b.view().seeking);
+        let v = b.view();
+        let bo = v.challenges.iter().find(|c| c.who == "Bo").unwrap();
+        assert!(bo.incoming && bo.rated);
+        assert_eq!(bo.variant, Some("shogi"));
+        b.answer(&bo.id, "accept").unwrap();
+        assert!(fake.seen().iter().any(|r| r.path == "/v1/seeks/s-bo/accept"));
+        let g = b.view().game.unwrap();
+        assert!(g.rated);
+        assert_eq!(g.running, Some(0));
+        assert!(g.clocks[0] <= 600_000 && g.clocks[1] == 600_000, "{:?}", g.clocks);
+        assert_eq!(b.live(), Some((true, true, false)), "rated: the fair-play lock holds");
+    }
+
+    #[test]
+    fn bragd_server_a_declined_seek_is_not_shown_again() {
+        let (b, fake, _) = signed_in();
+        let id = b.view().challenges.iter().find(|c| c.who == "Bo").unwrap().id.clone();
+        let sent = fake.seen().len();
+        b.answer(&id, "decline").unwrap();
+        assert!(!b.view().challenges.iter().any(|c| c.who == "Bo"));
+        assert_eq!(fake.seen().len(), sent, "nothing is sent");
+    }
+
+    #[test]
+    fn bragd_server_shows_ratings_provisional_with_a_question_mark() {
+        let (b, _, _) = signed_in();
+        let r: Vec<(String, String)> = b.ratings().into_iter().map(|r| (r.family, r.rating)).collect();
+        assert_eq!(r, [("chess".to_string(), "1612".to_string()), ("shogi".to_string(), "1480?".to_string())]);
+    }
+
+    /// The running clock reached nought: the referee is asked to see the flag.
+    #[test]
+    fn bragd_server_asks_the_referee_when_a_clock_runs_out() {
+        let (b, fake, world) = signed_in();
+        {
+            let mut w = world.lock().unwrap();
+            let g = &mut w.games[0];
+            g.status = "playing".into();
+            g.clock = json!({ "left": [0, 30_000], "running": 0, "increment": 0 });
+        }
+        b.poll().unwrap();
+        assert!(fake.seen().iter().any(|r| r.path == "/v1/games/g-anna/flag"));
+        world.lock().unwrap().games[0].clock = json!({ "left": [5_000, 30_000], "running": 0, "increment": 0 });
+        let n = fake.seen().iter().filter(|r| r.path.ends_with("/flag")).count();
+        b.poll().unwrap();
+        assert_eq!(fake.seen().iter().filter(|r| r.path.ends_with("/flag")).count(), n, "time is left");
     }
 
     /// Backgammon, Black to throw with the cube in the middle: the page offers Double and Throw,
