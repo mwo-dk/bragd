@@ -185,22 +185,10 @@ mod tests {
         assert_eq!(args(&Ask { folder: true, ..Default::default() }), ["--pick", "--folder"]);
     }
 
-    /// Writes the script `text` to `p` from a child process of its own, so no file handle of
-    /// it leaks into a program another test starts meanwhile ("Text file busy").
-    #[cfg(unix)]
-    fn script(p: &Path, text: &str) {
-        use std::io::Write;
-        let mut sh = tools::own("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(p).stdin(Stdio::piped()).spawn().unwrap();
-        sh.stdin.take().unwrap().write_all(text.as_bytes()).unwrap();
-        assert!(sh.wait().unwrap().success());
-    }
-
     /// A stand-in picker: it prints its arguments to a file, then answers as `answer` says.
     #[cfg(unix)]
     fn fake(d: &Path, name: &str, answer: &str) -> PathBuf {
-        let p = d.join(name);
-        script(&p, &format!("#!/bin/sh\nif [ \"$1\" = --help ]; then echo 'usage: coxswain-gui [--pick [--folder] [--multiple]]'; exit 0; fi\nprintf '%s\\n' \"$@\" > '{}'\n{answer}\n", d.join("args").display()));
-        p
+        bragd_engines::fake_program(d, name, &format!("if [ \"$1\" = --help ]; then echo 'usage: coxswain-gui [--pick [--folder] [--multiple]]'; exit 0; fi\nprintf '%s\\n' \"$@\" > '{}'\n{answer}", d.join("args").display()))
     }
 
     #[cfg(unix)]
@@ -221,8 +209,7 @@ mod tests {
         let p = fake(&d, "failed", "echo 'no display' >&2; exit 3");
         assert!(run_coxswain(&p, &ask).unwrap_err().ends_with("no display"));
         // An older Coxswain without --pick is not used.
-        let old = d.join("old");
-        script(&old, "#!/bin/sh\necho 'usage: coxswain-gui [FILE]'\n");
+        let old = bragd_engines::fake_program(&d, "old", "echo 'usage: coxswain-gui [FILE]'");
         assert!(!knows_pick(&old));
         std::fs::remove_dir_all(&d).unwrap();
     }

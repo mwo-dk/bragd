@@ -8,7 +8,7 @@ publish.workspace = true
 [features]
 # For the apps' tests only (their dev-dependency turns it on): the home, config, data and
 # cache folders lie in the temporary folder, never the developer's own (`dirs`).
-test-home = []
+test-home = ["dep:tempfile"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -25,3 +25,8 @@ ureq = { version = "3", features = ["platform-verifier"] }
 rusqlite = { version = "0.41", features = ["bundled"] }
 # Dice and sticks are thrown from the operating system's random source (`throw`).
 getrandom = "0.4"
+# The test home (`dirs`): a new folder for each run of a test binary.
+tempfile = { version = "3", optional = true }
+
+[dev-dependencies]
+tempfile = "3"

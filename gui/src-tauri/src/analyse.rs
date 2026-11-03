@@ -590,12 +590,9 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn lines_in_the_variants_notation() {
-        use std::os::unix::fs::PermissionsExt;
         let d = std::env::temp_dir().join(format!("bragd-gui-analyse-{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap();
-        let p = d.join("fake");
-        std::fs::write(&p, "#!/bin/sh\nwhile read l; do case \"$l\" in uci) echo 'id name Fake 1'; echo 'option name MultiPV type spin default 1 min 1 max 5'; echo uciok;; go*) echo 'info depth 7 multipv 1 score cp 25 pv e7e5 g1f3'; echo 'info depth 7 multipv 2 score cp -40 pv c7c5'; echo 'bestmove e7e5';; quit) exit 0;; esac; done\n").unwrap();
-        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let p = bragd_engines::fake_program(&d, "fake", "while read l; do case \"$l\" in uci) echo 'id name Fake 1'; echo 'option name MultiPV type spin default 1 min 1 max 5'; echo uciok;; go*) echo 'info depth 7 multipv 1 score cp 25 pv e7e5 g1f3'; echo 'info depth 7 multipv 2 score cp -40 pv c7c5'; echo 'bestmove e7e5';; quit) exit 0;; esac; done");
         let mut cfg = Config::default();
         cfg.engines.added.insert("fake".into(), "chess".into());
         cfg.engines.paths.insert("fake".into(), p.display().to_string());
@@ -623,12 +620,9 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn an_equity_before_the_roll_shows_without_a_line() {
-        use std::os::unix::fs::PermissionsExt;
         let d = std::env::temp_dir().join(format!("bragd-gui-analyse-bg-{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap();
-        let p = d.join("fake");
-        std::fs::write(&p, "#!/bin/sh\nwhile read l; do case \"$l\" in 'show version') echo 'GNU Backgammon 1.08.003';; 'set prompt'*) echo \"The prompt has been set to \\`bragd>'.\";; eval) echo 'bragd> 2 ply: 0.525 0.150 0.007 0.125 0.005 +0.076 +0.098';; 'show prompt') echo \"bragd>The prompt is set to \\`bragd>'.\";; quit) exit 0;; esac; done\n").unwrap();
-        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let p = bragd_engines::fake_program(&d, "fake", "while read l; do case \"$l\" in 'show version') echo 'GNU Backgammon 1.08.003';; 'set prompt'*) echo \"The prompt has been set to \\`bragd>'.\";; eval) echo 'bragd> 2 ply: 0.525 0.150 0.007 0.125 0.005 +0.076 +0.098';; 'show prompt') echo \"bragd>The prompt is set to \\`bragd>'.\";; quit) exit 0;; esac; done");
         let mut cfg = Config::default();
         cfg.engines.paths.insert("gnubg".into(), p.display().to_string());
         let held = Held::default();
@@ -666,12 +660,9 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn live_analysis_reads_and_writes_the_store() {
-        use std::os::unix::fs::PermissionsExt;
         let d = std::env::temp_dir().join(format!("bragd-gui-analyse-store-{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap();
-        let p = d.join("fake");
-        std::fs::write(&p, "#!/bin/sh\nwhile read l; do case \"$l\" in uci) echo 'id name Store 1'; echo 'option name MultiPV type spin default 1 min 1 max 5'; echo uciok;; go*) echo 'info depth 5 multipv 1 score cp 25 pv e7e5 g1f3'; echo 'info depth 5 multipv 2 score cp -60 pv c7c5'; echo 'bestmove e7e5';; quit) exit 0;; esac; done\n").unwrap();
-        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let p = bragd_engines::fake_program(&d, "fake", "while read l; do case \"$l\" in uci) echo 'id name Store 1'; echo 'option name MultiPV type spin default 1 min 1 max 5'; echo uciok;; go*) echo 'info depth 5 multipv 1 score cp 25 pv e7e5 g1f3'; echo 'info depth 5 multipv 2 score cp -60 pv c7c5'; echo 'bestmove e7e5';; quit) exit 0;; esac; done");
         let mut cfg = Config::default();
         cfg.engines.added.insert("storefake".into(), "chess".into());
         cfg.engines.paths.insert("storefake".into(), p.display().to_string());

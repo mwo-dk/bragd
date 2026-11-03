@@ -350,10 +350,13 @@ mod tests {
         )
     }
 
+    /// Only guards against a hang: a review took 26 s with 64 test runs at once on 32 cores.
+    const HANG: Duration = Duration::from_secs(120);
+
     #[cfg(unix)]
     fn wait(r: &Reviewer) -> Review {
         let t = std::time::Instant::now();
-        while !r.now().done && t.elapsed() < Duration::from_secs(20) {
+        while !r.now().done && t.elapsed() < HANG {
             std::thread::sleep(Duration::from_millis(10));
         }
         r.now()
@@ -499,7 +502,7 @@ mod tests {
         let s = Setup { keys: vec![1], ..setup(&d, &d.join("none"), &[]) };
         let r = Reviewer::start(&s, &Position::new("chess", &["e2e4"]));
         let t = std::time::Instant::now();
-        while !r.now().done && t.elapsed() < Duration::from_secs(20) {
+        while !r.now().done && t.elapsed() < HANG {
             std::thread::sleep(Duration::from_millis(10));
         }
         assert!(r.now().error.is_some_and(|e| e.contains("1 position keys for 1 moves")));

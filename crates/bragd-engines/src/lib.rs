@@ -41,8 +41,8 @@ pub(crate) fn test_dir(name: &str) -> std::path::PathBuf {
 /// Written by a `sh` of its own, not by this process: a file this process holds open for
 /// writing can be inherited by another test thread's child between its fork and its exec,
 /// and running the script then fails with "Text file busy".
-#[cfg(all(test, unix))]
-pub(crate) fn fake_program(dir: &std::path::Path, name: &str, body: &str) -> std::path::PathBuf {
+#[cfg(all(unix, any(test, feature = "fake-program")))]
+pub fn fake_program(dir: &std::path::Path, name: &str, body: &str) -> std::path::PathBuf {
     use std::io::Write;
     let p = dir.join(name);
     let mut sh = tools::own("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(&p).stdin(std::process::Stdio::piped()).spawn().unwrap();

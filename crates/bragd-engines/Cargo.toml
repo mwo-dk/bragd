@@ -6,6 +6,10 @@ license.workspace = true
 publish.workspace = true
 description = "Engines for every Game family: their protocols, discovery, sealed container images and Syzygy tablebases"
 
+[features]
+# For other crates' tests (their dev-dependency turns it on): `fake_program`.
+fake-program = []
+
 [dependencies]
 # The Variant catalogue and its moves: engines play its Variants, their moves turned into its entries.
 bragd-games = { path = "../bragd-games" }

@@ -51,4 +51,5 @@ custom-protocol = ["tauri/custom-protocol"]
 
 # Tests get a home of their own in the temporary folder (`bragd_core::dirs`).
 [dev-dependencies]
+bragd-engines = { path = "../../crates/bragd-engines", features = ["fake-program"] }
 bragd-core = { path = "../../crates/bragd-core", features = ["test-home"] }

@@ -48,6 +48,7 @@ windows-sys = { version = "0.61", features = ["Win32_System_Power", "Win32_Stora
 static_vcruntime = "3"
 
 [dev-dependencies]
+bragd-engines = { path = "../bragd-engines", features = ["fake-program"] }
 bragd-core = { path = "../bragd-core", features = ["test-home"] }
 # Zips of PGN, as TWIC sends them, made for the tests.
 zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
