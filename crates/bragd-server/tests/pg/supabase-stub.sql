@@ -36,3 +36,10 @@ grant select, insert on realtime.messages to authenticated;
 create function realtime.topic() returns text language sql stable as $$
   select nullif(current_setting('realtime.topic', true), '')
 $$;
+
+-- Realtime's broadcast from the database: a row in `realtime.messages`, which Realtime sends to
+-- whoever the topic's policies let listen.
+create function realtime.send(payload jsonb, event text, topic text, private boolean default true) returns void
+  language sql as $$
+  insert into realtime.messages (topic, extension, payload, event, private) values (topic, 'broadcast', payload, event, private)
+$$;

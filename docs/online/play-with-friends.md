@@ -87,10 +87,12 @@ Seek a Game that any player may take, challenge a player by their name, with the
 
 | Control | What it does |
 |---|---|
-| **Time** | *No clock*, or 10 min + 5 s, 5 min + 3 s, 15 min + 10 s or 30 min + 20 s: each player's time, and what is added after each of their turns |
+| **Time** | *No clock*, or 10 min + 5 s, 1 min + 0 s, 3 min + 2 s, 5 min + 3 s, 15 min + 10 s or 30 min + 20 s: each player's time, and what is added after each of their turns |
 | **Rated** | The Game changes both players' ratings when it ends |
 
 The clocks are kept by the Bragd server. It counts the time you use from the moment it recorded the other player's move to the moment it records yours, so the time your move takes to reach it counts against you. The clock starts when the Game starts. When your time runs out, the server ends the Game as lost on time; Bragd asks it to look when a clock shows nought, and a move sent after that is not played.
+
+Each move reaches the other player at once: the server tells both players' Bragd over Supabase Realtime that the Game changed, and Bragd asks it how the Game stands. The message names only the Game, and only you can listen for yours. When Realtime cannot be reached, Bragd asks the server every two seconds instead, which is slow for a 1-minute Game.
 
 A rating is Glicko-2, as [Clubs](../clubs/clubs.md) use: one for each Game family, starting at 1500, and changed after every rated Game ([ADR 0007](../adr/0007-ratings-on-the-bragd-server.md)). *Your ratings* above the seek shows yours in the Families you have on. A rating with a `?`, such as *1500?*, is still provisional: Glicko-2 is not yet sure of it. A Game ended by deleting an account is not rated.
 
@@ -111,6 +113,11 @@ The server throws as soon as a throw is due, so you only ever move. In backgammo
 | **Double** | Offers the other player a double before you throw. They **Take** or **Drop** it |
 
 Backgammon's opening throw is one die each, thrown by the server too; the higher die moves first.
+
+In backgammon you move one checker at a time, as in [local Play](../play/backgammon.md): drag a checker, or click it and then where it goes. Your checkers stay on your machine until the dice are used, then Bragd sends the whole turn and the server checks it. **Undo** takes back the last checker before then.
+
+![A backgammon Game against Anna on the Bragd server, 1100 px wide: after the server's throw, one checker of your turn moved, with Undo beside the board](../screenshots/friends-step-1100.png)
+*One checker moved; the turn goes to the server once the dice are used.*
 
 ### Chat
 
@@ -172,7 +179,7 @@ You can make a new account afterwards with the same email; it starts empty.
 
 ## What it needs
 
-- The Bragd server's address in Settings, and a connection to it over HTTPS.
+- The Bragd server's address in Settings, and a connection to it over HTTPS, and to its Supabase Realtime over a WebSocket for moves at once.
 - An account on the Bragd server, and your system's keychain for the sign-in, under the service `bragd-online` with the server's address as the account.
 - For a provider's sign-in, a browser.
 - For Calls on Linux, GStreamer's WebRTC plugins (`webrtcbin` from plugins-bad, and libnice's `nice`). The Flatpak's runtime has them, the `.deb` and `.rpm` depend on them, and the AppImage carries them. Built from source, install `gstreamer1.0-plugins-bad` and `gstreamer1.0-nice` (Debian, Ubuntu) or `gstreamer1-plugins-bad-free` and `libnice-gstreamer1` (Fedora). On Flatpak, Bragd may use the camera and PulseAudio for Calls.
@@ -213,9 +220,9 @@ Windows and macOS ask once whether Bragd may use the camera and the microphone. 
 
 Press **Delete my account** below the Games, type your name (or, without a name, the word the form shows) and press **Delete my account for good**. It is deleted on the Bragd server at once. The server's backups hold it for up to 30 days more ([Privacy](../reference/privacy.md#the-bragd-server)).
 
-#### Why is there no clock under five minutes?
+#### Is a 1-minute Game fair on the Bragd server?
 
-Bragd asks the Bragd server how a Game stands every two seconds. That is fine for 5 minutes and more, but in a faster Game the delay would cost real time.
+Yes, while Supabase Realtime can be reached: the server tells your Bragd of each move at once, and the clocks are the server's. If Realtime is down, Bragd asks the server every two seconds, and in a 1-minute Game that delay costs you time. Choose a slower clock then.
 
 #### How is my rating worked out?
 

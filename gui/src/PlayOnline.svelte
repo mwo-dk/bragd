@@ -83,7 +83,8 @@
     run(() => api.onlineMove(server, entry));
   }
   function pick(/** @type {any[]} */ moves) {
-    if (moves.length === 1) playEntry(moves[0].wire);
+    // Backgammon on the Bragd server: one checker at a time, as in local Play; Rust sends the turn.
+    if (moves.length === 1 || (st.steps?.length && moves.length)) playEntry(moves[0].wire);
     else if (moves.length > 1) choose = moves;
   }
   function cell(/** @type {string} */ square) {
@@ -307,6 +308,9 @@
             {/if}
             {#if view.can.takeback}
               <button onclick={() => act("takeback")} disabled={busy || game.offering[1] || !game.entries.length}>{game.offering[1] ? t("online.takeback_sent") : t("online.ask_takeback")}</button>
+            {/if}
+            {#if mine && game.part}
+              <button onclick={() => act("step_back")} disabled={busy}>{t("play.undo")}</button>
             {/if}
             {#if mine && !game.dead}
               {#each plainMoves(st).filter((/** @type {any} */ m) => !m.wire.startsWith("dead:")) as m}

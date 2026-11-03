@@ -285,6 +285,10 @@ pub fn online_action(server: String, what: String) -> Res<()> {
             o.leave();
             Ok(())
         }
+        "step_back" => {
+            o.step_back();
+            Ok(())
+        }
         _ => Err(format!("{what}: no such action")),
     }
 }

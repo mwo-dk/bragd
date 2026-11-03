@@ -2,8 +2,10 @@
 //! a sign-in provider), Friends, Clubs, and Games refereed by the game service with Bragd's own
 //! rules (`crates/bragd-server`). The server's address is Settings → Online → *Bragd server
 //! address*; until one is set, nothing here talks to anyone. The refresh token is kept in the OS
-//! keychain only. A thread asks the game service how things stand every two seconds while the
-//! account is open, and the page reads the [`View`] and the [`FriendsView`] from that.
+//! keychain only. While the account is open, a thread listens on the user's own Realtime topic
+//! and asks the game service how things stand as soon as the referee says a Game changed; it
+//! also asks every few seconds, and every two while the topic cannot be joined. The page reads
+//! the [`View`] and the [`FriendsView`] from that.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -32,10 +34,21 @@ pub const SERVER: Server = Server {
     families: FAMILIES,
 };
 
-/// How often the game service is asked how things stand.
+/// How often the game service is asked how things stand without the live topic, and with it.
 const POLL: Duration = Duration::from_secs(2);
+const POLL_LIVE: Duration = Duration::from_secs(10);
+/// How often the poll thread looks for news.
+const TICK: Duration = Duration::from_millis(50);
+/// How long after a failed join of the live topic it is tried again.
+const RETRY: Duration = Duration::from_secs(30);
 /// How long the browser has for a sign-in.
 const SIGN_IN: Duration = Duration::from_secs(300);
+
+/// Whether to ask the game service now: at once on news from the live topic, otherwise when
+/// the last ask is `since` ago, longer apart while the live topic is joined.
+fn due(news: bool, live: bool, since: Duration) -> bool {
+    news || since >= if live { POLL_LIVE } else { POLL }
+}
 
 /// The address set in Settings, or the one `BRAGD_FRIENDS_URL` names; empty when none is set.
 pub fn address() -> String {
@@ -79,6 +92,11 @@ pub(crate) struct Inner {
     polled: Option<Instant>,
     /// The seeks the user declined: not shown again.
     hidden: Vec<String>,
+    /// The user's live topic, and the access token it was joined with.
+    live: Option<(String, Arc<crate::realtime::Channel>)>,
+    /// Backgammon's turn being moved checker by checker: the Game, the ply it is, and the
+    /// checkers moved so far, all on this machine until the dice are used.
+    part: Option<(String, usize, Vec<String>)>,
 }
 
 /// The Bragd server for this window. Clones share it.
@@ -365,14 +383,57 @@ impl BragdServer {
         }
         let this = self.clone();
         std::thread::spawn(move || {
+            let (mut asked, mut tried) = (Instant::now(), None);
             while !stop.load(Ordering::Relaxed) {
-                std::thread::sleep(POLL);
-                if !stop.load(Ordering::Relaxed) {
+                std::thread::sleep(TICK);
+                let news = this.news(&mut tried);
+                if !stop.load(Ordering::Relaxed) && due(news, this.lock().live.is_some(), asked.elapsed()) {
+                    asked = Instant::now();
                     let _ = this.poll();
                 }
             }
         });
         Ok(())
+    }
+
+    /// Whether the referee said a Game changed since the last call. Joins the user's live topic
+    /// when it is not joined, on a thread of its own since a join may hang, at most every
+    /// [`RETRY`]; it is joined again once lost, or once the access token was refreshed.
+    fn news(&self, tried: &mut Option<Instant>) -> bool {
+        let (token, live) = {
+            let i = self.lock();
+            (i.session.as_ref().map(|s| s.access.clone()), i.live.clone())
+        };
+        match live {
+            Some((t, ch)) if Some(&t) == token.as_ref() && ch.lost().is_none() => return !ch.take().is_empty(),
+            Some(_) => self.lock().live = None,
+            None => {}
+        }
+        if tried.is_some_and(|t| t.elapsed() < RETRY) {
+            return false;
+        }
+        *tried = Some(Instant::now());
+        let this = self.clone();
+        std::thread::spawn(move || {
+            let joined = (|| {
+                let p = this.public()?;
+                let token = this.token()?;
+                let me = s(&this.lock().state["id"]);
+                if me.is_empty() {
+                    return Err(String::new());
+                }
+                let ch = crate::realtime::Channel::join(&p.supabase_url, &p.supabase_key, &token, &format!("player:{me}"), &me)?;
+                Ok::<_, String>((token, Arc::new(ch)))
+            })();
+            let mut i = this.lock();
+            // Signed out or in again meanwhile: this join is for nobody.
+            if let Ok((token, ch)) = joined
+                && i.session.as_ref().is_some_and(|s| s.access == token)
+            {
+                i.live = Some((token, ch));
+            }
+        });
+        false
     }
 
     pub fn sign_in_email(&self, email: &str, password: &str) -> Result<(), String> {
@@ -529,12 +590,25 @@ impl BragdServer {
         }
     }
 
-    /// The Game `g`, its running clock `since` ms lower than the state said.
-    fn game_view(g: &Value, since: u64) -> GameView {
+    /// The checkers moved so far in the turn of the Game `g`, as it now stands.
+    fn part_of(&self, g: &Value) -> Vec<String> {
+        let ply = g["moves"].as_array().map_or(0, Vec::len);
+        match &self.lock().part {
+            Some((id, at, part)) if g["id"] == id.as_str() && *at == ply => part.clone(),
+            _ => vec![],
+        }
+    }
+
+    /// The Game `g`, its running clock `since` ms lower than the state said, with the checkers
+    /// of `part` moved (backgammon).
+    fn game_view(g: &Value, since: u64, part: &[String]) -> GameView {
         let variant = bragd_games::variant(&s(&g["variant"])).ok().map(|v| v.key());
         let entries = strings(&g["moves"]);
         let initial = g["initial"].as_str().map(str::to_string);
-        let mut state = variant.and_then(|v| bragd_games::replay(v, initial.as_deref(), &entries).ok());
+        let mut state = variant.and_then(|v| match part {
+            [] => bragd_games::replay(v, initial.as_deref(), &entries).ok(),
+            _ => bragd_games::step(v, initial.as_deref(), &entries, part).ok().map(|r| r.state),
+        });
         let first = g["first"].as_bool().unwrap_or(false);
         // The referee throws; where the player may double first (backgammon), it waits for them
         // to ask, so the page offers *Throw* beside *Double*.
@@ -580,6 +654,7 @@ impl BragdServer {
             initial,
             entries,
             dead: None,
+            part: part.len(),
         }
     }
 
@@ -640,11 +715,11 @@ impl Play for BragdServer {
         bragd_games::Family::ALL.iter().filter(|f| FAMILIES.contains(&f.key())).flat_map(|f| f.variants().map(|v| v.key)).collect()
     }
 
-    /// No clock, or a few time controls. shortcut: none under five minutes, since the page asks
-    /// the server how things stand every two seconds; a faster pace would need a live channel.
+    /// No clock, or a few time controls, down to bullet: moves reach the other player over the
+    /// live topic at once. 10+5 first, as the page's default.
     fn times(&self) -> Vec<(String, String)> {
         std::iter::once(("none".to_string(), t!("friends.no_clock")))
-            .chain(["10+5", "5+3", "15+10", "30+20"].iter().filter_map(|t| Some((t.to_string(), board::Time::parse(t)?.label()))))
+            .chain(["10+5", "1+0", "3+2", "5+3", "15+10", "30+20"].iter().filter_map(|t| Some((t.to_string(), board::Time::parse(t)?.label()))))
             .collect()
     }
 
@@ -693,7 +768,7 @@ impl Play for BragdServer {
         challenges.extend(seeks.iter().filter(|k| k["mine"] != true).map(|k| (format!("{SEEK}{}", s(&k["id"])), k)).filter(|(id, _)| !hidden.contains(id)).map(|(id, k)| {
             challenge(id, true, s(&k["name"]), &k["variant"], k["rated"].as_bool().unwrap_or(false), k["minutes"].as_u64(), k["increment"].as_u64().unwrap_or(0))
         }));
-        let game = self.shown().map(|g| Self::game_view(&g, since));
+        let game = self.shown().map(|g| Self::game_view(&g, since, &self.part_of(&g)));
         let i = self.lock();
         View {
             signed_in: i.session.as_ref().and(i.state["me"].as_str().map(str::to_string)),
@@ -814,7 +889,8 @@ impl Play for BragdServer {
 
     fn play(&self, entry: &str) -> Result<(), String> {
         let g = self.shown().ok_or_else(|| t!("online.error.no_game"))?;
-        let view = Self::game_view(&g, 0);
+        let part = self.part_of(&g);
+        let view = Self::game_view(&g, 0, &part);
         let st = view.state.as_ref().ok_or_else(|| t!("online.error.no_game"))?;
         if st.to_move.map(|s| s.index) != view.seat {
             return Err(t!("online.error.not_your_turn"));
@@ -822,8 +898,23 @@ impl Play for BragdServer {
         if entry == "throw" {
             return self.act("throw", json!({}));
         }
+        let variant = view.variant.unwrap_or_default();
+        // Backgammon, as local Play moves it: a checker at a time, kept here; the rules make the
+        // whole turn once the dice are used, and only that goes to the referee.
+        if st.steps.iter().any(|m| m.wire == entry) {
+            let mut next = part;
+            next.push(entry.to_string());
+            let turn = bragd_games::step(variant, view.initial.as_deref(), &view.entries, &next).map_err(|e| e.to_string())?.entry;
+            let Some(turn) = turn else {
+                self.lock().part = Some((view.id, view.entries.len(), next));
+                return Ok(());
+            };
+            self.act("move", json!({ "ply": view.entries.len(), "entry": turn }))?;
+            self.lock().part = None;
+            return Ok(());
+        }
         // Bragd's rules first, so a wrong move never leaves the machine; the referee checks again.
-        bragd_games::apply(view.variant.unwrap_or_default(), view.initial.as_deref(), &view.entries, entry).map_err(|e| e.to_string())?;
+        bragd_games::apply(variant, view.initial.as_deref(), &view.entries, entry).map_err(|e| e.to_string())?;
         self.act("move", json!({ "ply": view.entries.len(), "entry": entry }))
     }
 
@@ -849,6 +940,12 @@ impl Play for BragdServer {
         i.game = None;
         if let Some(games) = i.state["games"].as_array_mut() {
             games.retain(|g| g["status"] != "over");
+        }
+    }
+
+    fn step_back(&self) {
+        if let Some((_, _, part)) = self.lock().part.as_mut() {
+            part.pop();
         }
     }
 
@@ -971,7 +1068,7 @@ mod tests {
     #[test]
     fn bragd_server_names_a_deleted_opponent() {
         let g = json!({ "opponent": null, "first": true, "variant": "chess", "status": "over", "moves": [] });
-        assert_eq!(BragdServer::game_view(&g, 0).names[1], t!("friends.deleted_player"));
+        assert_eq!(BragdServer::game_view(&g, 0, &[]).names[1], t!("friends.deleted_player"));
     }
 
     #[test]
@@ -1123,6 +1220,69 @@ mod tests {
         b.play("throw").unwrap();
         assert!(fake.seen().iter().any(|r| r.path == "/v1/games/g-anna/throw"));
         assert_eq!(b.view().game.unwrap().entries.len(), 3, "the referee's throw");
+    }
+
+    /// The referee's news on the user's live topic makes the page ask at once; without the
+    /// topic it asks every two seconds, with it only now and then.
+    #[test]
+    fn bragd_server_asks_at_once_when_the_live_topic_says_a_game_changed() {
+        let (b, fake, _) = signed_in();
+        // The page's own thread stopped: this test takes the news itself.
+        b.lock().poll.take().unwrap().store(true, Ordering::Relaxed);
+        let mut tried = None;
+        // A guard against a hang only.
+        let until = Instant::now() + Duration::from_secs(10);
+        while b.lock().live.is_none() {
+            assert!(!b.news(&mut tried) && Instant::now() < until, "the live topic is joined");
+            std::thread::sleep(TICK);
+        }
+        let join = fake.said();
+        assert!(join.iter().any(|t| t.contains("realtime:player:id-bragdtester") && t.contains("phx_join")), "{join:?}");
+        assert!(!b.news(&mut tried), "no news yet");
+        let news = json!({ "topic": "realtime:player:id-bragdtester", "event": "broadcast", "ref": null,
+            "payload": { "type": "broadcast", "event": "signal", "payload": { "from": "bragd", "signal": { "game": "g-anna" } } } });
+        fake.tell(&news.to_string());
+        let mut heard = false;
+        while !heard {
+            assert!(Instant::now() < until, "the news arrives");
+            std::thread::sleep(TICK);
+            heard = b.news(&mut tried);
+        }
+        assert!(due(true, true, Duration::ZERO), "news: at once");
+        assert!(!due(false, true, POLL), "live: no ask every two seconds");
+        assert!(due(false, true, POLL_LIVE) && due(false, false, POLL), "a poll stays as the fallback");
+        assert!(b.times().iter().any(|(t, _)| t == "1+0") && b.times().iter().any(|(t, _)| t == "3+2"), "bullet and blitz");
+    }
+
+    /// Backgammon, the user's turn after a throw: each checker is a step kept on this machine,
+    /// and only the whole turn, once the dice are used, goes to the referee.
+    #[test]
+    fn bragd_server_moves_backgammon_checker_by_checker() {
+        let (b, fake, world) = signed_in();
+        {
+            let mut w = world.lock().unwrap();
+            let g = &mut w.games[0];
+            (g.variant, g.status, g.first, g.initial) = ("backgammon".into(), "playing".into(), true, Some("white".into()));
+            g.moves = vec!["3-1".into()];
+        }
+        b.poll().unwrap();
+        let sent = || fake.seen().iter().filter(|r| r.path == "/v1/games/g-anna/move").count();
+        let before = b.view().game.unwrap().state.unwrap();
+        let first = before.steps[0].wire.clone();
+        b.play(&first).unwrap();
+        let g = b.view().game.unwrap();
+        assert_eq!((g.part, g.entries.len(), sent()), (1, 1, 0), "one checker moved, nothing sent");
+        assert_ne!(g.state.as_ref().unwrap().board, before.board, "the board shows the checker moved");
+        b.step_back();
+        assert_eq!(b.view().game.unwrap().part, 0);
+        b.play(&first).unwrap();
+        let second = b.view().game.unwrap().state.unwrap().steps[0].wire.clone();
+        b.play(&second).unwrap();
+        assert_eq!(sent(), 1, "the whole turn went to the referee");
+        let g = b.view().game.unwrap();
+        assert_eq!(g.part, 0);
+        let turn = bragd_games::step("backgammon", Some("white"), &["3-1"], &[first.as_str(), second.as_str()]).unwrap().entry.unwrap();
+        assert_eq!(world.lock().unwrap().games[0].moves[1], turn, "one entry for the turn");
     }
 }
 

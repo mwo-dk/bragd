@@ -82,6 +82,9 @@ pub struct GameView {
     pub entries: Vec<String>,
     /// While a go Game's score is counted: the stones the server marks dead.
     pub dead: Option<Vec<String>>,
+    /// Backgammon on the Bragd server: the checkers moved so far in the user's turn, which
+    /// `state` shows and which go to the referee as one move once the dice are used.
+    pub part: usize,
 }
 
 /// Everything the page shows.
@@ -411,6 +414,7 @@ impl Play for Online {
                 initial: g.initial.clone(),
                 entries,
                 dead: None,
+                part: 0,
             }
         });
         View {
