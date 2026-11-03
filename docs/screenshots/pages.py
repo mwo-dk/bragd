@@ -607,11 +607,16 @@ def source_pages():
                                            "date_to": "", "min_plies": None, "results": [], "titled_only": False, "players": []}}
     opts = {"enabled": True, "schedule": "weekly", "after_import": "keep"}
     state.parent.mkdir(parents=True, exist_ok=True)
-    state.write_text(json.dumps({"format": 1, "next_id": 1, "jobs": [], "sources": {
-        "twic": {"options": dict(opts, routes=[every, elite]), "memo": {"last_fetch": now - 3 * 86400, "last_try": now - 3 * 86400}},
-        "custom:club": {"options": dict(opts, url="https://example.org/club/archive.pgn.zst", routes=[every]),
-                        "memo": {"last_fetch": now - 9 * 86400, "last_try": now, "too_big": 3_400_000_000}}}}))
+
+    def write(too_big):
+        # The download waiting for a yes is a notice, which turns the Helper's dot red: only the
+        # too-big pictures have it, so the Routes pictures show the Helper idle.
+        memo = {"last_fetch": now - 9 * 86400, "last_try": now} | ({"too_big": 3_400_000_000} if too_big else {})
+        state.write_text(json.dumps({"format": 1, "next_id": 1, "jobs": [], "sources": {
+            "twic": {"options": dict(opts, routes=[every, elite]), "memo": {"last_fetch": now - 3 * 86400, "last_try": now - 3 * 86400}},
+            "custom:club": {"options": dict(opts, url="https://example.org/club/archive.pgn.zst", routes=[every]), "memo": memo}}}))
     try:
+        write(False)
         def routes(d):
             unfold(d)
             nav(d, "chess", "Databases")
@@ -621,6 +626,7 @@ def source_pages():
             d.wait(1)
             js(d, "document.querySelector('main .routes')?.scrollIntoView()")
         widths("sources-routes", routes)
+        write(True)
 
         def too_big(d):
             unfold(d)
