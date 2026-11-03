@@ -41,7 +41,21 @@ An Engine Bragd runs from an image has no network at all. An installed Engine is
 
 The Bragd server is run by Bragd's makers. It is Supabase, hosted on Supabase's free plan in an EU region, and Bragd's own game service on a server in Germany. Supabase Inc processes the data on the makers' behalf: your account (email, and the sign-in provider's name for you if you use one), your name, your Friends, blocks, reports and Clubs, and your Games. It is used for nothing else.
 
-A report goes to the operator alone. When an account is deleted, its profile, Friends, blocks, Clubs it made and its Games with their moves go with it. Bragd has no button for that yet: ask the operator.
+A report goes to the operator alone.
+
+**Deleting your account.** *Delete my account* at the foot of *Play with Friends* deletes your account on the Bragd server at once ([Deleting your account](../online/play-with-friends.md#deleting-your-account)). Nothing is left with your account's id:
+
+| What | What happens to it |
+|---|---|
+| Your sign-in (Supabase Auth: email, provider) | Deleted |
+| Your name, Friends, requests, invite codes, blocks, Club memberships | Deleted |
+| Clubs you made | Deleted, for their members too |
+| Reports you made, and reports about you | Deleted |
+| Your Chat lines | Deleted |
+| Your Games and their moves | Deleted. If you tick *Leave my finished Games to the other players*, the Games that ended stay with the other player, with your side shown as *Deleted player*. A Game under way first ends as your resignation |
+| Call signals | Deleted where the server allows; Supabase Realtime drops them within days anyway |
+
+Bragd then signs out and removes the sign-in from your keychain. Backups of the Bragd server's database, kept on the operator's Storage Box, still hold the account until they expire by the Storage Box's retention; they are never restored for anything but recovering the server.
 
 ## The update check
 

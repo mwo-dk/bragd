@@ -46,6 +46,8 @@ pub struct World {
     pub club_friends: bool,
     pub games: Vec<Game>,
     pub reports: Vec<(String, String)>,
+    /// The account was deleted, and whether its ended Games were left to the others.
+    pub deleted: Option<bool>,
     /// The opponent says yes to a Chat at once, and greets: for the screenshots.
     pub agree: bool,
     next: u32,
@@ -78,6 +80,7 @@ impl Default for World {
                 lines: vec![],
             }],
             reports: vec![],
+            deleted: None,
             agree: false,
             next: 1,
         }
@@ -190,6 +193,10 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
             if let Some(c) = body["club_friends"].as_bool() {
                 w.club_friends = c;
             }
+        }
+        ("DELETE", ["v1", "me"]) => {
+            w.deleted = Some(body["keep_games"].as_bool().unwrap_or(false));
+            w.me = None;
         }
         ("POST", ["v1", "friends"]) => {
             let n = name();

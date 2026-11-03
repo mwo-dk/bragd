@@ -420,6 +420,7 @@ fn main() {
             friends::friends_name,
             friends::friends_club_friends,
             friends::friends_act,
+            friends::friends_delete_account,
             friends::friends_chat,
             friends::friends_keep,
             friends::friends_call_want,

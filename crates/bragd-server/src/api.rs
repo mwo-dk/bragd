@@ -83,6 +83,7 @@ impl Service {
             ("GET", ["v1", "state"]) => self.state(&caller),
             ("GET", ["v1", "turn"]) => Ok(self.ice(&caller)),
             ("PUT", ["v1", "me"]) => self.me(&caller, &body),
+            ("DELETE", ["v1", "me"]) => self.forget(&caller, &body),
             ("POST", ["v1", rest @ ..]) if matches!(rest.first(), Some(&("friends" | "invites" | "blocks" | "reports" | "clubs"))) => self.friends(&caller, rest, &body),
             ("POST", ["v1", "games"]) => self.challenge(&caller, &body),
             ("POST", ["v1", "games", id, what]) => {
@@ -99,7 +100,7 @@ impl Service {
         self.pool.as_user(caller, |tx| {
             let me = tx.query_opt("select name from public.profiles where id = auth.uid()", &[])?.map(|r| r.get::<_, String>(0));
             let rows = tx.query(
-                "select g.id, f.name, s.name, g.first = auth.uid(), g.challenger = auth.uid(), g.variant, g.status, \
+                "select g.id, f.name, s.name, coalesce(g.first = auth.uid(), false), coalesce(g.challenger = auth.uid(), false), g.variant, g.status, \
                  coalesce(g.result, ''), coalesce(g.reason, ''), g.draw_offer is not null and g.draw_offer <> auth.uid(), \
                  g.draw_offer = auth.uid(), \
                  coalesce((select array_agg(m.entry order by m.ply) from public.moves m where m.game_id = g.id), '{}'), \
@@ -107,12 +108,13 @@ impl Service {
                  case when g.first = auth.uid() then g.chat_second else g.chat_first end, \
                  case when g.first = auth.uid() then g.keep_first else g.keep_second end, \
                  case when g.first = auth.uid() then g.keep_second else g.keep_first end, \
-                 bragd.are_friends(auth.uid(), case when g.first = auth.uid() then g.second else g.first end), \
+                 coalesce(bragd.are_friends(auth.uid(), case when g.first = auth.uid() then g.second else g.first end), false), \
                  case when g.first = auth.uid() then g.second else g.first end, \
                  (select coalesce(json_agg(json_build_object('mine', c.sender = auth.uid(), 'text', c.text) order by c.id), '[]'::json) \
                   from (select * from public.chat where game_id = g.id order by id desc limit 100) c) \
-                 from public.games g join public.profiles f on f.id = g.first join public.profiles s on s.id = g.second \
-                 where g.status in ('offered', 'playing') or g.updated_at > now() - interval '1 day' \
+                 from public.games g left join public.profiles f on f.id = g.first left join public.profiles s on s.id = g.second \
+                 where (g.first is null or f.id is not null) and (g.second is null or s.id is not null) \
+                 and (g.status in ('offered', 'playing') or g.updated_at > now() - interval '1 day') \
                  order by g.updated_at desc limit 50",
                 &[],
             )?;
@@ -120,7 +122,8 @@ impl Service {
                 .iter()
                 .map(|r| {
                     let first: bool = r.get(3);
-                    let theirs: String = if first { r.get(2) } else { r.get(1) };
+                    // None: a deleted player, who left the Game to the caller.
+                    let theirs: Option<String> = if first { r.get(2) } else { r.get(1) };
                     json!({
                         "id": r.get::<_, uuid::Uuid>(0).to_string(), "opponent": theirs, "first": first,
                         "challenger": r.get::<_, bool>(4), "variant": r.get::<_, String>(5), "status": r.get::<_, String>(6),
@@ -129,7 +132,7 @@ impl Service {
                         "moves": r.get::<_, Vec<String>>(11),
                         "chat": { "mine": r.get::<_, bool>(12), "theirs": r.get::<_, bool>(13), "keep_mine": r.get::<_, bool>(14),
                             "keep_theirs": r.get::<_, bool>(15), "lines": r.get::<_, Value>(18) },
-                        "friend": r.get::<_, bool>(16), "opponent_id": r.get::<_, uuid::Uuid>(17).to_string(),
+                        "friend": r.get::<_, bool>(16), "opponent_id": r.get::<_, Option<uuid::Uuid>>(17).map(|u| u.to_string()),
                     })
                 })
                 .collect();
@@ -178,6 +181,18 @@ impl Service {
         })
     }
 
+    /// Deletes the caller's account and everything with their id
+    /// (`supabase/migrations/…_delete_account.sql`). With `keep_games`, the Games that ended stay
+    /// with the other players, against a deleted player.
+    fn forget(&self, caller: &Caller, body: &Value) -> Res {
+        let keep = body["keep_games"].as_bool().unwrap_or(false);
+        self.pool.as_user(caller, |tx| {
+            db::referee(tx)?;
+            tx.execute("select bragd.forget($1, $2)", &[&caller.id, &keep])?;
+            Ok(json!({}))
+        })
+    }
+
     /// Challenges the player named `opponent` to a Game of `variant`, the caller playing the
     /// `side` asked for (`first`, `second` or `random`).
     fn challenge(&self, caller: &Caller, body: &Value) -> Res {
@@ -210,6 +225,10 @@ impl Service {
             tx.query_opt("select 1 from public.games where id = $1", &[&id])?.ok_or(Error(404, "no_game"))?;
             db::referee(tx)?;
             let row = tx.query_one("select first, second, challenger, variant, status, draw_offer from public.games where id = $1 for update", &[&id])?;
+            // A Game left by a deleted player has ended: nothing more is done in it.
+            if row.get::<_, Option<uuid::Uuid>>(0).is_none() || row.get::<_, Option<uuid::Uuid>>(1).is_none() {
+                return Err(Error(409, "not_now"));
+            }
             let g = Game {
                 id,
                 first: row.get(0),

@@ -898,7 +898,7 @@ def online():
 def friends():
     """Play with Friends against the fake Bragd server (`fake-online bragd`), never a real one:
     friends-sign-in before signing in, friends signed in with Anna's challenge, Carl's request and
-    the Club, friends-game after accepting Anna's challenge and 1. e4, friends-chat with the Game's Chat open, and friends-call asking Anna for voice; each -390.png and
+    the Club, friends-game after accepting Anna's challenge and 1. e4, friends-chat with the Game's Chat open, friends-call asking Anna for voice, and friends-delete with Delete my account's form filled in; each -390.png and
     -1100.png. BRAGD_FRIENDS_URL points the app at the fake, and BRAGD_FRIENDS_TOKEN stands in for
     the keychain the sandbox does not have."""
     import subprocess
@@ -941,6 +941,13 @@ def friends():
                 js(d, "document.querySelector('main .live, main .offer')?.scrollIntoView({block: 'center'});")
                 d.wait(0.5)
                 d.shot(HERE / f"friends-call-{w}.png")
+                click(d, "Delete my account", "main")
+                js(d, "const c = document.querySelector('main .delete input[type=checkbox]'); if (c && !c.checked) c.click();")
+                fill(d, "Type your name", "BragdTester")
+                d.wait(0.5)
+                js(d, "document.querySelector('main .delete')?.scrollIntoView({block: 'center'});")
+                d.wait(0.5)
+                d.shot(HERE / f"friends-delete-{w}.png")
         finally:
             p.terminate()
             p.wait(5)

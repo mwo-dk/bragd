@@ -158,6 +158,11 @@ fn s(v: &Value) -> String {
     v.as_str().unwrap_or_default().to_string()
 }
 
+/// A Game's opponent: their name, or a deleted player who left the Game to the user.
+fn opponent(g: &Value) -> String {
+    g["opponent"].as_str().map_or_else(|| t!("friends.deleted_player"), str::to_string)
+}
+
 fn strings(v: &Value) -> Vec<String> {
     v.as_array().map(|a| a.iter().map(s).collect()).unwrap_or_default()
 }
@@ -309,6 +314,7 @@ impl BragdServer {
         let r = match method {
             "GET" => agent.get(&url).header("Authorization", &auth).call(),
             "PUT" => agent.put(&url).header("Authorization", &auth).send_json(body),
+            "DELETE" => agent.delete(&url).header("Authorization", &auth).force_send_body().send_json(body),
             _ => agent.post(&url).header("Authorization", &auth).send_json(body),
         };
         read(r).map_err(|e| self.fail(e))
@@ -393,6 +399,21 @@ impl BragdServer {
         self.poll()
     }
 
+    /// Deletes the account on the Bragd server and everything with it; with `keep_games`, the
+    /// Games that ended stay with the other players, against a deleted player. Then signs out
+    /// here and removes the sign-in from the keychain. `confirm` is the name the user typed: it
+    /// must be theirs.
+    pub fn delete_account(&self, confirm: &str, keep_games: bool) -> Result<(), String> {
+        let name = self.lock().state["me"].as_str().map(str::to_string);
+        if name.as_deref() != Some(confirm.trim()) {
+            return Err(t!("friends.delete_account.confirm", "name" => name.unwrap_or_default()));
+        }
+        self.call("DELETE", "/v1/me", &json!({ "keep_games": keep_games }))?;
+        <Self as Play>::sign_out(self)?;
+        self.lock().notice = Some(t!("friends.deleted"));
+        Ok(())
+    }
+
     /// Lets members of the user's Clubs count as Friends, or not.
     pub fn set_club_friends(&self, on: bool) -> Result<(), String> {
         self.call("PUT", "/v1/me", &json!({ "club_friends": on }))?;
@@ -466,7 +487,7 @@ impl BragdServer {
         let state = variant.and_then(|v| bragd_games::replay(v, None, &entries).ok());
         let first = g["first"].as_bool().unwrap_or(false);
         let me = t!("friends.you");
-        let them = s(&g["opponent"]);
+        let them = opponent(g);
         let names = if first { [me, them] } else { [them, me] };
         let over = g["status"] == "over";
         let result = if over {
@@ -519,7 +540,7 @@ impl BragdServer {
             })
             .unwrap_or_default();
         Some(ChatView {
-            opponent: s(&g["opponent"]),
+            opponent: opponent(&g),
             friend,
             open: mine && theirs,
             asked: theirs && !mine,
@@ -777,6 +798,26 @@ mod tests {
         b.sign_out().unwrap();
         assert!(bragd_model::key::get_in(SERVICE, &fake.url).filter(|t| !t.is_empty()).is_none());
         assert!(!b.friends_view().signed_in);
+    }
+
+    #[test]
+    fn bragd_server_deletes_the_account_and_forgets_the_sign_in() {
+        let (b, fake, world) = signed_in();
+        assert!(b.delete_account("Bragd", true).is_err(), "only the user's own name confirms");
+        assert_eq!(world.lock().unwrap().deleted, None);
+        b.delete_account(" BragdTester ", true).unwrap();
+        assert_eq!(world.lock().unwrap().deleted, Some(true));
+        assert!(bragd_model::key::get_in(SERVICE, &fake.url).filter(|t| !t.is_empty()).is_none());
+        let v = b.friends_view();
+        assert!(!v.signed_in);
+        assert_eq!(v.notice, Some(t!("friends.deleted")));
+        assert!(b.delete_account("BragdTester", false).is_err(), "signed out: nothing more is sent");
+    }
+
+    #[test]
+    fn bragd_server_names_a_deleted_opponent() {
+        let g = json!({ "opponent": null, "first": true, "variant": "chess", "status": "over", "moves": [] });
+        assert_eq!(BragdServer::game_view(&g).names[1], t!("friends.deleted_player"));
     }
 
     #[test]
