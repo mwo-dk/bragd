@@ -1937,7 +1937,7 @@
  "feature.ur_solved.q2": "Hvor sterk er boten?",
  "feature.ur_solved.a2": "På styrke 20 spiller den alltid det beste trekket. Lavere spiller den noen ganger et svakere trekk, og jo mer et trekk gir bort, jo sjeldnere spilles det.",
  "feature.ur_solved.q3": "Hvordan markeres et Ur-trekk?",
- "feature.ur_solved.a3": "Etter vinnersjansen det ga bort mot det beste trekket for samme kast: 5 poeng er ?!, 10 er ?, 20 er ??.",
+ "feature.ur_solved.a3": "Etter vinnersjansen det ga bort mot det beste trekket for samme kast: 2 poeng er ?!, 5 er ?, 10 er ??.",
  "feature.ur_solved.tip": "Lag Urs løste tabeller under Motorer, og spill deretter perfekt spill eller gjennomgå et parti.",
  "tour.ur_solved.title": "Ur, løst",
  "tour.ur_solved.text": "Lag et Ur-regelsetts løste tabell under Motorer. Spill tilbyr da perfekt spill med en styrke du velger, og Analyse markerer hvert trekk etter den eksakte vinnersjansen det ga bort.",

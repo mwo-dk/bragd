@@ -1948,7 +1948,7 @@
  "feature.ur_solved.q2": "Quina força té el bot?",
  "feature.ur_solved.a2": "A la força 20 juga sempre la millor jugada. Amb menys força, de vegades juga una jugada més feble, i com més probabilitat cedeix una jugada, menys sovint la juga.",
  "feature.ur_solved.q3": "Com es marca una jugada d'Ur?",
- "feature.ur_solved.a3": "Per la probabilitat de guanyar que cedeix respecte de la millor jugada amb la mateixa tirada: 5 punts és ?!, 10 és ?, 20 és ??.",
+ "feature.ur_solved.a3": "Per la probabilitat de guanyar que cedeix respecte de la millor jugada amb la mateixa tirada: 2 punts és ?!, 5 és ?, 10 és ??.",
  "feature.ur_solved.tip": "Fes les taules resoltes d'Ur a la seva pàgina de Motors, i després juga el joc perfecte o revisa una partida.",
  "tour.ur_solved.title": "Ur, resolt",
  "tour.ur_solved.text": "Fes la taula resolta d'un conjunt de regles d'Ur a la seva pàgina de Motors. Juga ofereix aleshores el joc perfecte amb una força que tries, i l'Anàlisi marca cada jugada amb la probabilitat exacta de guanyar que va cedir.",

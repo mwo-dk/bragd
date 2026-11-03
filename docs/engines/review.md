@@ -31,7 +31,8 @@ A mark comes from the Evaluations before and after the move, read from the mover
 | Score | Families | `?!` Inaccuracy | `?` Mistake | `??` Blunder | Already won |
 |---|---|---|---|---|---|
 | Centipawns and mates | Chess, xiangqi, shogi, draughts | lost 0.50 pawns | 1.00 | 3.00 | 3.00 |
-| Chance to win | Go, and Ur from its [solved table](../play/ur.md#the-solved-tables) | lost 5 percentage points | 10 | 20 | 90 % |
+| Chance to win | Go | lost 5 percentage points | 10 | 20 | 90 % |
+| Chance to win | Ur, from its [solved table](../play/ur.md#the-solved-tables) | lost 2 percentage points | 5 | 10 | 90 % |
 | Equity | Backgammon | lost 0.04 | 0.08 | 0.16 | 1.00 |
 
 | Mark | Means | When |

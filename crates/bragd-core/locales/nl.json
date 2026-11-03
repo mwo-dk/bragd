@@ -1937,7 +1937,7 @@
  "feature.ur_solved.q2": "Hoe sterk is de bot?",
  "feature.ur_solved.a2": "Op sterkte 20 speelt hij altijd de beste zet. Lager speelt hij soms een zwakkere zet, en hoe meer een zet weggeeft, hoe minder vaak hij die speelt.",
  "feature.ur_solved.q3": "Hoe wordt een Ur-zet gemarkeerd?",
- "feature.ur_solved.a3": "Naar de winstkans die hij weggaf tegenover de beste zet bij dezelfde worp: 5 punten is ?!, 10 is ?, 20 is ??.",
+ "feature.ur_solved.a3": "Naar de winstkans die hij weggaf tegenover de beste zet bij dezelfde worp: 2 punten is ?!, 5 is ?, 10 is ??.",
  "feature.ur_solved.tip": "Maak de opgeloste tabellen van Ur op de pagina Engines en speel daarna perfect spel of bekijk een partij.",
  "tour.ur_solved.title": "Ur, opgelost",
  "tour.ur_solved.text": "Maak de opgeloste tabel van een Ur-regelset op de pagina Engines. Spelen biedt dan perfect spel met een sterkte die je instelt, en Analyseren markeert elke zet naar de exacte winstkans die hij weggaf.",

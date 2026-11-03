@@ -117,6 +117,10 @@ pub fn thresholds(s: Score) -> [f64; 4] {
     }
 }
 
+/// Ur's amounts, in percentage points of the chance to win: its table is exact and its games
+/// are short, so go's amounts almost never fire.
+pub const UR_WIN_RATE: [f64; 4] = [2.0, 5.0, 10.0, 90.0];
+
 /// A centipawn score is capped at this either way, and a mate counts as it.
 pub const CAP: f64 = 1000.0;
 
@@ -146,12 +150,17 @@ pub fn gap(best: Score, second: Score, mover_first: bool) -> Option<f64> {
 /// the Engine's best, and by how much its second choice is worse (`gap`); None when it was not,
 /// or that is not known.
 pub fn mark(before: Score, after: Score, mover_first: bool, gap: Option<f64>) -> Option<Mark> {
+    mark_by(thresholds(before), before, after, mover_first, gap)
+}
+
+/// `mark` with the amounts given (`thresholds`' order), and `gap` in the same units.
+pub fn mark_by(amounts: [f64; 4], before: Score, after: Score, mover_first: bool, gap: Option<f64>) -> Option<Mark> {
     let (k0, v0) = value(before, mover_first, false);
     let (k1, v1) = value(after, mover_first, true);
     if k0 != k1 {
         return None;
     }
-    let [inaccuracy, mistake, blunder, won] = thresholds(before);
+    let [inaccuracy, mistake, blunder, won] = amounts;
     let lost = v0 - v1;
     if lost >= blunder {
         Some(Mark::Blunder)
@@ -224,6 +233,19 @@ mod tests {
         assert_eq!(mark(Score::Cp(900), Score::Cp(900), true, Some(400.0)), None);
         assert_eq!(gap(Score::Cp(-20), Score::Cp(200), false), Some(220.0));
         assert_eq!(gap(Score::Cp(20), Score::WinRate { win: 0.5, lead: 0.0 }, true), None);
+    }
+
+    #[test]
+    fn ur_marks_by_smaller_amounts_than_go() {
+        let w = |win: f64| Score::WinRate { win, lead: 0.0 };
+        let ur = |a, b, g| mark_by(UR_WIN_RATE, w(a), w(b), true, g);
+        assert_eq!(ur(0.60, 0.59, None), None);
+        assert_eq!(ur(0.60, 0.57, None), Some(Mark::Inaccuracy));
+        assert_eq!(ur(0.60, 0.54, None), Some(Mark::Mistake));
+        assert_eq!(ur(0.60, 0.49, None), Some(Mark::Blunder));
+        assert_eq!(ur(0.50, 0.50, Some(6.0)), Some(Mark::Good));
+        assert_eq!(ur(0.50, 0.50, Some(11.0)), Some(Mark::Brilliant));
+        assert_eq!(mark(w(0.60), w(0.57), true, None), None, "go's are unchanged");
     }
 
     #[test]

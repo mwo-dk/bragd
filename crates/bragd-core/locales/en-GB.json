@@ -1937,7 +1937,7 @@
  "feature.ur_solved.q2": "How strong is the Bot?",
  "feature.ur_solved.a2": "At strength 20 it always plays the best move. Lower, it sometimes plays a weaker move, and the more a move gives away, the less often it plays it.",
  "feature.ur_solved.q3": "How is an Ur move marked?",
- "feature.ur_solved.a3": "By the chance to win it gave away against the best move for the same throw: 5 points is ?!, 10 is ?, 20 is ??.",
+ "feature.ur_solved.a3": "By the chance to win it gave away against the best move for the same throw: 2 points is ?!, 5 is ?, 10 is ??.",
  "feature.ur_solved.tip": "Make Ur's solved tables on its Engines page, then play perfect play or review a Game.",
  "tour.ur_solved.title": "Ur, solved",
  "tour.ur_solved.text": "Make an Ur rule set's solved table on its Engines page. Play then offers perfect play at a strength you set, and Analyse marks each move by the exact chance to win it gave away.",

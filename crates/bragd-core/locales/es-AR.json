@@ -1945,7 +1945,7 @@
  "feature.ur_solved.q2": "¿Qué tan fuerte es el bot?",
  "feature.ur_solved.a2": "Con fuerza 20 siempre juega la mejor jugada. Con menos, a veces juega una jugada más débil, y cuanto más regala una jugada, menos seguido la juega.",
  "feature.ur_solved.q3": "¿Cómo se marca una jugada de Ur?",
- "feature.ur_solved.a3": "Por la probabilidad de ganar que regala frente a la mejor jugada con la misma tirada: 5 puntos es ?!, 10 es ?, 20 es ??.",
+ "feature.ur_solved.a3": "Por la probabilidad de ganar que regala frente a la mejor jugada con la misma tirada: 2 puntos es ?!, 5 es ?, 10 es ??.",
  "feature.ur_solved.tip": "Hacé las tablas resueltas de Ur en su página de Motores, y después jugá el juego perfecto o revisá una partida.",
  "tour.ur_solved.title": "Ur, resuelto",
  "tour.ur_solved.text": "Hacé la tabla resuelta de un conjunto de reglas de Ur en su página de Motores. Jugar ofrece entonces el juego perfecto con una fuerza que vos elegís, y Análisis marca cada jugada con la probabilidad exacta de ganar que regaló.",

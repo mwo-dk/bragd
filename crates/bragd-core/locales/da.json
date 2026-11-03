@@ -1937,7 +1937,7 @@
  "feature.ur_solved.q2": "Hvor stærk er Bot'en?",
  "feature.ur_solved.a2": "På styrke 20 spiller den altid det bedste træk. Lavere spiller den nogle gange et svagere træk, og jo mere et træk koster, jo sjældnere spiller den det.",
  "feature.ur_solved.q3": "Hvordan markeres et Ur-træk?",
- "feature.ur_solved.a3": "Efter den vindchance det koster mod det bedste træk med samme kast: 5 point er ?!, 10 er ?, 20 er ??.",
+ "feature.ur_solved.a3": "Efter den vindchance det koster mod det bedste træk med samme kast: 2 point er ?!, 5 er ?, 10 er ??.",
  "feature.ur_solved.tip": "Lav Urs løste tabeller på dens Motorer-side, og spil så perfekt spil eller gennemgå et parti.",
  "tour.ur_solved.title": "Ur, løst",
  "tour.ur_solved.text": "Lav et Ur-regelsæts løste tabel på dets Motorer-side. Spil tilbyder så perfekt spil med en styrke, du vælger, og Analyse markerer hvert træk med den præcise vindchance, det kostede.",

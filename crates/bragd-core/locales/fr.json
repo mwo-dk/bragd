@@ -1948,7 +1948,7 @@
  "feature.ur_solved.q2": "Quelle est la force du bot ?",
  "feature.ur_solved.a2": "À la force 20, il joue toujours le meilleur coup. En dessous, il joue parfois un coup plus faible, et plus un coup cède de terrain, moins souvent il le joue.",
  "feature.ur_solved.q3": "Comment un coup de l’Ur est-il marqué ?",
- "feature.ur_solved.a3": "Par la probabilité de gagner qu’il cède face au meilleur coup pour le même jet : 5 points valent ?!, 10 valent ?, 20 valent ??.",
+ "feature.ur_solved.a3": "Par la probabilité de gagner qu’il cède face au meilleur coup pour le même jet : 2 points valent ?!, 5 valent ?, 10 valent ??.",
  "feature.ur_solved.tip": "Créez les tables résolues de l’Ur sur sa page Moteurs, puis jouez le jeu parfait ou revoyez une partie.",
  "tour.ur_solved.title": "Ur, résolu",
  "tour.ur_solved.text": "Créez la table résolue d’un ensemble de règles de l’Ur sur sa page Moteurs. Jouer propose alors un jeu parfait à la force que vous réglez, et Analyse marque chaque coup selon la probabilité exacte de gagner qu’il cède.",

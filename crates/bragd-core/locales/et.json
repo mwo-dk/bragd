@@ -1937,7 +1937,7 @@
  "feature.ur_solved.q2": "Kui tugev on Bot?",
  "feature.ur_solved.a2": "Tugevusel 20 mängib ta alati parima käigu. Madalamal mängib ta mõnikord nõrgema käigu ja mida rohkem käik annab ära, seda harvemini ta seda mängib.",
  "feature.ur_solved.q3": "Kuidas Uri käik märgitakse?",
- "feature.ur_solved.a3": "Selle järgi, kui palju võidutõenäosust see andis ära parima käigu vastu samal viskel: 5 punkti on ?!, 10 on ?, 20 on ??.",
+ "feature.ur_solved.a3": "Selle järgi, kui palju võidutõenäosust see andis ära parima käigu vastu samal viskel: 2 punkti on ?!, 5 on ?, 10 on ??.",
  "feature.ur_solved.tip": "Tee Uri lahendatud tabelid tema Engines'i lehel ja mängi siis täiuslikku mängu või vaata partii üle.",
  "tour.ur_solved.title": "Ur, lahendatud",
  "tour.ur_solved.text": "Tee Uri reeglistiku lahendatud tabel tema Engines'i lehel. Mängi pakub siis täiuslikku mängu sinu valitud tugevusega ja Analüüs märgib iga käigu täpse võidutõenäosusega, mille see andis ära.",

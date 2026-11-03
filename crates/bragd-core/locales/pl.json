@@ -1959,7 +1959,7 @@
  "feature.ur_solved.q2": "Jak silny jest Bot?",
  "feature.ur_solved.a2": "Na sile 20 zawsze gra najlepszy ruch. Na niższej sile czasem zagra słabszy ruch, a im więcej ruch oddaje, tym rzadziej go gra.",
  "feature.ur_solved.q3": "Jak oznaczany jest ruch w Ur?",
- "feature.ur_solved.a3": "Szansą na wygraną, którą oddał w porównaniu z najlepszym ruchem przy tym samym rzucie: 5 punktów to ?!, 10 to ?, 20 to ??.",
+ "feature.ur_solved.a3": "Szansą na wygraną, którą oddał w porównaniu z najlepszym ruchem przy tym samym rzucie: 2 punktów to ?!, 5 to ?, 10 to ??.",
  "feature.ur_solved.tip": "Utwórz rozwiązane tablice Ur na stronie Silniki, a potem graj doskonale albo przejrzyj partię.",
  "tour.ur_solved.title": "Ur, rozwiązany",
  "tour.ur_solved.text": "Utwórz rozwiązaną tablicę zestawu zasad Ur na stronie Silniki. Gra wtedy oferuje grę doskonałą na wybranej sile, a Analiza oznacza każdy ruch dokładną szansą na wygraną, którą oddał.",
