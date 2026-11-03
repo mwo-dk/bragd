@@ -1,0 +1,14 @@
+# Swedish. Masked in a stranger's Chat lines (src/words.rs). See docs/CREDITS.md.
+arsle
+discofitta
+fitta
+knulla
+kuk
+kuksås
+neger
+runka
+rövhål
+rövknulla
+snedfitta
+snefitta
+subba

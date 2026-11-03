@@ -1,0 +1,17 @@
+# Norwegian (Bokmål and Nynorsk). Masked in a stranger's Chat lines (src/words.rs). See docs/CREDITS.md.
+drittsekk
+faen
+fitte
+føkk
+føkka
+føkkings
+kuk
+kukene
+kuker
+morraknuller
+morrapuler
+pakkis
+pikk
+ståpikk
+ståpikkene
+ståpikker

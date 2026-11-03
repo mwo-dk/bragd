@@ -1,0 +1,21 @@
+# Danish. Masked in a stranger's Chat lines (src/words.rs). See docs/CREDITS.md.
+bøsserøv
+fanden
+fandme
+fisse
+fissehår
+hestepik
+kussekryller
+kælling
+lort
+luder
+pik
+pikhoved
+pikhår
+pikslugeri
+piksutteri
+pis
+røv
+røvhul
+røvskæg
+røvspræke

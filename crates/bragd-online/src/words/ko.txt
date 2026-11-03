@@ -1,0 +1,20 @@
+# Korean. Masked in a stranger's Chat lines (src/words.rs). See docs/CREDITS.md.
+개새끼
+개자식
+개좆
+니기미
+병신
+쌍놈
+씨발
+씨발놈
+씨팔
+씹새끼
+잡년
+종간나
+좆만
+죽일년
+쥐좆
+짱깨
+쪽바리
+창녀
+화냥년
