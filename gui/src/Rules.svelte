@@ -22,9 +22,12 @@
     if (e.target instanceof Element && e.target.closest("a")) e.preventDefault();
   };
 
-  // A diagram wider than the page scrolls on its own; the keyboard can reach it to scroll it.
+  // A diagram or table wider than the page scrolls on its own; the keyboard can reach it to scroll it.
   const scrollable = (/** @type {HTMLElement} */ node) => {
-    for (const pre of node.querySelectorAll("pre")) pre.tabIndex = 0;
+    for (const box of node.querySelectorAll("pre, table")) {
+      /** @type {HTMLElement} */ (box).tabIndex = 0;
+      if (box.tagName === "TABLE") box.setAttribute("role", "group");
+    }
   };
 </script>
 

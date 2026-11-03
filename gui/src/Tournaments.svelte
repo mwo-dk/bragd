@@ -6,6 +6,7 @@
   import { t, num, i18n } from "./i18n.svelte.js";
   import Why from "./Why.svelte";
   import { here as place, set } from "./nav.svelte.js";
+  import Scroll from "./Scroll.svelte";
 
   /** @type {{ club: any, by: number|null, role: string|null, onclub: (v: any) => void, onopen: (open: boolean) => void }} */
   let { club, by, role, onclub, onopen } = $props();
@@ -219,7 +220,7 @@
 
 {#snippet boards(/** @type {number} */ r)}
   {@const round = T.played[r]}
-  <div class="scroll">
+  <Scroll>
     <table>
       <thead>
         <tr><th>{t("tournaments.board")}</th><th>{t("tournaments.white")}</th><th>{t("tournaments.result")}</th><th>{t("tournaments.black")}</th></tr>
@@ -249,7 +250,7 @@
         {#each tv.through[r] ?? [] as p}<tr><td></td><td colspan="3">{t("tournaments.through_bye", { name: name(p) })}</td></tr>{/each}
       </tbody>
     </table>
-  </div>
+  </Scroll>
 {/snippet}
 
 <div class="panel">
@@ -338,7 +339,7 @@
         <div class="row">
           <button disabled={!official || !T.players.some((/** @type {any} */ p) => p.status === "away")} onclick={() => change(() => api.tournamentCheckInAll(by, tv.id))}>{t("tournaments.check_in_all")}</button>
         </div>
-        <div class="scroll">
+        <Scroll>
           <table class="stack">
             <thead>
               <tr>
@@ -368,7 +369,7 @@
               {/each}
             </tbody>
           </table>
-        </div>
+        </Scroll>
       {/if}
       <h4>{t("tournaments.register")}</h4>
       <label class="check"><input type="checkbox" bind:checked={here} /> {t("tournaments.register_here")}</label>
@@ -483,7 +484,7 @@
         {/each}
       {/if}
     {:else if tab === "standings"}
-      <div class="scroll">
+      <Scroll>
         <table class="stack">
           <thead>
             <tr>
@@ -502,10 +503,10 @@
             {/each}
           </tbody>
         </table>
-      </div>
+      </Scroll>
       {#if tv.teams.length}
         <h4>{t("tournaments.team_score")}</h4>
-        <div class="scroll">
+        <Scroll>
           <table>
             <thead>
               <tr><th></th>{#each [1, 2] as n}<th>{t("tournaments.team_n", { n })}</th>{/each}</tr>
@@ -519,7 +520,7 @@
               {/each}
             </tbody>
           </table>
-        </div>
+        </Scroll>
         <p class="dim">{t("tournaments.team_score_hint")}</p>
       {/if}
       <!-- A knockout ranks by how far a player went: it has no tiebreaks to order. -->
@@ -573,7 +574,7 @@
       {#if T.log.length === 0}
         <p class="dim">{t("clubs.log_empty")}</p>
       {:else}
-        <div class="scroll">
+        <Scroll>
           <table class="stack">
             <thead>
               <tr><th>{t("clubs.when")}</th><th>{t("clubs.who")}</th><th>{t("tournaments.concerns")}</th><th>{t("clubs.change")}</th><th>{t("clubs.why")}</th></tr>
@@ -590,7 +591,7 @@
               {/each}
             </tbody>
           </table>
-        </div>
+        </Scroll>
       {/if}
     {/if}
   {/if}
@@ -654,10 +655,6 @@
   .tabs button.current {
     background: var(--sel-bg);
     color: var(--sel-fg);
-  }
-  .scroll {
-    overflow-x: auto;
-    margin-bottom: 0.5rem;
   }
   table {
     border-collapse: collapse;

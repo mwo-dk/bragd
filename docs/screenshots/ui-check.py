@@ -7,6 +7,7 @@
   - text that does not fit: a button, label, list item, cell or heading whose text is wider
     than its box, or any element that cuts its text off (overflow hidden, an ellipsis), and a
     page wider than the window;
+  - a scrolling box that keyboard focus cannot reach, whatever the data in the home;
   - axe-core's rules on contrast, names and labels, and keyboard focus (axe-core is a
     devDependency of gui/, read from gui/node_modules: nothing is fetched);
   - a board that does not fit the window: at 1100 × 700 every Family's whole board shows.
@@ -35,7 +36,8 @@ RULES = ["color-contrast", "label", "button-name", "link-name", "select-name", "
          "aria-allowed-attr", "aria-required-attr", "aria-valid-attr-value", "aria-roles", "duplicate-id-aria", "label-title-only"]
 
 # Text that does not fit, found in the page. A box that scrolls its content (overflow auto or
-# scroll) is not a fault: it is meant to. One pixel is rounding.
+# scroll) is not a fault: it is meant to, but it must be reachable by keyboard whether or not
+# the data in this home make it scroll. One pixel is rounding.
 OVERFLOW = r"""(() => {
   const out = [];
   const seen = (e) => { const s = getComputedStyle(e); const r = e.getBoundingClientRect();
@@ -46,6 +48,9 @@ OVERFLOW = r"""(() => {
   for (const e of document.querySelectorAll('body *')) {
     if (!seen(e) || e.closest('svg') || e.closest('.splash')) continue;
     const s = getComputedStyle(e);
+    // Whatever the data, a box that can scroll is a stop for the keyboard: it is focusable or holds something that is.
+    if (/(auto|scroll)/.test(s.overflowX + s.overflowY) && !(e.tabIndex >= 0 || e.querySelector('a[href], button, input, select, textarea, summary, [tabindex="0"]')))
+      out.push('a scrolling box the keyboard cannot reach: ' + name(e));
     if (scrolls(s)) continue;
     const text = (e.innerText || '').trim();
     const over = e.scrollWidth - e.clientWidth > 1;
@@ -184,12 +189,13 @@ def screens():
 
 
 # Faults put into the page on purpose, which each check must find: a cut-off button, grey on
-# grey, and a button with no name.
+# grey, a button with no name, and a scrolling box the keyboard cannot reach.
 PLANTED = r"""(() => {
   const box = document.createElement('div');
   box.id = 'ui-check-planted';
   box.innerHTML = '<button style="width:3rem;overflow:hidden;white-space:nowrap">A button far too long for its box</button>'
-    + '<p style="color:#bbb;background:#ccc">Grey on grey</p><button></button>';
+    + '<p style="color:#bbb;background:#ccc">Grey on grey</p><button></button>'
+    + '<div style="overflow-x:auto"><table><tr><td>planted scroll box</td></tr></table></div>';
   document.querySelector('main.page').prepend(box);
   return 0;
 })()"""
@@ -205,7 +211,8 @@ def self_test():
         js(d, "document.getElementById('ui-check-planted').remove()")
     misses = [what for what, hit in [("the cut-off button", any("far too long" in x for x in over)),
                                      ("grey on grey", any(x.startswith("color-contrast") and "planted" in x for x in found)),
-                                     ("the nameless button", any(x.startswith("button-name") and "planted" in x for x in found))] if not hit]
+                                     ("the nameless button", any(x.startswith("button-name") and "planted" in x for x in found)),
+                                     ("the scrolling box", any("keyboard cannot reach" in x for x in over))] if not hit]
     for m in misses:
         print("SELF-TEST MISSED", m)
     if misses:

@@ -1,0 +1,1 @@
+| **Tables and panels that scroll can be reached from the keyboard.** **Tab** stops on a table too wide for a narrow window (Disk watch, Clubs, Leagues, Tournaments, a Family's Rules) and on the move list beside the board, and the arrow keys scroll them. | [Keyboard](getting-started/keyboard.md#how-to-reach-it) |
