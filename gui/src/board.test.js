@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { place, sideways, movesOf, movesTo, plainMoves, point, gates, groups } from "./board.js";
+import { place, sideways, movesOf, movesTo, plainMoves, point, gates, groups, nextCell } from "./board.js";
 
 test("a move's number keeps the moves after it on its line", () => {
   assert.deepEqual(groups(["1.", "", "2.", ""]), [[0, 1], [2, 3]]);
@@ -87,4 +87,22 @@ test("only a grid race track lies on its side on a narrow window, never backgamm
   assert.equal(sideways({ id: "ur", race: true }, { files: 8, ranks: 3 }, 390), false);
   assert.equal(sideways({ id: "backgammon", race: true }, { files: 26, ranks: 2 }, 390), false);
   assert.equal(sideways({ id: "chess", race: false }, { files: 8, ranks: 2 }, 390), false);
+});
+
+test("the arrows move the board's focus to the next cell on the screen (#300)", () => {
+  const grid = [];
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) grid.push({ square: `${col}${row}`, col, row });
+  assert.equal(nextCell(grid, "11", "ArrowRight"), "21");
+  assert.equal(nextCell(grid, "11", "ArrowLeft"), "01");
+  assert.equal(nextCell(grid, "11", "ArrowUp"), "10");
+  assert.equal(nextCell(grid, "11", "ArrowDown"), "12");
+  assert.equal(nextCell(grid, "21", "ArrowRight"), null, "the edge stops it");
+  assert.equal(nextCell(grid, "11", "Home"), "00");
+  assert.equal(nextCell(grid, "11", "End"), "22");
+  assert.equal(nextCell(grid, "11", "Enter"), null);
+  // Draughts names only the dark squares: Right skips the light one along the row.
+  const dark = [{ square: "a", col: 0, row: 0 }, { square: "b", col: 1, row: 1 }, { square: "c", col: 2, row: 0 }];
+  assert.equal(nextCell(dark, "a", "ArrowRight"), "c");
+  assert.equal(nextCell(dark, "a", "ArrowDown"), "b", "no cell straight down: the nearest below");
+  assert.equal(nextCell(dark, "zz", "ArrowRight"), "a", "an unknown focus starts at the first cell");
 });

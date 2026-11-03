@@ -30,6 +30,8 @@ export const featureList = (/** @type {string} */ query) => invoke("feature_list
 export const navGo = (/** @type {any} */ from, /** @type {any} */ to) => invoke("nav_go", { from, to });
 /** Back: [place, more] or null. */
 export const navBack = () => invoke("nav_back");
+/** A key on Play or a board was used (its usage signal). */
+export const keyUsed = () => invoke("key_used");
 /** @returns {Promise<{wizard: boolean, cards: any[]}>} */
 export const guideDue = () => invoke("guide_due");
 /** @returns {Promise<any>} */

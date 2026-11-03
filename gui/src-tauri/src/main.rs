@@ -450,6 +450,7 @@ fn main() {
             help::feature_list,
             help::nav_go,
             help::nav_back,
+            help::key_used,
             help::notice_list,
             help::notice_dismiss,
             help::update_check,

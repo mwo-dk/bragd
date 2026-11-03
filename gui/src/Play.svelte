@@ -7,6 +7,7 @@
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
   import { gates, groups, movesOf, movesTo, plainMoves, sideways as onSide } from "./board.js";
+  import { playKey } from "./keys.js";
   import Board from "./Board.svelte";
   import UrDice from "./UrDice.svelte";
   import BackgammonBoard from "./BackgammonBoard.svelte";
@@ -342,16 +343,35 @@
   const hands = (/** @type {number} */ seat) => st?.board.hands.filter((/** @type {any} */ h) => h.seat === seat) ?? [];
   const offs = (/** @type {number} */ seat) => st?.board.off.filter((/** @type {any} */ h) => h.seat === seat) ?? [];
   const homeTarget = $derived(targets.find((x) => x === "home" || x === "off"));
+  const pass = $derived(st ? plainMoves(st).find((/** @type {any} */ m) => m.notation === "pass") : null);
+
+  /** Play's keys do what their buttons do, when the button is there to press. */
+  function onKey(/** @type {KeyboardEvent} */ e) {
+    const action = playKey(e);
+    // The wizard, tour cards or a dialog keep their own keys.
+    if (!action || guide.wizard || guide.cards.length || document.querySelector("dialog[open], .veil")) return;
+    const run = /** @type {Record<string, (() => any) | false>} */ ({
+      new: () => newGame(),
+      undo: entries.length > 0 && undo,
+      flip: () => (flipped = !flipped),
+      throw: st?.awaiting === "throw" && doThrow,
+      pass: !!pass && (() => playEntry(pass.wire)),
+    })[action];
+    if (!run) return;
+    e.preventDefault();
+    run();
+    api.keyUsed();
+  }
 </script>
 
-<svelte:window bind:innerWidth />
+<svelte:window bind:innerWidth onkeydown={onKey} />
 
 <section class="play">
   <header class="bar">
     <Picker value={key} choices={variants.map((/** @type {any} */ v) => ({ value: v.key, label: v.name }))} label={t("play.variant")} onchange={(v) => newGame(v)} />
-    <button class="primary" onclick={() => newGame()}>{t("play.new_game")}</button>
-    <button onclick={undo} disabled={!entries.length}>{t("play.undo")}</button>
-    <button onclick={() => (flipped = !flipped)} aria-pressed={flipped}>{t("play.flip")}</button>
+    <button class="primary" onclick={() => newGame()} aria-keyshortcuts="Control+N">{t("play.new_game")} <kbd>Ctrl+N</kbd></button>
+    <button onclick={undo} disabled={!entries.length} aria-keyshortcuts="Control+Z">{t("play.undo")} <kbd>Ctrl+Z</kbd></button>
+    <button onclick={() => (flipped = !flipped)} aria-pressed={flipped} aria-keyshortcuts="F">{t("play.flip")} <kbd>F</kbd></button>
     {#if !analyse && choices.engines.length}
       <Picker value={opponent} choices={[{ value: "self", label: t("play.against_self") }, { value: "engine", label: t("play.against_engine") }]} label={t("play.opponent")} onchange={(v) => (opponent = v)} />
       {#if opponent === "engine"}
@@ -454,11 +474,13 @@
 
         <div class="actions">
           {#if st.awaiting === "throw"}
-            <button class="primary" onclick={doThrow}>{t("play.throw")}</button>
+            <button class="primary" onclick={doThrow} aria-keyshortcuts="T">{t("play.throw")} <kbd>T</kbd></button>
           {/if}
           {#each plainMoves(st).filter((/** @type {any} */ m) => !m.wire.startsWith("resign") && (!analyse || !offered(m.wire))) as m}
             {#if m.wire === "dead:"}
               <button onclick={() => playEntry("dead:" + dead.join(","))}>{t("move.dead")}</button>
+            {:else if m === pass}
+              <button onclick={() => playEntry(m.wire)} aria-keyshortcuts="P">{plainLabel(m)} <kbd>P</kbd></button>
             {:else}
               <button onclick={() => playEntry(m.wire)}>{plainLabel(m)}</button>
             {/if}
@@ -535,6 +557,11 @@
     gap: 0.6rem;
     height: 100%;
     min-height: 0;
+  }
+  kbd {
+    font: inherit;
+    font-size: 0.75em;
+    margin-inline-start: 0.3rem;
   }
   .bar {
     display: flex;

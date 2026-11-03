@@ -34,6 +34,7 @@ pub const FEATURES: &[Feature] = &[
     f("wizard", "getting-started/first-start.md", "settings:overview"),
     f("families", "getting-started/game-families.md", "settings:families"),
     f("back", "getting-started/navigation.md", "page:help"),
+    f("keys", "getting-started/keyboard.md", "item:play"),
     f("tips", "getting-started/tips.md", "settings:tips"),
     f("play", "play/against-yourself.md", "item:play"),
     only("ur", "play/ur.md", "item:play", &["ur"]),

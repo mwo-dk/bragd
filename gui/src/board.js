@@ -67,3 +67,37 @@ export function point(/** @type {number} */ n, /** @type {boolean} */ flipped) {
   if (flipped) (top = !top), (i = 11 - i);
   return { top, col: i < 6 ? i : i + 1 };
 }
+
+/**
+ * Where the board's keyboard focus goes from the cell `at` on `key`: the nearest cell that way
+ * on the screen (a straight neighbour before a diagonal one), the first or last cell for Home
+ * and End, null at the edge or for any other key. An unknown `at` starts at the first cell.
+ * @param {{square: string, col: number, row: number}[]} cells
+ * @param {string} at
+ * @param {string} key
+ * @returns {string | null}
+ */
+export function nextCell(cells, at, key) {
+  if (!cells.length) return null;
+  if (key === "Home") return cells[0].square;
+  if (key === "End") return cells[cells.length - 1].square;
+
+  /** The way an arrow moves on the screen, as [columns, rows]. */
+  const way = /** @type {Record<string, number[]>} */ ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] })[key];
+  if (!way) return null;
+  const from = cells.find((c) => c.square === at);
+  if (!from) return cells[0].square;
+  const [dx, dy] = way;
+  let best = null;
+  let bestScore = Infinity;
+  let bestSide = Infinity;
+  for (const cell of cells) {
+    const [x, y] = [cell.col - from.col, cell.row - from.row];
+    const primary = x * dx + y * dy;
+    if (primary <= 0) continue;
+    const side = Math.abs(x * dy + y * dx);
+    const score = primary + 2 * side;
+    if (score < bestScore || (score === bestScore && side < bestSide)) [best, bestScore, bestSide] = [cell, score, side];
+  }
+  return best ? best.square : null;
+}

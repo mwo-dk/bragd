@@ -32,6 +32,8 @@ Nothing. Every Variant can be played against yourself, with no Engine and no dow
 4. Repeat for the other Side. The move list grows with each move. Chess, xiangqi and draughts number full moves, `1. e4 e5`; the other Families number each move, as their own records do.
 5. When the Game ends, a banner over the board names the winner, or says *Draw*, with the rules' result text. **New game** starts again.
 
+Every step works from the keyboard too: **Tab** to the board, the arrows move a ring, **Enter** picks, and **Ctrl+N**, **Ctrl+Z**, **F**, **T** and **P** press New game, Undo, Flip board, Throw and Pass ([Keyboard](../getting-started/keyboard.md)).
+
 The families with dice or sticks have a **Throw** button first ([Backgammon](backgammon.md), [Ur](ur.md), [Senet](senet.md)). Go has **Pass** and a scoring step ([Go](go.md)).
 
 ## Forced moves
