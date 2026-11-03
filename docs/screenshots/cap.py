@@ -124,7 +124,7 @@ MODS = {"Alt": 1, "Ctrl": 2, "Meta": 4, "Shift": 8}
 
 # What a demo home has seen: the install wizard, every tour card, and the hints; and a Tip shown
 # in 2100, so no Tip covers a picture.
-SEEN = {"guide_seen": True, "seen_version": "999.0.0", "hints_shown": {h: 99 for h in ("sidebar", "features", "wizard")},
+SEEN = {"guide_seen": True, "seen_version": "999.0.0", "hints_shown": {h: 99 for h in ("sidebar", "features", "wizard", "tablebase_online")},
         "tip_shown": 4102444800}
 
 

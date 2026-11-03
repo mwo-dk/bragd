@@ -25,7 +25,7 @@ A Tablebase holds perfect play for chess positions with few pieces. Bragd uses S
 
 **Show size** asks the mirror for the exact size (one small file). Nothing is downloaded until you press **Download**. Progress shows below the cards, with **Stop**. The files come from `tablebase.lichess.ovh`.
 
-In Analyse, a chess position of seven pieces or fewer shows a *Tablebase* box. When your tables cover it, the box says so and the Engine reads them. When they do not, the Lichess tablebase answers with the verdict, the distances (DTZ, DTM) and the best moves, if the fallback is on.
+In Analyse, a chess position of seven pieces or fewer shows a *Tablebase* box. When your tables cover it, the box says so and the Engine reads them. When they do not, the Lichess tablebase answers with the verdict, the distances (DTZ, DTM) and the best moves, if you turned the fallback on. It starts off.
 
 ## What it needs
 
@@ -37,7 +37,7 @@ In Analyse, a chess position of seven pieces or fewer shows a *Tablebase* box. W
 | Setting | `config.toml` key | Default | What it does |
 |---|---|---|---|
 | Tablebase folder | `tablebases.path` | empty: `tablebases` in Bragd's data folder | Where the Syzygy files are. Bragd reads it and downloads into it |
-| Ask Lichess for tablebase positions | `tablebases.online` | `true` | Send a position your tables do not cover to the Lichess tablebase API |
+| Ask Lichess for tablebase positions | `tablebases.online` | `false` | Send a position your tables do not cover to the Lichess tablebase API |
 
 ## Questions
 
@@ -47,7 +47,11 @@ No. Bragd passes the folder to every Engine that reads Syzygy (`SyzygyPath`), an
 
 #### What is sent to Lichess?
 
-Only the position, as a FEN, and only when your tables do not cover it and the switch is on. Turn it off under *Settings → Online*.
+Only the position, as a FEN, to `tablebase.lichess.ovh`, and only when your tables do not cover it and the switch is on. The switch starts off. Turn it on or off here, or under *Settings → Online*.
+
+#### When is the Lichess fallback offered?
+
+The install wizard's Knowledge step offers it while chess is one of your Families. After that, while it is off, entering chess shows a hint with **Turn on**, at most once a run and three times in all. Closing the hint with × stops it for good, and so does turning the switch on.
 
 #### Which Variants use the Tablebases?
 

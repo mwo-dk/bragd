@@ -67,8 +67,22 @@
     api.guideDue().then((d) => ([guide.wizard, guide.first, guide.cards] = [d.wizard, d.wizard, d.cards]));
     api.noticeList(true).then((n) => {
       guide.notices = n;
-      api.updateCheck().then((all) => (guide.notices = [...all, ...guide.notices.filter((x) => /^(hint|local):/.test(x.id))]));
+      started = true;
+      api.updateCheck().then((all) => (guide.notices = [...all, ...guide.notices.filter((x) => x.turn_on || /^(hint|local):/.test(x.id))]));
       askTip();
+    });
+  });
+
+  // Entering a Family's place may bring its offer (Rust decides: chess offers the Lichess
+  // tablebase while it is off). Not in the run that showed the wizard, which offered it already.
+  let started = $state(false);
+  let entered = "";
+  $effect(() => {
+    const f = page.kind === "item" ? page.family : "";
+    if (!f || f === entered || !started || guide.first || guide.wizard || guide.cards.length) return;
+    entered = f;
+    api.familyHint(f).then((n) => {
+      if (n && !guide.notices.some((/** @type {any} */ x) => x.id === n.id)) guide.notices = [...guide.notices, n];
     });
   });
 
@@ -195,7 +209,7 @@
   {#if guide.wizard || guide.cards.length}
     <Wizard {snap} {save} only={(id) => api.familiesOnly(id).then(apply)} {go} />
   {/if}
-  <Notices {snap} {go} />
+  <Notices {snap} {go} {save} />
 {/if}
 
 <style>

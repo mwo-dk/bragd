@@ -38,7 +38,7 @@
     }
     await load();
   }
-  const online = $derived(snap.settings.find((/** @type {any} */ o) => o.name === "tablebases_online")?.value ?? true);
+  const online = $derived(snap.settings.find((/** @type {any} */ o) => o.name === "tablebases_online")?.value ?? false);
 </script>
 
 <section class="tablebases">

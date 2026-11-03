@@ -54,6 +54,8 @@ export const whatsNew = () => invoke("whats_new");
 export const noticeList = (/** @type {boolean} */ start) => invoke("notice_list", { start });
 /** Closes a notice; for a hint, the next hint due comes back. @returns {Promise<any>} */
 export const noticeDismiss = (/** @type {string} */ id) => invoke("notice_dismiss", { id });
+/** The offer shown on entering a Family's place, if one is due. @returns {Promise<any>} */
+export const familyHint = (/** @type {string} */ family) => invoke("family_hint", { family });
 /** @returns {Promise<any[]>} */
 export const updateCheck = () => invoke("update_check");
 export const openConfig = () => invoke("open_config");

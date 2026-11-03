@@ -80,7 +80,7 @@ Lichess's own rules apply to the chat, and Lichess may hide or refuse a line. Li
 | Setting | `config.toml` key | Default | What it does |
 |---|---|---|---|
 | Chat in online Games (`online_chat`) | `online.chat` | `false` | Reads and writes an online Game's chat in Bragd, on every server |
-| Ask Lichess for tablebase positions (`tablebases_online`) | `tablebases.online` | `true` | Sends a chess position your own tables do not cover to the Lichess tablebase API ([Tablebases](../engines/tablebases.md)) |
+| Ask Lichess for tablebase positions (`tablebases_online`) | `tablebases.online` | `false` | Sends a chess position your own tables do not cover to the Lichess tablebase API ([Tablebases](../engines/tablebases.md)) |
 
 The token is not in `config.toml` or any file of Bragd's: it is in your system's keychain, under the service `bragd-online`.
 

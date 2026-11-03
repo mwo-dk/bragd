@@ -45,7 +45,21 @@ fn hints(cfg: &Config) -> Vec<&'static str> {
 fn hint(cfg: &Config, st: &mut AppState, after: Option<&str>) -> Option<Notice> {
     let h = notices::next_hint(st, &hints(cfg), after)?;
     let _ = st.save();
-    Some(Notice { id: format!("hint:{h}"), text: t!(&format!("hint.{h}")), settings: None, copy: None })
+    Some(Notice { id: format!("hint:{h}"), text: t!(&format!("hint.{h}")), settings: None, copy: None, turn_on: None })
+}
+
+/// Entering a Family's place: chess offers the Lichess tablebase lookups while they are off, at
+/// most once a run and a few runs in all (`notices::tablebase_hint`).
+#[tauri::command]
+pub fn family_hint(family: String, ctx: tauri::State<'_, Ctx>) -> Option<Notice> {
+    static ASKED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if family != "chess" || ASKED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+        return None;
+    }
+    let mut st = AppState::load();
+    let n = notices::tablebase_hint(&ctx.cfg(), &mut st)?;
+    let _ = st.save();
+    Some(n)
 }
 
 /// A notice was closed: a notice is not shown again; a hint only this time, and the next hint

@@ -15,13 +15,13 @@ On the first start Bragd opens the install wizard: six short steps in a frame ov
 | 1 Welcome | Language (each by its own name), Theme and Board theme, with a preview | Look |
 | 2 Your games | *Which games do you play?* One click on *Only Chess* (or any other Family) keeps that one and turns the rest off. *Several…* shows a switch for every Family and Variant | Game families |
 | 3 Engines | Nothing: it shows the Engines found on this machine for each Family that is on, or that Bragd's own Bot plays it | Engines |
-| 4 Knowledge | Downloads: TWIC every week and Syzygy 3–5 pieces (about 1 GB) are ticked; the others are listed with their sizes. Of the rating lists, FIDE's and your own federation's are listed; the other federations' wait under **More lists**. One line names the Sources coming later | Knowledge |
+| 4 Knowledge | Downloads: TWIC every week and Syzygy 3–5 pieces (about 1 GB) are ticked; the others are listed with their sizes. Of the rating lists, FIDE's and your own federation's are listed; the other federations' wait under **More lists**. One line names the Sources coming later. While chess is on, *Ask Lichess for tablebase positions* is offered too, off until you tick it | Knowledge |
 | 5 Online | **Sign in to Lichess**, **Sign in to Lishogi** and **Sign in to OGS**, each while its Family (chess, shogi, go) is on ([Playing online](../online/playing-online.md)). It links pychess.org, which Bragd cannot play on, when one of its Families is on | Online, when it has a setting for your Families |
 | 6 Helper | *Start with my session* | Knowledge |
 
 Choices in steps 1, 2 and 6 are saved at once, as in Settings. Nothing is downloaded until you press **Done** on the last step, which lists what will happen. Then Bragd turns the chosen Sources on in the Helper, starting the Helper if none runs, and starts the Syzygy download. **Skip** on step 4 unticks every download. Each download shows its size for one fetch and how often it comes, as on the Sources page: *about 45 MB a month*. When the chosen games have nothing to download yet, step 4 says so instead of a total. The wizard adds up the sizes and warns when the downloads would leave less than 5 GB free on the disk that holds Bragd's data. A single Source of 10 GB or more carries its own warning.
 
-![The Knowledge step: TWIC and Syzygy 3–5 ticked and marked Recommended, FIDE's rating list unticked, More lists folded, the line naming the Sources coming later, and the total under the list](../screenshots/wizard-knowledge-1100.png)
+![The Knowledge step: TWIC and Syzygy 3–5 ticked and marked Recommended, Ask Lichess for tablebase positions unticked with where positions go, FIDE's rating list unticked, More lists folded, the line naming the Sources coming later, and the total under the list](../screenshots/wizard-knowledge-1100.png)
 *Step 4, Knowledge: each download with its size, and the total.*
 
 ![The Helper step: the Start with my session switch, and the list of what Done will do](../screenshots/wizard-helper-1100.png)
