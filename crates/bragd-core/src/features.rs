@@ -31,7 +31,7 @@ const fn only(id: &'static str, docs: &'static str, open: &'static str, families
 
 /// A part of *Play with Friends*: for the Families the Bragd server plays, once it has an address.
 const fn friends(id: &'static str) -> Feature {
-    Feature { id, docs: "online/play-with-friends.md", open: "settings:online", families: &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"], server: true }
+    Feature { id, docs: "online/play-with-friends.md", open: "settings:online", families: &["chess", "xiangqi", "shogi", "go", "draughts", "tafl", "backgammon", "ur", "senet"], server: true }
 }
 
 /// Where "Show me" opens a feature's page.
@@ -126,7 +126,7 @@ pub fn entry(f: &Feature) -> Entry {
         id: f.id,
         title: t("title"),
         what: t("what"),
-        qa: (1..=4)
+        qa: (1..=5)
             .map_while(|i| {
                 Some((
                     text(&format!("feature.{}.q{i}", f.id))?,

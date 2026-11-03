@@ -11,7 +11,7 @@ Play other Bragd players on the Bragd server. You make an account there, become 
 
 - [How to reach it](#how-to-reach-it)
 - [Friends](#friends)
-- [Games](#games): [Chat](#chat), [Calls](#calls)
+- [Games](#games): [Clocks and ratings](#clocks-and-ratings), [Dice](#dice), [Chat](#chat), [Calls](#calls)
 - [Deleting your account](#deleting-your-account)
 - [What it needs](#what-it-needs)
 - [Questions](#questions)
@@ -20,7 +20,7 @@ Play other Bragd players on the Bragd server. You make an account there, become 
 
 *Play with Friends* is in the sidebar, below Clubs, once a Bragd server address is set in **Settings → Online → Bragd server address**. Until then the page is hidden and Bragd sends nothing to any Bragd server. F1, What's new, the tour cards and Tips leave out *Play with Friends*, *Chat* and *Calls* too, and Settings → Online shows only the address, not the Chat, filter, voice and camera choices. The address is empty until the Bragd server is up; this page will say when it is.
 
-It also shows only while one of the Families the Bragd server plays is on: chess, xiangqi, shogi, go, draughts or tafl.
+It also shows only while one of the Families the Bragd server plays is on. It plays every Family: chess, xiangqi, shogi, go, draughts, tafl, backgammon, Ur and senet.
 
 ![Play with Friends before signing in, 390 px wide: the email and password fields, Sign in, Make an account and Sign in with Github](../screenshots/friends-sign-in-390.png)
 *Signing in, 390 px wide.*
@@ -68,16 +68,49 @@ The Club on the Bragd server is not your Club file: its members, roles and ratin
 ![A Game against Anna on the Bragd server, 1100 px wide: the board after 1. e4 a6, Your move, Offer a draw and Resign](../screenshots/friends-game-1100.png)
 *A Game on the Bragd server.*
 
-Challenge a player by their name, with the Variant and the Side you want, or answer a challenge. Anyone with a name can be challenged, not only Friends. The Game is played on Bragd's board as on [Lichess](playing-online.md), and the Bragd server's referee checks every move by Bragd's rules: a move that is illegal, out of turn or made after the Game moved on is refused.
+Seek a Game that any player may take, challenge a player by their name, with the Variant and the Side you want, or answer a challenge. Anyone with a name can be challenged, not only Friends. The Game is played on Bragd's board as on [Lichess](playing-online.md), and the Bragd server's referee checks every move by Bragd's rules: a move that is illegal, out of turn or made after the Game moved on is refused.
 
 | Button | What it does |
 |---|---|
-| **Challenge** | Challenges the player named, in the Variant chosen |
-| **Accept** / **Decline** | Answers a challenge made to you |
+| **Seek a Game** | Offers a Game in the Variant, time and rating chosen to any player. Other players see it among their challenges. You have one seek at a time; it lasts an hour unless it is taken. **Cancel** takes it back |
+| **Challenge** | Challenges the player named, in the Variant, time and rating chosen |
+| **Accept** / **Decline** | Answers a challenge made to you, or takes another player's seek. **Decline** on a seek only hides it from you |
 | **Cancel** | Takes back a challenge you made |
 | **Offer a draw** | Offers a draw; the other player accepts or declines |
 | **Resign** | Gives up the Game |
 | **Back to the lobby** | Leaves a Game that is over |
+
+### Clocks and ratings
+
+![The lobby of Play with Friends, 1100 px wide: Seek a Game with 10 min + 5 s and Rated, your ratings, and Bo's seek for shogi among the challenges](../screenshots/friends-seek-1100.png)
+*Seeking a Game, with Bo's seek beside it.*
+
+| Control | What it does |
+|---|---|
+| **Time** | *No clock*, or 10 min + 5 s, 5 min + 3 s, 15 min + 10 s or 30 min + 20 s: each player's time, and what is added after each of their turns |
+| **Rated** | The Game changes both players' ratings when it ends |
+
+The clocks are kept by the Bragd server. It counts the time you use from the moment it recorded the other player's move to the moment it records yours, so the time your move takes to reach it counts against you. The clock starts when the Game starts. When your time runs out, the server ends the Game as lost on time; Bragd asks it to look when a clock shows nought, and a move sent after that is not played.
+
+A rating is Glicko-2, as [Clubs](../clubs/clubs.md) use: one for each Game family, starting at 1500, and changed after every rated Game ([ADR 0007](../adr/0007-ratings-on-the-bragd-server.md)). *Your ratings* above the seek shows yours in the Families you have on. A rating with a `?`, such as *1500?*, is still provisional: Glicko-2 is not yet sure of it. A Game ended by deleting an account is not rated.
+
+During a rated Game, Analyse, Engines, book moves and tablebases are locked in every Bragd window, as on Lichess.
+
+### Dice
+
+In backgammon, Ur and senet the Bragd server throws the dice and sticks for both players, from its own random source. Neither player's Bragd throws, so neither can choose or foresee a throw. Each throw is kept with the Game's moves, and the move list shows it.
+
+![A backgammon Game against Anna on the Bragd server, 1100 px wide: your turn to throw, with Throw and Double beside the board](../screenshots/friends-dice-1100.png)
+*Your throw in backgammon: Throw, or Double first.*
+
+The server throws as soon as a throw is due, so you only ever move. In backgammon, while you may double, it waits for you:
+
+| Button | What it does |
+|---|---|
+| **Throw** | Asks the server to throw your dice |
+| **Double** | Offers the other player a double before you throw. They **Take** or **Drop** it |
+
+Backgammon's opening throw is one die each, thrown by the server too; the higher die moves first.
 
 ### Chat
 
@@ -118,8 +151,6 @@ While your microphone or camera is live, a red line beside the board says *Your 
 **Settings → Online → When a Friend asks for voice** and **… for the camera**: *Ask me* (the default) shows a request; *Off* refuses it without showing it.
 
 The sound and picture go directly between your two machines, encrypted end to end (WebRTC). When no direct path exists, the Bragd server's TURN relay passes the encrypted packets on without being able to read them. The Bragd server only brings the two machines together. Nothing of a Call is recorded, by Bragd or by the server.
-
-The Bragd server has no clocks, ratings or seeks yet, and does not play backgammon, Ur or senet: their dice would have to be thrown by the server.
 
 ## Deleting your account
 
@@ -175,6 +206,18 @@ Windows and macOS ask once whether Bragd may use the camera and the microphone. 
 #### How do I delete my account, and how long does it take?
 
 Press **Delete my account** below the Games, type your name (or, without a name, the word the form shows) and press **Delete my account for good**. It is deleted on the Bragd server at once. The server's backups hold it for up to 30 days more ([Privacy](../reference/privacy.md#the-bragd-server)).
+
+#### Why is there no clock under five minutes?
+
+Bragd asks the Bragd server how a Game stands every two seconds. That is fine for 5 minutes and more, but in a faster Game the delay would cost real time.
+
+#### How is my rating worked out?
+
+By Glicko-2, after each rated Game, from your rating, your opponent's and the result. Its deviation says how sure it is; while it is high the rating moves fast and shows a `?`. Each Game family has its own rating, so chess and go do not mix.
+
+#### Who throws the dice in backgammon, Ur and senet?
+
+The Bragd server, for both players, from its own random source. Neither player's Bragd can choose a throw, and the server refuses a throw sent as a move. Each throw is kept with the Game's moves.
 
 #### Can a stranger challenge me?
 

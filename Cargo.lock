@@ -590,6 +590,8 @@ name = "bragd-server"
 version = "0.1.0"
 dependencies = [
  "base64 0.23.1",
+ "bragd-clubs",
+ "bragd-core",
  "bragd-games",
  "postgres",
  "ring",

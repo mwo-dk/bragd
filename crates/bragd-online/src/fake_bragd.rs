@@ -26,6 +26,11 @@ pub struct Game {
     pub result: String,
     pub reason: String,
     pub moves: Vec<String>,
+    /// Who moves first, as backgammon's opening throw decided.
+    pub initial: Option<String>,
+    pub rated: bool,
+    /// The clock as `/v1/state` gives it, or null.
+    pub clock: Value,
     pub draw_offered: bool,
     pub friend: bool,
     pub chat_mine: bool,
@@ -50,6 +55,9 @@ pub struct World {
     pub deleted: Option<bool>,
     /// The opponent says yes to a Chat at once, and greets: for the screenshots.
     pub agree: bool,
+    /// The open seeks, as `/v1/state` gives them: Bo's to start with.
+    pub seeks: Vec<Value>,
+    pub ratings: Value,
     next: u32,
 }
 
@@ -72,6 +80,9 @@ impl Default for World {
                 result: String::new(),
                 reason: String::new(),
                 moves: vec![],
+                initial: None,
+                rated: false,
+                clock: Value::Null,
                 draw_offered: false,
                 friend: true,
                 chat_mine: false,
@@ -82,6 +93,8 @@ impl Default for World {
             reports: vec![],
             deleted: None,
             agree: false,
+            seeks: vec![json!({ "id": "s-bo", "name": "Bo", "variant": "shogi", "minutes": 10, "increment": 5, "rated": true, "mine": false })],
+            ratings: json!([{ "family": "chess", "rating": 1612.4, "deviation": 64.0, "games": 23 }, { "family": "shogi", "rating": 1480.0, "deviation": 190.0, "games": 3 }]),
             next: 1,
         }
     }
@@ -94,7 +107,7 @@ impl World {
             .iter()
             .map(|g| {
                 json!({ "id": g.id, "opponent": g.opponent, "first": g.first, "challenger": g.challenger, "variant": g.variant,
-                    "status": g.status, "result": g.result, "reason": g.reason, "moves": g.moves, "draw_offered": g.draw_offered, "draw_asked": false,
+                    "status": g.status, "result": g.result, "reason": g.reason, "moves": g.moves, "initial": g.initial, "rated": g.rated, "clock": g.clock, "draw_offered": g.draw_offered, "draw_asked": false,
                     "friend": g.friend, "opponent_id": format!("id-{}", g.opponent.to_lowercase()),
                     "chat": { "mine": g.chat_mine, "theirs": g.chat_theirs, "keep_mine": g.keep_mine, "keep_theirs": false,
                         "lines": g.lines.iter().map(|(m, t)| json!({ "mine": m, "text": t })).collect::<Vec<_>>() } })
@@ -104,7 +117,7 @@ impl World {
         json!({
             "me": self.me, "id": "id-bragdtester", "games": games, "asked": self.asked, "asking": self.asking, "blocked": self.blocked,
             "friends": self.friends.iter().map(|(n, c)| json!({ "name": n, "club": c })).collect::<Vec<_>>(),
-            "clubs": clubs, "club_friends": self.club_friends,
+            "clubs": clubs, "club_friends": self.club_friends, "seeks": self.seeks, "ratings": self.ratings,
         })
     }
 }
@@ -236,6 +249,8 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
             let id = format!("g{}", w.next);
             w.next += 1;
             let first = body["side"] != "second";
+            let clock = clock_of(&body);
+            let rated = body["rated"] == true;
             w.games.push(Game {
                 id: id.clone(),
                 opponent: name_of(&body, "opponent"),
@@ -246,6 +261,49 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
                 result: String::new(),
                 reason: String::new(),
                 moves: vec![],
+                initial: None,
+                rated,
+                clock,
+                draw_offered: false,
+                friend: false,
+                chat_mine: false,
+                chat_theirs: false,
+                keep_mine: false,
+                lines: vec![],
+            });
+            return ok(json!({ "id": id }));
+        }
+        ("POST", ["v1", "seeks"]) => {
+            let me = w.me.clone().unwrap_or_default();
+            w.seeks.retain(|k| k["mine"] != true);
+            let minutes = body["minutes"].clone();
+            let seek = json!({ "id": "s-me", "name": me, "variant": body["variant"], "minutes": minutes, "increment": body["increment"].as_u64().unwrap_or(0), "rated": body["rated"] == true, "mine": true });
+            w.seeks.push(seek);
+            return ok(json!({ "id": "s-me" }));
+        }
+        ("DELETE", ["v1", "seeks"]) => w.seeks.retain(|k| k["mine"] != true),
+        ("POST", ["v1", "seeks", sid, "accept"]) => {
+            let Some(k) = w.seeks.iter().position(|k| k["id"] == *sid) else { return err(404, "no_seek") };
+            let k = w.seeks.remove(k);
+            let id = format!("g{}", w.next);
+            w.next += 1;
+            let mut clock = clock_of(&k);
+            if !clock.is_null() {
+                clock["running"] = json!(0);
+            }
+            w.games.push(Game {
+                id: id.clone(),
+                opponent: name_of(&k, "name"),
+                first: true,
+                challenger: false,
+                variant: name_of(&k, "variant"),
+                status: "playing".into(),
+                result: String::new(),
+                reason: String::new(),
+                moves: vec![],
+                initial: None,
+                rated: k["rated"] == true,
+                clock,
                 draw_offered: false,
                 friend: false,
                 chat_mine: false,
@@ -258,8 +316,12 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
         ("POST", ["v1", "games", id, what]) => {
             let Some(g) = w.games.iter_mut().find(|g| g.id == *id) else { return err(404, "no_game") };
             match *what {
+                "flag" => {}
                 "accept" => {
                     g.status = "playing".into();
+                    if !g.clock.is_null() {
+                        g.clock["running"] = json!(if g.first { 0 } else { 1 });
+                    }
                     answer(g);
                 }
                 "decline" => g.status = "declined".into(),
@@ -281,9 +343,15 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
                 "keep" => g.keep_mine = body["on"] == true,
                 "say" if g.chat_mine && g.chat_theirs => g.lines.push((true, name_of(&body, "text"))),
                 "say" => return err(409, "chat_closed"),
+                // The referee's throw: the first the rules allow.
+                "throw" => {
+                    let Ok(st) = bragd_games::replay(&g.variant, g.initial.as_deref(), &g.moves) else { return err(500, "server") };
+                    let Some(t) = st.throws.first() else { return err(409, "not_now") };
+                    g.moves.push(t.clone());
+                }
                 "move" => {
                     let entry = body["entry"].as_str().unwrap_or_default();
-                    match bragd_games::apply(&g.variant, None, &g.moves, entry) {
+                    match bragd_games::apply(&g.variant, g.initial.as_deref(), &g.moves, entry) {
                         Ok(_) => {
                             g.moves.push(entry.to_string());
                             answer(g);
@@ -299,13 +367,21 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
     ok(json!({}))
 }
 
+/// The clock of a Game with `body`'s time control, before it starts; null without one.
+fn clock_of(body: &Value) -> Value {
+    match body["minutes"].as_u64() {
+        Some(m) => json!({ "left": [m * 60_000, m * 60_000], "running": null, "increment": body["increment"].as_u64().unwrap_or(0) * 1000 }),
+        None => Value::Null,
+    }
+}
+
 fn name_of(body: &Value, field: &str) -> String {
     body[field].as_str().unwrap_or_default().to_string()
 }
 
 /// The opponent's move when it is theirs: the first legal one.
 fn answer(g: &mut Game) {
-    let Ok(st) = bragd_games::replay(&g.variant, None, &g.moves) else { return };
+    let Ok(st) = bragd_games::replay(&g.variant, g.initial.as_deref(), &g.moves) else { return };
     let mine = if g.first { 0 } else { 1 };
     if let (Some(seat), Some(mv)) = (st.to_move, st.moves.first())
         && seat.index != mine

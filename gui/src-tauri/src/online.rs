@@ -127,17 +127,14 @@ pub struct Page {
     /// Bragd can sign in there: OGS needs Bragd registered with it first.
     ready: bool,
     chat_on: bool,
-    /// What the server has: a seek for anyone, rated Games and clocks. The Bragd server has none
-    /// of them yet.
-    seek: bool,
-    rated_games: bool,
-    clocks: bool,
     /// The Family of the Game shown, for its board.
     game_family: Option<&'static str>,
     /// The Bragd server's Chat, which both players agree to.
     talk: Option<bragd_online::bragd_server::ChatView>,
     /// The Call with the Bragd server opponent, when they are a Friend.
     call: Option<bragd_online::call::CallView>,
+    /// The user's ratings on the Bragd server, in the Families they have on.
+    ratings: Vec<bragd_online::bragd_server::Rated>,
 }
 
 fn page(s: &dyn Play, ctx: &Ctx) -> Page {
@@ -158,11 +155,9 @@ fn page(s: &dyn Play, ctx: &Ctx) -> Page {
         can: s.can(),
         ready: s.ready(),
         chat_on: cfg.online.chat,
-        seek: info.id != "bragd",
-        rated_games: info.id != "bragd",
-        clocks: info.id != "bragd",
         game_family: view_family(&view),
         call: if info.id == "bragd" { crate::friends::server().call_view() } else { None },
+        ratings: if info.id == "bragd" { crate::friends::server().ratings().into_iter().filter(|r| cfg.family_shown(&r.family)).collect() } else { vec![] },
         talk: if info.id == "bragd" { crate::friends::server().chat_view(cfg.online.bragd_filter) } else { None },
         view,
     }

@@ -199,7 +199,7 @@
   {/each}
 
   {#if oncell}
-    {#each b.cells as c (c.square)}
+    {#each b.cells as c (c.square + c.x)}
       {@const p = at(c.x, c.y)}
       <rect
         class="hit"

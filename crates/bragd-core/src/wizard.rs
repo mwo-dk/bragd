@@ -351,7 +351,7 @@ mod tests {
             c
         };
         let online = |c: &Config| steps(c).into_iter().find(|s| s.id == "online").unwrap().later;
-        assert!(online(&only("backgammon")).is_empty(), "Settings lists no Online area without a Family played online");
+        assert!(!online(&only("backgammon")).is_empty(), "backgammon is played on the Bragd server");
         assert!(!online(&only("tafl")).is_empty(), "tafl is played on the Bragd server");
         assert!(!online(&only("go")).is_empty(), "go is played on OGS");
         assert_eq!(

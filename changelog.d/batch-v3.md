@@ -1,0 +1,1 @@
+| **Backgammon, Ur and senet on the Bragd server.** Play with Friends now plays every Family. The server throws the dice and sticks for both players, so neither can choose a throw, and keeps each throw with the Game's moves. In backgammon you press **Throw**, or **Double** first. | [Play with Friends](online/play-with-friends.md#dice) | <!-- feature --> <!-- tour: friends -->
