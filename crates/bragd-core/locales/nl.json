@@ -304,6 +304,7 @@
  "wizard.preview": "Voorbeeld",
  "wizard.recommended": "Aanbevolen",
  "wizard.size_daily": "ongeveer {size} per dag",
+ "wizard.size_first": "ongeveer {size} de eerste keer, daarna alleen het nieuwe",
  "wizard.size_monthly": "ongeveer {size} per maand",
  "wizard.size_off": "ongeveer {size}",
  "wizard.size_once": "ongeveer {size}, eenmalig",

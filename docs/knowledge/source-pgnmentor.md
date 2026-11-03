@@ -16,7 +16,7 @@ PGN Mentor collects chess Games by player, by opening and by event, from [pgnmen
 
 ## What a fetch does
 
-Each fetch reads the files page and downloads the files of the chosen sections that it has not fetched before. The first fetch takes about 1,500 files, about 200 MB. Later fetches take only files that are new on the page. They go into `<data>/bragd/helper/sources/pgnmentor/`, named by section, such as `players-Adams.zip`.
+Each fetch reads the files page and downloads the files of the chosen sections that it has not fetched before. The first fetch takes about 1,500 files, about 200 MB. Later fetches take only files that are new on the page. So its size reads *about 200 MB the first time, then only what is new*, not a size a month. They go into `<data>/bragd/helper/sources/pgnmentor/`, named by section, such as `players-Adams.zip`.
 
 ## Questions
 

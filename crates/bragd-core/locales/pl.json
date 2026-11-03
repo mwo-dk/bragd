@@ -304,6 +304,7 @@
  "wizard.preview": "Podgląd",
  "wizard.recommended": "Zalecane",
  "wizard.size_daily": "około {size} dziennie",
+ "wizard.size_first": "około {size} za pierwszym razem, potem tylko nowe",
  "wizard.size_monthly": "około {size} miesięcznie",
  "wizard.size_off": "około {size}",
  "wizard.size_once": "około {size}, raz",

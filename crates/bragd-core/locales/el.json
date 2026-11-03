@@ -304,6 +304,7 @@
  "wizard.preview": "Προεπισκόπηση",
  "wizard.recommended": "Προτεινόμενο",
  "wizard.size_daily": "περίπου {size} την ημέρα",
+ "wizard.size_first": "περίπου {size} την πρώτη φορά, μετά μόνο ό,τι είναι νέο",
  "wizard.size_monthly": "περίπου {size} τον μήνα",
  "wizard.size_off": "περίπου {size}",
  "wizard.size_once": "περίπου {size}, μία φορά",

@@ -304,6 +304,7 @@
  "wizard.preview": "Priekšskatījums",
  "wizard.recommended": "Ieteicams",
  "wizard.size_daily": "apmēram {size} dienā",
+ "wizard.size_first": "apmēram {size} pirmoreiz, tad tikai jauno",
  "wizard.size_monthly": "apmēram {size} mēnesī",
  "wizard.size_off": "apmēram {size}",
  "wizard.size_once": "apmēram {size}, vienreiz",

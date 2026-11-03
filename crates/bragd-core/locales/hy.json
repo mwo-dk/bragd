@@ -304,6 +304,7 @@
  "wizard.preview": "Նախադիտում",
  "wizard.recommended": "Առաջարկվող",
  "wizard.size_daily": "մոտ {size} օրական",
+ "wizard.size_first": "մոտ {size} առաջին անգամ, հետո միայն նորը",
  "wizard.size_monthly": "մոտ {size} ամսական",
  "wizard.size_off": "մոտ {size}",
  "wizard.size_once": "մոտ {size}, մեկ անգամ",

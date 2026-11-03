@@ -304,6 +304,7 @@
  "wizard.preview": "Náhled",
  "wizard.recommended": "Doporučeno",
  "wizard.size_daily": "asi {size} denně",
+ "wizard.size_first": "asi {size} poprvé, poté jen to nové",
  "wizard.size_monthly": "asi {size} měsíčně",
  "wizard.size_off": "asi {size}",
  "wizard.size_once": "asi {size}, jednou",

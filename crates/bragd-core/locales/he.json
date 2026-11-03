@@ -304,6 +304,7 @@
  "wizard.preview": "תצוגה מקדימה",
  "wizard.recommended": "מומלץ",
  "wizard.size_daily": "בערך {size} ביום",
+ "wizard.size_first": "בערך {size} בפעם הראשונה, אחר כך רק מה שחדש",
  "wizard.size_monthly": "בערך {size} בחודש",
  "wizard.size_off": "בערך {size}",
  "wizard.size_once": "בערך {size}, פעם אחת",

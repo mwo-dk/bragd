@@ -304,6 +304,7 @@
  "wizard.preview": "Aurrebista",
  "wizard.recommended": "Gomendatua",
  "wizard.size_daily": "egunean {size} inguru",
+ "wizard.size_first": "{size} inguru lehen aldian, gero berria bakarrik",
  "wizard.size_monthly": "hilean {size} inguru",
  "wizard.size_off": "{size} inguru",
  "wizard.size_once": "{size} inguru, behin",

@@ -304,6 +304,7 @@
  "wizard.preview": "プレビュー",
  "wizard.recommended": "おすすめ",
  "wizard.size_daily": "1 日あたり約 {size}",
+ "wizard.size_first": "初回は約 {size}、以後は新しい分だけ",
  "wizard.size_monthly": "1 か月あたり約 {size}",
  "wizard.size_off": "約 {size}",
  "wizard.size_once": "1 回約 {size}",

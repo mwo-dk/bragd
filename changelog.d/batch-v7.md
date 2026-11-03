@@ -1,0 +1,1 @@
+| **KGS and PGN Mentor say what a fetch really takes.** Their size reads *about 185 MB the first time, then only what is new*, in Sources and in the install wizard, and no longer *a month*. | [The KGS archive](knowledge/source-kgs.md#why-does-it-say-185-mb-the-first-time-and-not-a-month) |

@@ -75,6 +75,7 @@ impl Source for Fics {
             kind: Kind::Games,
             parts: TYPES.iter().map(|(id, _)| Part::new(id, &format!("source.part.fics.{id}"), "chess", *id == "standard2000")).collect(),
             months: true,
+            first_only: false,
         }
     }
 

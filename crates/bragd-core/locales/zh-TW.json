@@ -304,6 +304,7 @@
  "wizard.preview": "預覽",
  "wizard.recommended": "推薦",
  "wizard.size_daily": "每天約 {size}",
+ "wizard.size_first": "首次約 {size}，之後只下載新增的",
  "wizard.size_monthly": "每月約 {size}",
  "wizard.size_off": "約 {size}",
  "wizard.size_once": "一次約 {size}",

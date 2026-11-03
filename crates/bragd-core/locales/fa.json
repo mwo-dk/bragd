@@ -304,6 +304,7 @@
  "wizard.preview": "پیش‌نمایش",
  "wizard.recommended": "توصیه‌شده",
  "wizard.size_daily": "حدود {size} در روز",
+ "wizard.size_first": "حدود {size} بار اول، بعد فقط موارد تازه",
  "wizard.size_monthly": "حدود {size} در ماه",
  "wizard.size_off": "حدود {size}",
  "wizard.size_once": "حدود {size}، یک‌بار",

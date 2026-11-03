@@ -53,6 +53,7 @@ impl Source for Kgs {
             kind: Kind::Games,
             parts: vec![],
             months: false,
+            first_only: true,
         }
     }
 

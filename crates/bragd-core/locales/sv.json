@@ -304,6 +304,7 @@
  "wizard.preview": "Förhandsgranska",
  "wizard.recommended": "Rekommenderad",
  "wizard.size_daily": "cirka {size} per dag",
+ "wizard.size_first": "cirka {size} första gången, sedan bara det nya",
  "wizard.size_monthly": "cirka {size} per månad",
  "wizard.size_off": "cirka {size}",
  "wizard.size_once": "cirka {size}, en gång",
