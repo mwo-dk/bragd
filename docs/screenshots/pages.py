@@ -1023,7 +1023,7 @@ def play_line(d, family):
     """Play LINES[family] on the Analyse page."""
     for m in LINES[family]:
         if m == "throw":
-            click(d, "Throw", "main")
+            click(d, "Throw", "main", exact=False)
             d.wait(0.6)
             click(d, "Analyse", "main")
             d.wait(2.5)
@@ -1217,12 +1217,12 @@ def ur_solved():
         # Perfect play follows the position once it is on.
         click(d, "Analyse", "main")
         for _ in range(16):
-            click(d, "Throw", "main")
+            click(d, "Throw", "main", exact=False)
             d.wait(1.5)
             # The weakest move shown, so the review has moves to mark.
             js(d, "document.querySelector('main .lines li:last-child button.mv')?.click()")
             d.wait(1)
-        click(d, "Throw", "main")
+        click(d, "Throw", "main", exact=False)
         d.wait(1.5)
         if review:
             click(d, "Review the game", "main")
@@ -1235,7 +1235,45 @@ def ur_solved():
     widths("review-ur", lambda d: game(d, True))
 
 
-ALL = {"library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "keyboard": keyboard, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "engines": engines, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
+def play():
+    """play-<family>-390.png and -1100.png, the Variant pictures play-go-19, -checkers, -janggi,
+    -brandubh, -seirawan, -capablanca and -shatranj at 1100 px, and analyse-chess-390.png and
+    -1100.png (Analyse with the stand-in Engine's three lines): each screen as it opens, with
+    the bar's key labels, a backgammon throw made. Draughts is International draughts, as its page says."""
+    def page(family, variant=None, item="Play"):
+        def go(d):
+            unfold(d)
+            nav(d, family, item)
+            if variant:
+                select(d, "Variant", variant)
+            if family == "backgammon":
+                click(d, "Throw", "main", exact=False)
+        return go
+    for name, family, variant, both in [
+            ("backgammon", "backgammon", None, True), ("draughts", "draughts", "International draughts", True), ("go", "go", None, True),
+            ("go-19", "go", "Go 19×19", False), ("checkers", "draughts", "English checkers", False),
+            ("janggi", "xiangqi", "Janggi", False), ("brandubh", "tafl", "Brandubh", False),
+            ("seirawan", "chess", "Seirawan chess", False), ("capablanca", "chess", "Capablanca chess", False),
+            ("shatranj", "chess", "Shatranj", False)]:
+        if both:
+            widths(f"play-{name}", page(family, variant))
+        else:
+            with Desktop(size=W1100) as d:
+                page(family, variant)(d)
+                d.wait(1)
+                d.shot(HERE / f"play-{name}-1100.png")
+    config(ENGINES)
+    try:
+        def analyse(d):
+            page("chess", None, "Analyse")(d)
+            click(d, "Analyse", "main")
+            d.wait(4)
+        widths("analyse-chess", analyse)
+    finally:
+        config("")
+
+
+ALL = {"play": play, "library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "keyboard": keyboard, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "engines": engines, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":
