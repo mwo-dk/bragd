@@ -1,0 +1,1 @@
+| **Go: Sources fetches the KGS archive.** Turn it on under Databases → Sources, or in the install wizard, and Bragd downloads the go Games of strong KGS players from u-go.net, about 185 MB the first time, then each new month. | [The KGS archive](knowledge/source-kgs.md) |
