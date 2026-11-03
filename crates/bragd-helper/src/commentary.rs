@@ -270,6 +270,8 @@ mod tests {
         assert!(facts(&cfg, &store, "chess", None, &[], None).unwrap().is_none());
         // Every judged move of the Game, and only those: the last move has the facts above.
         assert_eq!(judged(&cfg, &store, "chess", None, &entries).unwrap(), [f]);
+        // Closed first: Windows does not remove a folder with an open file in it.
+        drop(store);
         std::fs::remove_dir_all(&d).unwrap();
     }
 
@@ -300,6 +302,8 @@ mod tests {
         assert_eq!(ask("", "da"), ["e7e5"], "Nf3 has Danish Commentary already");
         assert!(ask("go", "en-GB").is_empty(), "no go Games in it");
         assert!(slice(&cfg, &store, &lib, "All", "", "da", &|| true, &mut |_, _| {}).unwrap().is_empty(), "stopped at once");
+        // Closed first: Windows does not remove a folder with an open file in it.
+        drop((store, lib));
         std::fs::remove_dir_all(&d).unwrap();
     }
 }
