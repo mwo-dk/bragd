@@ -4,7 +4,8 @@
 
 PGN Mentor collects chess Games by player, by opening and by event, from [pgnmentor.com](https://www.pgnmentor.com/files.html): a zip for each player and opening, and a PGN file for each event. Bragd fetches the files of the sections you choose and imports them through the Source's Routes. A Game found in a player's file and an event's file is stored once ([Duplicates](duplicates.md)).
 
-<!-- screenshot: sources-pgnmentor-1100.png: Databases → Sources with PGN Mentor's Options open: What to fetch with Players, Openings and Events ticked -->
+![PGN Mentor's Options: What to fetch with Players, Openings and Events ticked](../screenshots/sources-pgnmentor-1100.png)
+*Databases → Sources → PGN Mentor → Options.*
 
 ## How to reach it
 

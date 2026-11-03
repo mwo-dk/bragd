@@ -4,7 +4,8 @@
 
 The FICS games database holds the Games played on the Free Internet Chess Server since 1999, from [ficsgames.org](https://www.ficsgames.org/download.html). Bragd fetches a month at a time of the game types you choose, keeps each as it came (`.pgn.bz2`), and imports it through the Source's Routes as it reads it.
 
-<!-- screenshot: sources-fics-1100.png: Databases → Sources with the FICS games database's Options open: What to fetch with the eight game types, Standard over 2000 ticked, and First month -->
+![The FICS games database's Options: What to fetch with its eight game types, Standard over 2000 ticked, and First month](../screenshots/sources-fics-1100.png)
+*Databases → Sources → FICS games database → Options.*
 
 ## How to reach it
 

@@ -4,7 +4,7 @@
 
 A Source is where Games come from, such as The Week in Chess. When a Source is on, the [Helper](helper.md) fetches it on its schedule and imports its Games through its Routes: into `main.bragd` unless you add others. Every Source is off until you turn it on, and its size per fetch and schedule, such as *about 1.5 MB a week*, is shown before it downloads anything. You can also add any address of a game file as a custom URL Source, and remove it again.
 
-![The Sources tab for chess: The Week in Chess with its size, last fetch, Options and Fetch now, the rating lists with More lists folded, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
+![The Sources tab for chess: The Week in Chess, the Lichess database, the FICS games database and PGN Mentor, each with its size, last fetch, Options and Fetch now, the rating lists with More lists folded, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
 *Databases → Sources.*
 
 ## How to reach it

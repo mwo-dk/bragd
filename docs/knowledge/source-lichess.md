@@ -6,7 +6,8 @@ The Lichess database is every rated Game played on [lichess.org](https://lichess
 
 A month of standard chess is about 30 GB packed and holds about 100 million Games. Read the [questions](#questions) on disk space before you turn it on.
 
-<!-- screenshot: sources-lichess-1100.png: Databases → Sources with the Lichess database's Options open: What to fetch with Chess ticked and Chess960, King of the hill and Racing kings not, and First month empty -->
+![The Lichess database's Options: What to fetch with Chess ticked and Chess960, King of the hill and Racing kings not, and First month empty](../screenshots/sources-lichess-1100.png)
+*Databases → Sources → Lichess database → Options.*
 
 ## How to reach it
 
