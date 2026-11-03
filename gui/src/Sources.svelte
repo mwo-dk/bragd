@@ -3,8 +3,9 @@
   // and has its schedule, the metered rule, a disk cap, the largest download it takes without
   // asking (a bigger one waits for Download it anyway), what becomes of its downloads, and its
   // Routes: each a Library (one there, or a new one by name) and a Strip rule, with Preview (a
-  // dry run) and Apply over all of them. Rust lists only the Sources this version can fetch. A
-  // custom URL can be added, and removed again.
+  // dry run) and Apply over all of them. A Source with parts (Lichess Variants, FICS game
+  // types) has a box for each, and one of monthly files a first month. Rust lists only the
+  // Sources this version can fetch. A custom URL can be added, and removed again.
   import * as k from "./knowledge.js";
   import { t, i18n } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
@@ -152,7 +153,26 @@
         {#if s.custom}
           <label class="wide">{t("source.url")} <input type="text" bind:value={draft.url} /></label>
         {/if}
+        {#if s.months}
+          <label>{t("source.since")} <input type="text" bind:value={draft.since} placeholder="2024-01" size="8" aria-describedby={`since-${s.id}`} /></label>
+          <small class="hint wide" id={`since-${s.id}`}>{t("source.since_hint")}</small>
+        {/if}
       </div>
+      {#if s.parts.length}
+        <fieldset class="parts">
+          <legend>{t("source.parts")}</legend>
+          {#each s.parts as p (p.value)}
+            <label class="check"
+              ><input
+                type="checkbox"
+                checked={draft.parts.includes(p.value)}
+                onchange={(e) => draft && (draft.parts = e.currentTarget.checked ? [...draft.parts, p.value] : draft.parts.filter((/** @type {string} */ x) => x !== p.value))}
+              />
+              {p.label}</label
+            >
+          {/each}
+        </fieldset>
+      {/if}
       {#if s.ratingList}
         <p class="hint">{t("source.rating_list_hint")}</p>
       {:else}
@@ -282,6 +302,14 @@
   .grow {
     flex: 1;
     min-width: 12rem;
+  }
+  .parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.8rem;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
   }
   .notice {
     margin: 0;

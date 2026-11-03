@@ -1,5 +1,6 @@
-//! Sources: where Games come from, each fetched again on its schedule. Built in: TWIC, a
-//! custom URL, and the big Sources this version lists but does not fetch yet. Every Source is
+//! Sources: where Games come from, each fetched again on its schedule. Built in: TWIC, the
+//! Lichess database, FICS, PGN Mentor (each in a file of its own below `sources/`), a custom
+//! URL, and the big Sources this version lists but does not fetch yet. Every Source is
 //! opt-in: none is enabled until the user turns it on. A Source's downloads are kept as they
 //! came, packed, and imported from there as a stream (`bragd_library::stream`), so a zip or a
 //! `.pgn.zst` is never unpacked to disk.
@@ -11,6 +12,10 @@ use bragd_library::strip::StripRule;
 use serde::{Deserialize, Serialize};
 
 use crate::net::{self, Fetcher};
+
+pub(crate) mod fics;
+mod lichess;
+mod pgnmentor;
 
 /// How often a Source is fetched again.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,6 +70,13 @@ pub struct Options {
     /// What Disk watch may do by itself when a limit this Source counts against is crossed.
     #[serde(default)]
     pub auto: Auto,
+    /// The parts it fetches (`About::parts`, by id); none: those it fetches by default.
+    #[serde(default)]
+    pub parts: Vec<String>,
+    /// A Source of monthly files (`About::months`): the first month to fetch, `yyyy-mm`. Empty:
+    /// only the newest the first time.
+    #[serde(default)]
+    pub since: String,
 }
 
 /// The Library a Source's Games go to unless the user says otherwise: `main.bragd`.
@@ -135,8 +147,10 @@ pub struct Memo {
     /// Unix time of the last fetch that worked, and of the last try.
     pub last_fetch: Option<u64>,
     pub last_try: Option<u64>,
-    /// TWIC: the last issue fetched.
+    /// TWIC: the last issue fetched. A Source of monthly files: the last month, as `month` has it.
     pub last_issue: Option<u32>,
+    /// A Source of many files that seldom change (PGN Mentor): the names fetched already.
+    pub got: Vec<String>,
     pub last_error: Option<String>,
     /// Disk watch holds its fetches back (`Auto::pause`) while a limit is crossed.
     pub paused: bool,
@@ -174,6 +188,87 @@ pub struct About {
     /// Games for a Library, or a rating list.
     #[serde(default)]
     pub kind: Kind,
+    /// What the user can pick of it: Variants, game types, sections. None: it is one thing.
+    #[serde(default)]
+    pub parts: Vec<Part>,
+    /// Whether it is a file a month, so the user can say from which month (`Options::since`).
+    #[serde(default)]
+    pub months: bool,
+}
+
+/// A part of a Source the user can pick: a Lichess Variant, a FICS game type, a PGN Mentor
+/// section.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Part {
+    pub id: String,
+    /// Its name's text key.
+    pub label: String,
+    /// The Variant its Games are (`bragd_games`' key), so it hides with that Variant; empty
+    /// for any.
+    #[serde(default)]
+    pub variant: String,
+    /// Fetched while the user has picked none.
+    pub default: bool,
+}
+
+impl Part {
+    pub fn new(id: &str, label: &str, variant: &str, default: bool) -> Part {
+        Part { id: id.into(), label: label.into(), variant: variant.into(), default }
+    }
+}
+
+impl About {
+    /// The parts `o` fetches: those picked, or the default ones when none is.
+    pub fn chosen<'a>(&'a self, o: &Options) -> Vec<&'a Part> {
+        let picked: Vec<&Part> = self.parts.iter().filter(|p| o.parts.contains(&p.id)).collect();
+        if picked.is_empty() { self.parts.iter().filter(|p| p.default).collect() } else { picked }
+    }
+}
+
+/// A month as a number that counts on by one each month: `yyyy * 12 + mm - 1`, from `yyyy-mm`.
+pub fn month(s: &str) -> Option<u32> {
+    let (y, m) = s.trim().split_once('-')?;
+    let (y, m): (u32, u32) = (y.parse().ok()?, m.parse().ok()?);
+    (y.to_string().len() == 4 && (1..=12).contains(&m)).then_some(y * 12 + m - 1)
+}
+
+/// `month`'s number as `yyyy-mm`.
+pub fn month_text(m: u32) -> String {
+    format!("{:04}-{:02}", m / 12, m % 12 + 1)
+}
+
+/// The month `now` (Unix seconds) is in, UTC.
+pub fn month_of(now: u64) -> u32 {
+    month(&crate::utc(now)[..7]).unwrap_or(0)
+}
+
+/// The months a monthly Source fetches next, out of `there` (the months the server has), in
+/// order and at most `most`: those after the last one fetched; the first time those from
+/// `Options::since`, or else only the newest.
+pub fn months_to_fetch(there: &[u32], memo: &Memo, o: &Options, most: usize) -> Vec<u32> {
+    let mut there: Vec<u32> = there.to_vec();
+    there.sort_unstable();
+    there.dedup();
+    let from = match (memo.last_issue, month(&o.since)) {
+        (Some(last), _) => last + 1,
+        (None, Some(since)) => since,
+        (None, None) => return there.last().copied().into_iter().collect(),
+    };
+    there.into_iter().filter(|&m| m >= from).take(most).collect()
+}
+
+/// The text of the page at `url`, at most `MAX_PAGE` bytes; none when the server has no such page.
+pub fn page(net: &dyn Fetcher, url: &str) -> io::Result<Option<String>> {
+    use std::io::Read;
+    const MAX_PAGE: u64 = 8 << 20;
+    match net.get(url, 0)? {
+        net::Got::Missing => Ok(None),
+        net::Got::Body { body, .. } => {
+            let mut b = vec![];
+            body.take(MAX_PAGE).read_to_end(&mut b)?;
+            Ok(Some(String::from_utf8_lossy(&b).into_owned()))
+        }
+    }
 }
 
 /// What a Source's downloads hold.
@@ -190,7 +285,7 @@ pub enum Kind {
 impl About {
     /// What a Source starts as: off, on its usual schedule.
     pub fn defaults(&self) -> Options {
-        Options { enabled: false, schedule: self.schedule, only_unmetered: false, disk_cap: None, max_download: None, url: String::new(), routes: Route::only_main(), after_import: AfterImport::Keep, auto: Auto::default() }
+        Options { enabled: false, schedule: self.schedule, only_unmetered: false, disk_cap: None, max_download: None, url: String::new(), routes: Route::only_main(), after_import: AfterImport::Keep, auto: Auto::default(), parts: vec![], since: String::new() }
     }
 }
 
@@ -258,6 +353,8 @@ impl Source for Twic {
             url: TWIC_URL.into(),
             fetchable: true,
             kind: Kind::Games,
+            parts: vec![],
+            months: false,
         }
     }
 
@@ -312,6 +409,8 @@ impl Source for CustomUrl {
             url: self.url.clone(),
             fetchable: true,
             kind: Kind::Games,
+            parts: vec![],
+            months: false,
         }
     }
 
@@ -353,7 +452,7 @@ pub struct RatingList(pub &'static bragd_clubs::lists::List);
 impl Source for RatingList {
     fn about(&self) -> About {
         let l = self.0;
-        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, kind: Kind::RatingList }
+        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, kind: Kind::RatingList, parts: vec![], months: false }
     }
 
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>> {
@@ -378,21 +477,21 @@ fn later(id: &str, name: &str, family: &str, size: u64, schedule: Schedule, url:
         url: url.into(),
         fetchable: false,
         kind: Kind::Games,
+        parts: vec![],
+        months: false,
     }))
 }
 
 /// Every built-in Source, in the order Settings lists them. Sizes are rough, per fetch.
 pub fn builtin() -> Vec<Box<dyn Source>> {
     vec![
-        Box::new(Twic),
-        // When it is fetched, the month's `.pgn.zst` is kept packed and imported from there as a
-        // stream (`Library::import_with`, through `bragd_library::stream`), game by game, with the
-        // Source's Strip rule applied as the Games stream by: what it strips is never stored, and
-        // nothing is unpacked to disk. `AfterImport::Strip` then shrinks the download itself.
-        later("lichess-db", "Lichess database", "chess", 30_000_000_000, Schedule::Monthly, "https://database.lichess.org/standard/lichess_db_standard_rated_{yyyy}-{mm}.pgn.zst"),
-        // The same goes for FICS: a month's or a year's `.pgn.bz2`, chosen on its download page.
-        later("fics", "FICS games database", "chess", 300_000_000, Schedule::Monthly, "https://www.ficsgames.org/download.html"),
-        later("pgnmentor", "PGN Mentor", "chess", 200_000_000, Schedule::Monthly, "https://www.pgnmentor.com/files.html"),
+        Box::new(Twic) as Box<dyn Source>,
+        // Kept packed and imported from there as a stream (`bragd_library::stream`), with the
+        // Routes' Strip rules applied as the Games stream by; nothing is unpacked to disk.
+        Box::new(lichess::Lichess),
+        Box::new(fics::Fics),
+        Box::new(pgnmentor::PgnMentor),
+        // shortcut: its site starts each download through a one-time script step and sends 7z; wait for a plain address (#314).
         later("lumbras", "LumbrasGigaBase", "chess", 4_000_000_000, Schedule::Monthly, "https://lumbrasgigabase.com/en/download-in-pgn-format-en/"),
         later("ogs", "OGS archive", "go", 1_000_000_000, Schedule::Monthly, "https://online-go.com/"),
         later("kgs", "KGS archive", "go", 100_000_000, Schedule::Monthly, "https://u-go.net/gamerecords/"),
@@ -523,10 +622,9 @@ pub(crate) mod tests {
     fn the_registry_lists_every_source_and_fetches_only_some() {
         let ids: Vec<String> = builtin().iter().map(|s| s.about().id).collect();
         assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings"]);
-        for s in builtin().iter().skip(1).filter(|s| s.about().kind == Kind::Games) {
-            let a = s.about();
-            assert!(!a.fetchable && a.size > 0, "{}", a.id);
-        }
+        let fetched: Vec<String> = builtin().iter().map(|s| s.about()).filter(|a| a.kind == Kind::Games && a.fetchable).map(|a| a.id).collect();
+        assert_eq!(fetched, ["twic", "lichess-db", "fics", "pgnmentor"]);
+        assert!(builtin().iter().all(|s| s.about().size > 0));
         let d = crate::tests::Dir::new("later");
         let net = Recorded::default();
         let o = Twic.about().defaults();
@@ -535,6 +633,16 @@ pub(crate) mod tests {
         assert!(net.asked.lock().unwrap().is_empty(), "nothing is asked of the network");
         assert!(find("custom:club", "https://example.org/a.pgn").unwrap().about().fetchable);
         assert!(find("nope", "").is_none());
+    }
+
+    #[test]
+    fn months_count_on_by_one() {
+        assert_eq!(month("2026-01"), Some(2026 * 12));
+        assert_eq!(month("2025-12").map(|m| m + 1), month("2026-01"));
+        assert_eq!(month_text(month("2024-07").unwrap()), "2024-07");
+        for bad in ["", "2026", "2026-13", "2026-00", "26-01", "2026-1x"] {
+            assert_eq!(month(bad), None, "{bad}");
+        }
     }
 
     #[test]

@@ -2047,5 +2047,20 @@
  "position.senet.the-water-is-not-progress.text": "Pares tiene una ficha en la casa 26, la Casa de la Belleza, y seis más en fila en las casas 2 a 12. La tirada es un uno, y siete jugadas son legales: seis de ellas al principio, y una que mueve la ficha de la 26. Esa va a la 27, la Casa del Agua, y es la jugada que casi todos hacen, porque la ficha de la 26 es la que más avanzó y porque de verdad estorba: nada puede pasar la Casa de la Belleza, y la ficha propia bloquea al propio ejército tal como lo haría una enemiga. Así que el impulso de ponerla en marcha es real. Es solo que es la tirada equivocada para obedecerlo. Conviene ver lo que hubieran hecho con esa ficha las otras cuatro tiradas: un dos la pone en la 28, un tres en la 29, un cuatro en la 30, y un cinco la saca directamente del tablero. Todas las tiradas menos esta son buenas para esa ficha. Y el uno es la tirada que da otra más: un uno, un cuatro y un cinco ganan una segunda tirada después de mover, salvo que la ficha movida caiga en el agua, lo que termina el turno donde está, sea cual sea lo que salió. Después empeora. Mientras haya una ficha en el agua, ninguna otra ficha propia puede moverse: seis fichas en el tablero y ninguna legal. Se tira, y si no sale un cuatro no pasa nada y el turno termina. Las únicas salidas son ese cuatro exacto, que saca la ficha ahogada del tablero, y la casa 15, la Casa de la Renovación, que la rescata; y la 15 ya la ocupó una ficha de Impares. Conviene jugar el uno en cualquier otro lado, y donde rinda más: el 10–11 cae sobre la única ficha de Impares, en la 11, y intercambia las dos, mandando la de ellos de vuelta a la 10 mientras la propia avanza a la 11, donde la ficha propia de la 12 la protege. Después se tira de nuevo y se espera el cinco.",
  "helper.missing": "Bragd no puede iniciar el Ayudante: su programa no está en {path}, junto a Bragd. Reinstalar Bragd lo restituye.",
  "hint.tablebase_online": "Las consultas a las tablas de finales de Lichess están desactivadas. Activadas, una posición de ajedrez de siete piezas o menos que tus tablas no cubren se envía a tablebase.lichess.ovh.",
- "notice.turn_on": "Activar"
+ "notice.turn_on": "Activar",
+ "source.parts": "Qué traer",
+ "source.since": "Primer mes",
+ "source.since_hint": "Vacío: solo el mes más reciente en la primera descarga. Un mes como 2024-01: todos los meses desde ahí, unos pocos en cada descarga. Las siguientes traen cada mes nuevo.",
+ "source.since_bad": "{since} no es un mes. Escribilo como 2024-01.",
+ "source.part.fics.standard2000": "Estándar, rating promedio mayor a 2000",
+ "source.part.fics.standard": "Estándar, todos los ratings",
+ "source.part.fics.blitz2000": "Blitz, rating promedio mayor a 2000",
+ "source.part.fics.blitz": "Blitz, todos los ratings",
+ "source.part.fics.lightning2000": "Relámpago, rating promedio mayor a 2000",
+ "source.part.fics.lightning": "Relámpago, todos los ratings",
+ "source.part.fics.chess2000": "Todos los ritmos, rating promedio mayor a 2000",
+ "source.part.fics.chess": "Todos los ritmos, todos los ratings",
+ "source.part.pgnmentor.players": "Jugadores",
+ "source.part.pgnmentor.openings": "Aperturas",
+ "source.part.pgnmentor.events": "Eventos"
 }

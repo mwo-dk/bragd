@@ -2037,5 +2037,20 @@
  "position.senet.the-water-is-not-progress.text": "Partall har en brikke på hus 26, Skjønnhetens hus, og seks til som fortsatt strekker seg langs husene 2 til 12. Kastet er en ener, og syv trekk er lovlige — seks av dem nedover ved starten, og ett som flytter brikken på 26. Det trekket går til 27, Vannets hus, og det er trekket nesten alle spiller, for brikken på 26 er den som har kommet lengst, og den er virkelig i veien: ingenting kan passere Skjønnhetens hus, og din egen brikke blokkerer din egen hær akkurat som en fiende ville gjort. Så trangen til å få den i gang er ekte. Det er bare feil kast å adlyde den på. Se hva de andre fire kastene ville gjort med den brikken: en toer setter den på 28, en treer på 29, en firer på 30, og en femmer tar den rett av brettet. Hvert kast unntatt dette er et godt kast for den brikken. Og ett er kastet som gir deg en brikke til — ener, firere og femmere gir alle et ekstra kast etter at du har flyttet —, med mindre brikken du flyttet havner i vannet, som avslutter turen din der den står, uansett hva du kastet. Så blir det verre. Mens du har en brikke i vannet, kan ingen av dine andre flytte: seks brikker på brettet og ikke én av dem er lovlig. Du kaster, og med mindre det er en firer, skjer det ingenting, og turen er over. De eneste utveiene er nettopp den fireren, som fører den druknede brikken av brettet, og hus 15, Gjenfødelsens hus, som redder den — og 15 er der Oddetall nettopp satte en brikke. Så spill ener et hvilket som helst annet sted, og spill den der den tjener mest: 10–11 lander på Oddetallets enslige brikke der, og den bytter de to, og sender hans tilbake til 10 mens din går frem til 11, der din egen brikke på 12 beskytter den. Kast deretter igjen, og håp på femmeren.",
  "helper.missing": "Bragd kan ikke starte Hjelperen: programmet ligger ikke på {path}, ved siden av Bragd. Installer Bragd på nytt for å få det tilbake.",
  "hint.tablebase_online": "Sluttspilltabell-oppslag hos Lichess er av. Slått på sendes en sjakkstilling med syv brikker eller færre, som tabellene dine ikke dekker, til tablebase.lichess.ovh.",
- "notice.turn_on": "Slå på"
+ "notice.turn_on": "Slå på",
+ "source.parts": "Hva som skal hentes",
+ "source.since": "Første måned",
+ "source.since_hint": "Tomt: bare den nyeste måneden ved første henting. En måned som 2024-01: hver måned fra da, noen få ved hver henting. Senere henting tar hver ny måned.",
+ "source.since_bad": "{since} er ikke en måned. Skriv den som 2024-01.",
+ "source.part.fics.standard2000": "Standard, snittrating over 2000",
+ "source.part.fics.standard": "Standard, alle ratinger",
+ "source.part.fics.blitz2000": "Blitz, snittrating over 2000",
+ "source.part.fics.blitz": "Blitz, alle ratinger",
+ "source.part.fics.lightning2000": "Lyn, snittrating over 2000",
+ "source.part.fics.lightning": "Lyn, alle ratinger",
+ "source.part.fics.chess2000": "Alle tidskontroller, snittrating over 2000",
+ "source.part.fics.chess": "Alle tidskontroller, alle ratinger",
+ "source.part.pgnmentor.players": "Spillere",
+ "source.part.pgnmentor.openings": "Åpninger",
+ "source.part.pgnmentor.events": "Turneringer"
 }

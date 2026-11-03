@@ -2050,5 +2050,20 @@
  "position.senet.the-water-is-not-progress.text": "Les Pairs ont un pion en case 26, la Maison de la Beauté, et six autres alignés sur les cases 2 à 12. Le jet est un, et sept coups sont légaux : six d’entre eux au départ, et celui qui déplace le pion en 26. Celui-ci mène en 27, la Maison de l’Eau, et c’est le coup que presque tout le monde joue, car le pion en 26 est celui qui est allé le plus loin et qu’il gêne vraiment : rien ne peut dépasser la Maison de la Beauté, et votre propre pion bloque votre armée exactement comme le ferait un adversaire. L’envie de le faire bouger est donc réelle. C’est simplement le mauvais jet pour y céder. Regardez ce que les quatre autres jets auraient fait de ce pion : un deux le met en 28, un trois en 29, un quatre en 30, et un cinq le sort tout à fait du plateau. Chaque jet sauf celui-ci est un bon jet pour ce pion. Et le un est le jet qui vous en offre un autre : un, quatre et cinq donnent tous un second jet après votre coup, sauf si le pion déplacé tombe dans l’eau, ce qui termine votre tour à cet endroit quel que soit le jet. Puis cela empire. Tant que vous avez un pion dans l’eau, aucun de vos autres pions ne peut bouger : six pions sur le plateau, et pas un seul coup légal. Vous jetez, et à moins de faire un quatre, rien ne se passe et le tour est fini. Les seules sorties sont ce quatre exact, qui sort le pion noyé, et la case 15, la Maison de la Renaissance, qui le sauve — or la case 15 vient justement d’être occupée par un pion des Impairs. Jouez donc le un ailleurs, et là où il rapporte le plus : 10–11 tombe sur le pion isolé des Impairs et les échange, renvoyant celui-ci en 10 pendant que le vôtre avance en 11, où votre pion en 12 le protège. Puis rejouez, et espérez le cinq.",
  "helper.missing": "Bragd ne peut pas démarrer l’assistant : son programme ne se trouve pas à {path}, à côté de Bragd. Réinstallez Bragd pour le rétablir.",
  "hint.tablebase_online": "Les consultations de tables de finales chez Lichess sont désactivées. Activées, une position d’échecs de sept pièces ou moins que vos tables ne couvrent pas est envoyée à tablebase.lichess.ovh.",
- "notice.turn_on": "Activer"
+ "notice.turn_on": "Activer",
+ "source.parts": "Quoi télécharger",
+ "source.since": "Premier mois",
+ "source.since_hint": "Vide : seulement le mois le plus récent au premier téléchargement. Un mois comme 2024-01 : tous les mois depuis celui-ci, quelques-uns à chaque téléchargement. Les téléchargements suivants prennent chaque nouveau mois.",
+ "source.since_bad": "{since} n’est pas un mois. Écrivez-le 2024-01.",
+ "source.part.fics.standard2000": "Standard, classement moyen supérieur à 2000",
+ "source.part.fics.standard": "Standard, tous les classements",
+ "source.part.fics.blitz2000": "Blitz, classement moyen supérieur à 2000",
+ "source.part.fics.blitz": "Blitz, tous les classements",
+ "source.part.fics.lightning2000": "Bullet, classement moyen supérieur à 2000",
+ "source.part.fics.lightning": "Bullet, tous les classements",
+ "source.part.fics.chess2000": "Toutes les cadences, classement moyen supérieur à 2000",
+ "source.part.fics.chess": "Toutes les cadences, tous les classements",
+ "source.part.pgnmentor.players": "Joueurs",
+ "source.part.pgnmentor.openings": "Ouvertures",
+ "source.part.pgnmentor.events": "Événements"
 }

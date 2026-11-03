@@ -637,6 +637,19 @@ def source_pages():
     finally:
         state.unlink(missing_ok=True)
 
+    # sources-lichess, sources-fics and sources-pgnmentor (-390.png, -1100.png): each Source's
+    # Options open at What to fetch, with the parts it fetches by default ticked.
+    for name, shot in [("Lichess database", "sources-lichess"), ("FICS games database", "sources-fics"), ("PGN Mentor", "sources-pgnmentor")]:
+        def options(d, name=name):
+            unfold(d)
+            nav(d, "chess", "Databases")
+            click(d, "Sources", "main")
+            d.wait(1.5)
+            js(d, f"const a = [...document.querySelectorAll('main .source')].find(a => a.querySelector('strong')?.textContent.trim() === {json.dumps(name)}); a.querySelector('.buttons button').click()")
+            d.wait(1)
+            js(d, "document.querySelector('main .parts')?.scrollIntoView({block: 'center'})")
+        widths(shot, options)
+
 
 def model():
     """language-model-390.png and -1100.png: Settings → Language model with the model server

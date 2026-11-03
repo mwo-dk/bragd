@@ -2037,5 +2037,20 @@
  "position.senet.the-water-is-not-progress.text": "Jämna har en pjäs på ruta 26, Skönhetens hus, och sex till står i rad på rutorna 2 till 12. Kastet är en etta, och sju drag är lagliga – sex av dem nedåt från start, och ett som flyttar pjäsen på 26. Det går till 27, Vattnets hus, och det är draget nästan alla spelar, för pjäsen på 26 är den som kommit längst, och den står verkligen i vägen: ingenting kan passera Skönhetens hus, och din egen pjäs blockerar din egen armé precis som en fiende skulle. Så drivkraften att få den i rörelse är verklig. Det är bara fel kast att ge efter för. Titta på vad de övriga fyra kasten skulle ha gjort med den pjäsen: en tvåa sätter den på 28, en trea på 29, en fyra på 30, och en femma tar den rakt av brädet. Varje kast utom detta är ett bra kast för den pjäsen. Och ettan är kastet som ger dig ett till – en etta, en fyra och en femma ger alla ett extra kast efter att du har flyttat – om inte pjäsen du flyttade landar i vattnet, för då slutar din tur där den står, oavsett vad du slog. Sen blir det värre. Medan du har en pjäs i vattnet kan inga av dina andra röra sig alls: sex pjäser på brädet och ingen av dem laglig. Du kastar, och om det inte är en fyra händer ingenting och turen är över. De enda utvägarna är just den fyran, som tar bort den drunknade pjäsen från brädet, och Återfödelsens hus, ruta 15, som räddar den – och 15 är där Udda just satte en pjäs. Så spela ettan någon annanstans, och där den tjänar mest: 10–11 landar på Udda-sidans ensamma pjäs där och byter de två, och skickar hans tillbaka till 10 medan din går fram till 11, där din egen pjäs på 12 skyddar den. Kasta sedan igen och hoppas på en femma.",
  "helper.missing": "Bragd kan inte starta Hjälparen: dess program finns inte på {path}, bredvid Bragd. Installera om Bragd för att få tillbaka det.",
  "hint.tablebase_online": "Uppslag i Lichess slutspelstabeller är av. När det är på skickas en ställning med sju pjäser eller färre, som dina tabeller inte täcker, till tablebase.lichess.ovh.",
- "notice.turn_on": "Slå på"
+ "notice.turn_on": "Slå på",
+ "source.parts": "Vad som ska hämtas",
+ "source.since": "Första månad",
+ "source.since_hint": "Tomt: bara den senaste månaden vid första hämtningen. En månad som 2024-01: varje månad från den, några vid varje hämtning. Senare hämtningar tar varje ny månad.",
+ "source.since_bad": "{since} är inte en månad. Skriv den som 2024-01.",
+ "source.part.fics.standard2000": "Standard, snittrating över 2000",
+ "source.part.fics.standard": "Standard, alla ratingar",
+ "source.part.fics.blitz2000": "Blixt, snittrating över 2000",
+ "source.part.fics.blitz": "Blixt, alla ratingar",
+ "source.part.fics.lightning2000": "Lyn, snittrating över 2000",
+ "source.part.fics.lightning": "Lyn, alla ratingar",
+ "source.part.fics.chess2000": "Alla tidskontroller, snittrating över 2000",
+ "source.part.fics.chess": "Alla tidskontroller, alla ratingar",
+ "source.part.pgnmentor.players": "Spelare",
+ "source.part.pgnmentor.openings": "Öppningar",
+ "source.part.pgnmentor.events": "Turneringar"
 }

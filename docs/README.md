@@ -50,6 +50,9 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Player summary](knowledge/players.md) | One player's results, rating, openings, best wins and worst losses in a Library |
 | [Export to Parquet](knowledge/parquet-export.md) | A Library as a Parquet file for DuckDB |
 | [Sources](knowledge/sources.md) | TWIC, custom URLs, the listed big Sources, schedules |
+| [The Lichess database](knowledge/source-lichess.md) | Every rated Lichess Game, a month at a time, by Variant |
+| [The FICS games database](knowledge/source-fics.md) | Games from the Free Internet Chess Server, a month at a time, by game type |
+| [PGN Mentor](knowledge/source-pgnmentor.md) | Games by player, opening and event |
 | [Strip rules](knowledge/strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
 | [Disk watch](knowledge/disk-watch.md) | What Bragd keeps on disk, limits, warnings and what happens when one is crossed |
 | [Position store](knowledge/position-store.md) | Evaluations and Annotations kept by position, Export and Import |

@@ -2037,5 +2037,20 @@
  "position.senet.the-water-is-not-progress.text": "Partal har ein brikke på hus 26, Skjønheitas hus, og seks til står att i rekkje på hus 2 til 12. Kastet er ein éin, og sju trekk er lovlege – seks av dei nedover frå starten, og eitt som flyttar brikka på 26. Det trekket går til 27, Vatnets hus, og det er trekket nesten alle speler, for brikka på 26 er den som har kome lengst, og ho står verkeleg i vegen: ingen kan passere Skjønheitas hus, og din eigen brikke blokkerer din eigen hær akkurat som ein fiende ville. Så trongen til å få ho i gang er ekte. Det er berre feil kast å følgje han med. Sjå kva dei fire andre kasta ville gjort med den brikka: ein to set ho på 28, ein tre på 29, ein fire på 30, og ein fem tek ho rett av brettet. Kvart kast unnateke dette er eit godt kast for den brikka. Og eins-en er kastet som gir deg ein til – ein éin, ein fire og ein fem gir alle eit ekstra kast etter at du har flytta – med mindre brikka du flytta landar i vatnet, for då endar turen din der ho står, uansett kva du kasta. Så blir det verre. Medan du har ein brikke i vatnet, kan ingen av dine andre flytte i det heile: seks brikker på brettet og ikkje éin av dei lovleg. Du kastar, og med mindre det er ein fire, skjer ingenting og turen er over. Dei einaste utvegane er akkurat den fire, som tek den drukna brikka av brettet, og hus 15, Gjenfødingas hus, som redder henne – og 15 er der Oddetal nett har sett ein brikke. Så speler eins-en eit anna stad, og speler han der han tener mest: 10–11 landar på Oddetals einsame brikke der og byter dei to, og sender hans tilbake til 10 medan din går framover til 11, der din eigen brikke på 12 vernar han. Kast så igjen, og håp på ein femmar.",
  "helper.missing": "Bragd kan ikkje starte Hjelparen: programmet står ikkje på {path}, ved sida av Bragd. Installer Bragd på nytt for å få det tilbake.",
  "hint.tablebase_online": "Oppslag i sluttspeltabellar hos Lichess er av. Slår du det på, blir ei stilling med sju brikker eller færre som tabellane dine ikkje dekkjer, sendt til tablebase.lichess.ovh.",
- "notice.turn_on": "Slå på"
+ "notice.turn_on": "Slå på",
+ "source.parts": "Kva som skal hentast",
+ "source.since": "Første månad",
+ "source.since_hint": "Tomt: berre den nyaste månaden ved første henting. Ein månad som 2024-01: kvar månad frå då, nokre få ved kvar henting. Seinare hentingar tek kvar ny månad.",
+ "source.since_bad": "{since} er ikkje ein månad. Skriv han som 2024-01.",
+ "source.part.fics.standard2000": "Standard, snittrating over 2000",
+ "source.part.fics.standard": "Standard, alle ratingar",
+ "source.part.fics.blitz2000": "Blitz, snittrating over 2000",
+ "source.part.fics.blitz": "Blitz, alle ratingar",
+ "source.part.fics.lightning2000": "Lyn, snittrating over 2000",
+ "source.part.fics.lightning": "Lyn, alle ratingar",
+ "source.part.fics.chess2000": "Alle tidskontrollar, snittrating over 2000",
+ "source.part.fics.chess": "Alle tidskontrollar, alle ratingar",
+ "source.part.pgnmentor.players": "Spelarar",
+ "source.part.pgnmentor.openings": "Opningar",
+ "source.part.pgnmentor.events": "Turneringar"
 }

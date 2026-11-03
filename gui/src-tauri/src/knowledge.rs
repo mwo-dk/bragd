@@ -427,6 +427,11 @@ pub struct SourceView {
     pub last: String,
     pub error: String,
     pub paused: bool,
+    /// What can be picked of it (Variants, game types, sections), those of Variants that are
+    /// off left out; `options.parts` holds those it fetches.
+    pub parts: Vec<Pick>,
+    /// A file a month: `options.since` says from which.
+    pub months: bool,
 }
 
 /// A value and its label, for a `<select>` or a row of checkboxes.
@@ -488,12 +493,20 @@ fn listed(all: Vec<(sources::About, Options, sources::Memo)>) -> impl Iterator<I
 pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<SourcesPage> {
     let now = bragd_core::fs::now();
     let tags = bragd_core::i18n::locale_tags();
+    let cfg = ctx.cfg();
     let sources = listed(sources_of(&k)?)
         .map(|(a, o, m)| {
             let list = bragd_clubs::lists::LISTS.iter().find(|l| l.id == a.id);
             (a, o, m, list)
         })
-        .map(|(a, o, m, list)| SourceView {
+        .map(|(a, mut o, m, list)| {
+            o.parts = a.chosen(&o).iter().map(|p| p.id.clone()).collect();
+            let parts = a.parts.iter().filter(|p| p.variant.is_empty() || cfg.variant_on(&p.variant)).map(|p| Pick { value: Value::from(p.id.as_str()), label: t!(&p.label) }).collect();
+            (a, o, m, list, parts)
+        })
+        .map(|(a, o, m, list, parts)| SourceView {
+            parts,
+            months: a.months,
             more: list.is_some_and(|l| !l.suggested(&tags)) && !o.enabled,
             family_name: if a.family.is_empty() { t!("source.any_family") } else { t!(&format!("family.{}", a.family)) },
             size: size_text(&a, &o),
@@ -551,6 +564,10 @@ pub fn source_set(id: String, mut options: Options, disk_cap: Option<String>, ma
     if let Some(cap) = max_download {
         options.max_download = Some(parse_size(&cap)?).filter(|&c| c > 0);
     }
+    options.since = options.since.trim().to_string();
+    if !options.since.is_empty() && sources::month(&options.since).is_none() {
+        return Err(t!("source.since_bad", "since" => options.since));
+    }
     k.link.ask(&Request::SetSource { source: id, options }).map(drop)
 }
 
@@ -561,7 +578,7 @@ pub fn source_add(name: String, url: String, k: State<'_, Knowledge>) -> Res<()>
     if name.is_empty() {
         return Err(t!("source.no_name"));
     }
-    let options = Options { enabled: true, schedule: Schedule::Weekly, only_unmetered: false, disk_cap: None, max_download: None, url: url.trim().into(), routes: Route::only_main(), after_import: Default::default(), auto: Auto::default() };
+    let options = Options { enabled: true, schedule: Schedule::Weekly, only_unmetered: false, disk_cap: None, max_download: None, url: url.trim().into(), routes: Route::only_main(), after_import: Default::default(), auto: Auto::default(), parts: vec![], since: String::new() };
     k.link.ask(&Request::SetSource { source: format!("{}{name}", sources::CUSTOM), options }).map(drop)
 }
 
@@ -704,12 +721,12 @@ pub fn library_prune(dry_run: bool, k: State<'_, Knowledge>) -> Res<u64> {
 mod tests {
     use super::*;
 
-    /// The page lists only what this version can fetch: TWIC, not the Lichess database.
+    /// The page lists only what this version can fetch: TWIC and the Lichess database, not LumbrasGigaBase.
     #[test]
     fn sources_this_version_cannot_fetch_are_not_listed() {
         let all = sources::builtin().iter().map(|s| (s.about(), s.about().defaults(), sources::Memo::default())).collect();
         let ids: Vec<String> = listed(all).map(|(a, _, _)| a.id).collect();
-        assert!(ids.contains(&"twic".to_string()) && !ids.contains(&"lichess-db".to_string()), "{ids:?}");
+        assert!(ids.contains(&"twic".to_string()) && ids.contains(&"lichess-db".to_string()) && !ids.contains(&"lumbras".to_string()), "{ids:?}");
         let twic = sources::builtin().into_iter().find(|s| s.about().id == "twic").unwrap().about();
         assert!(size_text(&twic, &twic.defaults()).ends_with("a week"), "a Source says how often it is fetched");
     }
