@@ -1018,13 +1018,16 @@ def friends():
 
 def sources():
     """databases-sources-390.png and -1100.png: Chess → Databases → Sources, TWIC first, then the
-    rating lists and Add a custom URL."""
-    def page(d):
-        unfold(d)
-        nav(d, "chess", "Databases")
-        click(d, "Sources", "main")
-        d.wait(1.5)
-    widths("databases-sources", page)
+    rating lists and Add a custom URL. databases-sources-go-*.png: Go's, the KGS archive."""
+    def page(family):
+        def go(d):
+            unfold(d)
+            nav(d, family, "Databases")
+            click(d, "Sources", "main")
+            d.wait(1.5)
+        return go
+    widths("databases-sources", page("chess"))
+    widths("databases-sources-go", page("go"))
 
 
 # The stand-in engines of the demo home, for every Family with an Engine but draughts.

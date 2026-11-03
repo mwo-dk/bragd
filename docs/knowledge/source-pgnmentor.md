@@ -29,4 +29,4 @@ No. A file is fetched once, by its name, even after its download is deleted. PGN
 Fetch the section, then give the Route a [Strip rule](strip-rules.md) with the players you want.
 
 ---
-[← Previous: The FICS games database](source-fics.md) · [Next: Strip rules →](strip-rules.md)
+[← Previous: The FICS games database](source-fics.md) · [Next: The KGS archive →](source-kgs.md)

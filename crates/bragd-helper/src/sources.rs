@@ -1,5 +1,5 @@
 //! Sources: where Games come from, each fetched again on its schedule. Built in: TWIC, the
-//! Lichess database, FICS, PGN Mentor (each in a file of its own below `sources/`), a custom
+//! Lichess database, FICS, PGN Mentor, KGS (each in a file of its own below `sources/`), a custom
 //! URL, and the big Sources this version lists but does not fetch yet. Every Source is
 //! opt-in: none is enabled until the user turns it on. A Source's downloads are kept as they
 //! came, packed, and imported from there as a stream (`bragd_library::stream`), so a zip or a
@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::net::{self, Fetcher};
 
 pub(crate) mod fics;
+mod kgs;
 mod lichess;
 mod pgnmentor;
 
@@ -494,7 +495,7 @@ pub fn builtin() -> Vec<Box<dyn Source>> {
         // shortcut: its site starts each download through a one-time script step and sends 7z; wait for a plain address (#314).
         later("lumbras", "LumbrasGigaBase", "chess", 4_000_000_000, Schedule::Monthly, "https://lumbrasgigabase.com/en/download-in-pgn-format-en/"),
         later("ogs", "OGS archive", "go", 1_000_000_000, Schedule::Monthly, "https://online-go.com/"),
-        later("kgs", "KGS archive", "go", 100_000_000, Schedule::Monthly, "https://u-go.net/gamerecords/"),
+        Box::new(kgs::Kgs),
         later("pychess", "pychess exports", "chess", 500_000_000, Schedule::Monthly, "https://www.pychess.org/"),
         later("lishogi", "Lishogi exports", "shogi", 500_000_000, Schedule::Monthly, "https://lishogi.org/"),
     ]
@@ -623,7 +624,7 @@ pub(crate) mod tests {
         let ids: Vec<String> = builtin().iter().map(|s| s.about().id).collect();
         assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings"]);
         let fetched: Vec<String> = builtin().iter().map(|s| s.about()).filter(|a| a.kind == Kind::Games && a.fetchable).map(|a| a.id).collect();
-        assert_eq!(fetched, ["twic", "lichess-db", "fics", "pgnmentor"]);
+        assert_eq!(fetched, ["twic", "lichess-db", "fics", "pgnmentor", "kgs"]);
         assert!(builtin().iter().all(|s| s.about().size > 0));
         let d = crate::tests::Dir::new("later");
         let net = Recorded::default();

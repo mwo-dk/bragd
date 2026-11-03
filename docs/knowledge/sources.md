@@ -25,6 +25,7 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `lichess-db` | [The Lichess database](source-lichess.md) | chess | 30 GB for a standard month | Monthly |
 | `fics` | [The FICS games database](source-fics.md) | chess | 0.3 MB for a month of standard Games over 2000 | Monthly |
 | `pgnmentor` | [PGN Mentor](source-pgnmentor.md) | chess | 200 MB the first time, then only new files | Monthly |
+| `kgs` | [The KGS archive](source-kgs.md) | go | 185 MB the first time, then only new zips | Monthly |
 | `custom:<name>` | A custom URL | any | unknown | Weekly |
 | `fide-ratings` | International Chess Federation (FIDE) | chess | 45 MB | Monthly |
 | `dsu-ratings` | Danish Chess Union (DSU) | chess | 0.5 MB | Monthly |
@@ -33,7 +34,7 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `sshl-ratings` | Finnish Chess Federation (SShL) | chess | 0.75 MB | Monthly |
 | `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly |
 
-Some Sources are planned but not fetched by this version: LumbrasGigaBase, pychess and Lishogi exports, and the OGS and KGS archives. Sources does not list them until a version of Bragd can fetch them. The install wizard names those of your Families in one line, *Coming later*.
+Some Sources are planned but not fetched by this version: LumbrasGigaBase, pychess and Lishogi exports, and the OGS archive. Sources does not list them until a version of Bragd can fetch them. The install wizard names those of your Families in one line, *Coming later*.
 
 **Parts and months.** The Lichess database, FICS and PGN Mentor have **What to fetch** in their Options: Variants, game types or sections. The Lichess database and FICS, a file a month, also have **First month**, the month their first fetch starts from. Each has a page of its own, linked in the table.
 
