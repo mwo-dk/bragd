@@ -132,3 +132,18 @@ fn the_bot_answers_a_throw_with_a_legal_move_in_every_variant() {
     }
     assert_eq!(bot_move::<&str>("chess", None, &[]).unwrap(), None);
 }
+
+#[test]
+fn the_move_list_shows_a_turn_as_its_throw_and_its_move() {
+    // Light throws 4 onto its rosette and throws again; Dark throws nought and passes.
+    let first = replay("ur", None, &["4"]).unwrap().moves[0].wire.clone();
+    let second = replay("ur", None, &["4", first.as_str(), "2"]).unwrap().moves[0].wire.clone();
+    let record = ["4", first.as_str(), "2", second.as_str(), "0"];
+    let state = replay("ur", None, &record).unwrap();
+    assert_eq!(state.history, record, "the record itself is unchanged");
+    assert_eq!(state.numbers, ["1", "", "2", "", "3"], "a turn is numbered once, at its throw");
+    assert_eq!(state.written, ["4:", first.as_str(), "2:", second.as_str(), "0: –"]);
+    // A throw waiting for its move shows as one too.
+    let state = replay("ur", None, &["4"]).unwrap();
+    assert_eq!((state.numbers, state.written), (vec!["1".to_string()], vec!["4:".to_string()]));
+}

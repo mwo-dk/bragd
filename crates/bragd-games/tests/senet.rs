@@ -67,3 +67,18 @@ fn senet_reports_a_lone_move_as_forced_and_a_choice_as_not() {
     assert_eq!(replay("senet", None, &["1"]).unwrap().forced, None);
     assert_eq!(replay::<&str>("senet", None, &[]).unwrap().forced, None, "nothing is forced before a throw");
 }
+
+#[test]
+fn the_move_list_shows_a_turn_as_its_throw_and_its_move() {
+    let first = replay("senet", None, &["2"]).unwrap().moves[0].wire.clone();
+    let record = ["2", first.as_str()];
+    let state = replay("senet", None, &record).unwrap();
+    assert_eq!(state.numbers, ["1", ""]);
+    assert_eq!(state.written, ["2:", first.as_str()]);
+}
+
+#[test]
+fn chess_writes_its_moves_as_the_record_does() {
+    let state = replay("chess", None, &["e2e4", "e7e5"]).unwrap();
+    assert_eq!(state.written, state.history);
+}
