@@ -94,7 +94,7 @@ For testing, `BRAGD_LICHESS_URL` points Bragd at another server, such as the fak
 | OGS (online-go.com) | Go | [Playing on OGS](ogs.md) |
 | pychess.org | Xiangqi, janggi, shogi and the fairy chess Variants | [Why pychess.org is not played from Bragd](pychess.md) |
 
-The install wizard links pychess.org for those Families. After these comes Bragd's own server, for the Families no other server hosts, such as tafl, Ur and senet. Bragd's rules crates decide what is legal on it.
+The install wizard links pychess.org for those Families. Every Family, including those no other server hosts, such as tafl, Ur and senet, is played on Bragd's own server with [Play with Friends](play-with-friends.md). Bragd's rules crates decide what is legal on it.
 
 ## Questions
 
