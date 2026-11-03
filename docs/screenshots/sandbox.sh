@@ -2,10 +2,12 @@
 # Run a command as user "demo" with a throwaway home, for screenshots that show nothing
 # personal. The real /home, /tmp, /mnt and /run/media are hidden, the host name is "demo", the
 # environment is cleared, and HOME and the XDG folders point into the fake home; podman and
-# docker cannot run in it. Needs bubblewrap (bwrap) and a release build (target/release/bragd-gui).
+# docker cannot run in it. It has a network of its own (#352): no server running on this machine,
+# such as a language model, is reachable from it; cap.py joins only the ports a picture needs
+# (netbridge.py). Needs bubblewrap (bwrap) and a release build (target/release/bragd-gui).
 #
 #   docs/screenshots/sandbox.sh bragd-gui
-#   SANDBOX_ARGS="--unshare-net" docs/screenshots/sandbox.sh bragd-gui    # extra bwrap arguments
+#   SANDBOX_ARGS="--unshare-pid" docs/screenshots/sandbox.sh bragd-gui    # extra bwrap arguments
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
 demo="${DEMO_HOME:-${XDG_RUNTIME_DIR:-/tmp}/bragd-demo-home}"
@@ -36,7 +38,7 @@ exec bwrap \
   --bind "$demo" /home/demo \
   --ro-bind "$repo/target/release" /opt/bragd \
   --bind "$XDG_RUNTIME_DIR" "$XDG_RUNTIME_DIR" \
-  --unshare-uts --hostname demo \
+  --unshare-uts --hostname demo --unshare-net \
   ${SANDBOX_ARGS:-} \
   --chdir /home/demo \
   --clearenv \

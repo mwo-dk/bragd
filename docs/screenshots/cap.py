@@ -25,8 +25,10 @@ the screen; `Desktop(state={...})` writes the state given instead, `{}` for a fi
 BRAGD_OFFLINE=1 also means no tablebase download or lookup is made.
 
 The demo home is $DEMO_HOME (default <tmp>/bragd-cap-<uid>/demo-home, made with demo-home.sh).
-`SANDBOX_ARGS` (extra bwrap arguments) is passed to sandbox.sh; keep the network, the page is
-reached over 127.0.0.1. Run with `uv run --with websocket-client python my-script.py` from this
+`SANDBOX_ARGS` (extra bwrap arguments) is passed to sandbox.sh. The sandbox has a network of its
+own, so the app finds no server running on this machine (#352): Broadway's and the inspector's
+ports are joined out to Chromium, and a stand-in server's port in to the app only when named in
+`Desktop(reach=[port])` (netbridge.py). Run with `uv run --with websocket-client python my-script.py` from this
 folder. Linux only; needs bwrap, broadwayd, chromium (or the browser $CHROMIUM names), cc, ffmpeg
 and ImageMagick (magick).
 """
@@ -35,6 +37,8 @@ import base64, json, os, shlex, shutil, socket, subprocess, sys, tempfile, threa
 from pathlib import Path
 
 import websocket
+
+from netbridge import bridge, stop
 
 HERE = Path(__file__).resolve().parent
 SANDBOX = HERE / "sandbox.sh"
@@ -70,6 +74,21 @@ def _answers(port):
     with socket.socket() as s:
         s.settimeout(0.5)
         return s.connect_ex(("127.0.0.1", port)) == 0
+
+
+def sees_host():
+    """Whether the sandbox reaches a port opened on this machine (#352): if it did, a picture
+    could show a server of the user's, such as a language model running here."""
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        s.listen()
+        port = s.getsockname()[1]
+        r = subprocess.run([str(SANDBOX), "python3", "-c", f"import socket; print(socket.socket().connect_ex(('127.0.0.1', {port})))"],
+                           env=_env(), capture_output=True, text=True, timeout=120)
+    try:
+        return int(r.stdout.split()[-1]) == 0  # the last line: a first run makes the demo home first
+    except (ValueError, IndexError):
+        raise RuntimeError(f"the sandbox did not run: {r.stderr.strip()}") from None
 
 
 def _stop(p):
@@ -146,10 +165,12 @@ def _dpi():
 
 
 class Desktop:
-    def __init__(self, args=(), lang="en_GB.UTF-8", size=(1440, 900), state=None, env=None):
-        """`env`: more variables for the app, such as `BRAGD_LICHESS_URL` for the fake Lichess."""
-        self.args, self.lang, self.size, self.state, self.env = list(args), lang, size, state, dict(env or {})
-        self.procs, self.n, self.ws, self.wk, self.target, self.profile, self.logs = [], 0, None, None, None, None, []
+    def __init__(self, args=(), lang="en_GB.UTF-8", size=(1440, 900), state=None, env=None, reach=()):
+        """`env`: more variables for the app, such as `BRAGD_LICHESS_URL` for the fake Lichess.
+        `reach`: ports of stand-in servers on this machine's 127.0.0.1 that the app may reach, at
+        the same port in the sandbox; no other port of this machine is reachable."""
+        self.args, self.lang, self.size, self.state, self.env, self.reach = list(args), lang, size, state, dict(env or {}), list(reach)
+        self.procs, self.n, self.ws, self.wk, self.target, self.profile, self.logs, self.bridges = [], 0, None, None, None, None, [], []
 
     def __enter__(self):
         # A start that does not draw its window is started again, up to five times.
@@ -162,7 +183,7 @@ class Desktop:
                     self.__exit__(e)
                     raise
                 self.__exit__()
-                self.procs, self.ws, self.wk, self.target = [], None, None, None
+                self.procs, self.ws, self.wk, self.target, self.bridges = [], None, None, None, []
 
     def _start(self):
         # Ports of its own for each start (Broadway, Chromium's DevTools, WebKit's inspector), and a
@@ -188,13 +209,26 @@ class Desktop:
         # resolver (libproxy) then waits for D-Bus, which dconf's thread is setting up and cannot
         # finish without that lock: about one start in four hung. Without the inspector, no hang.
         extra = "".join(f"{k}={shlex.quote(v)} " for k, v in self.env.items())
-        run = (f"broadwayd --address 127.0.0.1 --port {self.port} {self.display} >/dev/null 2>&1 & until [ -e /home/demo/{go.name} ]; do sleep 0.2; done; rm /home/demo/{go.name}; "
+        # The sandbox's own network (sandbox.sh): Broadway and the inspector are joined out through
+        # unix sockets in the runtime folder, and only the `reach` ports in.
+        shutil.copy(HERE / "netbridge.py", RUNTIME / "netbridge.py")
+        sock = lambda kind, p: str(RUNTIME / f"{kind}-{self.port}-{p}.sock")
+        out, into = [self.port, self.inspector], self.reach
+        for kind, p in [("out", p) for p in out] + [("in", p) for p in into]:
+            Path(sock(kind, p)).unlink(missing_ok=True)
+        for p in into:
+            self.bridges.append((bridge(sock("in", p), p), sock("in", p)))
+        inside = [a for p in out for a in (sock("out", p), str(p))] + [a for p in into for a in (str(p), sock("in", p))]
+        run = (f"python3 {RUNTIME}/netbridge.py {' '.join(inside)} & "
+               f"broadwayd --address 127.0.0.1 --port {self.port} {self.display} >/dev/null 2>&1 & until [ -e /home/demo/{go.name} ]; do sleep 0.2; done; rm /home/demo/{go.name}; "
                f"exec env LD_PRELOAD={RUNTIME}/dpi96.so GDK_BACKEND=broadway BROADWAY_DISPLAY={self.display} WEBKIT_DISABLE_DMABUF_RENDERER=1 "
                f'GIO_USE_PROXY_RESOLVER=dummy WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:{self.inspector} BRAGD_WINDOW_SIZE={w}x{h} BRAGD_OFFLINE=1 LANG={self.lang} {extra}bragd-gui "$@"')
         gui_log, chromium_log = RUNTIME / f"gui-{self.port}.log", RUNTIME / f"chromium-{self.port}.log"
         self.logs = [open(gui_log, "w"), open(chromium_log, "w")]
         sandbox = subprocess.Popen([str(SANDBOX), "sh", "-c", run, "sh", *self.args], env=env, stdout=self.logs[0], stderr=subprocess.STDOUT)
         self.procs.append(sandbox)
+        for p in out:
+            self.bridges.append((bridge(p, sock("out", p)), sock("out", p)))
         _until("Broadway (in the sandbox)", lambda: urllib.request.urlopen(f"http://127.0.0.1:{self.port}/", timeout=1), sandbox, gui_log)
         self.profile = tempfile.mkdtemp(prefix="cap-chromium-", dir=RUNTIME)
         chromium = subprocess.Popen([os.environ.get("CHROMIUM", "chromium"), "--headless=new", *OFFLINE, "--no-sandbox", "--hide-scrollbars", f"--user-data-dir={self.profile}",
@@ -221,6 +255,10 @@ class Desktop:
             self.wk.close()
         for p in reversed(self.procs):
             _stop(p)
+        for s, path in self.bridges:
+            stop(s)
+            Path(path).unlink(missing_ok=True)
+        self.bridges = []
         if self.profile:
             shutil.rmtree(self.profile, ignore_errors=True)
         for log in self.logs:
@@ -350,12 +388,12 @@ class Desktop:
         return frames
 
 
-def widths(name, setup=lambda d: None, args=(), out=HERE, state=None, env=None):
+def widths(name, setup=lambda d: None, args=(), out=HERE, state=None, env=None, reach=()):
     """`<name>-390.png` and `<name>-1100.png`: the app started at each width, `setup(d)` run to
     reach the screen, then captured. Look at both before calling a UI change done."""
     made = []
     for w, h in WIDTHS.items():
-        with Desktop(args=args, size=(w, h), state=state, env=env) as d:
+        with Desktop(args=args, size=(w, h), state=state, env=env, reach=reach) as d:
             setup(d)
             d.wait(1)
             path = Path(out) / f"{name}-{w}.png"

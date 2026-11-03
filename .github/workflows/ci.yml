@@ -180,6 +180,7 @@ jobs:
           export DEMO_HOME="$RUNNER_TEMP/demo-home"
           docs/screenshots/demo-home.sh "$DEMO_HOME"
           cd docs/screenshots || exit 1
+          "$RUNNER_TEMP/venv/bin/python" netbridge.py --self-test
           "$RUNNER_TEMP/venv/bin/python" cap.py --self-test
           "$RUNNER_TEMP/venv/bin/python" ui-check.py --shots "$RUNNER_TEMP/ui-shots"
       - name: What the app said
