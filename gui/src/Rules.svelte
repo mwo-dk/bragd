@@ -29,6 +29,7 @@
 </script>
 
 <section class="rules">
+  <h1>{family.name}: {t("sidebar.rules")}</h1>
   {#if page}
     {#if page.positions.length}
       <h2>{t("rules.positions")}</h2>
@@ -44,8 +45,8 @@
               {/if}
             </div>
             <p>{l.position.text}</p>
-            {#if l.position.answer}
-              <p class="answer">{t("rules.answer", { move: l.position.answer })}</p>
+            {#if l.answer}
+              <p class="answer">{t("rules.answer", { move: l.answer })}</p>
             {/if}
           </article>
         {/each}

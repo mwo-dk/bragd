@@ -2,7 +2,7 @@
 
 # Help (F1) and notices
 
-**F1**, or *Help* in the sidebar, lists every feature: what it does and the questions people ask, with *Show me* opening its page in these docs. The filter finds every word you type, whatever its case or accents: `grunfeld` finds *Grünfeld*.
+**F1**, or *Help* in the sidebar, lists every feature: what it does and the questions people ask, with *Show me* opening its page in these docs. A feature of only Game families you turned off is left out, as in What's new and the Tips. The filter finds every word you type, whatever its case or accents: `grunfeld` finds *Grünfeld*.
 
 Notices and hints show in a small area in the bottom corner of the window, one at a time: notices first, then hints, then a Tip. Closing one shows the next. A notice (a mistake in `config.toml`, a newer version) shows until you close it. A hint shows on three starts, then no more; one hint comes at a start, and the next one only after you close it.
 
@@ -22,18 +22,37 @@ The F1 entries and the pages *Show me* opens:
 |---|---|---|
 | `wizard` | Install wizard and What's new | [The install wizard](first-start.md) |
 | `families` | Game families | [Game families and Variants](game-families.md) |
+| `back` | Back | [Going back](navigation.md) |
+| `tips` | Tips | [Tips](tips.md) |
 | `play` | Play | [Playing against yourself](../play/against-yourself.md) |
 | `ur` | Ur rule sets and pyramid dice | [Ur](../play/ur.md) |
+| `ur_solved` | Ur solved | [Ur](../play/ur.md) |
 | `forced` | Forced moves play by themselves | [Playing against yourself](../play/against-yourself.md#forced-moves) |
+| `online` | Play on Lichess | [Playing online](../online/playing-online.md) |
+| `lishogi` | Play on Lishogi | [Playing on Lishogi](../online/lishogi.md) |
+| `ogs` | Play on OGS | [Playing on OGS](../online/ogs.md) |
+| `friends` | Play with Friends | [Play with Friends](../online/play-with-friends.md) |
+| `chat` | Chat with Bragd players | [Play with Friends](../online/play-with-friends.md) |
+| `calls` | Calls with Friends | [Play with Friends](../online/play-with-friends.md) |
 | `databases` | Databases | [Foreign databases](../knowledge/foreign-databases.md) |
 | `players` | Player summary | [Player summary](../knowledge/players.md) |
 | `parquet` | Export to Parquet | [Export to Parquet](../knowledge/parquet-export.md) |
 | `disk` | Disk watch | [Disk watch](../knowledge/disk-watch.md) |
+| `positions` | Position store | [Position store](../knowledge/position-store.md) |
+| `model` | Language model | [Language model](../knowledge/language-model.md) |
+| `peers` | Peers | [Pairing your machines](../peers/peers.md) |
+| `sharing` | Sharing between Peers | [Sharing between Peers](../peers/sharing.md) |
 | `helper` | The Helper | [The Helper](../knowledge/helper.md) |
 | `engines` | Engines | [The Engines page](../engines/engines.md) |
 | `analyse` | Analyse | [Analyse](../engines/analyse.md) |
+| `annotations` | Annotations | [Game review](../engines/review.md) |
+| `commentary` | Commentary | [Commentary](../engines/commentary.md) |
 | `matches` | Engine matches | [Engine matches](../engines/matches.md) |
 | `tablebases` | Tablebases | [Tablebases](../engines/tablebases.md) |
+| `background` | Background analysis | [Background analysis](../engines/background-analysis.md) |
+| `clubs` | Clubs | [Clubs](../clubs/clubs.md) |
+| `tournaments` | Tournaments | [Tournaments](../clubs/tournaments.md) |
+| `leagues` | Team Leagues | [Team Leagues](../clubs/leagues.md) |
 | `themes` | Themes | [Themes](../look/themes.md) |
 | `update` | Update checks | [Privacy](../reference/privacy.md) |
 

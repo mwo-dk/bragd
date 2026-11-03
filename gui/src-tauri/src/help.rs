@@ -10,10 +10,10 @@ use tauri_plugin_opener::OpenerExt;
 
 use crate::Ctx;
 
-/// F1 → Features, filtered by `query` (case and accents aside).
+/// F1 → Features of the Families that are on, filtered by `query` (case and accents aside).
 #[tauri::command]
-pub fn feature_list(query: String) -> Vec<features::Entry> {
-    features::list(&query)
+pub fn feature_list(query: String, ctx: tauri::State<'_, Ctx>) -> Vec<features::Entry> {
+    features::list(&ctx.cfg(), &query)
 }
 
 /// The hints shown at start, a few times each (`notices::hint_due`).

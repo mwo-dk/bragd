@@ -329,7 +329,7 @@ pub const POSITIONS: &[Position] = &[
         variant: "shogi",
         key: "shogi.pawn-drop-that-may-not-mate",
         title: "The drop you may not make",
-        text: "Black — who moves first in shogi — holds a gold and a pawn, and every piece he has taken this game can be put back on the board as a move. The white king on 1a is already boxed: his own knight sits on 2a, and Black’s knights on 1d and 2d cover 1b and 2b between them. Dropping either piece on 1b is mate, and only one of the two is legal. **A pawn may not be dropped to give checkmate.** Uchifuzume is the strangest rule in the game and the only one that requires looking a move ahead, so P*1b is simply not in the list of moves — while P*1c and every other pawn drop down that same file is, and so is P*2b right beside it. You may drop a pawn to give check. You may push a pawn to give mate. You may not drop one to give mate. So the move is G*1b, defended by the knight on 2d and covering 2a and 2b as well as 1a. Learn the rule before you need it: it arrives exactly when you are counting on a pawn to finish, and nothing on the board will warn you.",
+        text: "Black — who moves first in shogi — holds a gold and a pawn, and every piece he has taken this game can be put back on the board as a move. The white king on 1a is already boxed: his own knight sits on 2a, and Black’s knights on 1d and 2d cover 1b and 2b between them. Dropping either piece on 1b is mate, and only one of the two is legal. A pawn may not be dropped to give checkmate. Uchifuzume is the strangest rule in the game and the only one that requires looking a move ahead, so P*1b is simply not in the list of moves — while P*1c and every other pawn drop down that same file is, and so is P*2b right beside it. You may drop a pawn to give check. You may push a pawn to give mate. You may not drop one to give mate. So the move is G*1b, defended by the knight on 2d and covering 2a and 2b as well as 1a. Learn the rule before you need it: it arrives exactly when you are counting on a pawn to finish, and nothing on the board will warn you.",
         diagram: "l6nk/9/2p1p4/7NN/9/9/2P1P4/9/4K4 b GP 1",
         line: &[],
         arrangement: None,
@@ -450,6 +450,8 @@ mod tests {
         for position in POSITIONS {
             assert!(crate::variant(position.variant).is_ok(), "{}", position.key);
             assert!(position.key.starts_with(position.variant), "{}", position.key);
+            // The text is shown as it is, not as Markdown.
+            assert!(!position.text.contains("**"), "{}: Markdown in the text", position.key);
         }
     }
 

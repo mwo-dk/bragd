@@ -6,7 +6,7 @@
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
-  import { gates, groups, movesOf, movesTo, plainMoves } from "./board.js";
+  import { gates, groups, movesOf, movesTo, plainMoves, sideways as onSide } from "./board.js";
   import Board from "./Board.svelte";
   import UrDice from "./UrDice.svelte";
   import BackgammonBoard from "./BackgammonBoard.svelte";
@@ -70,7 +70,7 @@
   const aspect = $derived(!st ? 1 : family.id === "backgammon" ? 14.2 / 11.9 : (st.board.files + 0.16) / (st.board.ranks + 0.16));
   // A track four times longer than wide (Aseb) lies on its side on a narrow window, at most 70 %
   // of the window high, so its cells are big enough to hit.
-  const sideways = $derived(!!st && innerWidth <= 760 && family.race && st.board.files >= 4 * st.board.ranks);
+  const sideways = $derived(!!st && onSide(family, st.board, innerWidth));
   const fit = $derived(innerWidth > 760 && gameH ? `${Math.max(180, (gameH - trayH[0] - trayH[1] - 12) * aspect)}px` : null);
   /** A square, a piece dropped from hand, or a Seirawan piece to gate (with its square once
    * chosen). @type {{from?: string, drop?: string, gate?: string} | null} */
