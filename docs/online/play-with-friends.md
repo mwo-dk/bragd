@@ -174,7 +174,7 @@ Windows and macOS ask once whether Bragd may use the camera and the microphone. 
 
 #### How do I delete my account, and how long does it take?
 
-Press **Delete my account** below the Games, type your name (or, without a name, the word the form shows) and press **Delete my account for good**. It is deleted on the Bragd server at once. The server's backups hold it until they expire ([Privacy](../reference/privacy.md#the-bragd-server)).
+Press **Delete my account** below the Games, type your name (or, without a name, the word the form shows) and press **Delete my account for good**. It is deleted on the Bragd server at once. The server's backups hold it for up to 30 days more ([Privacy](../reference/privacy.md#the-bragd-server)).
 
 #### Can a stranger challenge me?
 
