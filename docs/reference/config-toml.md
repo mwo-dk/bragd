@@ -43,6 +43,8 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`. The top-le
 | `tablebases.path` | `""` | The Syzygy folder. Empty: `tablebases` in Bragd's data folder ([Tablebases](../engines/tablebases.md)) |
 | `tablebases.online` | `true` | Ask the Lichess tablebase API for a position your tables do not cover |
 | `online.chat` | `false` | Read and write an online Game's chat in Bragd, on Lichess, Lishogi and OGS ([Playing online](../online/playing-online.md#chat)) |
+| `online.bragd_chat` | `"ask"` | A Bragd player's request to Chat: `ask` shows it, `off` refuses it ([Chat](../online/play-with-friends.md#chat)) |
+| `online.bragd_filter` | `true` | Mask the listed words in a stranger's Chat lines |
 | `online.server` | `""` | The Bragd server's address. Empty: Play with Friends is hidden ([Play with Friends](../online/play-with-friends.md)) |
 | `knowledge.library` | `""` | Where Libraries are kept. Empty: `libraries` in Bragd's data folder ([Libraries](../knowledge/libraries.md)) |
 | `knowledge.source_priority` | `["twic", "lichess-db"]` | Sources in order: the first wins a header conflict between Duplicates ([Duplicates](../knowledge/duplicates.md)) |

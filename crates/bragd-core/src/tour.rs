@@ -48,6 +48,7 @@ pub const CARDS: &[Card] = &[
     card("1.0.0", "ur"),
     card("1.0.0", "forced"),
     card("1.0.0", "friends"),
+    card("1.0.0", "chat"),
 ];
 
 /// Whether the card shows to the user of `cfg`: its feature concerns one of their Families.

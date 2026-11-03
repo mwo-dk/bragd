@@ -17,7 +17,11 @@ fn main() {
         "lichess" => bragd_online::fake::lichess_on(port),
         "lishogi" => bragd_online::fake::lishogi_on(port),
         "ogs" => bragd_online::fake::ogs_on(port),
-        "bragd" => bragd_online::fake_bragd::bragd_on(port).0,
+        "bragd" => {
+            let (fake, world) = bragd_online::fake_bragd::bragd_on(port);
+            world.lock().unwrap_or_else(|e| e.into_inner()).agree = true;
+            fake
+        }
         _ => {
             eprintln!("usage: fake-online lichess|lishogi|ogs|bragd [port]");
             std::process::exit(2);

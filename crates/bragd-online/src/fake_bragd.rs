@@ -27,6 +27,12 @@ pub struct Game {
     pub reason: String,
     pub moves: Vec<String>,
     pub draw_offered: bool,
+    pub friend: bool,
+    pub chat_mine: bool,
+    pub chat_theirs: bool,
+    pub keep_mine: bool,
+    /// (mine, text)
+    pub lines: Vec<(bool, String)>,
 }
 
 /// What the fake holds; tests read and change it.
@@ -40,6 +46,8 @@ pub struct World {
     pub club_friends: bool,
     pub games: Vec<Game>,
     pub reports: Vec<(String, String)>,
+    /// The opponent says yes to a Chat at once, and greets: for the screenshots.
+    pub agree: bool,
     next: u32,
 }
 
@@ -63,8 +71,14 @@ impl Default for World {
                 reason: String::new(),
                 moves: vec![],
                 draw_offered: false,
+                friend: true,
+                chat_mine: false,
+                chat_theirs: false,
+                keep_mine: false,
+                lines: vec![],
             }],
             reports: vec![],
+            agree: false,
             next: 1,
         }
     }
@@ -77,12 +91,15 @@ impl World {
             .iter()
             .map(|g| {
                 json!({ "id": g.id, "opponent": g.opponent, "first": g.first, "challenger": g.challenger, "variant": g.variant,
-                    "status": g.status, "result": g.result, "reason": g.reason, "moves": g.moves, "draw_offered": g.draw_offered, "draw_asked": false })
+                    "status": g.status, "result": g.result, "reason": g.reason, "moves": g.moves, "draw_offered": g.draw_offered, "draw_asked": false,
+                    "friend": g.friend, "opponent_id": format!("id-{}", g.opponent.to_lowercase()),
+                    "chat": { "mine": g.chat_mine, "theirs": g.chat_theirs, "keep_mine": g.keep_mine, "keep_theirs": false,
+                        "lines": g.lines.iter().map(|(m, t)| json!({ "mine": m, "text": t })).collect::<Vec<_>>() } })
             })
             .collect();
         let clubs = json!([{ "id": "club-1", "name": "Skakklubben", "code": "", "members": 12 }]);
         json!({
-            "me": self.me, "games": games, "asked": self.asked, "asking": self.asking, "blocked": self.blocked,
+            "me": self.me, "id": "id-bragdtester", "games": games, "asked": self.asked, "asking": self.asking, "blocked": self.blocked,
             "friends": self.friends.iter().map(|(n, c)| json!({ "name": n, "club": c })).collect::<Vec<_>>(),
             "clubs": clubs, "club_friends": self.club_friends,
         })
@@ -135,6 +152,7 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
         return err(401, "signed_out");
     }
     let mut w = world.lock().unwrap_or_else(|e| e.into_inner());
+    let agree = w.agree;
     let name = || body["name"].as_str().unwrap_or_default().to_string();
     let parts: Vec<&str> = path.trim_matches('/').split('/').collect();
     match (r.method.as_str(), parts.as_slice()) {
@@ -196,6 +214,11 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
                 reason: String::new(),
                 moves: vec![],
                 draw_offered: false,
+                friend: false,
+                chat_mine: false,
+                chat_theirs: false,
+                keep_mine: false,
+                lines: vec![],
             });
             return ok(json!({ "id": id }));
         }
@@ -214,6 +237,17 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
                     g.reason = "resign".into();
                 }
                 "draw" => g.draw_offered = false,
+                "chat" if body["on"] == true => {
+                    g.chat_mine = true;
+                    if agree {
+                        g.chat_theirs = true;
+                        g.lines.push((false, "Good luck, have fun!".into()));
+                    }
+                }
+                "chat" => (g.chat_mine, g.chat_theirs) = (false, false),
+                "keep" => g.keep_mine = body["on"] == true,
+                "say" if g.chat_mine && g.chat_theirs => g.lines.push((true, name_of(&body, "text"))),
+                "say" => return err(409, "chat_closed"),
                 "move" => {
                     let entry = body["entry"].as_str().unwrap_or_default();
                     match bragd_games::apply(&g.variant, None, &g.moves, entry) {

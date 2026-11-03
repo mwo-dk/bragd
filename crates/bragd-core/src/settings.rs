@@ -99,7 +99,7 @@ impl Opt {
         } else if self.name == "play_forced" {
             // The dice Families.
             &["backgammon", "ur", "senet"]
-        } else if self.name == "bragd_server" {
+        } else if self.name.starts_with("bragd_") {
             // The Families the Bragd server referees: those without dice
             // (`bragd_online::bragd_server::FAMILIES`).
             &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"]
@@ -159,7 +159,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 31] = [
+const OTHER_OPTS: [Opt; 33] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -228,6 +228,8 @@ const OTHER_OPTS: [Opt; 31] = [
     opt("online_chat", &["online", "chat"], Online, "setting.online_chat"),
     // Every user's: Play with Friends is for every Family it plays (`bragd_online::bragd_server`).
     opt("bragd_server", &["online", "server"], Online, "setting.bragd_server"),
+    opt("bragd_chat", &["online", "bragd_chat"], Online, "setting.bragd_chat"),
+    opt("bragd_filter", &["online", "bragd_filter"], Online, "setting.bragd_filter"),
     opt("tips", &["tips", "frequency"], Tips, "setting.tips"),
     opt(
         "check_updates",

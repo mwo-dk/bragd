@@ -1,0 +1,1 @@
+| **Chat in Games on the Bragd server.** It opens only when both players say yes, either closes it for both, a stranger's lines pass a word filter you can turn off, and it is kept with the Game only if both of you tick Keep. | [Chat](online/play-with-friends.md#chat) | <!-- feature --> <!-- tour: chat -->

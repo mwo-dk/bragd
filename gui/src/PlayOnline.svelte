@@ -319,7 +319,39 @@
         {/if}
 
         <!-- The Bragd server's Chat is its own, with consent from both. -->
-        {#if view.terms}
+        {#if view.talk}
+          {@const c = view.talk}
+          <h2>{t("online.chat")}</h2>
+          {#if c.open}
+            <ul class="chat" aria-live="polite">
+              {#each c.lines as l}
+                <li><strong>{l.mine ? t("friends.you") : c.opponent}</strong> {l.text}</li>
+              {/each}
+            </ul>
+            {#if c.live}
+              <form class="say" onsubmit={(e) => (e.preventDefault(), say())}>
+                <input bind:value={line} maxlength="500" aria-label={t("online.chat_line")} placeholder={t("online.chat_line")} />
+                <button type="submit" disabled={!line.trim()}>{t("online.send")}</button>
+              </form>
+              <label class="check"><input type="checkbox" checked={c.keepMine} onchange={(e) => run(() => api.friendsKeep(e.currentTarget.checked))} /> {t("talk.keep")}</label>
+              <p class="hint">{c.keepTheirs ? t("talk.keep_both", { name: c.opponent }) : t("talk.keep_hint")}</p>
+              {#if !c.friend}<p class="hint">{t("talk.filter_hint")}</p>{/if}
+              <button class="link" onclick={() => run(() => api.friendsChat(false))}>{t("talk.close_chat")}</button>
+            {/if}
+          {:else if c.asked && c.live}
+            <div class="offer" role="status">
+              <span>{t("talk.asks_chat", { name: c.opponent })}</span>
+              <button class="primary" onclick={() => run(() => api.friendsChat(true))}>{t("talk.allow")}</button>
+              <button onclick={() => run(() => api.friendsChat(false))}>{t("talk.not_now")}</button>
+            </div>
+          {:else if c.waiting && c.live}
+            <p class="hint" role="status">{t("talk.waiting_chat", { name: c.opponent })}</p>
+            <button class="link" onclick={() => run(() => api.friendsChat(false))}>{t("common.cancel")}</button>
+          {:else if c.live}
+            <p class="hint">{t("talk.chat_off", { name: c.opponent })}</p>
+            <button onclick={() => run(() => api.friendsChat(true))}>{t("talk.ask_chat")}</button>
+          {/if}
+        {:else if view.terms}
         <h2>{t("online.chat")}</h2>
         {#if view.chatOn}
           <ul class="chat" aria-live="polite">

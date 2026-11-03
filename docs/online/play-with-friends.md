@@ -70,6 +70,25 @@ Challenge a player by their name, with the Variant and the Side you want, or ans
 | **Resign** | Gives up the Game |
 | **Back to the lobby** | Leaves a Game that is over |
 
+### Chat
+
+A Game's Chat is off. It opens only when both players say yes, and either closes it for both. In F1 this is the `chat` entry.
+
+![A Game's Chat on the Bragd server, 1100 px wide: Anna's line and yours, Keep this Chat with the Game, and Close Chat for both](../screenshots/friends-chat-1100.png)
+*Chat in a Game.*
+
+| Button | What it does |
+|---|---|
+| **Ask to Chat** | Asks the other player. They see "… would like to Chat" with **Allow** and **Not now** |
+| **Allow** / **Not now** | Answers the other player's request. **Not now** keeps it closed |
+| **Send** | Says a line, up to 500 characters |
+| **Keep this Chat with the Game** | The Chat is kept with the Game only when both players tick it. Otherwise its lines are deleted when the Game ends |
+| **Close Chat for both** | Closes it. Opening it again takes both players' yes again |
+
+You can Chat with a player who is not your Friend. Their lines then pass a word filter: a word on its list shows as asterisks. The filter runs on your machine, and **Settings → Online → Filter a stranger's Chat** turns it off. A Friend's lines are never filtered.
+
+**Settings → Online → When a Bragd player asks to Chat**: *Ask me* (the default) shows a request; *Off* refuses it without showing it.
+
 The Bragd server has no clocks, ratings or seeks yet, and does not play backgammon, Ur or senet: their dice would have to be thrown by the server.
 
 ## What it needs
@@ -93,6 +112,10 @@ Your name. Your Friends see that you are Friends; the two players of a Game see 
 #### Why is Play with Friends not in my sidebar?
 
 No Bragd server address is set yet, or none of the Families it plays is on.
+
+#### Who can read a Chat?
+
+The two players of the Game, and nobody else. Its lines are on the Bragd server while the Game is on, and deleted when it ends unless both of you ticked **Keep**.
 
 #### Can a stranger challenge me?
 

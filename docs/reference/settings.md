@@ -101,6 +101,8 @@ The Engine per Variant, added Engines and their options are on each Family's [En
 |---|---|---|---|
 | `tablebases_online` | Ask Lichess for tablebase positions | `tablebases.online` | When your tables do not cover a position, that position is sent to the Lichess tablebase API. Shown while chess is on |
 | `online_chat` | Chat in online Games | `online.chat` | Reads and writes an online Game's chat in Bragd, on Lichess, Lishogi and OGS. Off, no line is fetched or shown. Shown while chess, shogi or go is on |
+| `bragd_chat` | When a Bragd player asks to Chat | `online.bragd_chat` | `ask` shows a request to Chat in a Game on the Bragd server; `off` refuses it unseen ([Chat](../online/play-with-friends.md#chat)) |
+| `bragd_filter` | Filter a stranger's Chat | `online.bragd_filter` | Shows a word on the filter's list as asterisks in Chat lines from a player who is not your Friend |
 | `bragd_server` | Bragd server address | `online.server` | The Bragd server's address, for [Play with Friends](../online/play-with-friends.md). Empty, the page is hidden and nothing is sent. Shown while chess, xiangqi, shogi, go, draughts or tafl is on |
 
 Signing in is on the Family's *Play → Play on Lichess*, *Play on Lishogi* or *Play on OGS* ([Playing online](../online/playing-online.md)).
