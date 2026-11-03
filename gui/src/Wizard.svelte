@@ -240,10 +240,11 @@
           {#if info.totals.warning}<p class="warn" role="alert">{info.totals.warning}</p>{/if}
         {/if}
       {/if}
-      {#if current?.later}
-        <p><button class="link" onclick={() => settings(current.area)}>{current.later}</button></p>
-      {/if}
     </div>
+    <!-- Outside the scrolled body, so it never hides behind the footer on a short window. -->
+    {#if current?.later}
+      <p class="later"><button class="link" onclick={() => settings(current.area)}>{current.later}</button></p>
+    {/if}
 
     <footer>
       <ol class="dots" aria-hidden="true">
@@ -323,6 +324,10 @@
   }
   .body p {
     margin: 0 0 0.6rem;
+  }
+  .later {
+    margin: 0;
+    padding: 0.4rem 1.1rem;
   }
   .lead {
     font-size: 1.05em;
@@ -466,6 +471,7 @@
   .dots {
     flex: 1;
     display: flex;
+    flex-wrap: wrap;
     gap: 0.35rem;
     margin: 0;
     padding: 0;

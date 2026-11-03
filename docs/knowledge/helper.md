@@ -4,7 +4,6 @@
 
 The Helper is a background process, `bragd-helper`, shared by every Bragd window. It fetches Sources, imports files into Libraries, finds Duplicates, applies Strip rules, runs Disk watch and plays [Engine matches](../engines/matches.md), so the windows stay quick. One Helper serves all windows of one user. In F1 this is the `helper` entry.
 
-<!-- screenshot: jobs-1100.png: The Jobs page: the Helper's jobs with what each does, its progress and its status, and Cancel on the running one, in the default Racing green dark Theme -->
 ![The Jobs page: the Helper's jobs with what each does, its progress and its status, and Cancel on the running one](../screenshots/jobs-1100.png)
 *The Jobs page, opened from the Helper line in the sidebar.*
 
