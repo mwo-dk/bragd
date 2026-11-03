@@ -789,6 +789,43 @@ def online():
                 p.wait(5)
 
 
+def friends():
+    """Play with Friends against the fake Bragd server (`fake-online bragd`), never a real one:
+    friends-sign-in before signing in, friends signed in with Anna's challenge, Carl's request and
+    the Club, and friends-game after accepting Anna's challenge and 1. e4; each -390.png and
+    -1100.png. BRAGD_FRIENDS_URL points the app at the fake, and BRAGD_FRIENDS_TOKEN stands in for
+    the keychain the sandbox does not have."""
+    import subprocess
+    fake = HERE.parent.parent / "target/release/examples/fake-online"
+
+    def open_page(d):
+        js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+        d.wait(0.4)
+        click(d, "Play with Friends", "nav")
+        d.wait(2.5)
+
+    for w, h in WIDTHS.items():
+        p = subprocess.Popen([str(fake), "bragd"], stdout=subprocess.PIPE, text=True)
+        try:
+            url = p.stdout.readline().strip()
+            with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url}) as d:
+                open_page(d)
+                d.shot(HERE / f"friends-sign-in-{w}.png")
+            with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url, "BRAGD_FRIENDS_TOKEN": "fake-refresh"}) as d:
+                open_page(d)
+                d.shot(HERE / f"friends-{w}.png")
+                click(d, "Accept", "main .online")
+                d.wait(2.5)
+                move(d, "e2", "e4")
+                d.wait(2.5)
+                js(d, "document.querySelector('main .game')?.scrollIntoView();")
+                d.wait(0.5)
+                d.shot(HERE / f"friends-game-{w}.png")
+        finally:
+            p.terminate()
+            p.wait(5)
+
+
 def sources():
     """databases-sources-390.png and -1100.png: Chess → Databases → Sources, TWIC first and the
     Sources not fetched yet greyed out, with their size and no schedule."""
@@ -985,7 +1022,7 @@ def library():
     widths("library-analyse-go", analyse, out=out)
 
 
-ALL = {"library": library, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "families": families, "sources": sources,
+ALL = {"library": library, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":

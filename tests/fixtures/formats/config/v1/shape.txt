@@ -44,6 +44,7 @@
 .model.url string
 .online object
 .online.chat bool
+.online.server string
 .peers object
 .peers.interface string
 .peers.on bool

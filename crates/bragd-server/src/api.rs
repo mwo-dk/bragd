@@ -44,7 +44,7 @@ impl From<postgres::Error> for Error {
     }
 }
 
-type Res = Result<Value, Error>;
+pub(crate) type Res = Result<Value, Error>;
 
 /// The largest request body read.
 pub const MAX_BODY: usize = 64 * 1024;
@@ -71,7 +71,8 @@ impl Service {
         let parts: Vec<&str> = path.trim_matches('/').split('/').collect();
         match (method, parts.as_slice()) {
             ("GET", ["v1", "state"]) => self.state(&caller),
-            ("PUT", ["v1", "me"]) => self.name(&caller, text(&body, "name")?),
+            ("PUT", ["v1", "me"]) => self.me(&caller, &body),
+            ("POST", ["v1", rest @ ..]) if matches!(rest.first(), Some(&("friends" | "invites" | "blocks" | "reports" | "clubs"))) => self.friends(&caller, rest, &body),
             ("POST", ["v1", "games"]) => self.challenge(&caller, &body),
             ("POST", ["v1", "games", id, what]) => {
                 let id = uuid::Uuid::parse_str(id).map_err(|_| Error(404, "no_game"))?;
@@ -110,18 +111,31 @@ impl Service {
                     })
                 })
                 .collect();
-            Ok(json!({ "me": me, "games": games }))
+            let mut out = crate::friends::state(tx)?;
+            out["me"] = json!(me);
+            out["games"] = json!(games);
+            Ok(out)
         })
     }
 
-    /// Makes or renames the caller's profile.
-    fn name(&self, caller: &Caller, name: &str) -> Res {
+    /// Makes or renames the caller's profile (`name`), and sets whether members of their Clubs
+    /// count as Friends (`club_friends`).
+    fn me(&self, caller: &Caller, body: &Value) -> Res {
         self.pool.as_user(caller, |tx| {
-            tx.execute(
-                "insert into public.profiles (id, name) values (auth.uid(), $1) on conflict (id) do update set name = excluded.name",
-                &[&name],
-            )?;
-            Ok(json!({ "name": name }))
+            if let Some(name) = body.get("name") {
+                let name = name.as_str().map(str::trim).filter(|n| !n.is_empty()).ok_or(Error(400, "bad_request"))?;
+                tx.execute(
+                    "insert into public.profiles (id, name) values (auth.uid(), $1) on conflict (id) do update set name = excluded.name",
+                    &[&name],
+                )?;
+            }
+            if let Some(on) = body["club_friends"].as_bool() {
+                let n = tx.execute("update public.profiles set club_friends = $1 where id = auth.uid()", &[&on])?;
+                if n == 0 {
+                    return Err(Error(400, "no_profile"));
+                }
+            }
+            Ok(json!({}))
         })
     }
 
@@ -260,7 +274,7 @@ fn playable(variant: &str) -> Result<(), Error> {
     }
 }
 
-fn text<'a>(body: &'a Value, field: &str) -> Result<&'a str, Error> {
+pub(crate) fn text<'a>(body: &'a Value, field: &str) -> Result<&'a str, Error> {
     body[field].as_str().map(str::trim).filter(|s| !s.is_empty()).ok_or(Error(400, "bad_request"))
 }
 

@@ -80,4 +80,4 @@ Either Bragd is not registered with OGS yet, and the page says so, or another pr
 Bragd's go starts from an empty board with Black to move. A handicap Game places stones first, which Bragd cannot replay yet: play it on online-go.com.
 
 ---
-[← Previous: Playing on Lishogi](lishogi.md) · [Next: pychess.org →](pychess.md)
+[← Previous: Playing on Lishogi](lishogi.md) · [Next: Play with Friends →](play-with-friends.md)

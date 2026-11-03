@@ -99,6 +99,10 @@ impl Opt {
         } else if self.name == "play_forced" {
             // The dice Families.
             &["backgammon", "ur", "senet"]
+        } else if self.name == "bragd_server" {
+            // The Families the Bragd server referees: those without dice
+            // (`bragd_online::bragd_server::FAMILIES`).
+            &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"]
         } else if self.name.starts_with("online_") {
             // The Families of Lichess, Lishogi and OGS (`bragd_online::server`).
             &["chess", "shogi", "go"]
@@ -155,7 +159,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 30] = [
+const OTHER_OPTS: [Opt; 31] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -222,6 +226,8 @@ const OTHER_OPTS: [Opt; 30] = [
         "setting.tablebases_online",
     ),
     opt("online_chat", &["online", "chat"], Online, "setting.online_chat"),
+    // Every user's: Play with Friends is for every Family it plays (`bragd_online::bragd_server`).
+    opt("bragd_server", &["online", "server"], Online, "setting.bragd_server"),
     opt("tips", &["tips", "frequency"], Tips, "setting.tips"),
     opt(
         "check_updates",
@@ -517,8 +523,9 @@ mod tests {
             }
             c
         };
-        let listed = areas(&only("tafl"));
+        let listed = areas(&only("backgammon"));
         assert!(!listed.contains(&Online), "Online holds only settings of Families played online: {listed:?}");
+        assert!(areas(&only("tafl")).contains(&Online), "tafl is played on the Bragd server");
         assert!(listed.contains(&Look) && listed.contains(&Families));
         assert!(areas(&only("go")).contains(&Online), "go is played on OGS");
         assert!(!find("tablebases_online").unwrap().listed_for(&only("go")), "tablebases are chess's");

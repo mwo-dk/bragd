@@ -41,6 +41,7 @@ pub const FEATURES: &[Feature] = &[
     only("online", "online/playing-online.md", "online:lichess:chess", &["chess"]),
     only("lishogi", "online/lishogi.md", "online:lishogi:shogi", &["shogi"]),
     only("ogs", "online/ogs.md", "online:ogs:go", &["go"]),
+    only("friends", "online/play-with-friends.md", "settings:online", &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"]),
     f("databases", "knowledge/foreign-databases.md", "item:databases"),
     f("players", "knowledge/players.md", "item:databases"),
     f("parquet", "knowledge/parquet-export.md", "item:databases"),

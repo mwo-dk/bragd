@@ -10,6 +10,7 @@ Bragd sends nothing unless you ask, with one exception: the update check, which 
 ## Contents
 
 - [What can leave the machine](#what-can-leave-the-machine)
+- [The Bragd server](#the-bragd-server)
 - [The update check](#the-update-check)
 - [Links that open your browser](#links-that-open-your-browser)
 - [Settings and config.toml](#settings-and-configtoml)
@@ -31,9 +32,16 @@ Bragd sends nothing unless you ask, with one exception: the update check, which 
 | Lichess | When you sign in, and while *Play on Lichess* is open and signed in | Your sign-in happens on Lichess's own page in your browser. Then, with your token: your moves, seeks, challenges, offers and, while chat is on, your chat lines | `lichess.org` | Do not sign in, or press **Sign out** ([Playing online](../online/playing-online.md)) |
 | Lishogi | When you sign in, and while *Play on Lishogi* is open and signed in | The same as for Lichess | `lishogi.org` | Do not sign in, or press **Sign out** ([Playing on Lishogi](../online/lishogi.md)) |
 | OGS | When you sign in, and while *Play on OGS* is open and signed in | The same as for Lichess, over OGS's realtime socket, and your agreement to the score | `online-go.com` | Do not sign in, or press **Sign out** ([Playing on OGS](../online/ogs.md)) |
+| Bragd server | When you sign in or make an account, and while *Play with Friends* is open and signed in. Only once a Bragd server address is set | Your email and password, or a provider's sign-in in your browser; then your name, Friends, requests, blocks, reports, Clubs, challenges and moves | The address in *Settings → Online*: Bragd's game service, and Supabase Auth in the EU, run by Supabase Inc ([below](#the-bragd-server)) | Leave the address empty, do not sign in, or press **Sign out** ([Play with Friends](../online/play-with-friends.md)) |
 | Peers | While *Let my other machines pair with this one* is on: an mDNS announcement, a pairing, **Look around**, **Check again**, opening *Settings → Peers*, **Unpair**, every minute's sync, and the shared queue | The announcement: this machine's name, key and port, on the home network. To a paired machine only, over TLS with its pinned key: this machine's name and Bragd version, the Position store's new rows, what the Helper works on, whether a language model is ready, and the jobs of the shared queue: their positions, or a comment's text to translate ([Sharing between Peers](../peers/sharing.md)) | Your own machines: the home network, or an address you typed | Leave Peers off. They start off ([Pairing your machines](../peers/peers.md)) |
 
 An Engine Bragd runs from an image has no network at all. An installed Engine is your own program: Bragd gives it no network rules.
+
+## The Bragd server
+
+The Bragd server is run by Bragd's makers. It is Supabase, hosted on Supabase's free plan in an EU region, and Bragd's own game service on a server in Germany. Supabase Inc processes the data on the makers' behalf: your account (email, and the sign-in provider's name for you if you use one), your name, your Friends, blocks, reports and Clubs, and your Games. It is used for nothing else.
+
+A report goes to the operator alone. When an account is deleted, its profile, Friends, blocks, Clubs it made and its Games with their moves go with it. Bragd has no button for that yet: ask the operator.
 
 ## The update check
 
@@ -84,7 +92,7 @@ Turn off *Check for a new version* and *Ask Lichess for tablebase positions*, an
 
 #### What will online play send?
 
-Only what playing needs: your moves, seeks, challenges, offers, and chat lines while chat is on. Signing in is per server, on the server's own page, and the token is kept in your system's keychain only ([Playing online](../online/playing-online.md)).
+Only what playing needs: your moves, seeks, challenges, offers, and chat lines while chat is on. Signing in is per server, on the server's own page, and the token is kept in your system's keychain only ([Playing online](../online/playing-online.md)). On the Bragd server you sign in with your email or a provider, and its data is processed by Supabase Inc ([The Bragd server](#the-bragd-server)).
 
 #### Is the Helper a server others can reach?
 

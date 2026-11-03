@@ -13,6 +13,7 @@ mod helper_link;
 mod knowledge;
 mod matches;
 mod model;
+mod friends;
 mod online;
 mod peers;
 mod analyse;
@@ -58,6 +59,8 @@ struct Snapshot {
     /// The areas of Settings, in order, with their names.
     areas: Vec<(Area, String)>,
     settings: Vec<OptView>,
+    /// Play with Friends shows: a Bragd server address is set ([`friends::shown`]).
+    friends: bool,
 }
 
 /// A Game family with its Variants, named in the current language, and whether each is on.
@@ -210,6 +213,7 @@ fn snapshot(cfg: &Config) -> Snapshot {
                 choices: choices(o.name, cfg),
             })
             .collect(),
+        friends: friends::shown(cfg),
     }
 }
 
@@ -405,6 +409,13 @@ fn main() {
             model::commentary_write,
             model::slice_commentary_count,
             model::slice_commentary,
+            friends::friends_view,
+            friends::friends_sign_in,
+            friends::friends_sign_up,
+            friends::friends_sign_in_with,
+            friends::friends_name,
+            friends::friends_club_friends,
+            friends::friends_act,
             online::online_view,
             online::online_servers,
             online::online_sign_in,

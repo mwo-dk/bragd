@@ -11,8 +11,8 @@
   import { movesOf, movesTo, plainMoves } from "./board.js";
   import { guide } from "./guide.svelte.js";
 
-  /** @type {{ server: string, family: any, save: (name: string, value: any) => Promise<any> }} */
-  let { server, family, save } = $props();
+  /** @type {{ server: string, family: any, save: (name: string, value: any) => Promise<any>, embedded?: boolean }} */
+  let { server, family, save, embedded = false } = $props();
 
   /** @type {any} */
   let view = $state(null);
@@ -144,13 +144,13 @@
 {/snippet}
 
 <section class="online">
-  <header class="bar">
+  {#if !embedded}<header class="bar">
     <h1>{t("online.title", { server: name })}</h1>
     {#if view?.signedIn}
       <span class="who">{t("online.signed_in_as", { name: view.signedIn })}</span>
       <button onclick={() => run(() => api.onlineSignOut(server))} disabled={busy}>{t("online.sign_out")}</button>
     {/if}
-  </header>
+  </header>{/if}
 
   {#if error || view?.error}
     <p class="error" role="alert">
@@ -181,11 +181,13 @@
         <h2>{t("online.new_game")}</h2>
         <div class="form">
           <Picker value={variant} choices={view.variants} label={t("play.variant")} onchange={(v) => (variant = v)} />
-          <Picker value={time} choices={view.times} label={t("online.time")} onchange={(v) => (time = v)} />
-          <label class="check"><input type="checkbox" bind:checked={rated} /> {t("online.rated")}</label>
+          {#if view.clocks}<Picker value={time} choices={view.times} label={t("online.time")} onchange={(v) => (time = v)} />{/if}
+          {#if view.ratedGames}<label class="check"><input type="checkbox" bind:checked={rated} /> {t("online.rated")}</label>{/if}
         </div>
         {#if rated}<p class="hint">{t("online.rated_hint", { server: name })}</p>{/if}
-        {#if view.seeking}
+        {#if !view.seek}
+          <p class="hint">{t(`online.intro.${server}`)}</p>
+        {:else if view.seeking}
           <p class="hint" role="status">{t("online.seeking")}</p>
           <button onclick={() => api.onlineSeekCancel(server)}>{t("common.cancel")}</button>
         {:else}
@@ -209,7 +211,7 @@
             <li>
               <span>
                 <strong>{c.incoming ? t("online.from", { name: c.who }) : t("online.to", { name: c.who })}</strong>
-                · {variantName(c)} · {c.time} · {c.rated ? t("online.rated") : t("online.casual")}
+                · {variantName(c)}{#if view.clocks} · {c.time}{/if}{#if view.ratedGames} · {c.rated ? t("online.rated") : t("online.casual")}{/if}
               </span>
               {#if c.incoming}
                 {#if c.variant}
@@ -230,13 +232,13 @@
     <div class="game">
       <div class="board-side">
         {#if st}
-          <div class="player"><span>{game.names[seats[0]]}</span><span class="clock" class:running={game.running === seats[0]}>{clock(game.clocks[seats[0]])}{#if game.byoyomi}<small class="byo">+ {game.periods[seats[0]] > 1 ? `${game.periods[seats[0]]} × ` : ""}{game.byoyomi} s</small>{/if}</span></div>
+          <div class="player"><span>{game.names[seats[0]]}</span>{#if view.clocks}<span class="clock" class:running={game.running === seats[0]}>{clock(game.clocks[seats[0]])}{#if game.byoyomi}<small class="byo">+ {game.periods[seats[0]] > 1 ? `${game.periods[seats[0]]} × ` : ""}{game.byoyomi} s</small>{/if}</span>{/if}</div>
           {@render tray(seats[0])}
           <div class="board-wrap">
-            <Board state={st} family={family.id} flipped={game.seat === 1} selected={sel?.from ?? null} {targets} oncell={cell} onpress={press} />
+            <Board state={st} family={view.gameFamily ?? family.id} flipped={game.seat === 1} selected={sel?.from ?? null} {targets} oncell={cell} onpress={press} />
           </div>
           {@render tray(seats[1])}
-          <div class="player"><span>{game.names[seats[1]]}</span><span class="clock" class:running={game.running === seats[1]}>{clock(game.clocks[seats[1]])}{#if game.byoyomi}<small class="byo">+ {game.periods[seats[1]] > 1 ? `${game.periods[seats[1]]} × ` : ""}{game.byoyomi} s</small>{/if}</span></div>
+          <div class="player"><span>{game.names[seats[1]]}</span>{#if view.clocks}<span class="clock" class:running={game.running === seats[1]}>{clock(game.clocks[seats[1]])}{#if game.byoyomi}<small class="byo">+ {game.periods[seats[1]] > 1 ? `${game.periods[seats[1]]} × ` : ""}{game.byoyomi} s</small>{/if}</span>{/if}</div>
         {:else}
           <p>{t("online.no_rules", { variant: game.variantName, site: view.server.site })}</p>
           <button class="link" onclick={() => api.openUrl(game.url)}>{t("online.open_on", { site: view.server.site })}</button>
@@ -247,7 +249,7 @@
         <p class="turn">
           {#if game.over}{game.result}{:else if mine}{t("online.your_turn")}{:else}{t("online.their_turn")}{/if}
         </p>
-        <p class="hint">{variantName(game)} · {game.rated ? t("online.rated") : t("online.casual")}</p>
+        <p class="hint">{variantName(game)}{#if view.ratedGames} · {game.rated ? t("online.rated") : t("online.casual")}{/if}</p>
         {#if game.rated && game.againstPerson && !game.over}
           <p class="lock" role="status">{t("online.locked")}</p>
         {/if}
@@ -304,7 +306,7 @@
             {/if}
             <button onclick={() => act("resign")} disabled={busy}>{t("online.resign")}</button>
           {/if}
-          <button class="link" onclick={() => api.openUrl(game.url)}>{t("online.open_on", { site: view.server.site })}</button>
+          {#if game.url}<button class="link" onclick={() => api.openUrl(game.url)}>{t("online.open_on", { site: view.server.site })}</button>{/if}
         </div>
 
         {#if st}
@@ -316,6 +318,8 @@
           </p>
         {/if}
 
+        <!-- The Bragd server's Chat is its own, with consent from both. -->
+        {#if view.terms}
         <h2>{t("online.chat")}</h2>
         {#if view.chatOn}
           <ul class="chat" aria-live="polite">
@@ -335,6 +339,7 @@
         {:else}
           <p class="hint">{t("online.chat_is_off")}</p>
           <button onclick={() => save("online_chat", true)}>{t("online.chat_on")}</button>
+        {/if}
         {/if}
       </aside>
     </div>

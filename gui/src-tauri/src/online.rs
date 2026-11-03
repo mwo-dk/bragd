@@ -23,7 +23,14 @@ type Res<T> = Result<T, String>;
 /// Every server Bragd plays on, for this window.
 fn servers() -> &'static [Box<dyn Play>] {
     static S: OnceLock<Vec<Box<dyn Play>>> = OnceLock::new();
-    S.get_or_init(|| vec![Box::new(Online::of(&board::LICHESS)), Box::new(Online::of(&board::LISHOGI)), Box::new(bragd_online::ogs::Ogs::of())])
+    S.get_or_init(|| {
+        vec![
+            Box::new(Online::of(&board::LICHESS)),
+            Box::new(Online::of(&board::LISHOGI)),
+            Box::new(bragd_online::ogs::Ogs::of()),
+            Box::new(crate::friends::server().clone()),
+        ]
+    })
 }
 
 /// The server `id`.
@@ -120,6 +127,13 @@ pub struct Page {
     /// Bragd can sign in there: OGS needs Bragd registered with it first.
     ready: bool,
     chat_on: bool,
+    /// What the server has: a seek for anyone, rated Games and clocks. The Bragd server has none
+    /// of them yet.
+    seek: bool,
+    rated_games: bool,
+    clocks: bool,
+    /// The Family of the Game shown, for its board.
+    game_family: Option<&'static str>,
 }
 
 fn page(s: &dyn Play, ctx: &Ctx) -> Page {
@@ -130,8 +144,8 @@ fn page(s: &dyn Play, ctx: &Ctx) -> Page {
     let times = s.times().into_iter().map(|(value, label)| Choice { value, label }).collect();
     let colours = std::iter::once("random").chain(s.colours()).map(|c| Choice { value: c.into(), label: if c == "random" { tr("online.color.random") } else { tr(&format!("side.{c}")) } }).collect();
     let family = info.families.iter().find(|f| cfg.family_shown(f)).copied().unwrap_or(info.families[0]);
+    let view = s.view();
     Page {
-        view: s.view(),
         server: ServerView { id: info.id, name: info.name, site: info.site, family, ready: s.ready() },
         terms: info.terms,
         variants,
@@ -140,7 +154,17 @@ fn page(s: &dyn Play, ctx: &Ctx) -> Page {
         can: s.can(),
         ready: s.ready(),
         chat_on: cfg.online.chat,
+        seek: info.id != "bragd",
+        rated_games: info.id != "bragd",
+        clocks: info.id != "bragd",
+        game_family: view_family(&view),
+        view,
     }
+}
+
+/// The Family of the Game in `view`, by its Variant.
+fn view_family(view: &View) -> Option<&'static str> {
+    view.game.as_ref().and_then(|g| g.variant).and_then(|v| bragd_games::variant(v).ok()).map(|v| v.family().key())
 }
 
 /// Counts a use of `server`'s F1 feature, for its Tip: Lichess's came first, as `online`.
@@ -148,6 +172,7 @@ fn used(server: &str) {
     match server {
         "lishogi" => bragd_core::tips::used("lishogi"),
         "ogs" => bragd_core::tips::used("ogs"),
+        "bragd" => bragd_core::tips::used("friends"),
         _ => bragd_core::tips::used("online"),
     }
 }
