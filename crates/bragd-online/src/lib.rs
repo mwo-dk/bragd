@@ -6,6 +6,7 @@
 
 pub mod board;
 pub mod bragd_server;
+pub mod call;
 #[cfg(any(test, feature = "fake"))]
 pub mod fake;
 #[cfg(any(test, feature = "fake"))]
@@ -16,6 +17,7 @@ pub mod realtime;
 pub mod ogs;
 pub mod server;
 pub mod session;
+pub mod talk;
 pub mod words;
 
 pub use session::{ChallengeView, ChatLine, GameView, Online, View};

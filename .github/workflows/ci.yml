@@ -73,7 +73,8 @@ jobs:
         uses: ./.github/actions/apt-install
         timeout-minutes: 10
         with:
-          packages: libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+          # GStreamer's WebRTC plugins: the AppImage carries them for Calls (bundleMediaFramework).
+          packages: libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-nice
 
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:

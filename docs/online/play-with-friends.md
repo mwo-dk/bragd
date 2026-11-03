@@ -7,6 +7,14 @@ Play other Bragd players on the Bragd server. You make an account there, become 
 ![Play with Friends, 1100 px wide: the Friends list with Anna and Bo, a request from Carl, the Club Skakklubben, and Anna's challenge to chess](../screenshots/friends-1100.png)
 *Play with Friends, signed in.*
 
+## Contents
+
+- [How to reach it](#how-to-reach-it)
+- [Friends](#friends)
+- [Games](#games): [Chat](#chat), [Calls](#calls)
+- [What it needs](#what-it-needs)
+- [Questions](#questions)
+
 ## How to reach it
 
 *Play with Friends* is in the sidebar, below Clubs, once a Bragd server address is set in **Settings → Online → Bragd server address**. Until then the page is hidden and Bragd sends nothing to any Bragd server. The address is empty until the Bragd server is up; this page will say when it is.
@@ -89,6 +97,27 @@ You can Chat with a player who is not your Friend. Their lines then pass a word 
 
 **Settings → Online → When a Bragd player asks to Chat**: *Ask me* (the default) shows a request; *Off* refuses it without showing it.
 
+### Calls
+
+During a Game with a Friend you can talk, and see each other. In F1 this is the `calls` entry. A Call is only ever between Friends: with a stranger the Call's buttons do not show.
+
+![A Call with Anna beside the board, 1100 px wide: Ask for voice pressed and waiting for Anna, Ask for camera, and the line that nothing is recorded](../screenshots/friends-call-1100.png)
+*Asking a Friend for voice.*
+
+Voice and camera are separate channels. Each opens only when both of you say yes, and either of you closes it for both.
+
+| Button | What it does |
+|---|---|
+| **Ask for voice** / **Ask for camera** | Asks the other player. They see "… would like voice" with **Allow** and **Not now** |
+| **Allow** / **Not now** | Answers the other player's request |
+| **Stop voice for both** / **Stop camera for both** | Closes that channel. Opening it again takes both players' yes again |
+
+While your microphone or camera is live, a red line beside the board says *Your microphone is on* or *Your camera is on*. The Call ends with the Game, and when either of you stops being the other's Friend.
+
+**Settings → Online → When a Friend asks for voice** and **… for the camera**: *Ask me* (the default) shows a request; *Off* refuses it without showing it.
+
+The sound and picture go directly between your two machines, encrypted end to end (WebRTC). When no direct path exists, the Bragd server's TURN relay passes the encrypted packets on without being able to read them. The Bragd server only brings the two machines together. Nothing of a Call is recorded, by Bragd or by the server.
+
 The Bragd server has no clocks, ratings or seeks yet, and does not play backgammon, Ur or senet: their dice would have to be thrown by the server.
 
 ## What it needs
@@ -96,6 +125,7 @@ The Bragd server has no clocks, ratings or seeks yet, and does not play backgamm
 - The Bragd server's address in Settings, and a connection to it over HTTPS.
 - An account on the Bragd server, and your system's keychain for the sign-in, under the service `bragd-online` with the server's address as the account.
 - For a provider's sign-in, a browser.
+- For Calls on Linux, GStreamer's WebRTC plugins (`webrtcbin` from plugins-bad, and libnice's `nice`). The Flatpak's runtime has them, the `.deb` and `.rpm` depend on them, and the AppImage carries them. Built from source, install `gstreamer1.0-plugins-bad` and `gstreamer1.0-nice` (Debian, Ubuntu) or `gstreamer1-plugins-bad-free` and `libnice-gstreamer1` (Fedora). On Flatpak, Bragd may use the camera and PulseAudio for Calls.
 
 The Bragd server is Supabase, hosted in the EU, plus Bragd's own game service ([Privacy](../reference/privacy.md)). For testing, `BRAGD_FRIENDS_URL` names another address and `BRAGD_FRIENDS_TOKEN` stands in for the keychain, for a server on this machine only (`cargo run -p bragd-online --features fake --example fake-online -- bragd`).
 
@@ -116,6 +146,14 @@ No Bragd server address is set yet, or none of the Families it plays is on.
 #### Who can read a Chat?
 
 The two players of the Game, and nobody else. Its lines are on the Bragd server while the Game is on, and deleted when it ends unless both of you ticked **Keep**.
+
+#### Why can I not call this player?
+
+A Call is only between Friends. Ask them to be your Friend, or share a Club with Club Friends turned on.
+
+#### Why does my operating system ask about the camera?
+
+Windows and macOS ask once whether Bragd may use the camera and the microphone. Bragd opens them only while a channel is open for both of you; on Linux it refuses the webview any other time.
 
 #### Can a stranger challenge me?
 

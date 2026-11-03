@@ -44,6 +44,11 @@ bragd-peers = { path = "../../crates/bragd-peers" }
 # The file dialog for opening and saving Foreign databases, called from Rust only.
 tauri-plugin-dialog = "2"
 
+# WebKitGTK's own settings for Calls: WebRTC and the camera and microphone, which the webview
+# leaves off, and the permission each asks for, granted only while Rust holds that channel open.
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = { version = "2", features = ["v2_38"] }
+
 [features]
 # Serve the built frontend (gui/dist) from inside the binary. Without it a plain `cargo build`
 # loads the dev server at localhost:1420, which only `tauri dev` starts: run that one as

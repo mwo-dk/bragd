@@ -1,0 +1,1 @@
+| **Calls work from the Linux packages.** The `.deb` and `.rpm` depend on GStreamer's WebRTC plugins, the AppImage carries them, the Flatpak may use the camera and the microphone, and the Nix package puts them on the app's plugin path. | [Calls](online/play-with-friends.md#what-it-needs) |

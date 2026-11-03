@@ -36,8 +36,15 @@
       "../../assets/brand/icons/icon.ico"
     ],
     "linux": {
-      "deb": { "desktopTemplate": "bragd.desktop" },
-      "rpm": { "desktopTemplate": "bragd.desktop" }
+      "deb": {
+        "desktopTemplate": "bragd.desktop",
+        "depends": ["gstreamer1.0-plugins-base", "gstreamer1.0-plugins-good", "gstreamer1.0-plugins-bad", "gstreamer1.0-nice"]
+      },
+      "rpm": {
+        "desktopTemplate": "bragd.desktop",
+        "depends": ["gstreamer1-plugins-base", "gstreamer1-plugins-good", "gstreamer1-plugins-bad-free", "libnice-gstreamer1"]
+      },
+      "appimage": { "bundleMediaFramework": true }
     },
     "macOS": {
       "signingIdentity": "-"

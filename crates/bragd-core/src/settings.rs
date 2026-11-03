@@ -159,7 +159,7 @@ static SWITCHES: LazyLock<Vec<Opt>> = LazyLock::new(|| {
     families.chain(variants).collect()
 });
 
-const OTHER_OPTS: [Opt; 33] = [
+const OTHER_OPTS: [Opt; 35] = [
     opt("language", &["language"], Look, "setting.language"),
     opt("theme", &["look", "theme"], Look, "setting.theme"),
     opt("look", &["look", "look"], Look, "setting.look"),
@@ -230,6 +230,8 @@ const OTHER_OPTS: [Opt; 33] = [
     opt("bragd_server", &["online", "server"], Online, "setting.bragd_server"),
     opt("bragd_chat", &["online", "bragd_chat"], Online, "setting.bragd_chat"),
     opt("bragd_filter", &["online", "bragd_filter"], Online, "setting.bragd_filter"),
+    opt("bragd_voice", &["online", "bragd_voice"], Online, "setting.bragd_voice"),
+    opt("bragd_camera", &["online", "bragd_camera"], Online, "setting.bragd_camera"),
     opt("tips", &["tips", "frequency"], Tips, "setting.tips"),
     opt(
         "check_updates",
