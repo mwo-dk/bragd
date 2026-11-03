@@ -99,6 +99,10 @@ export const analysisNow = () => invoke("analysis_now");
 /** @returns {Promise<void>} */
 export const analysisStop = () => invoke("analysis_stop");
 /** @returns {Promise<void>} */
+/** Ur's solved tables of the Variants that are on. @returns {Promise<any[]>} */
+export const urTables = () => invoke("ur_tables");
+export const urTableMake = (/** @type {string} */ variant) => invoke("ur_table_make", { variant });
+export const urTableDelete = (/** @type {string} */ variant) => invoke("ur_table_delete", { variant });
 export const reviewStart = (/** @type {Game} */ g, /** @type {string|null} */ engine) => invoke("review_start", { ...g, engine });
 /** @returns {Promise<any>} */
 export const reviewNow = () => invoke("review_now");

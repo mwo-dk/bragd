@@ -22,6 +22,7 @@ pub mod session;
 pub mod sprt;
 pub mod syzygy;
 pub mod tools;
+pub mod ur_table;
 
 pub use protocol::{About, Best, Event, Info, Limit, Position, Protocol, Score, Start};
 pub use session::{Analysis, Engine, Program, Session, think};

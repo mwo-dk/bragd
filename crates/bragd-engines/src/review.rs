@@ -138,6 +138,82 @@ impl Reviewer {
     }
 }
 
+/// An Ur Game to review from its rule set's solved table (`crate::ur_table`).
+#[derive(Clone, Debug)]
+pub struct UrSetup {
+    /// The Position store; None reviews without one.
+    pub store: Option<PathBuf>,
+    pub variant: String,
+    pub initial: Option<String>,
+    pub entries: Vec<String>,
+    /// The key of each position, as `Setup::keys`.
+    pub keys: Vec<u64>,
+}
+
+impl Reviewer {
+    /// Reviews an Ur Game from the solved table of its rule set: each move by the chance to
+    /// win it keeps against the best move for its throw. The chances before each throw go into
+    /// the store as Evaluations, and the moves' Annotations with them.
+    pub fn ur(setup: UrSetup, table: Box<dyn rules_ur::solve::Chances + Send>) -> Reviewer {
+        let shared = Arc::new(Mutex::new(Review { engine: crate::ur_table::KEY.into(), ..Default::default() }));
+        let stop = Arc::new(AtomicBool::new(false));
+        let s = shared.clone();
+        std::thread::spawn(move || {
+            let r = run_ur(&setup, table.as_ref(), &s);
+            let mut out = s.lock().unwrap_or_else(|e| e.into_inner());
+            out.done = true;
+            out.error = r.err().map(|e| e.to_string());
+        });
+        Reviewer { shared, stop }
+    }
+}
+
+/// The Annotation of an Ur move judged by its table (`crate::ur_table::judge`): marked by the
+/// chance it gave away against the best move, in percentage points as go's are, and `!` or
+/// `!!` when it was the best and the next best gave much away.
+pub fn ur_annotation(j: &crate::ur_table::Judged, variant: &str, key: u64, edition: &Edition, time: i64) -> Annotation {
+    // Chances from the first Side's view, as every Evaluation is.
+    let first = |c: f64| bragd_positions::Score::WinRate { win: if j.first { c } else { 1.0 - c }, lead: 0.0 };
+    let gap = (j.played == j.best).then_some(j.second).flatten().and_then(|s| annotation::gap(first(j.best_chance), first(s), j.first));
+    Annotation {
+        family: "ur".into(),
+        variant: variant.into(),
+        key,
+        mv: j.played.clone(),
+        edition: edition.clone(),
+        mark: annotation::mark(first(j.best_chance), first(j.chance), j.first, gap),
+        better: if j.played == j.best { String::new() } else { j.best.clone() },
+        motifs: vec![],
+        depth: 0,
+        time,
+    }
+}
+
+fn run_ur(setup: &UrSetup, table: &dyn rules_ur::solve::Chances, shared: &Mutex<Review>) -> std::io::Result<()> {
+    let rules = bragd_games::ur_rules(&setup.variant).ok_or_else(|| std::io::Error::other(format!("{} is not an Ur Variant", setup.variant)))?;
+    let judged = crate::ur_table::judge(&setup.variant, setup.initial.as_deref(), &setup.entries, table).ok_or_else(|| std::io::Error::other("the Game cannot be read with its table"))?;
+    let edition = crate::ur_table::edition(rules);
+    let mut store = setup.store.as_deref().map(Store::open).transpose().map_err(io)?;
+    let time = now();
+    let mut plies = vec![];
+    for j in &judged {
+        let Some(&key) = setup.keys.get(j.index) else { continue };
+        let note = ur_annotation(j, &setup.variant, key, &edition, time);
+        let first = |c: f64| bragd_positions::Score::WinRate { win: if j.first { c } else { 1.0 - c }, lead: 0.0 };
+        if let Some(s) = &mut store {
+            s.put(&Evaluation { family: "ur".into(), variant: setup.variant.clone(), key, edition: edition.clone(), score: first(j.before_throw), depth: 0, line: String::new(), time, second: None })
+                .map_err(io)?;
+            s.put_annotation(&note).map_err(io)?;
+        }
+        let shown = if j.first { j.chance } else { 1.0 - j.chance };
+        plies.push(Ply { index: j.index, eval: crate::ur_table::shown(shown), mark: note.mark, better: better_line(&note.better, false), motifs: vec![] });
+    }
+    let mut r = shared.lock().unwrap_or_else(|e| e.into_inner());
+    r.total = plies.len();
+    r.plies = plies;
+    Ok(())
+}
+
 fn io(e: bragd_positions::Error) -> std::io::Error {
     std::io::Error::other(e.to_string())
 }
@@ -453,6 +529,52 @@ mod tests {
         let equity = |k: u64| store.shown("backgammon", "backgammon", k, "fake").unwrap().map(|e| e.score);
         assert!(matches!(equity(4), Some(bragd_positions::Score::Equity(e)) if (e - 0.1).abs() < 1e-6), "{:?}", equity(4));
         assert_eq!((equity(2), equity(3)), (None, None), "a roll's equity is not kept");
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// An Ur Game reviewed from a table: every move judged by the chance it gives away against
+    /// the best one for its throw, in percentage points as for go; the throws are not judged;
+    /// the chances before each throw and the Annotations go into the store.
+    #[cfg(unix)]
+    #[test]
+    fn an_ur_game_is_reviewed_from_its_table() {
+        struct Scattered;
+        impl rules_ur::solve::Chances for Scattered {
+            fn chance(&self, index: u64) -> Option<f64> {
+                Some((index.wrapping_mul(2_654_435_761) % 1000) as f64 / 1000.0)
+            }
+        }
+        let d = crate::test_dir("review-ur");
+        let mut entries: Vec<String> = vec![];
+        for i in 0..60 {
+            let st = bragd_games::replay("ur", None, &entries).unwrap();
+            entries.push(match st.throws.first() {
+                Some(_) => ["1", "2", "3", "4", "2", "0"][i % 6].to_string(),
+                None => st.moves.last().unwrap().wire.clone(),
+            });
+        }
+        let keys: Vec<u64> = (0..=entries.len() as u64).map(|k| k + 100).collect();
+        let setup = UrSetup { store: Some(d.join("positions.sqlite")), variant: "ur".into(), initial: None, entries: entries.clone(), keys: keys.clone() };
+        let r = wait(&Reviewer::ur(setup, Box::new(Scattered)));
+        let judged = crate::ur_table::judge("ur", None, &entries, &Scattered).unwrap();
+        assert_eq!((r.error.as_deref(), r.total, r.plies.len()), (None, judged.len(), judged.len()));
+        let mut marked = 0;
+        for (ply, j) in r.plies.iter().zip(&judged) {
+            let lost = (j.best_chance - j.chance) * 100.0;
+            let want = [(20.0, Mark::Blunder), (10.0, Mark::Mistake), (5.0, Mark::Inaccuracy)].into_iter().find(|(at, _)| lost >= *at).map(|m| m.1);
+            if want.is_some() {
+                assert_eq!(ply.mark, want, "{j:?}");
+                assert_eq!(ply.better, std::slice::from_ref(&j.best));
+                marked += 1;
+            }
+        }
+        assert!(marked > 2, "{marked} of {}", judged.len());
+        let store = Store::open(&d.join("positions.sqlite")).unwrap();
+        let j = &judged[0];
+        let note = store.annotation("ur", "ur", keys[j.index], &j.played, crate::ur_table::KEY).unwrap().unwrap();
+        assert_eq!(note.mark, r.plies[0].mark);
+        let before = store.shown("ur", "ur", keys[j.index], crate::ur_table::KEY).unwrap().unwrap();
+        assert!(matches!(before.score, bragd_positions::Score::WinRate { win, .. } if (win - j.before_throw).abs() < 1e-9), "{before:?}");
         std::fs::remove_dir_all(&d).unwrap();
     }
 

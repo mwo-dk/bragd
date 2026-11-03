@@ -29,6 +29,7 @@ Where each file lives is in [Files on disk](files.md).
 | `tournament.json`, in a Tournament bundle | JSON | the key `format` | 1 | `bragd_clubs::export::FORMAT` |
 | The Helper's `state.json` | JSON | the key `format` | 1 | `bragd_helper::jobs::FORMAT` |
 | `peers.json` | JSON | a list is version 1; a later version is an object with `format` | 1 | `bragd_peers::node::FORMAT` |
+| An Ur solved table (`ur/<rule set>.urt`) | Binary: a header, then a 16-bit chance a position | the header's bytes 8–11 | 1 | `bragd_engines::ur_table::VERSION`; a table from another version is made again |
 | `key.pk8` | PKCS #8 | the standard's own | — | none: a standard format |
 
 A TOML or JSON file without `format` is version 1, so a `config.toml` you write by hand needs no version. Bragd adds `format = 1` at the top the first time it saves a setting.

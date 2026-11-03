@@ -19,6 +19,8 @@ bragd-core = { path = "../bragd-core" }
 bragd-positions = { path = "../bragd-positions" }
 # Named motifs (fork, pin, hangs a piece) of a reviewed chess move.
 rules-chess = { path = "../rules-chess" }
+# Ur's solved tables: the solver and the ranks of positions.
+rules-ur = { path = "../rules-ur" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Engine options the user sets are kept per engine in a TOML file of their own.

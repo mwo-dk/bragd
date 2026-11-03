@@ -349,8 +349,10 @@
       {#if opponent === "engine"}
         <Picker value={engineKey} choices={choices.engines.map((c) => ({ value: c.key, label: c.name }))} label={t("analyse.engine")} onchange={(v) => (engineKey = v)} />
         <Picker value={engineSeat} choices={choices.sides.map((side, seat) => ({ value: seat, label: t("play.engine_plays", { side }) }))} label={t("play.engine_side")} onchange={(v) => (engineSeat = v)} />
-        {#if engineKey !== "bot"}
+        {#if engineKey !== "bot" && engineKey !== "ur-solved"}
           <Picker value={thinkMs} choices={[100, 1000, 3000, 10000].map((ms) => ({ value: ms, label: t("play.seconds", { n: ms / 1000 }) }))} label={t("play.think_time")} onchange={(v) => (thinkMs = v)} />
+        {/if}
+        {#if engineKey !== "bot"}
           <label class="skill">{t("play.strength")} <input type="range" min="0" max="20" bind:value={skill} /></label>
         {/if}
       {/if}

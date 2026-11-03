@@ -48,6 +48,7 @@ pub mod bot;
 pub mod dice;
 pub mod game;
 pub mod position;
+pub mod solve;
 
 pub use board::{ALL, ASEB, BLITZ, FINKEL, MASTERS, Rules, Side, Spot, Square};
 pub use dice::Throw;

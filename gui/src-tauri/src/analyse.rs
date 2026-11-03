@@ -11,7 +11,8 @@ use std::sync::{Arc, Mutex};
 use bragd_core::config::Config;
 use bragd_engines::lichess;
 use bragd_engines::protocol::{Info, Limit, Score};
-use bragd_engines::review::{Ply, Reviewer, Setup};
+use bragd_engines::review::{Ply, Reviewer, Setup, UrSetup};
+use bragd_engines::ur_table;
 use bragd_engines::seam::{self, Notation};
 use bragd_engines::session::{Session, think};
 use bragd_engines::syzygy::{Tablebases, material};
@@ -76,6 +77,8 @@ struct Raw {
     error: Option<String>,
     /// The last move's Annotation, from the store.
     note: Option<NoteView>,
+    /// The scores are chances to win, shown as percentages (an Ur solved table).
+    chance: bool,
 }
 
 impl Raw {
@@ -161,6 +164,9 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
     guard()?;
     *crate::lock(&held.live) = None;
     let key = engine.filter(|k| !k.is_empty()).or_else(|| engines::default_for(cfg, variant)).ok_or_else(|| tr("engines.none_for", &[]))?;
+    if key == ur_table::KEY {
+        return ur_start(held, variant, initial, entries);
+    }
     let chosen = engines::resolve(cfg, &key, variant)?;
     let asked = Asked { variant: variant.into(), initial, entries };
     let raw = Arc::new(Mutex::new(Raw { engine: key.clone(), ..Default::default() }));
@@ -243,6 +249,52 @@ pub fn start(cfg: &Config, held: &Held, variant: &str, initial: Option<String>, 
     Ok(())
 }
 
+/// Analyse with an Ur rule set's solved table: each move for the throw with the chance to win
+/// it keeps, best first, or before the throw the chance itself; and the last move's
+/// Annotation. Read from the table at once, so it is done as soon as it starts.
+fn ur_start(held: &Held, variant: &str, initial: Option<String>, entries: Vec<String>) -> Result<(), String> {
+    let rules = bragd_games::ur_rules(variant).ok_or_else(|| tr("engines.none_for", &[]))?;
+    let table = ur_table::Table::installed(rules).ok_or_else(|| tr("ur.no_table", &[]))?;
+    let space = rules_ur::solve::Space::new(rules);
+    let game = bragd_games::ur_game(variant, initial.as_deref(), &entries).map_err(|e| e.to_string())?;
+    let position = game.position();
+    let chance = |c: f64| Some(Score::Go { winrate: c as f32, lead: 0.0 });
+    let lines = match (game.is_over(), game.pending_throw()) {
+        (true, _) => vec![],
+        (false, Some(throw)) => space
+            .moves(&table, position, throw)
+            .unwrap_or_default()
+            .into_iter()
+            .take(LINES as usize)
+            .enumerate()
+            .map(|(i, (m, c))| Info { line: i + 1, score: chance(c), pv: vec![m.to_wire(rules)], ..Default::default() })
+            .collect(),
+        (false, None) => space.before_throw(&table, position).map(|c| Info { line: 1, score: chance(c), ..Default::default() }).into_iter().collect(),
+    };
+    let state = bragd_games::replay(variant, initial.as_deref(), &entries).map_err(|e| e.to_string())?;
+    let last = entries.len().checked_sub(1);
+    let note = ur_table::judge(variant, initial.as_deref(), &entries, &table)
+        .and_then(|j| j.into_iter().last())
+        .filter(|j| Some(j.index) == last)
+        .and_then(|j| {
+            let a = bragd_engines::review::ur_annotation(&j, variant, 0, &ur_table::edition(rules), 0);
+            note_view(&state, &a, j.index, variant, initial.as_deref(), &entries[..j.index], Notation::Wire)
+        });
+    let raw = Raw {
+        engine: tr("ur.solved", &[]),
+        lines,
+        notation: Some(Notation::Wire),
+        second: position.to_move() == rules_ur::Side::Black,
+        done: true,
+        note,
+        chance: true,
+        ..Default::default()
+    };
+    let asked = Asked { variant: variant.into(), initial, entries };
+    *crate::lock(&held.live) = Some(Live { asked, raw: Arc::new(Mutex::new(raw)), stop: Arc::new(AtomicBool::new(false)), shown: Default::default() });
+    Ok(())
+}
+
 pub fn stop(held: &Held) {
     if let Some(l) = crate::lock(&held.live).as_ref() {
         l.stop.store(true, Ordering::Relaxed);
@@ -291,7 +343,7 @@ pub fn now(held: &Held) -> Option<Now> {
         .map(|n| {
             // GNU Backgammon before the roll judges the position and names no move: its equity
             // shows alone. Any other line shows once it has a move.
-            let alone = n == Notation::Gnubg;
+            let alone = n == Notation::Gnubg || raw.chance;
             let heard: Vec<&Info> = raw.lines.iter().filter(|i| !i.pv.is_empty() || (alone && i.score.is_some())).collect();
             let pvs: Vec<Vec<String>> = heard.iter().map(|i| i.pv.iter().take(SHOWN).cloned().collect()).collect();
             let a = &asked;
@@ -303,7 +355,11 @@ pub fn now(held: &Held) -> Option<Now> {
                     let score = i.score.map(|s: Score| if raw.second { s.flipped() } else { s });
                     let moves = moves.into_iter().map(|(entry, notation)| LineMove { entry, notation }).collect();
                     let from = raw.stored.as_deref().filter(|_| i.line <= 1).map(|e| tr("analyse.from_store", &[("edition", e)]));
-                    LineView { score: score.map(Score::shown).unwrap_or_default(), depth: i.depth, moves, from }
+                    let shown = |s: Score| match s {
+                        Score::Go { winrate, .. } if raw.chance => ur_table::shown(winrate as f64),
+                        s => s.shown(),
+                    };
+                    LineView { score: score.map(shown).unwrap_or_default(), depth: i.depth, moves, from }
                 })
                 .filter(|v| !v.moves.is_empty() || (alone && !v.score.is_empty()))
                 .collect()
@@ -322,6 +378,16 @@ pub fn review_start(cfg: &Config, held: &Held, variant: &str, initial: Option<&s
     bragd_core::tips::used("annotations");
     *crate::lock(&held.review) = None;
     let key = engine.filter(|k| !k.is_empty()).or_else(|| engines::default_for(cfg, variant)).ok_or_else(|| tr("engines.none_for", &[]))?;
+    if key == ur_table::KEY {
+        let rules = bragd_games::ur_rules(variant).ok_or_else(|| tr("engines.none_for", &[]))?;
+        let table = ur_table::Table::installed(rules).ok_or_else(|| tr("ur.no_table", &[]))?;
+        let (_, _, keys) = positions(variant, initial, entries)?;
+        let setup = UrSetup { store: Store::path(), variant: variant.into(), initial: initial.map(String::from), entries: entries.to_vec(), keys };
+        let reviewer = Reviewer::ur(setup, Box::new(table));
+        let asked = Asked { variant: variant.into(), initial: initial.map(String::from), entries: entries.to_vec() };
+        *crate::lock(&held.review) = Some(Reviewing { reviewer, asked, notation: Notation::Wire });
+        return Ok(());
+    }
     let chosen = engines::resolve(cfg, &key, variant)?;
     let protocol = chosen.protocols[0];
     let name = bragd_engines::known::known(&key).map_or(key.as_str(), |k| k.name);
@@ -387,6 +453,11 @@ fn note_view(state: &State, a: &Annotation, index: usize, variant: &str, initial
 /// written from, read from this machine's Position store (`bragd_helper::commentary`).
 pub fn facts(cfg: &Config, variant: &str, initial: Option<&str>, entries: &[String], engine: Option<String>) -> Result<Option<Facts>, String> {
     guard()?;
+    // Ur's moves are judged by its solved table, which no language model is asked about: Analyse
+    // offers no Commentary there.
+    if bragd_games::ur_rules(variant).is_some() {
+        return Err(tr("engines.none_for", &[]));
+    }
     let Some(store) = Store::path().filter(|p| p.exists()).and_then(|p| Store::open(&p).ok()) else { return Ok(None) };
     commentary::facts(cfg, &store, variant, initial, entries, engine)
 }
@@ -427,7 +498,8 @@ pub fn review_now(held: &Held) -> Option<ReviewView> {
             notes.extend(note(&state, *index, *mark, motifs, better, &asked.variant, asked.initial.as_deref(), &asked.entries[..*index], notation));
         }
     }
-    Some(ReviewView { engine: rev.engine, done: rev.done, reviewed: rev.plies.len(), total: rev.total, marks, evals, titles, notes, error: rev.error })
+    let engine = if rev.engine == ur_table::KEY { tr("ur.solved", &[]) } else { rev.engine };
+    Some(ReviewView { engine, done: rev.done, reviewed: rev.plies.len(), total: rev.total, marks, evals, titles, notes, error: rev.error })
 }
 
 /// A book's move for the position.

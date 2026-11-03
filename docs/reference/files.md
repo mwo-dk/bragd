@@ -35,6 +35,7 @@ In the Flatpak, the XDG folders are the app's own: `~/.var/app/io.github.mwo_dk.
 | data/`rating-lists.sqlite` | The players of every rating list fetched ([Rating lists](rating-lists.md)) |
 | data/`tablebases/` | Syzygy tables. Moved by `tablebases.path` |
 | data/`networks/pikafish/pikafish.nnue` | Pikafish's evaluation network, for its image, downloaded once you agree to its licence |
+| data/`ur/<rule set>.urt` | An [Ur solved table](../play/ur.md#the-solved-tables) (`finkel.urt`, `masters.urt`, `blitz.urt`, `aseb.urt`), made by the Helper when you ask. Delete it on Ur's Engines page |
 | data/`helper/` | The Helper's folder |
 | data/`helper/helper.lock` | Held while a Helper runs, so only one runs |
 | data/`helper/helper.sock` | Where windows reach the Helper (Unix). On Windows it listens on a loopback port instead |

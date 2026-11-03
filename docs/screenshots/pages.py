@@ -1142,7 +1142,60 @@ def library():
     widths("library-analyse-go", analyse, out=out)
 
 
-ALL = {"library": library, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
+def ur_solved():
+    """ur-tables-390.png and -1100.png: Ur's Engines page with a solved table for each rule set,
+    Blitz made (the first run asks the Helper to make it and waits, a minute or two).
+    analyse-ur-390.png and -1100.png: Analyse of a Blitz Game with Perfect play, each move for
+    the throw with the chance to win it keeps. review-ur-390.png and -1100.png: the Game
+    reviewed, every move judged and the ones that gave chances away marked."""
+    blitz = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/ur/blitz.urt"
+    if not blitz.exists():
+        with Desktop(size=W1100) as d:
+            nav(d, "ur", "Engines")
+            click(d, "Make", "main", nth=2)
+            for _ in range(900):
+                if blitz.exists():
+                    break
+                d.wait(1)
+            d.wait(2)
+        if not blitz.exists():
+            raise RuntimeError("the Blitz table was not made")
+
+    def tables(d):
+        unfold(d)
+        fold(d, "chess")
+        nav(d, "ur", "Engines")
+        d.wait(1)
+
+    widths("ur-tables", tables)
+
+    def game(d, review):
+        unfold(d)
+        fold(d, "chess")
+        nav(d, "ur", "Analyse")
+        select(d, "Variant", "Ur (Blitz)")
+        # Perfect play follows the position once it is on.
+        click(d, "Analyse", "main")
+        for _ in range(16):
+            click(d, "Throw", "main")
+            d.wait(1.5)
+            # The weakest move shown, so the review has moves to mark.
+            js(d, "document.querySelector('main .lines li:last-child button.mv')?.click()")
+            d.wait(1)
+        click(d, "Throw", "main")
+        d.wait(1.5)
+        if review:
+            click(d, "Review the game", "main")
+            d.wait(2)
+            js(d, "document.querySelector('main .notes')?.scrollIntoView({block: 'center'})")
+        else:
+            js(d, "document.querySelector('main .lines')?.scrollIntoView({block: 'center'})")
+
+    widths("analyse-ur", lambda d: game(d, False))
+    widths("review-ur", lambda d: game(d, True))
+
+
+ALL = {"library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":

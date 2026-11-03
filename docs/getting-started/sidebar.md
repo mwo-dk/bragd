@@ -18,7 +18,7 @@ It is always on screen. What it holds:
 |---|---|
 | The wordmark | ᛒᚱᛅᚴᚦ and *Bragd*, Bragd's name in Younger Futhark |
 | A Family (with two or more on) | Click it to fold its items open or shut. The Family of the page you are on stays open |
-| Its items | Play, Analyse, Databases, Engines, Engine matches and Rules. Chess also has Tablebases and Opening books. Tafl, Ur and Senet have only Play, Databases and Rules, as they have no outside Engine |
+| Its items | Play, Analyse, Databases, Engines, Engine matches and Rules. Chess also has Tablebases and Opening books. Tafl and Senet have only Play, Databases and Rules, as they have no outside Engine. Ur has Play, Analyse, Databases, Engines and Rules: its Engines page makes its solved tables |
 | Slices | Each [Slice](../knowledge/slices.md) of the Family shows under Databases. A Slice with no Family shows under every Family |
 | Clubs | Your Clubs, their members and ratings ([Clubs](../clubs/clubs.md)) |
 | Settings | Every setting, by area ([Every setting](../reference/settings.md)) |
@@ -52,7 +52,7 @@ The window is narrower than 760 px. Below that width the sidebar starts folded, 
 
 #### Why does tafl have no Analyse or Engines?
 
-Tafl, Ur and Senet have no outside Engine to run. Their built-in Bots are planned, and until then they have Play, Databases and Rules.
+Tafl and Senet have no outside Engine to run, so they have Play, Databases and Rules. Ur has no outside Engine either, but its [solved tables](../play/ur.md#the-solved-tables) play and judge moves like one, so it has Analyse and Engines too.
 
 #### What does the dot on the Helper line mean?
 

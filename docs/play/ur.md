@@ -27,11 +27,46 @@ Each rule set, its path and its sources: [Ur rule sets](../rules/ur.md). The boa
 
 ## How to reach it
 
-Sidebar → **Ur** → **Play**, then pick the rule set under **Variant**. Ur has only **Play**, **Databases** and **Rules** in the sidebar, because it has no outside Engine.
+Sidebar → **Ur** → **Play**, then pick the rule set under **Variant**. Ur has no outside Engine, so its sidebar has no **Engine matches**. Its **Engines** page makes the [solved tables](#the-solved-tables), and **Analyse** reads them.
 
 ## What it needs
 
-Nothing. Ur has no outside Engine. Bragd's own Bot plays every Ur rule set: set **Opponent** to *Against an Engine* and pick *Bragd's Bot* under **Engine**.
+Nothing. Ur has no outside Engine. Bragd's own Bot plays every Ur rule set: set **Opponent** to *Against an Engine* and pick *Bragd's Bot* under **Engine**. For perfect play and marked moves, make the rule set's [solved table](#the-solved-tables) first.
+
+## The solved tables
+
+Every Ur rule set Bragd plays is solved (F1 → Features: `ur_solved`): Bragd works out the exact chance to win of every position, for the side about to throw, if both sides play perfectly from there. The table is made on your computer by the Helper, so nothing is downloaded. How it is worked out, and how it was checked against the published values: [Ur rule sets](../rules/ur.md#solved).
+
+![Ur's Engines page: a solved table for each rule set, with its size on disk and the memory it takes to make, Blitz ready with Delete and the others with Make](../screenshots/ur-tables-1100.png)
+
+*Ur's solved tables, Blitz made. At phone width: [390 px](../screenshots/ur-tables-390.png).*
+
+Sidebar → **Ur** → **Engines** lists one table for each Ur Variant that is on, with its size on disk and the memory it takes while it is made. **Make** queues the job, which shows its progress there and on the Jobs page. **Cancel** stops it, and nothing is written. **Delete** removes a table.
+
+| Rule set | Positions | On disk | Memory while made |
+|---|---|---|---|
+| Finkel | 137,870,097 | 275.7 MB | 551.5 MB |
+| Masters | 500,929,993 | 1 GB | 2 GB |
+| Blitz | 41,243,781 | 82.5 MB | 165 MB |
+| Aseb | 41,243,781 | 82.5 MB | 165 MB |
+
+With a table, the rule set gets *Perfect play (solved table)* as an Engine:
+
+| Where | What it does |
+|---|---|
+| Play | **Opponent** → *Against an Engine*, **Engine** → *Perfect play*. **Strength** 20 always plays the best move. Lower, it sometimes plays a weaker move, the less often the more it gives away |
+| Analyse | Before a throw: the chance to win of the side to throw. After a throw: each move with the chance it keeps, best first. The last move's mark shows under them |
+| Review | **Review** in Analyse marks each move by the chance to win it gave away against the best move for the same throw: 5 percentage points or more is `?!`, 10 is `?`, 20 is `??`. The best move is `!` when the next best gave 10 points away, and `!!` at 20. The better move is named |
+
+![Analyse of a Blitz Game with Perfect play: after a throw, each legal move with the chance to win it keeps, best first](../screenshots/analyse-ur-1100.png)
+
+*Analyse after a throw: each move and the chance it keeps. At phone width: [390 px](../screenshots/analyse-ur-390.png).*
+
+![The same Game reviewed: the moves that gave chances away marked in the move list, and each named with the better move](../screenshots/review-ur-1100.png)
+
+*Review the game, from the table. At phone width: [390 px](../screenshots/review-ur-390.png).*
+
+Chances are shown from Light's view, like every evaluation in Bragd. The chances before each throw and the moves' Annotations go into the [Position store](../knowledge/position-store.md), keyed by the position: the throw belongs to the turn, as in backgammon.
 
 ## Controls
 
@@ -39,6 +74,8 @@ Nothing. Ur has no outside Engine. Bragd's own Bot plays every Ur rule set: set 
 |---|---|
 | Throw | **Throw**, under the turn line. The pyramid dice tumble in, a marked tip up glows, and *Thrown: n* shows the steps |
 | Play against Bragd's Bot | **Opponent** → *Against an Engine*, **Engine** → *Bragd's Bot*, and pick the Side it plays |
+| Play against perfect play | Make the [solved table](#the-solved-tables), then **Engine** → *Perfect play* and set **Strength** |
+| See each move's chance to win | Sidebar → **Ur** → **Analyse**, with *Perfect play* as the Engine |
 | Enter a piece | Click your tray of waiting pieces, then the square the throw reaches |
 | Move a piece | Click it, then the square the throw reaches; or drag it |
 | Bear off | Click the piece, then your *Off the board* tray, which is marked when bearing off is legal |
@@ -78,7 +115,15 @@ Every Ur rule set is a reconstruction. Bragd plays four, cites the source of eac
 
 #### How does Bragd's Bot choose?
 
-It looks one throw ahead: for each move it weighs every next throw by how likely it is and expects the best reply. It plays the same move for the same position and throw.
+It looks one throw ahead: for each move it weighs every next throw by how likely it is and expects the best reply. It plays the same move for the same position and throw. *Perfect play* reads the solved table instead.
+
+#### How long does making a table take?
+
+Minutes on a desktop computer, and longer on a laptop: it uses every core. On a computer with 32 threads Blitz took about a minute and a quarter, Finkel a few minutes, and Masters, with three and a half times as many positions as Finkel, under half an hour. Masters needs 2 GB of memory while it is made. The work is counted, not timed, in [Ur rule sets](../rules/ur.md#solved).
+
+#### Why are Ur's marks given in percentage points?
+
+The table gives the exact chance to win, so a move is judged by how much of it the move threw away, as go's moves are. A move can be the right one and still lose, because the dice decide the rest.
 
 ---
 [← Previous: Backgammon](backgammon.md) · [Next: Senet →](senet.md)

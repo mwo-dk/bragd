@@ -49,6 +49,7 @@ pub const CARDS: &[Card] = &[
     card("1.0.0", "forced"),
     card("1.0.0", "friends"),
     card("1.0.0", "chat"),
+    card("1.0.0", "ur_solved"),
     card("1.0.0", "calls"),
 ];
 
