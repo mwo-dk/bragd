@@ -2037,5 +2037,20 @@
  "position.senet.the-water-is-not-progress.text": "Lige har en brik på felt 26, Skønhedens hus, og seks mere står stadig spredt ud over felterne 2 til 12. Kastet er en et, og syv træk er lovlige — seks af dem ned ved starten, og ét, der flytter brikken på 26. Det går til 27, Vandets hus, og det er det træk, næsten alle spiller, for brikken på 26 er den, der er kommet længst, og fordi den virkelig står i vejen: intet må passere Skønhedens hus, og din egen brik blokerer din egen hær præcis, som en fjendtlig ville gøre. Trangen til at få den i gang er derfor reel. Det er bare det forkerte kast at lystre den på. Se, hvad de andre fire kast ville have gjort med den brik: en to sætter den på 28, en tre på 29, en fire på 30, og en fem tager den direkte af brættet. Hvert kast undtagen dette er et godt kast for den brik. Og éren er det kast, der giver dig endnu et — en et, en fire og en fem giver et ekstra kast efter at have flyttet — medmindre den brik, du flyttede, landede i vandet, hvilket afslutter turen, hvor den står, uanset hvad du slog. Så bliver det værre. Så længe du har en brik i vandet, må ingen af dine andre flytte: seks brikker på brættet og ikke én af dem lovlig. Du kaster, og medmindre det er en fire, sker der ingenting, og turen er slut. De eneste udveje er netop den fire, der fjerner den druknede brik fra brættet, og huset 15, Genfødselens hus, som redder den — og 15 er der, Ulige lige har sat en brik. Så spil éren et andet sted, og spil den der, den tjener mest: 10–11 lander på Uliges enlige brik der og bytter de to, så den sendes tilbage til 10, mens din går frem til 11, hvor din egen brik på 12 beskytter den. Så kast igen og håb på femmeren.",
  "helper.missing": "Bragd kan ikke starte Hjælperen: dens program findes ikke i {path}, ved siden af Bragd. Geninstaller Bragd for at få det tilbage.",
  "hint.tablebase_online": "Opslag i slutspilstabeller hos Lichess er slået fra. Slået til sendes en skakstilling med syv brikker eller færre, som dine tabeller ikke dækker, til tablebase.lichess.ovh.",
- "notice.turn_on": "Slå til"
+ "notice.turn_on": "Slå til",
+ "source.parts": "Hvad der hentes",
+ "source.since": "Første måned",
+ "source.since_hint": "Tom: kun den nyeste måned ved første hentning. En måned som 2024-01: hver måned fra den, nogle få ved hver hentning. Senere hentninger tager hver ny måned.",
+ "source.since_bad": "{since} er ikke en måned. Skriv den som 2024-01.",
+ "source.part.fics.standard2000": "Standard, gennemsnitlig rating over 2000",
+ "source.part.fics.standard": "Standard, alle ratings",
+ "source.part.fics.blitz2000": "Blitz, gennemsnitlig rating over 2000",
+ "source.part.fics.blitz": "Blitz, alle ratings",
+ "source.part.fics.lightning2000": "Lynskak, gennemsnitlig rating over 2000",
+ "source.part.fics.lightning": "Lynskak, alle ratings",
+ "source.part.fics.chess2000": "Alle tidskontroller, gennemsnitlig rating over 2000",
+ "source.part.fics.chess": "Alle tidskontroller, alle ratings",
+ "source.part.pgnmentor.players": "Spillere",
+ "source.part.pgnmentor.openings": "Åbninger",
+ "source.part.pgnmentor.events": "Turneringer"
 }

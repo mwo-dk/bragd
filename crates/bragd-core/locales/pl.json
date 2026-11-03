@@ -2063,5 +2063,20 @@
  "position.senet.the-water-is-not-progress.text": "Parzyste mają pionek na polu 26, Domu Piękna, i sześć kolejnych stoi w szeregu na polach od 2 do 12. Rzut to jedynka i legalnych ruchów jest siedem – sześć z nich w dół od startu i jeden przesuwający pionek z 26. Ten przesuwa go na 27, Dom Wody, i to jest ruch, który prawie każdy wykonuje, bo pionek z 26 jest tym, który zaszedł najdalej, i naprawdę jest w drodze: nic nie może przejść Domu Piękna, a własny pionek blokuje własną armię tak samo jak wróg. Więc pęd, by go ruszyć, jest prawdziwy. Po prostu to zły rzut, żeby mu ulec. Zobacz, co z tym pionkiem zrobiłyby pozostałe cztery rzuty: dwójka stawia go na 28, trójka na 29, czwórka na 30, a piątka zdejmuje go z planszy. Każdy rzut poza tym jest dobrym rzutem dla tego pionka. A jedynka to rzut, który daje ci kolejny – jedynka, czwórka i piątka dają drugi rzut po wykonaniu ruchu – chyba że pionek, który przesunąłeś, wyląduje w wodzie, co kończy twoją turę tam, gdzie stoi, bez względu na to, co rzuciłeś. Potem jest gorzej. Dopóki masz pionek w wodzie, żadne z pozostałych nie może się ruszyć w ogóle: sześć pionków na planszy i żaden z nich nie jest legalny. Rzucasz, i chyba że wypadnie czwórka, nic się nie dzieje i tura się kończy. Jedynymi wyjściami są właśnie ta czwórka, która zdejmuje utopiony pionek z planszy, oraz Dom Odrodzenia na polu 15, który go ratuje – a 15 to miejsce, gdzie właśnie stanął pionek Nieparzystych. Więc zagraj jedynką gdzie indziej, i tam, gdzie zyskuje najwięcej: 10–11 ląduje na jedynym pionku Nieparzystych i wymienia te dwa, odsyłając jego z powrotem na 10, podczas gdy twój idzie naprzód na 11, gdzie chroni go twój własny pionek na 12. Rzuć potem znowu i miej nadzieję na piątkę.",
  "helper.missing": "Bragd nie może uruchomić Pomocnika: jego program nie znajduje się w {path}, obok Bragda. Zainstaluj Bragda ponownie, aby go przywrócić.",
  "hint.tablebase_online": "Zapytania do baz końcówek w Lichessie są wyłączone. Po włączeniu pozycja z siedmioma figurami lub mniej, której twoje bazy nie obejmują, jest wysyłana do tablebase.lichess.ovh.",
- "notice.turn_on": "Włącz"
+ "notice.turn_on": "Włącz",
+ "source.parts": "Co pobrać",
+ "source.since": "Pierwszy miesiąc",
+ "source.since_hint": "Puste: przy pierwszym pobraniu tylko najnowszy miesiąc. Miesiąc, np. 2024-01: każdy miesiąc od niego, kilka przy każdym pobraniu. Kolejne pobrania biorą każdy nowy miesiąc.",
+ "source.since_bad": "{since} nie jest miesiącem. Zapisz go jako 2024-01.",
+ "source.part.fics.standard2000": "Standard, średni ranking powyżej 2000",
+ "source.part.fics.standard": "Standard, wszystkie rankingi",
+ "source.part.fics.blitz2000": "Blitz, średni ranking powyżej 2000",
+ "source.part.fics.blitz": "Blitz, wszystkie rankingi",
+ "source.part.fics.lightning2000": "Błyskawiczne, średni ranking powyżej 2000",
+ "source.part.fics.lightning": "Błyskawiczne, wszystkie rankingi",
+ "source.part.fics.chess2000": "Wszystkie tempa gry, średni ranking powyżej 2000",
+ "source.part.fics.chess": "Wszystkie tempa gry, wszystkie rankingi",
+ "source.part.pgnmentor.players": "Gracze",
+ "source.part.pgnmentor.openings": "Debiuty",
+ "source.part.pgnmentor.events": "Turnieje"
 }

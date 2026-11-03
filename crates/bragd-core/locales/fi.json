@@ -2037,5 +2037,20 @@
  "position.senet.the-water-is-not-progress.text": "Parillisilla on nappula ruudulla 26, Kauneuden talossa, ja kuusi muuta ruudulla 2–12. Heitto on yksi, ja seitsemän siirtoa on laillista: kuusi niistä alkavat alussa, ja yksi siirtää nappulan ruudulla 26. Se menee ruutuun 27, Veden taloon, ja se on siirto, jonka lähes kaikki pelaavat. Ruudulla 26 oleva nappula on se, joka on päässyt pisimmälle, ja se on todella tiellä: mikään ei saa ohittaa Kauneuden taloa, ja oma nappula estää oman armeijasi täsmälleen kuten vihollinen. Halu saada se liikkeelle on siis todellinen. Se on vain väärä heitto, jolle siihen tulee antaa periksi. Katso, mitä muut neljä heittoa olisivat tehneet tälle nappulalle: kakkonen vie sen ruudulle 28, kolmonen ruudulle 29, nelonen ruudulle 30 ja viitonen vie sen kokonaan pois laudalta. Jokainen heitto paitsi tämä on hyvä heitto tälle nappulalle. Ja yksi on heitto, joka antaa toisen heiton: ykkönen, nelonen ja viitonen ansaitsevat kaikki toisen heiton siirron jälkeen, ellei siirretty nappula laskeudu veteen, mikä päättää vuorosi siihen paikkaan heitosta riippumatta. Sitten tilanne huononee. Kun sinulla on nappula vedessä, mikään muu nappulasi ei saa liikkua: kuusi nappulaa laudalla eikä yksikään niistä ole laillinen. Heität, eikä mitään tapahdu, ellei heitto ole täsmälleen nelonen, ja vuoro päättyy. Ainoat ulospääsyt ovat tuo nelonen, joka vie hukkuneen nappulan pois, ja talo 15, Uudestisyntymisen talo, joka pelastaa sen. 15 on kuitenkin ruutu, jolle Oddsin nappula on juuri tuotu. Siksi pelaa yksi muualle ja juuri sinne, missä se ansaitsee eniten: 10–11 osuu Oddsin yksinäiseen nappulaan siellä ja vaihtaa ne, lähettäen sen takaisin ruutuun 10, kun oma nappulasi etenee ruutuun 11, missä oma nappulasi ruudulla 12 suojaa sitä. Heitä sitten uudelleen ja toivo viitosta.",
  "helper.missing": "Bragd ei voi käynnistää Apuria: sen ohjelma ei ole kohdassa {path}, Bragdin vieressä. Asenna Bragd uudelleen, niin se palautuu.",
  "hint.tablebase_online": "Lichessin loppupelitaulukko-haut ovat pois päältä. Kun ne ovat päällä, seitsemän nappulan tai vähemmän sisältävä shakkiasema, jota taulukkosi eivät kata, lähetetään osoitteeseen tablebase.lichess.ovh.",
- "notice.turn_on": "Kytke päälle"
+ "notice.turn_on": "Kytke päälle",
+ "source.parts": "Mitä haetaan",
+ "source.since": "Ensimmäinen kuukausi",
+ "source.since_hint": "Tyhjä: ensimmäisessä haussa vain uusin kuukausi. Kuukausi kuten 2024-01: kaikki siitä lähtien, muutama kussakin haussa. Myöhemmät haut ottavat jokaisen uuden kuukauden.",
+ "source.since_bad": "{since} ei ole kuukausi. Kirjoita muodossa 2024-01.",
+ "source.part.fics.standard2000": "Standard, keskiarvo yli 2000",
+ "source.part.fics.standard": "Standard, kaikki luokitukset",
+ "source.part.fics.blitz2000": "Blitz, keskiarvo yli 2000",
+ "source.part.fics.blitz": "Blitz, kaikki luokitukset",
+ "source.part.fics.lightning2000": "Bullet, keskiarvo yli 2000",
+ "source.part.fics.lightning": "Bullet, kaikki luokitukset",
+ "source.part.fics.chess2000": "Kaikki aikakontrollit, keskiarvo yli 2000",
+ "source.part.fics.chess": "Kaikki aikakontrollit, kaikki luokitukset",
+ "source.part.pgnmentor.players": "Pelaajat",
+ "source.part.pgnmentor.openings": "Avaukset",
+ "source.part.pgnmentor.events": "Turnaukset"
 }

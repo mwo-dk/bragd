@@ -2050,5 +2050,20 @@
  "position.senet.the-water-is-not-progress.text": "Els Parells tenen una fitxa a la casa 26, la Casa de la Bellesa, i sis més encara col·locades a les cases 2 a 12. La tirada és un 1, i són legals set jugades —sis d'elles avall a l'inici, i una que mou la fitxa de la 26. Aquesta va a la 27, la Casa de l'Aigua, i és la jugada que gairebé tothom fa, perquè la fitxa de la 26 és la que ha arribat més lluny i perquè de debò estorba: res no pot passar la Casa de la Bellesa, i la teva pròpia fitxa bloqueja el teu propi exèrcit exactament com ho faria una d'enemiga. Així que l'impuls de posar-la en moviment és real. Simplement és la tirada equivocada per obeir-lo. Mira què haurien fet les altres quatre tirades amb aquella fitxa: un 2 la porta a la 28, un 3 a la 29, un 4 a la 30, i un 5 la treu directament del tauler. Totes les tirades menys aquesta són bones tirades per a aquella fitxa. I l'1 és la tirada que et dona una altra —un 1, un 4 i un 5 donen una segona tirada després de moure— llevat que la fitxa que has mogut hagi caigut a l'aigua, cosa que acaba el teu torn on és, sigui el que sigui el que hagis tirat. Aleshores empitjora. Mentre tinguis una fitxa a l'aigua, cap altra de les teves no pot moure's: sis fitxes al tauler i ni una d'elles legal. Tires, i tret que surti un 4, no passa res i el torn s'acaba. Les úniques sortides són aquell 4 exacte, que treu del tauler la fitxa ofegada, i la casa 15, la Casa del Renaixement, que la rescata —i la 15 és on els Senars acaben de posar una fitxa. Així que juga l'1 a qualsevol altre lloc, i juga-ho on guanya més: 10-11 cau sobre l'única fitxa dels Senars allà i les intercanvia, enviant-la de tornada a la 10 mentre la teva avança a la 11, on la teva pròpia fitxa de la 12 la protegeix. Després torna a tirar, i espera el 5.",
  "helper.missing": "Bragd no pot iniciar l'Ajudant: el seu programa no és a {path}, al costat de Bragd. Torneu a instal·lar Bragd per restaurar-lo.",
  "hint.tablebase_online": "Les consultes de taules de finals a Lichess estan desactivades. Activades, una posició d'escacs de set peces o menys que les teves taules no cobreixen s'envia a tablebase.lichess.ovh.",
- "notice.turn_on": "Activa"
+ "notice.turn_on": "Activa",
+ "source.parts": "Què descarregar",
+ "source.since": "Primer mes",
+ "source.since_hint": "Buit: només el mes més recent en la primera descàrrega. Un mes com 2024-01: tots els mesos des d'aleshores, uns quants en cada descàrrega. Les descàrregues següents agafen cada mes nou.",
+ "source.since_bad": "{since} no és un mes. Escriu-lo com 2024-01.",
+ "source.part.fics.standard2000": "Clàssica, mitjana de valoració superior a 2000",
+ "source.part.fics.standard": "Clàssica, totes les valoracions",
+ "source.part.fics.blitz2000": "Blitz, mitjana de valoració superior a 2000",
+ "source.part.fics.blitz": "Blitz, totes les valoracions",
+ "source.part.fics.lightning2000": "Llampec, mitjana de valoració superior a 2000",
+ "source.part.fics.lightning": "Llampec, totes les valoracions",
+ "source.part.fics.chess2000": "Tots els ritmes, mitjana de valoració superior a 2000",
+ "source.part.fics.chess": "Tots els ritmes, totes les valoracions",
+ "source.part.pgnmentor.players": "Jugadors",
+ "source.part.pgnmentor.openings": "Obertures",
+ "source.part.pgnmentor.events": "Esdeveniments"
 }

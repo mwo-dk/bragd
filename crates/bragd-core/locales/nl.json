@@ -2037,5 +2037,20 @@
  "position.senet.the-water-is-not-progress.text": "Even heeft een schijf op huis 26, het Huis der Schoonheid, en zes andere die zich nog uitstrekken langs de huizen 2 tot 12. De worp is een één, en zeven zetten zijn legaal — zes ervan naar beneden aan het begin, en één die de schijf op 26 verzet. Die gaat naar 27, het Huis van het Water, en het is de zet die bijna iedereen speelt, want de schijf op 26 is de schijf die het verst is gekomen, en hij staat echt in de weg: niets mag het Huis der Schoonheid passeren, en je eigen schijf blokkeert je eigen leger net zoals een tegenstander dat zou doen. Dus de drang om hem in beweging te krijgen is echt. Het is alleen de verkeerde worp om daaraan toe te geven. Kijk wat de andere vier worpen met die schijf zouden doen: een twee zet hem op 28, een drie op 29, een vier op 30, en een vijf haalt hem gewoon van het bord. Elke worp behalve deze is een goede worp voor die schijf. En de één is de worp die je een andere geeft — een één, een vier en een vijf verdienen allemaal een tweede worp nadat je hebt verzet —, tenzij de schijf die je hebt verzet in het water terechtkomt, wat je beurt beëindigt waar hij staat, wat je ook hebt gegooid. Dan wordt het erger. Zolang je een schijf in het water hebt, kan niets anders van je bewegen: zes schijven op het bord en geen ervan is legaal. Je gooit, en tenzij het een vier is, gebeurt er niets en is je beurt voorbij. De enige uitwegen zijn precies die vier, die de verdronken schijf van het bord haalt, en huis 15, het Huis der Wedergeboorte, dat hem redt — en 15 is waar Oneven zojuist een schijf heeft gezet. Dus speel de één ergens anders, en speel hem waar hij het meeste oplevert: 10–11 landt op de enige schijf van Oneven daar, en ze wisselen de twee, waarbij die van hem terug naar 10 gaat en de jouwe vooruit naar 11, waar je eigen schijf op 12 hem beschermt. Gooi dan weer, en hoop op de vijf.",
  "helper.missing": "Bragd kan de Helper niet starten: het programma staat niet op {path}, naast Bragd. Installeer Bragd opnieuw om het terug te zetten.",
  "hint.tablebase_online": "Eindspeltabel-opzoekingen bij Lichess staan uit. Aangezet wordt een schaakstelling met zeven stukken of minder, die je tabellen niet dekken, naar tablebase.lichess.ovh gestuurd.",
- "notice.turn_on": "Zet aan"
+ "notice.turn_on": "Zet aan",
+ "source.parts": "Wat ophalen",
+ "source.since": "Eerste maand",
+ "source.since_hint": "Leeg: bij de eerste keer ophalen alleen de nieuwste maand. Een maand zoals 2024-01: elke maand vanaf dan, een paar bij elke keer ophalen. Latere keren halen elke nieuwe maand op.",
+ "source.since_bad": "{since} is geen maand. Schrijf hem als 2024-01.",
+ "source.part.fics.standard2000": "Standard, gemiddelde rating boven 2000",
+ "source.part.fics.standard": "Standard, alle ratings",
+ "source.part.fics.blitz2000": "Blitz, gemiddelde rating boven 2000",
+ "source.part.fics.blitz": "Blitz, alle ratings",
+ "source.part.fics.lightning2000": "Bliksem, gemiddelde rating boven 2000",
+ "source.part.fics.lightning": "Bliksem, alle ratings",
+ "source.part.fics.chess2000": "Alle bedenktijden, gemiddelde rating boven 2000",
+ "source.part.fics.chess": "Alle bedenktijden, alle ratings",
+ "source.part.pgnmentor.players": "Spelers",
+ "source.part.pgnmentor.openings": "Openingen",
+ "source.part.pgnmentor.events": "Toernooien"
 }

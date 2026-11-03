@@ -69,4 +69,4 @@ Yes. *After import: Keep only what the Strip rule keeps* shrinks each download t
 A Library made before this version is compacted whole after a prune, which needs about as much free space as the Library for a while. Newer Libraries give the space back as they go.
 
 ---
-[← Previous: Sources](sources.md) · [Next: Disk watch →](disk-watch.md)
+[← Previous: PGN Mentor](source-pgnmentor.md) · [Next: Disk watch →](disk-watch.md)

@@ -21,6 +21,7 @@
 .sources.twic object
 .sources.twic.memo object
 .sources.twic.memo.allowed null
+.sources.twic.memo.got array
 .sources.twic.memo.last_auto_strip null
 .sources.twic.memo.last_error null
 .sources.twic.memo.last_fetch int
@@ -38,6 +39,7 @@
 .sources.twic.options.enabled bool
 .sources.twic.options.max_download null
 .sources.twic.options.only_unmetered bool
+.sources.twic.options.parts array
 .sources.twic.options.routes array
 .sources.twic.options.routes[] object
 .sources.twic.options.routes[].library string
@@ -54,4 +56,5 @@
 .sources.twic.options.routes[].strip.titled_only bool
 .sources.twic.options.routes[].strip.variants array
 .sources.twic.options.schedule string
+.sources.twic.options.since string
 .sources.twic.options.url string

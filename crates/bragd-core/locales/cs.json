@@ -2050,5 +2050,20 @@
  "position.senet.the-water-is-not-progress.text": "Sudé mají figurku na domě 26, Domě krásy, a šest dalších pořád rozestavěných na domech 2 až 12. Hod je jednička a legální jsou sedm tahů — šest z nich dolů na začátku a jeden, který pohne figurkou na 26. Ten jde na 27, Dům vody, a je to tah, který skoro každý hraje, protože figurka na 26 je ta, co došla nejdál, a protože opravdu překáží: nic nesmí projít Domem krásy a vaše vlastní figurka blokuje vlastní armádu přesně tak, jako by to udělala nepřátelská. Nutkání dát ji do pohybu je tedy skutečné. Je to jen špatný hod, podle něhož se má řídit. Podívejte se, co by s touto figurkou udělaly ostatní čtyři hody: dvojka ji postaví na 28, trojka na 29, čtyřka na 30 a pětka ji vyhodí přímo z desky. Každý hod kromě tohoto je pro tuto figurku dobrý. A jednička je hod, který vám dá další: jednička, čtyřka a pětka dají po tahu druhý hod — pokud ovšem figurka, kterou jste pohnuli, nepřistála ve vodě, což ukončí tah tam, kde stojí, ať jste hodili cokoli. Pak to bývá horší. Dokud máte figurku ve vodě, nemůže se žádná jiná vaše hnout: šest figurek na desce a ani jedna legální. Hodíte a pokud nepadne čtyřka, nestane se nic a tah končí. Jediné východy jsou právě ta čtyřka, která utopenou figurku odstraní z desky, a dům 15, Dům znovuzrození, který ji zachrání — a 15 je místo, kam Liché právě položili figurku. Hrajte tedy jedničku jinde a hrajte ji tam, kde vydělá nejvíc: 10–11 dopadne na osamělou figurku Lichých a vymění obě, pošle jejich zpět na 10, zatímco vaše jde vpřed na 11, kde ji chrání vaše vlastní figurka na 12. Pak hoďte znovu a doufejte v pětku.",
  "helper.missing": "Bragd nemůže spustit Pomocníka: jeho program není na {path}, vedle Bragdu. Bragd znovu nainstalujte, aby se obnovil.",
  "hint.tablebase_online": "Dotazy na tablebáze u Lichessu jsou vypnuté. Po zapnutí se pozice šachu o sedmi figurách nebo méně, kterou vaše tabulky nepokrývají, pošle na tablebase.lichess.ovh.",
- "notice.turn_on": "Zapnout"
+ "notice.turn_on": "Zapnout",
+ "source.parts": "Co stáhnout",
+ "source.since": "První měsíc",
+ "source.since_hint": "Prázdné: při prvním stažení jen nejnovější měsíc. Měsíc jako 2024-01: všechny měsíce od něj, několik při každém stažení. Další stažení převezmou každý nový měsíc.",
+ "source.since_bad": "{since} není měsíc. Zapište ho jako 2024-01.",
+ "source.part.fics.standard2000": "Standard, průměrné hodnocení nad 2000",
+ "source.part.fics.standard": "Standard, všechna hodnocení",
+ "source.part.fics.blitz2000": "Blitz, průměrné hodnocení nad 2000",
+ "source.part.fics.blitz": "Blitz, všechna hodnocení",
+ "source.part.fics.lightning2000": "Bullet, průměrné hodnocení nad 2000",
+ "source.part.fics.lightning": "Bullet, všechna hodnocení",
+ "source.part.fics.chess2000": "Všechna tempa, průměrné hodnocení nad 2000",
+ "source.part.fics.chess": "Všechna tempa, všechna hodnocení",
+ "source.part.pgnmentor.players": "Hráči",
+ "source.part.pgnmentor.openings": "Zahájení",
+ "source.part.pgnmentor.events": "Turnaje"
 }

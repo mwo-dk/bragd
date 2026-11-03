@@ -2037,5 +2037,20 @@
  "position.senet.the-water-is-not-progress.text": "Evens has a counter on house 26, the House of Beauty, and six more still strung along houses 2 to 12. The throw is a one, and seven moves are legal — six of them down at the start, and one that moves the counter on 26. That one goes to 27, the House of Water, and it is the move almost everybody plays, because the counter on 26 is the one that has come furthest and because it really is in the way: nothing may pass the House of Beauty, and your own counter blocks your own army exactly as an enemy would. So the urge to get it moving is a real urge. It is simply the wrong throw to obey it on. Look at what the other four throws would have done with that counter: a two puts it on 28, a three on 29, a four on 30, and a five takes it straight off the board. Every throw but this one is a good throw for that counter. And the one is the throw that hands you another one — a one, a four and a five all earn a second throw after you move — unless the counter you moved landed in the water, which ends your turn where it stands, whatever you threw. Then it gets worse. While you have a counter in the water, nothing else of yours may move at all: six counters on the board and not one of them legal. You throw, and unless it is a four, nothing happens and the turn is over. The only ways out are that exact four, which bears the drowned counter off, and house 15, the House of Rebirth, which rescues it — and 15 is where Odds has just put a counter. So play the one anywhere else, and play it where it earns most: 10-11 lands on Odds' lone counter there and exchanges the two, sending it back to 10 while yours goes forward to 11, where your own counter on 12 protects it. Then throw again, and hope for the five.",
  "helper.missing": "Bragd cannot start the Helper: its program is not at {path}, beside Bragd. Reinstall Bragd to put it back.",
  "hint.tablebase_online": "Tablebase lookups at Lichess are off. Turned on, a chess position of seven pieces or fewer that your tables do not cover is sent to tablebase.lichess.ovh.",
- "notice.turn_on": "Turn on"
+ "notice.turn_on": "Turn on",
+ "source.parts": "What to fetch",
+ "source.since": "First month",
+ "source.since_hint": "Empty: only the newest month on the first fetch. A month such as 2024-01: every month from then, a few on each fetch. Later fetches take each new month.",
+ "source.since_bad": "{since} is not a month. Write it as 2024-01.",
+ "source.part.fics.standard2000": "Standard, average rating over 2000",
+ "source.part.fics.standard": "Standard, all ratings",
+ "source.part.fics.blitz2000": "Blitz, average rating over 2000",
+ "source.part.fics.blitz": "Blitz, all ratings",
+ "source.part.fics.lightning2000": "Lightning, average rating over 2000",
+ "source.part.fics.lightning": "Lightning, all ratings",
+ "source.part.fics.chess2000": "All time controls, average rating over 2000",
+ "source.part.fics.chess": "All time controls, all ratings",
+ "source.part.pgnmentor.players": "Players",
+ "source.part.pgnmentor.openings": "Openings",
+ "source.part.pgnmentor.events": "Events"
 }

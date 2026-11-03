@@ -2050,5 +2050,20 @@
  "position.senet.the-water-is-not-progress.text": "Pāra spēlētājam ir ripa uz 26. mājas — Skaistuma mājas — un sešas vēl stiepjas pa mājām no 2 līdz 12. Metiens ir viens, un septiņi gājieni ir likumīgi — seši no tiem uz sākumu, un viens, kas pārvieto ripu uz 26. Tas iet uz 27, Ūdens māju, un tas ir gājiens, ko gandrīz visi spēlē, jo ripa uz 26 ir tā, kas tikusi tālāk visvairāk, un tā tiešām traucē: nekas nedrīkst iet garām Skaistuma mājai, un tava pati ripa aizņem tavu armiju tāpat kā ienaidnieks. Tāpēc vēlme to pakustināt ir īsta. Tikai tas ir nepareizs metiens, lai tai paklausītu. Paskaties, ko citi četri metieni būtu darījuši ar šo ripu: divnieks to liek uz 28, trijnieks uz 29, četrinieks uz 30, un piecinieks to izved no dēļa. Katrs metiens, izņemot šo, ir labs metiens šai ripai. Un viens ir tas metiens, kas tev dod citu — viens, četri un pieci visi nopelna otru metienu pēc gājiena —, ja vien ripa, ko pārvietoji, nenokļūst ūdenī, kas beidz tavu gājienu tur, kur tā stāv, lai kas arī būtu uzmests. Tad vēl sliktāk. Kamēr tev ir ripa ūdenī, nekas cits tavs nevar kustēties: sešas ripas uz dēļa un ne viena no tām nav likumīga. Tu metat, un, ja nav četrinieks, nekas nenotiek un gājiens beidzas. Vienīgie izejas ceļi ir tieši šis četrinieks, kas izved noslīkušo ripu no dēļa, un 15. māja, Atdzimšanas māja, kas to izglābj — un 15 ir tur, kur Nepāra tikko novietoja ripu. Tāpēc spēlē viens jebkur citur un spēlē to tur, kur tas nopelna visvairāk: 10–11 nolaižas uz Nepāra vienīgās ripas, un tās apmainās, sūtot to atpakaļ uz 10, kamēr tava iet uz priekšu uz 11, kur tavu ripu uz 12 aizsargā. Tad met vēlreiz un cer uz piecinieku.",
  "helper.missing": "Bragd nevar palaist Palīgu: tā programma neatrodas {path}, blakus Bragd. Lai to atjaunotu, pārinstalējiet Bragd.",
  "hint.tablebase_online": "Galu bāžu pieprasījumi Lichess ir izslēgti. Ieslēdzot, šachu pozīcija ar septiņām vai mazāk figūrām, ko jūsu bāzes nesedz, tiek nosūtīta uz tablebase.lichess.ovh.",
- "notice.turn_on": "Ieslēgt"
+ "notice.turn_on": "Ieslēgt",
+ "source.parts": "Ko ielādēt",
+ "source.since": "Pirmais mēnesis",
+ "source.since_hint": "Tukšs: pirmajā ielādē tikai jaunāko mēnesi. Mēnesis, piemēram, 2024-01: katru mēnesi no tā, pa dažiem katrā ielādē. Turpmākās ielādes ņem katru jaunu mēnesi.",
+ "source.since_bad": "{since} nav mēnesis. Rakstiet kā 2024-01.",
+ "source.part.fics.standard2000": "Standarta, vidējais reitings virs 2000",
+ "source.part.fics.standard": "Standarta, visi reitingi",
+ "source.part.fics.blitz2000": "Blics, vidējais reitings virs 2000",
+ "source.part.fics.blitz": "Blics, visi reitingi",
+ "source.part.fics.lightning2000": "Zibens, vidējais reitings virs 2000",
+ "source.part.fics.lightning": "Zibens, visi reitingi",
+ "source.part.fics.chess2000": "Visas laika kontroles, vidējais reitings virs 2000",
+ "source.part.fics.chess": "Visas laika kontroles, visi reitingi",
+ "source.part.pgnmentor.players": "Spēlētāji",
+ "source.part.pgnmentor.openings": "Atklāšanas",
+ "source.part.pgnmentor.events": "Notikumi"
 }

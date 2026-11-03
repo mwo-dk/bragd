@@ -2037,5 +2037,20 @@
  "position.senet.the-water-is-not-progress.text": "Gerade hat einen Stein auf Feld 26, dem Haus der Schönheit, und sechs weitere stehen auf den Feldern 2 bis 12. Der Wurf ist eine Eins, und sieben Züge sind legal: sechs davon ganz am Anfang und einer, der den Stein auf 26 bewegt. Dieser geht nach 27, dem Haus des Wassers, und das ist der Zug, den fast jeder spielt. Der Stein auf 26 ist der, der am weitesten gekommen ist, und er steht tatsächlich im Weg: Nichts darf am Haus der Schönheit vorbei, und der eigene Stein blockiert die eigene Armee genau so, wie ein gegnerischer es täte. Der Drang, ihn in Bewegung zu bringen, ist also echt. Nur ist es der falsche Wurf, ihm zu folgen. Schau, was die anderen vier Würfe mit diesem Stein gemacht hätten: Eine Zwei setzt ihn auf 28, eine Drei auf 29, eine Vier auf 30, und eine Fünf nimmt ihn ganz vom Brett. Jeder Wurf außer diesem ist für diesen Stein ein guter Wurf. Die Eins ist der Wurf, der einen weiteren gibt. Eine Eins, eine Vier und eine Fünf geben nach dem Ziehen einen zweiten Wurf, es sei denn, der gezogene Stein landet im Wasser, und das beendet deinen Zug an der Stelle, an der er steht, was auch immer du gewürfelt hast. Dann wird es schlimmer. Solange ein Stein im Wasser steht, darf kein anderer deiner Steine ziehen: sechs Steine auf dem Brett, und keiner davon ist legal. Du würfelst, und sofern es keine Vier ist, passiert nichts, und der Zug ist vorbei. Die einzigen Auswege sind genau diese Vier, die den ertrunkenen Stein vom Brett nimmt, und das Haus 15, das Haus der Wiedergeburt, das ihn rettet. Auf 15 hat aber Ungerade gerade einen Stein gesetzt. Spiel die Eins also anderswo und dort, wo sie am meisten bringt: 10–11 landet auf dem einzelnen Stein von Ungerade auf 11, tauscht die beiden, schickt ihn zurück nach 10, während deiner nach vorn auf 11 geht, wo dein eigener Stein auf 12 ihn schützt. Dann würfle noch einmal und hoffe auf die Fünf.",
  "helper.missing": "Bragd kann den Helfer nicht starten: Sein Programm liegt nicht unter {path}, neben Bragd. Installiere Bragd neu, dann ist es wieder da.",
  "hint.tablebase_online": "Abfragen der Endspieltabellen bei Lichess sind aus. Eingeschaltet wird eine Schachstellung mit sieben Figuren oder weniger, die Ihre Tabellen nicht abdecken, an tablebase.lichess.ovh geschickt.",
- "notice.turn_on": "Einschalten"
+ "notice.turn_on": "Einschalten",
+ "source.parts": "Was geladen wird",
+ "source.since": "Erster Monat",
+ "source.since_hint": "Leer: beim ersten Abruf nur der neueste Monat. Ein Monat wie 2024-01: alle Monate ab da, bei jedem Abruf einige. Spätere Abrufe holen jeden neuen Monat.",
+ "source.since_bad": "{since} ist kein Monat. Schreibe ihn als 2024-01.",
+ "source.part.fics.standard2000": "Standard, Durchschnittswertung über 2000",
+ "source.part.fics.standard": "Standard, alle Wertungen",
+ "source.part.fics.blitz2000": "Blitz, Durchschnittswertung über 2000",
+ "source.part.fics.blitz": "Blitz, alle Wertungen",
+ "source.part.fics.lightning2000": "Bullet, Durchschnittswertung über 2000",
+ "source.part.fics.lightning": "Bullet, alle Wertungen",
+ "source.part.fics.chess2000": "Alle Bedenkzeiten, Durchschnittswertung über 2000",
+ "source.part.fics.chess": "Alle Bedenkzeiten, alle Wertungen",
+ "source.part.pgnmentor.players": "Spieler",
+ "source.part.pgnmentor.openings": "Eröffnungen",
+ "source.part.pgnmentor.events": "Turniere"
 }

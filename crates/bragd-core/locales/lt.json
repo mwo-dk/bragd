@@ -2050,5 +2050,20 @@
  "position.senet.the-water-is-not-progress.text": "Lyginių ženkliukas yra 26 langelyje, Grožio namuose, ir dar šeši sustoja nuo 2 iki 12 namų. Metimas yra vienas, ir septyni ėjimai yra teisėti — šeši iš jų žemyn pradžioje, ir vienas, kuris perkelia 26 ženkliuką. Tas ženkliukas eina į 27, Vandens namus, ir tai ėjimas, kurį beveik visi daro, nes 26 ženkliukas nukeliavo toliausiai ir iš tikrųjų trukdo: niekas negali peršokti Grožio namų, o tavo paties ženkliukas blokuoja tavo armiją lygiai taip, kaip priešas. Taigi noras jį pajudinti yra tikras. Tiesiog tai yra neteisingas metimas, kuriam paklusti. Pažiūrėk, ką kiti keturi metimai būtų padarę su tuo ženkliuku: du padėtų jį ant 28, trys ant 29, keturi ant 30, o penki jį visiškai išmestų iš lentos. Kiekvienas metimas, išskyrus šį, tam ženkliukui yra geras metimas. O vienetas yra metimas, kuris duoda kitą metimą: vienetas, keturi ir penki duoda antrą metimą po to, kai pajudini — nebent ženkliukas, kurį pajudinai, nusileido į vandenį, o tai nutraukia tavo ėjimą tame pačiame langelyje, kad ir ką būtum metęs. Tada darosi blogiau. Kol vandenyje turi ženkliuką, joks kitas tavo ženkliukas negali judėti: lentoje šeši ženkliukai ir nė vienas iš jų nėra teisėtas. Metęs, jei ne keturi, nieko neįvyksta ir ėjimas baigiasi. Vienintelės išeitys yra tikslus keturi, kuris išveda paskandintą ženkliuką iš lentos, arba 15 namai, Atgimimo namai, kurie jį išgelbsti — o 15 ką tik Nelyginiai padėjo ženkliuką. Taigi vienetą žaisk kitur, ir ten, kur jis uždirba daugiausiai: 10–11 nusileidžia ant vienintelio Nelyginių ženkliuko ir juos apkeičia, grąžindamas jį į 10, o tavo ženkliukas eina į priekį į 11, kur tavo paties ženkliukas 12 jį saugo. Tada vėl mesk ir tikėkis penkių.",
  "helper.missing": "Bragd negali paleisti Pagalbininko: jo programos nėra {path}, šalia Bragd. Iš naujo įdiegus Bragd, ji bus grąžinta.",
  "hint.tablebase_online": "Galūnių bazių paieška Lichess serveryje išjungta. Įjungus, šachmatų pozicija su septyniais ar mažiau figūrų, kurios jūsų bazės nepadengia, siunčiama į tablebase.lichess.ovh.",
- "notice.turn_on": "Įjungti"
+ "notice.turn_on": "Įjungti",
+ "source.parts": "Ką atsisiųsti",
+ "source.since": "Pirmasis mėnuo",
+ "source.since_hint": "Tuščia: pirmą kartą atsisiunčiamas tik naujausias mėnuo. Mėnuo, pvz., 2024-01: visi mėnesiai nuo jo, po kelis kiekvieną kartą. Vėlesni atsisiuntimai ima kiekvieną naują mėnesį.",
+ "source.since_bad": "{since} nėra mėnuo. Parašykite kaip 2024-01.",
+ "source.part.fics.standard2000": "Standartinės, vidutinis reitingas virš 2000",
+ "source.part.fics.standard": "Standartinės, visi reitingai",
+ "source.part.fics.blitz2000": "Blitz, vidutinis reitingas virš 2000",
+ "source.part.fics.blitz": "Blitz, visi reitingai",
+ "source.part.fics.lightning2000": "Žaibiškos, vidutinis reitingas virš 2000",
+ "source.part.fics.lightning": "Žaibiškos, visi reitingai",
+ "source.part.fics.chess2000": "Visi laiko režimai, vidutinis reitingas virš 2000",
+ "source.part.fics.chess": "Visi laiko režimai, visi reitingai",
+ "source.part.pgnmentor.players": "Žaidėjai",
+ "source.part.pgnmentor.openings": "Atidarymai",
+ "source.part.pgnmentor.events": "Turnyrai"
 }

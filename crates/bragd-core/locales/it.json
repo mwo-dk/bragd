@@ -2050,5 +2050,20 @@
  "position.senet.the-water-is-not-progress.text": "Pari ha una pedina sulla casella 26, la Casa della Bellezza, e altre sei sono ancora disposte dalla 2 alla 12. Il lancio è un uno, e sono legali sette mosse: sei di esse all'inizio, più quella che muove la pedina sulla 26. Quella va alla 27, la Casa dell'Acqua, ed è la mossa che quasi tutti giocano, perché la pedina sulla 26 è quella arrivata più lontano e perché davvero intralcia: nulla può passare la Casa della Bellezza, e le tue stesse pedine bloccano il tuo esercito esattamente come farebbe un avversario. Quindi la spinta a rimetterla in moto è reale. È solo il tiro sbagliato a cui obbedirle. Guarda che cosa avrebbero fatto con quella pedina gli altri quattro lanci: un due la porta sulla 28, un tre sulla 29, un quattro sulla 30, e un cinque la toglie direttamente dal tavolo. Ogni lancio tranne questo è un buon lancio per quella pedina. E l'uno è il tiro che ti regala un altro lancio, perché un uno, un quattro e un cinque ti guadagnano un secondo lancio dopo che hai mosso, a meno che la pedina che hai spostato non sia finita nell'acqua, il che chiude il tuo turno dove si trova, qualunque cosa tu abbia tirato. Poi peggiora. Finché hai una pedina nell'acqua, nient'altro di tuo può muoversi: sei pedine sulla scacchiera e nessuna di esse è legale. Tiri, e a meno che non esca un quattro non succede nulla e il turno finisce. Le uniche vie d'uscita sono quel quattro preciso, che toglie dalla scacchiera la pedina annegata, e la casella 15, la Casa della Rinascita, che la salva, e la 15 è dove Dispari ha appena messo una pedina. Quindi gioca l'uno altrove, e giocalo dove rende di più: 10-11 atterra sulla pedina solitaria di Dispari lì e scambia le due, rimandando la sua indietro al 10 mentre la tua va avanti all'11, dove la tua pedina sulla 12 la protegge. Poi tira di nuovo, e spera nel cinque.",
  "helper.missing": "Bragd non riesce ad avviare l'assistente: il suo programma non si trova in {path}, accanto a Bragd. Reinstalla Bragd per ripristinarlo.",
  "hint.tablebase_online": "Le ricerche nelle tablebase di Lichess sono disattivate. Se attive, una posizione di scacchi con sette pezzi o meno che le tue tabelle non coprono viene inviata a tablebase.lichess.ovh.",
- "notice.turn_on": "Attivala"
+ "notice.turn_on": "Attivala",
+ "source.parts": "Cosa scaricare",
+ "source.since": "Primo mese",
+ "source.since_hint": "Vuoto: al primo scaricamento solo il mese più recente. Un mese come 2024-01: tutti i mesi da quello in poi, alcuni a ogni scaricamento. Gli scaricamenti successivi prendono ogni mese nuovo.",
+ "source.since_bad": "{since} non è un mese. Scrivilo come 2024-01.",
+ "source.part.fics.standard2000": "Standard, rating medio superiore a 2000",
+ "source.part.fics.standard": "Standard, tutti i rating",
+ "source.part.fics.blitz2000": "Blitz, rating medio superiore a 2000",
+ "source.part.fics.blitz": "Blitz, tutti i rating",
+ "source.part.fics.lightning2000": "Bullet, rating medio superiore a 2000",
+ "source.part.fics.lightning": "Bullet, tutti i rating",
+ "source.part.fics.chess2000": "Tutti i tempi, rating medio superiore a 2000",
+ "source.part.fics.chess": "Tutti i tempi, tutti i rating",
+ "source.part.pgnmentor.players": "Giocatori",
+ "source.part.pgnmentor.openings": "Aperture",
+ "source.part.pgnmentor.events": "Eventi"
 }

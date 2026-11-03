@@ -2037,5 +2037,20 @@
  "position.senet.the-water-is-not-progress.text": "Paresko jokalariak kontagailu bat dauka 26ko etxean, Edertasunaren etxean, eta sei gehiago 2tik 12ra doazen etxeetan. Jaurtiketa bat da, eta zazpi mugimendu legal daude: haietako sei hasieran behera, eta bat 26ko kontagailua mugitzen duena. Hori 27ra doa, Uraren etxera, eta mugimendu hori da ia denek jokatzen dutena, 26ko kontagailua urrunen iritsi delako eta bidean dagoelako benetan: inor ezin da Edertasunaren etxetik pasatu, eta zure kontagailu propioak zure armada blokeatzen du etsai batek bezala. Beraz, mugitzeko grina benetakoa da. Jaurtiketa okerra da hura obeditzeko. Begiratu zer egingo lukeen beste lau jaurtiketak kontagailu horrekin: bi 28an jarriko luke, hiru 29an, lau 30ean, eta bost kanpora botako luke zuzenean. Jaurtiketa guztiak onak dira kontagailu horrentzat, bat izan ezik. Eta bat jaurtiketa bat da, hau da, beste bat ematen dizu: bat, lau eta bost mugitu ondoren jaurtiketa bat gehiago ematen dute, mugitutako kontagailua uretan lurreratu ez bada, eta horrek zure txanda uretan ematen du geldituta, jaurtiketa edozein izanda ere. Orduan okerragotzen da. Zure kontagailu bat uretan dagoenean, zure beste inor ezin da mugitu: sei kontagailu taulan eta ez dago mugimendu legal bat ere. Jaurtiketa egiten duzu, eta laukotea ez bada, ez da ezer gertatzen eta txanda amaitu da. Irteteko bide bakarrak laukote zehatza da, uretan hildako kontagailua kanpora ateratzen duena, eta 15eko etxea, Berpizkundearen etxea, hura salbatzen duena. Eta 15 Bakoitiak kontagailu bat jarri berri duen tokia da. Beraz jokatu bat beste leku batean, eta jokatu hori non gehien ematen duen: 10–11ek Bakoitiaren kontagailu bakarrarekin bat egiten du eta biak trukatzen ditu, bera 10era bidaliz eta zurea 11era aurreratuz, non zure 12ko kontagailuak babesten duen. Ondoren, berriro jaurti eta espero bosta.",
  "helper.missing": "Bragdek ezin du Laguntzailea abiarazi: haren programa ez dago {path}-n, Bragdren ondoan. Bragd berriz instalatuz berreskura daiteke.",
  "hint.tablebase_online": "Lichess-eko amaierako taulen bilaketak desaktibatuta daude. Aktibatuta, zure taulek estaltzen ez dituzten zazpi pieza edo gutxiagoko ajedrez-posizioak tablebase.lichess.ovh-ra bidaliko dira.",
- "notice.turn_on": "Aktibatu"
+ "notice.turn_on": "Aktibatu",
+ "source.parts": "Zer deskargatu",
+ "source.since": "Lehen hilabetea",
+ "source.since_hint": "Hutsik: lehen deskargan azken hilabetea bakarrik. 2024-01 bezalako hilabete bat: hilabete horretatik aurrera guztiak, deskarga bakoitzean batzuk. Ondorengo deskargek hilabete berri guztiak hartzen dituzte.",
+ "source.since_bad": "{since} ez da hilabete bat. Idatzi 2024-01 moduan.",
+ "source.part.fics.standard2000": "Standard, batez besteko puntuazioa 2000tik gorakoa",
+ "source.part.fics.standard": "Standard, puntuazio guztiak",
+ "source.part.fics.blitz2000": "Blitz, batez besteko puntuazioa 2000tik gorakoa",
+ "source.part.fics.blitz": "Blitz, puntuazio guztiak",
+ "source.part.fics.lightning2000": "Lightning, batez besteko puntuazioa 2000tik gorakoa",
+ "source.part.fics.lightning": "Lightning, puntuazio guztiak",
+ "source.part.fics.chess2000": "Denbora-kontrol guztiak, batez besteko puntuazioa 2000tik gorakoa",
+ "source.part.fics.chess": "Denbora-kontrol guztiak, puntuazio guztiak",
+ "source.part.pgnmentor.players": "Jokalariak",
+ "source.part.pgnmentor.openings": "Hasierak",
+ "source.part.pgnmentor.events": "Lehiaketak"
 }

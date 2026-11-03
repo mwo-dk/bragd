@@ -4,7 +4,7 @@
 
 A Source is where Games come from, such as The Week in Chess. When a Source is on, the [Helper](helper.md) fetches it on its schedule and imports its Games through its Routes: into `main.bragd` unless you add others. Every Source is off until you turn it on, and its size per fetch and schedule, such as *about 1.5 MB a week*, is shown before it downloads anything. You can also add any address of a game file as a custom URL Source, and remove it again.
 
-![The Sources tab for chess: The Week in Chess with its size, last fetch, Options and Fetch now, the rating lists with More lists folded, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
+![The Sources tab for chess: The Week in Chess, the Lichess database, the FICS games database and PGN Mentor, each with its size, last fetch, Options and Fetch now, the rating lists with More lists folded, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
 *Databases → Sources.*
 
 ## How to reach it
@@ -22,6 +22,9 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | Id | Source | Family | About a fetch | Default schedule |
 |---|---|---|---|---|
 | `twic` | The Week in Chess | chess | 1.5 MB | Weekly |
+| `lichess-db` | [The Lichess database](source-lichess.md) | chess | 30 GB for a standard month | Monthly |
+| `fics` | [The FICS games database](source-fics.md) | chess | 0.3 MB for a month of standard Games over 2000 | Monthly |
+| `pgnmentor` | [PGN Mentor](source-pgnmentor.md) | chess | 200 MB the first time, then only new files | Monthly |
 | `custom:<name>` | A custom URL | any | unknown | Weekly |
 | `fide-ratings` | International Chess Federation (FIDE) | chess | 45 MB | Monthly |
 | `dsu-ratings` | Danish Chess Union (DSU) | chess | 0.5 MB | Monthly |
@@ -30,7 +33,9 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `sshl-ratings` | Finnish Chess Federation (SShL) | chess | 0.75 MB | Monthly |
 | `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly |
 
-Some Sources are planned but not fetched by this version: the Lichess database, the FICS games database, PGN Mentor, LumbrasGigaBase, pychess and Lishogi exports, and the OGS and KGS archives. Sources does not list them until a version of Bragd can fetch them. The install wizard names those of your Families in one line, *Coming later*.
+Some Sources are planned but not fetched by this version: LumbrasGigaBase, pychess and Lishogi exports, and the OGS and KGS archives. Sources does not list them until a version of Bragd can fetch them. The install wizard names those of your Families in one line, *Coming later*.
+
+**Parts and months.** The Lichess database, FICS and PGN Mentor have **What to fetch** in their Options: Variants, game types or sections. The Lichess database and FICS, a file a month, also have **First month**, the month their first fetch starts from. Each has a page of its own, linked in the table.
 
 **TWIC.** The first fetch takes only the newest issue. Each later fetch takes the new issues in order, at most 26 at a time. The zips are imported as they are, without unpacking.
 
@@ -48,6 +53,8 @@ Some Sources are planned but not fetched by this version: the Lichess database, 
 | Largest download | a size such as `5 GB`, or empty for `2 GB` | The most one download may take without asking. A bigger one waits for your yes |
 | After import | Keep the download, Keep only what the Strip rule keeps, Delete the download | What becomes of a download once imported |
 | Address | | A custom URL Source's address |
+| What to fetch | Variants, game types or sections | The parts of the Lichess database, FICS or PGN Mentor that are fetched |
+| First month | a month such as `2024-01`, or empty | The Lichess database and FICS: the month the first fetch starts from. Empty: only the newest |
 
 ## Routes
 
@@ -92,9 +99,9 @@ A packed game file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) is unpacked as it is read
 
 No. Every Source starts off. Nothing is fetched until you tick it, or tick it in the install wizard and press Done.
 
-#### Why is the Lichess database not listed?
+#### Why is LumbrasGigaBase not listed?
 
-This version of Bragd cannot fetch it yet, so Sources leaves it out rather than show a box you cannot tick. The same goes for the other planned Sources named under [The Sources](#the-sources). Until then, a month you downloaded yourself can be opened in place as a [Foreign database](foreign-databases.md).
+This version of Bragd cannot fetch it yet, so Sources leaves it out rather than show a box you cannot tick. Its site starts each download from the page itself and sends 7z archives, which Bragd cannot read as a stream. The same goes for the other planned Sources named under [The Sources](#the-sources). Until then, a file you downloaded yourself can be opened in place as a [Foreign database](foreign-databases.md).
 
 #### What does "metered" mean here?
 
@@ -131,4 +138,4 @@ It became the Source's one Route, to `main.bragd`, with that rule. Nothing else 
 Yes. Press **Remove** beside *Fetch now*, then **Remove** again. Its options and its downloads are deleted. The Games it brought stay in your Libraries. A Source with a fetch or a Strip job queued or running cannot be removed until the job ends. The built-in Sources cannot be removed: untick one to turn it off.
 
 ---
-[← Previous: Export to Parquet](parquet-export.md) · [Next: Strip rules →](strip-rules.md)
+[← Previous: Export to Parquet](parquet-export.md) · [Next: The Lichess database →](source-lichess.md)
