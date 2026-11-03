@@ -99,7 +99,9 @@
       <button class="x" onclick={close} title={t("wizard.close")} aria-label={t("wizard.close")}>×</button>
     </header>
 
-    <div class="body">
+    <!-- Focusable, so a step with nothing to press (Engines, all found or counted) still scrolls by keys. -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div class="body" tabindex="0" role="region" aria-labelledby="wizard-title">
       {#if tour}
         {@const c = guide.cards[step]}
         <p class="version">{t("whats_new.version", { version: c.version })}</p>
