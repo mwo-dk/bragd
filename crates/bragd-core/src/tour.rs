@@ -49,11 +49,8 @@ pub const CARDS: &[Card] = &[
     card("1.0.0", "forced"),
     card("1.0.0", "friends"),
     card("1.0.0", "chat"),
-<<<<<<< HEAD
     card("1.0.0", "ur_solved"),
-=======
     card("1.0.0", "calls"),
->>>>>>> origin/master
 ];
 
 /// Whether the card shows to the user of `cfg`: its feature concerns one of their Families.
