@@ -1,0 +1,1 @@
+| **Chess positions go to the Lichess tablebase only once you turn it on.** The lookup now starts off. The install wizard offers it, and entering chess shows a hint with **Turn on** a few times. A switch you set before stays as it is. | [Tablebases](engines/tablebases.md#when-is-the-lichess-fallback-offered) | <!-- families: chess -->

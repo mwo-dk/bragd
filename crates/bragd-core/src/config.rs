@@ -115,22 +115,14 @@ impl Default for EnginesConfig {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct TablebasesConfig {
     /// The Syzygy folder; empty: the one in Bragd's data folder.
     pub path: String,
-    /// Ask the Lichess tablebase API for a position the local tables do not cover.
+    /// Ask the Lichess tablebase API for a position the local tables do not cover. Off until the
+    /// user turns it on: nothing leaves the machine unasked (`notices::tablebase_hint` offers it).
     pub online: bool,
-}
-
-impl Default for TablebasesConfig {
-    fn default() -> Self {
-        TablebasesConfig {
-            path: String::new(),
-            online: true,
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -606,13 +598,14 @@ mod tests {
     }
 
     #[test]
-    fn config_defaults_have_everything_on() {
+    fn config_defaults_have_everything_on_but_what_goes_online_unasked() {
         let c = Config::parse("").unwrap();
         assert_eq!(c, Config::default());
         assert_eq!(c.look.theme, "racing-green-dark");
         assert_eq!(c.look.board_theme, "racing");
         assert_eq!(c.knowledge.source_priority, ["twic", "lichess-db"]);
-        assert!(c.updates.check && c.tablebases.online && !c.helper.start_with_session);
+        assert!(c.updates.check && !c.tablebases.online && !c.helper.start_with_session);
+        assert!(Config::parse("[tablebases]\nonline = true\n").unwrap().tablebases.online, "a stored choice stays");
         for v in &bragd_games::VARIANTS {
             assert!(c.variant_on(v.key), "{}", v.key);
         }

@@ -6,8 +6,8 @@
   import { t } from "./i18n.svelte.js";
   import { guide } from "./guide.svelte.js";
 
-  /** @type {{ snap: any, go: (page: any) => void }} */
-  let { snap, go } = $props();
+  /** @type {{ snap: any, go: (page: any) => void, save: (name: string, value: any) => Promise<any> }} */
+  let { snap, go, save } = $props();
   let copied = $state("");
 
   const areaName = (/** @type {string} */ id) => snap.areas.find((/** @type {any} */ a) => a[0] === id)?.[1] ?? id;
@@ -18,6 +18,11 @@
     // Closing a hint brings the next one due.
     const next = await api.noticeDismiss(id);
     if (next && !guide.notices.some((n) => n.id === next.id)) guide.notices = [...guide.notices, next];
+  }
+  /** An offer's switch turned on: the offer is done with. */
+  async function turnOn(/** @type {any} */ n) {
+    await save(n.turn_on, true);
+    guide.notices = guide.notices.filter((x) => x.id !== n.id);
   }
   function settings(/** @type {any} */ n) {
     go({ kind: "settings", area: n.settings });
@@ -59,12 +64,13 @@
     {/if}
     {#if shown}
       {@const n = shown}
-      <div class="notice panel" class:hintish={n.id.startsWith("hint:")}>
+      <div class="notice panel" class:hintish={n.id.startsWith("hint:") || n.turn_on}>
         <p>{n.text}</p>
         {#if n.copy}
           <p class="copy"><code>{n.copy}</code> <button onclick={() => copy(n)}>{copied === n.id ? t("common.copied") : t("common.copy")}</button></p>
         {/if}
         <div class="actions">
+          {#if n.turn_on}<button class="primary" onclick={() => turnOn(n)}>{t("notice.turn_on")}</button>{/if}
           {#if n.settings}<button class="link" onclick={() => settings(n)}>{t("notice.open_settings", { area: areaName(n.settings) })}</button>{/if}
           <button onclick={() => dismiss(n.id)} aria-label={t("common.close")} title={t("common.close")}>×</button>
         </div>

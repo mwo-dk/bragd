@@ -458,6 +458,7 @@ fn main() {
             help::key_used,
             help::notice_list,
             help::notice_dismiss,
+            help::family_hint,
             help::update_check,
             help::open_config,
             help::suggest_translation,

@@ -17,6 +17,8 @@ pub struct Notice {
     pub settings: Option<&'static str>,
     /// A line to copy and run (an upgrade command): shown with a Copy button.
     pub copy: Option<String>,
+    /// The switch it offers to turn on (`settings::Opt::name`): shown with a Turn on button.
+    pub turn_on: Option<&'static str>,
 }
 
 impl Notice {
@@ -26,6 +28,7 @@ impl Notice {
             text,
             settings,
             copy: None,
+            turn_on: None,
         }
     }
 }
@@ -104,6 +107,19 @@ pub fn hint_due(st: &mut AppState, id: &str) -> bool {
     true
 }
 
+/// The hint shown on entering chess that offers the Lichess tablebase lookups: only while chess
+/// is shown and the lookups are off, a few times, and never again once dismissed.
+pub fn tablebase_hint(cfg: &Config, st: &mut AppState) -> Option<Notice> {
+    const ID: &str = "tablebase_online";
+    if !cfg.family_shown("chess") || cfg.tablebases.online || st.notices_dismissed.iter().any(|d| d == ID) || !hint_due(st, ID) {
+        return None;
+    }
+    Some(Notice {
+        turn_on: Some("tablebases_online"),
+        ..Notice::new(ID, t!("hint.tablebase_online"), Some("online"))
+    })
+}
+
 /// The next hint of `hints` (in order, after `after` when given) still to be shown, counted as
 /// shown once more: one hint at a time, the next only once the one before is closed.
 pub fn next_hint<'a>(st: &mut AppState, hints: &[&'a str], after: Option<&str>) -> Option<&'a str> {
@@ -147,6 +163,27 @@ mod tests {
         let shown = (0..5).filter(|_| hint_due(&mut st, "sidebar")).count();
         assert_eq!(shown, TIMES as usize);
         assert!(hint_due(&mut st, "other"));
+    }
+
+    #[test]
+    fn notices_offer_the_tablebase_lookups_to_chess_users_a_few_times() {
+        let mut st = AppState::default();
+        let cfg = Config::default();
+        let shown = (0..5).filter(|_| tablebase_hint(&cfg, &mut st).is_some()).count();
+        assert_eq!(shown, TIMES as usize);
+
+        let mut st = AppState::default();
+        let n = tablebase_hint(&cfg, &mut st).unwrap();
+        assert_eq!((n.turn_on, n.settings), (Some("tablebases_online"), Some("online")));
+        dismiss(&mut st, &n.id);
+        assert!(tablebase_hint(&cfg, &mut st).is_none(), "dismissed: never again");
+
+        let mut st = AppState::default();
+        let on = Config::parse("[tablebases]\nonline = true\n").unwrap();
+        assert!(tablebase_hint(&on, &mut st).is_none(), "already on");
+        let go = Config::parse("[families.family]\nchess = false\n").unwrap();
+        assert!(tablebase_hint(&go, &mut st).is_none(), "no chess");
+        assert!(st.hints_shown.is_empty(), "not counted when not shown");
     }
 
     #[test]
