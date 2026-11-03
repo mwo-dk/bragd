@@ -480,7 +480,8 @@ fn size_text(a: &sources::About, o: &Options) -> String {
         return t!("source.size_unknown");
     }
     let size = bragd_core::i18n::bytes(a.size);
-    t!(&format!("wizard.size_{}", serde_json::to_value(o.schedule).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default()), "size" => size)
+    let schedule = serde_json::to_value(o.schedule).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default();
+    t!(&bragd_core::wizard::size_key(&schedule, a.first_only), "size" => size)
 }
 
 /// The Sources the page lists: those this version can fetch. The others wait, unlisted, until
@@ -729,6 +730,16 @@ mod tests {
         assert!(ids.contains(&"twic".to_string()) && ids.contains(&"lichess-db".to_string()) && !ids.contains(&"lumbras".to_string()), "{ids:?}");
         let twic = sources::builtin().into_iter().find(|s| s.about().id == "twic").unwrap().about();
         assert!(size_text(&twic, &twic.defaults()).ends_with("a week"), "a Source says how often it is fetched");
+    }
+
+    /// KGS and PGN Mentor size the first fetch, the whole archive; they must not say "a month".
+    #[test]
+    fn a_source_whose_first_fetch_is_the_big_one_says_so() {
+        for id in ["kgs", "pgnmentor"] {
+            let a = sources::builtin().into_iter().find(|s| s.about().id == id).unwrap().about();
+            let text = size_text(&a, &a.defaults());
+            assert!(text.contains("the first time") && !text.contains("a month"), "{id}: {text}");
+        }
     }
 
     #[test]

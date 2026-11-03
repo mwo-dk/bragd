@@ -195,6 +195,10 @@ pub struct About {
     /// Whether it is a file a month, so the user can say from which month (`Options::since`).
     #[serde(default)]
     pub months: bool,
+    /// `size` is the first fetch, which takes the whole archive; later fetches take only what is
+    /// new. False: every fetch is about `size`.
+    #[serde(default)]
+    pub first_only: bool,
 }
 
 /// A part of a Source the user can pick: a Lichess Variant, a FICS game type, a PGN Mentor
@@ -356,6 +360,7 @@ impl Source for Twic {
             kind: Kind::Games,
             parts: vec![],
             months: false,
+            first_only: false,
         }
     }
 
@@ -412,6 +417,7 @@ impl Source for CustomUrl {
             kind: Kind::Games,
             parts: vec![],
             months: false,
+            first_only: false,
         }
     }
 
@@ -453,7 +459,7 @@ pub struct RatingList(pub &'static bragd_clubs::lists::List);
 impl Source for RatingList {
     fn about(&self) -> About {
         let l = self.0;
-        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, kind: Kind::RatingList, parts: vec![], months: false }
+        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, kind: Kind::RatingList, parts: vec![], months: false, first_only: false }
     }
 
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>> {
@@ -480,6 +486,7 @@ fn later(id: &str, name: &str, family: &str, size: u64, schedule: Schedule, url:
         kind: Kind::Games,
         parts: vec![],
         months: false,
+        first_only: false,
     }))
 }
 

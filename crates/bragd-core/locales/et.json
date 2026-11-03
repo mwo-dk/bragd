@@ -304,6 +304,7 @@
  "wizard.preview": "Eelvaade",
  "wizard.recommended": "Soovitatud",
  "wizard.size_daily": "umbes {size} päevas",
+ "wizard.size_first": "umbes {size} esimesel korral, edaspidi ainult uus",
  "wizard.size_monthly": "umbes {size} kuus",
  "wizard.size_off": "umbes {size}",
  "wizard.size_once": "umbes {size}, üks kord",

@@ -304,6 +304,7 @@
  "wizard.preview": "Peržiūra",
  "wizard.recommended": "Rekomenduojama",
  "wizard.size_daily": "apie {size} per dieną",
+ "wizard.size_first": "apie {size} pirmą kartą, vėliau tik naujus",
  "wizard.size_monthly": "apie {size} per mėnesį",
  "wizard.size_off": "apie {size}",
  "wizard.size_once": "apie {size}, vieną kartą",

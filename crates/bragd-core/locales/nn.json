@@ -304,6 +304,7 @@
  "wizard.preview": "Førehandsvis",
  "wizard.recommended": "Tilrådd",
  "wizard.size_daily": "om lag {size} om dagen",
+ "wizard.size_first": "om lag {size} første gongen, deretter berre det nye",
  "wizard.size_monthly": "om lag {size} i månaden",
  "wizard.size_off": "om lag {size}",
  "wizard.size_once": "om lag {size}, éin gong",

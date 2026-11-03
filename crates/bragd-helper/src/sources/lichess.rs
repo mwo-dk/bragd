@@ -41,6 +41,7 @@ impl Source for Lichess {
             kind: Kind::Games,
             parts: VARIANTS.iter().map(|(id, v)| Part::new(id, &format!("variant.{v}"), v, *id == "standard")).collect(),
             months: true,
+            first_only: false,
         }
     }
 

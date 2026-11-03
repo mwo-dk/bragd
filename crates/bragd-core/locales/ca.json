@@ -304,6 +304,7 @@
  "wizard.preview": "Vista prèvia",
  "wizard.recommended": "Recomanat",
  "wizard.size_daily": "uns {size} al dia",
+ "wizard.size_first": "uns {size} la primera vegada, després només el que és nou",
  "wizard.size_monthly": "uns {size} al mes",
  "wizard.size_off": "uns {size}",
  "wizard.size_once": "uns {size}, una vegada",

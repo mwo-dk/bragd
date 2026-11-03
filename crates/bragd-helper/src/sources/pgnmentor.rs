@@ -42,6 +42,7 @@ impl Source for PgnMentor {
             kind: Kind::Games,
             parts: SECTIONS.iter().map(|s| Part::new(s, &format!("source.part.pgnmentor.{s}"), "chess", true)).collect(),
             months: false,
+            first_only: true,
         }
     }
 

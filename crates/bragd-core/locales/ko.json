@@ -304,6 +304,7 @@
  "wizard.preview": "미리 보기",
  "wizard.recommended": "권장",
  "wizard.size_daily": "하루 약 {size}",
+ "wizard.size_first": "처음 한 번 약 {size}, 이후에는 새로 생긴 것만",
  "wizard.size_monthly": "한 달 약 {size}",
  "wizard.size_off": "약 {size}",
  "wizard.size_once": "한 번 약 {size}",

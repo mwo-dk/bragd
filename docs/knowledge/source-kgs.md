@@ -4,7 +4,7 @@
 
 The KGS archive holds the go Games of strong players on the KGS Go Server, collected at [u-go.net/gamerecords](https://u-go.net/gamerecords/). It keeps Games where one player is 7 dan or stronger, or both are 6 dan, without comments. Each zip holds a month of SGF files, or a year before 2016. Bragd fetches the zips and imports their Games through the Source's Routes. A Game in two zips is stored once ([Duplicates](duplicates.md)).
 
-![Go's Sources tab: the KGS archive, off, about 185 MB, with its address u-go.net/gamerecords, and Add a custom URL for SGF files](../screenshots/databases-sources-go-1100.png)
+![Go's Sources tab: the KGS archive, off, about 185 MB the first time, with its address u-go.net/gamerecords, and Add a custom URL for SGF files](../screenshots/databases-sources-go-1100.png)
 *Go → Databases → Sources.*
 
 ## How to reach it
@@ -23,9 +23,9 @@ KGS's creator, Bill Shubert, allowed the files to be published. u-go.net states 
 
 ## Questions
 
-#### Why does it say 185 MB a month?
+#### Why does it say 185 MB the first time, and not a month?
 
-Its size is what one fetch takes at most, and the first fetch takes the whole archive. Later fetches take only the zips u-go.net has added since. That is often nothing: the archive was last added to in April 2019.
+The size is the first fetch, which takes the whole archive. Later fetches take only the zips u-go.net has added since, so the line says *about 185 MB the first time, then only what is new*. That is often nothing: the archive was last added to in April 2019.
 
 #### Is a zip fetched again after I delete it?
 

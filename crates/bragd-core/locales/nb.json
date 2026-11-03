@@ -304,6 +304,7 @@
  "wizard.preview": "Forhåndsvis",
  "wizard.recommended": "Anbefalt",
  "wizard.size_daily": "omtrent {size} om dagen",
+ "wizard.size_first": "omtrent {size} første gang, deretter bare det nye",
  "wizard.size_monthly": "omtrent {size} i måneden",
  "wizard.size_off": "omtrent {size}",
  "wizard.size_once": "omtrent {size}, én gang",

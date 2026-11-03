@@ -117,6 +117,7 @@ fn helper_sources() -> Vec<wizard::Source> {
                 list: list.is_some(),
                 more: list.is_some_and(|l| !l.suggested(&tags)),
                 schedule: serde_json::to_value(a.schedule).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default(),
+                first_only: a.first_only,
                 name: list.map_or(a.name, |l| l.title()),
                 id: a.id,
                 family: a.family,

@@ -147,11 +147,18 @@ pub struct Source {
     pub size: u64,
     /// "weekly", "monthly"…
     pub schedule: String,
+    /// `size` is the first fetch only: later ones take what is new.
+    pub first_only: bool,
     pub fetchable: bool,
     /// A rating list, offered under its own heading.
     pub list: bool,
     /// A rating list of another country's federation: offered under More lists.
     pub more: bool,
+}
+
+/// The text key that says a Source's size: its first fetch only, or one fetch on its schedule.
+pub fn size_key(schedule: &str, first_only: bool) -> String {
+    if first_only { "wizard.size_first".into() } else { format!("wizard.size_{schedule}") }
 }
 
 /// A download the Knowledge step offers.
@@ -194,7 +201,7 @@ pub fn offers(sources: &[Source], cfg: &Config, bytes: fn(u64) -> String) -> Vec
         out.push(Offer {
             id: s.id.clone(),
             name: s.name.clone(),
-            size: t!(&format!("wizard.size_{}", s.schedule), "size" => bytes(s.size)),
+            size: t!(&size_key(&s.schedule, s.first_only), "size" => bytes(s.size)),
             recommended: RECOMMENDED.contains(&s.id.as_str()),
             note: big.then(|| t!("wizard.big", "size" => bytes(s.size))),
             big,
@@ -325,6 +332,7 @@ mod tests {
             family: family.into(),
             size,
             schedule: "weekly".into(),
+            first_only: id == "kgs",
             fetchable,
             list: id == "far-list",
             more: id == "far-list",
@@ -378,6 +386,16 @@ mod tests {
         );
         let boards = board_swatches(&Config::default());
         assert_eq!(boards[0].bg, "#efe7d6");
+    }
+
+    #[test]
+    fn a_first_fetch_size_is_not_per_period() {
+        let mut s = sources();
+        s.iter_mut().for_each(|s| s.fetchable = true);
+        let o = offers(&s, &Config::default(), |n| n.to_string());
+        let size = |id: &str| o.iter().find(|o| o.id == id).map(|o| o.size.clone());
+        assert!(size("kgs").is_some_and(|t| t.contains("first time")), "{:?}", size("kgs"));
+        assert!(size("twic").is_some_and(|t| t.ends_with("a week")), "{:?}", size("twic"));
     }
 
     #[test]

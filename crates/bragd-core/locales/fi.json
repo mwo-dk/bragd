@@ -304,6 +304,7 @@
  "wizard.preview": "Esikatselu",
  "wizard.recommended": "Suositeltu",
  "wizard.size_daily": "noin {size} päivässä",
+ "wizard.size_first": "noin {size} ensimmäisellä kerralla, sen jälkeen vain uusi",
  "wizard.size_monthly": "noin {size} kuukaudessa",
  "wizard.size_off": "noin {size}",
  "wizard.size_once": "noin {size}, kerran",

@@ -304,6 +304,7 @@
  "wizard.preview": "Попередній перегляд",
  "wizard.recommended": "Рекомендовано",
  "wizard.size_daily": "близько {size} на день",
+ "wizard.size_first": "близько {size} вперше, далі лише нове",
  "wizard.size_monthly": "близько {size} на місяць",
  "wizard.size_off": "близько {size}",
  "wizard.size_once": "близько {size}, один раз",

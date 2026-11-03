@@ -304,6 +304,7 @@
  "wizard.preview": "წინასწარი ხედი",
  "wizard.recommended": "რეკომენდებული",
  "wizard.size_daily": "დაახლოებით {size} დღეში",
+ "wizard.size_first": "დაახლოებით {size} პირველად, შემდეგ მხოლოდ ახალი",
  "wizard.size_monthly": "დაახლოებით {size} თვეში",
  "wizard.size_off": "დაახლოებით {size}",
  "wizard.size_once": "დაახლოებით {size}, ერთხელ",
