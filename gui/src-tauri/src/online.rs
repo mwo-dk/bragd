@@ -136,6 +136,8 @@ pub struct Page {
     game_family: Option<&'static str>,
     /// The Bragd server's Chat, which both players agree to.
     talk: Option<bragd_online::bragd_server::ChatView>,
+    /// The Call with the Bragd server opponent, when they are a Friend.
+    call: Option<bragd_online::call::CallView>,
 }
 
 fn page(s: &dyn Play, ctx: &Ctx) -> Page {
@@ -160,6 +162,7 @@ fn page(s: &dyn Play, ctx: &Ctx) -> Page {
         rated_games: info.id != "bragd",
         clocks: info.id != "bragd",
         game_family: view_family(&view),
+        call: if info.id == "bragd" { crate::friends::server().call_view() } else { None },
         talk: if info.id == "bragd" { crate::friends::server().chat_view(cfg.online.bragd_filter) } else { None },
         view,
     }
@@ -188,6 +191,11 @@ pub fn online_view(server: String, ctx: tauri::State<'_, Ctx>) -> Res<Page> {
     let _ = s.open();
     let _ = s.set_chat(ctx.cfg().online.chat);
     // A request to Chat on the Bragd server is refused unseen when the user's default is Off.
+    if server == "bragd" {
+        let cfg = ctx.cfg();
+        let default = |v: &str| if v == "off" { bragd_online::talk::Default::Off } else { bragd_online::talk::Default::Ask };
+        crate::friends::server().call_tick(default(&cfg.online.bragd_voice), default(&cfg.online.bragd_camera));
+    }
     if server == "bragd" && ctx.cfg().online.bragd_chat == "off" && crate::friends::server().chat_view(false).is_some_and(|c| c.asked) {
         let _ = crate::friends::server().chat(false);
     }

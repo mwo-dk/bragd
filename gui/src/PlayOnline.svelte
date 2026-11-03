@@ -8,6 +8,7 @@
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
   import Board from "./Board.svelte";
+  import Call from "./Call.svelte";
   import { movesOf, movesTo, plainMoves } from "./board.js";
   import { guide } from "./guide.svelte.js";
 
@@ -318,6 +319,9 @@
           </p>
         {/if}
 
+        {#if view.call}
+          <Call call={view.call} />
+        {/if}
         <!-- The Bragd server's Chat is its own, with consent from both. -->
         {#if view.talk}
           {@const c = view.talk}

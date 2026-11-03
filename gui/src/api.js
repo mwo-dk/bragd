@@ -309,4 +309,8 @@ export const friendsClubFriends = (/** @type {boolean} */ on) => invoke("friends
 /** A Friends action: `friends`, `friends/remove`, `invites`, `invites/redeem`, `blocks`, `blocks/remove`, `reports`, `clubs`, `clubs/join`, `clubs/leave`. */
 export const friendsChat = (/** @type {boolean} */ on) => invoke("friends_chat", { on });
 export const friendsKeep = (/** @type {boolean} */ on) => invoke("friends_keep", { on });
+export const friendsCallWant = (/** @type {string} */ channel, /** @type {boolean} */ on) => invoke("friends_call_want", { channel, on });
+export const friendsCallSignal = (/** @type {any} */ signal) => invoke("friends_call_signal", { signal });
+/** @returns {Promise<any[]>} */
+export const friendsCallTake = () => invoke("friends_call_take");
 export const friendsAct = (/** @type {string} */ what, /** @type {any} */ body) => invoke("friends_act", { what, body });

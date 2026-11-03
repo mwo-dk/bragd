@@ -302,11 +302,14 @@ pub struct OnlineConfig {
     pub bragd_chat: String,
     /// A stranger's Chat lines have the words on the filter's list masked.
     pub bragd_filter: bool,
+    /// What a Friend's request for voice, and for the camera, does in a Call: `ask` or `off`.
+    pub bragd_voice: String,
+    pub bragd_camera: String,
 }
 
 impl Default for OnlineConfig {
     fn default() -> Self {
-        OnlineConfig { chat: false, server: String::new(), bragd_chat: "ask".into(), bragd_filter: true }
+        OnlineConfig { chat: false, server: String::new(), bragd_chat: "ask".into(), bragd_filter: true, bragd_voice: "ask".into(), bragd_camera: "ask".into() }
     }
 }
 
