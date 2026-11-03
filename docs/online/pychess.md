@@ -2,7 +2,7 @@
 
 # pychess.org
 
-pychess.org plays xiangqi, janggi, shogi and many fairy chess Variants. Bragd cannot play there from its own board, and the install wizard links the website instead. This page says why, so nobody has to find out again.
+pychess.org plays xiangqi, janggi, shogi and many fairy chess Variants. Bragd cannot play there from its own board, and the install wizard links the website instead. This page says why, so nobody has to find out again. It was last checked against pychess.org's own source on 3 November 2026.
 
 ## What pychess.org offers
 
@@ -10,7 +10,7 @@ pychess.org plays xiangqi, janggi, shogi and many fairy chess Variants. Bragd ca
 |---|---|
 | A sign-in for apps (OAuth) | None. pychess.org signs people in through Lichess, Lishogi, Google or Discord, and keeps a browser session |
 | A way to play as a person | None. Seeks, challenges and moves go over its own website's socket, signed in by the browser's session cookie |
-| A documented, stable API | Only a bot API: it is for engine accounts, which cannot seek or challenge, and an account that has played a Game cannot become one |
+| A documented, stable API | Only a bot API: its tokens are for engine accounts (`bot:play`) or for lending an engine to analysis (`engine:write`). A bot account cannot seek or challenge, and an account that has played a Game cannot become one |
 | Terms that allow other apps | Automation only "where the site explicitly supports" it |
 
 Driving the website's socket with a copied cookie would be scraping an undocumented protocol, against its terms. Bragd does not do that.
@@ -23,7 +23,7 @@ pychess.org adding a sign-in for apps and an API for a person's Games, as Liches
 
 #### Can I play xiangqi or janggi online from Bragd?
 
-Not yet. Play them on pychess.org in your browser. Bragd's own server, after these, is meant for the Families no other server lets Bragd play.
+Yes, on Bragd's own server: [Play with Friends](play-with-friends.md) plays every Family, xiangqi and shogi among them. To meet the players on pychess.org, play there in your browser.
 
 #### Can Bragd's Engines play on pychess.org as a bot?
 
