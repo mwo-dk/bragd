@@ -57,11 +57,14 @@ pub enum Work {
     /// (empty: any) with no Commentary in `language` yet (`commentary::slice`), each queued as a
     /// `Commentary` job. Only when the user asks, after being told how many.
     SliceCommentary { library: PathBuf, slice: String, family: String, language: String },
+    /// The solved table of an Ur Variant's rule set (`bragd_engines::ur_table`), worked out on
+    /// every core; on the matches' worker, as it runs for minutes.
+    UrTable { variant: String },
 }
 
-/// The workers that take jobs: one for most, one for engine matches, one for background
-/// analysis and one for the language model, so a long match or analysis never holds up a
-/// Source or a translation.
+/// The workers that take jobs: one for most, one for engine matches and Ur's solved tables,
+/// one for background analysis and one for the language model, so a long match, table or
+/// analysis never holds up a Source or a translation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Lane {
@@ -74,7 +77,7 @@ pub enum Lane {
 impl Lane {
     pub fn of(work: &Work) -> Lane {
         match work {
-            Work::Match { .. } => Lane::Matches,
+            Work::Match { .. } | Work::UrTable { .. } => Lane::Matches,
             Work::Analyse { .. } => Lane::Analysis,
             Work::Translate { .. } | Work::Commentary { .. } => Lane::Model,
             _ => Lane::Main,
@@ -672,6 +675,14 @@ impl Jobs {
                     self.add(Work::Commentary { family: f.family.clone(), variant: f.variant.clone(), key: f.key, mv: f.mv.clone(), language: language.clone(), facts: f.text.clone() });
                 }
                 Ok(todo.len() as u64)
+            }
+            Work::UrTable { variant } => {
+                let rules = bragd_games::ur_rules(variant).ok_or_else(|| format!("{variant} is not an Ur Variant"))?;
+                let path = bragd_engines::ur_table::path_in(&self.data, rules);
+                let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
+                let stop = || self.should_stop(id);
+                let stats = bragd_engines::ur_table::compute(rules, &path, threads, &stop, &|done, all| self.progress(id, done, Some(all)))?;
+                Ok(stats.states)
             }
             Work::Commentary { language, facts, .. } => {
                 let t = bragd_model::commentary(&Config::load().unwrap_or_default().model, facts, language)?;
@@ -1292,6 +1303,29 @@ pub(crate) mod tests {
 
     /// A Peer is lent first the jobs of Engines it runs from their image, so it answers with the
     /// same Edition as every other machine; the jobs asked for still go before those from Games opened.
+    /// An Ur table is made on the matches' worker; one for a Variant that is not Ur's fails,
+    /// and one cancelled while it runs stops before it writes anything.
+    #[cfg(unix)]
+    #[test]
+    fn an_ur_table_runs_beside_the_other_jobs_and_stops_when_cancelled() {
+        let d = crate::tests::Dir::new("ur-table");
+        let data = d.0.join("data");
+        let jobs = jobs_in_data(&d.0, &data, Recorded::default());
+        let chess = jobs.add(Work::UrTable { variant: "chess".into() });
+        assert!(!jobs.run_next(), "the other jobs' worker leaves a table alone");
+        assert!(jobs.run_first(Lane::Matches));
+        assert_eq!(jobs.list().into_iter().find(|j| j.id == chess).unwrap().status, Status::Failed);
+        let blitz = jobs.add(Work::UrTable { variant: "ur-blitz".into() });
+        let worker = { let jobs = jobs.clone(); std::thread::spawn(move || jobs.run_first(Lane::Matches)) };
+        while !jobs.list().iter().any(|j| j.id == blitz && j.status == Status::Running) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(jobs.cancel(blitz));
+        assert!(worker.join().unwrap());
+        assert_eq!(jobs.list().into_iter().find(|j| j.id == blitz).unwrap().status, Status::Cancelled);
+        assert!(!bragd_engines::ur_table::path_in(&data, bragd_games::ur_rules("ur-blitz").unwrap()).exists());
+    }
+
     #[test]
     fn a_peer_is_lent_the_jobs_of_its_container_engines_first() {
         let d = crate::tests::Dir::new("lend");

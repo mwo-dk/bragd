@@ -22,6 +22,7 @@ mod engines;
 mod files;
 mod rules;
 mod tablebases;
+mod ur_tables;
 mod wizard;
 
 use std::collections::HashMap;
@@ -501,6 +502,9 @@ fn main() {
             knowledge::helper_retry,
             knowledge::job_cancel,
             matches::matches_page,
+            ur_tables::ur_tables,
+            ur_tables::ur_table_make,
+            ur_tables::ur_table_delete,
             matches::match_start,
             matches::match_book_pick,
             knowledge::db_pick,

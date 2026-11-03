@@ -4,6 +4,7 @@
 use bragd_core::config::Config;
 use bragd_engines::options::EngineInfo;
 use bragd_engines::syzygy::Set;
+use bragd_engines::ur_table;
 use bragd_games::{Family, State};
 use serde::Serialize;
 use serde_json::Value;
@@ -106,7 +107,14 @@ pub fn engine_choices(variant: String, ctx: Managed<'_, Ctx>) -> Choices {
     let bot = bragd_games::Variant::from_key(&variant)
         .is_some_and(|v| v.family() == bragd_games::Family::Ur)
         .then(|| Choice { key: BOT.into(), name: tr("engines.bot", &[]) });
-    Choices { engines, default: engines::default_for(&cfg, &variant).filter(|d| ready.contains(d)), more: all.len() > ready.len(), sides, bot }
+    let mut engines: Vec<Choice> = engines;
+    // An Ur rule set's solved table, once made, plays and judges like an Engine; until then the
+    // Engines page offers to make it.
+    let solved = bragd_games::ur_rules(&variant).map(|rules| bragd_engines::ur_table::Table::installed(rules).is_some());
+    if solved == Some(true) {
+        engines.insert(0, Choice { key: ur_table::KEY.into(), name: tr("ur.solved", &[]) });
+    }
+    Choices { engines, default: engines::default_for(&cfg, &variant).filter(|d| ready.contains(d)), more: all.len() > ready.len() || solved == Some(false), sides, bot }
 }
 
 #[tauri::command(async)]
@@ -124,7 +132,24 @@ pub fn engine_move(variant: String, initial: Option<String>, entries: Vec<String
             .ok_or_else(|| tr("engines.no_move", &[]))?;
         return Ok(engines::Moved { entry: entry.clone(), notation: entry });
     }
+    if engine.as_deref() == Some(ur_table::KEY) {
+        let entry = solved_move(&variant, initial.as_deref(), &entries, skill.unwrap_or(rules_ur::bot::PERFECT))?;
+        return Ok(engines::Moved { entry: entry.clone(), notation: entry });
+    }
     engines::engine_move(&ctx.cfg(), &held, &variant, initial.as_deref(), &entries, engine.as_deref(), ms, skill)
+}
+
+/// The move an Ur rule set's solved table plays at `strength` (0 to 20).
+fn solved_move(variant: &str, initial: Option<&str>, entries: &[String], strength: u8) -> Res<String> {
+    let rules = bragd_games::ur_rules(variant).ok_or_else(|| tr("engines.no_move", &[]))?;
+    let table = ur_table::Table::installed(rules).ok_or_else(|| tr("ur.no_table", &[]))?;
+    let game = bragd_games::ur_game(variant, initial, entries).map_err(|e| e.to_string())?;
+    let throw = game.pending_throw().ok_or_else(|| tr("engines.no_move", &[]))?;
+    // A different draw each time: the weaker strengths are not to play one Game twice the same.
+    let seed = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos() as u64);
+    let space = rules_ur::solve::Space::new(rules);
+    let chosen = rules_ur::bot::choose_solved(&space, &table, game.position(), throw, strength, seed).ok_or_else(|| tr("engines.no_move", &[]))?;
+    Ok(chosen.to_wire(rules))
 }
 
 #[tauri::command(async)]

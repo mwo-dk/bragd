@@ -7,11 +7,52 @@
 //! when that wins. It plays every rule set, because it asks the position and its
 //! [`Rules`] everything and knows nothing of its own.
 //!
-//! Nothing here is random: the same position and throw always give the same move.
+//! Nothing in [`choose`] is random: the same position and throw always give the same move.
+//!
+//! With a solved table ([`crate::solve`]) the Bot plays [`choose_solved`] instead: the move
+//! that leaves the best chance to win, or at a lower strength a move drawn at random, each
+//! weighted by how little it gives away.
 
 use crate::board::{Rules, Side, Spot};
 use crate::dice::Throw;
 use crate::position::{Move, Position};
+use crate::solve::{Chances, Space};
+
+/// The strongest a Bot plays: always the best move.
+pub const PERFECT: u8 = 20;
+
+/// The move a solved table plays for this throw at `strength` (0 to [`PERFECT`]), from `seed`;
+/// None when the throw allows no move or the table cannot be read.
+///
+/// Below [`PERFECT`] each move is drawn with weight `exp(-k × loss)`, the loss being the chance
+/// to win it gives away against the best move and `k = 2^(strength / 2)`. At 0 a move that
+/// loses everything is still drawn a third as often as the best one; at 19 one that loses a
+/// hundredth of the chance is drawn once for about 1,300 draws of the best.
+pub fn choose_solved(space: &Space, table: &dyn Chances, position: &Position, throw: Throw, strength: u8, seed: u64) -> Option<Move> {
+    let moves = space.moves(table, position, throw)?;
+    let best = moves.first()?.1;
+    if strength >= PERFECT {
+        return Some(moves[0].0);
+    }
+    let k = 2f64.powf(strength as f64 / 2.0);
+    let weights: Vec<f64> = moves.iter().map(|(_, chance)| (-(best - chance) * k).exp()).collect();
+    let mut pick = unit(seed) * weights.iter().sum::<f64>();
+    for ((chosen, _), weight) in moves.iter().zip(&weights) {
+        if pick < *weight {
+            return Some(*chosen);
+        }
+        pick -= weight;
+    }
+    moves.last().map(|m| m.0)
+}
+
+/// A number in [0, 1) from `seed` (SplitMix64).
+fn unit(seed: u64) -> f64 {
+    let mut z = seed.wrapping_add(0x9e37_79b9_7f4a_7c15);
+    z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+    (z ^ (z >> 31)) as f64 / (u64::MAX as f64 + 1.0)
+}
 
 /// The move the Bot plays for this throw, or `None` when the throw allows none.
 pub fn choose(position: &Position, throw: Throw) -> Option<Move> {
@@ -119,6 +160,35 @@ mod tests {
         let picture = format!("{} 07 60 w", glyphs.into_iter().collect::<String>());
         let position = Position::from_picture(&FINKEL, &picture).unwrap();
         assert_eq!(choose(&position, throw(2)), Some(Move { from: Spot::Step(13), to: Spot::Off }));
+    }
+
+    /// A table that gives each position some chance: the moves are then worth different
+    /// amounts. Perfect play always takes the best; the weakest mixes others in often;
+    /// strength in between less often.
+    #[test]
+    fn strength_mixes_in_weaker_moves() {
+        struct Scattered;
+        impl Chances for Scattered {
+            fn chance(&self, index: u64) -> Option<f64> {
+                Some((index.wrapping_mul(2_654_435_761) % 1000) as f64 / 1000.0)
+            }
+        }
+        // White on steps 4, 5 and 7, four waiting: a 1 enters, or moves from 5 or 7.
+        let mut glyphs = vec!['.'; 20];
+        for square in [0, 6, 8] {
+            glyphs[square] = 'W';
+        }
+        let position = Position::from_picture(&FINKEL, &format!("{} 47 00 w", glyphs.into_iter().collect::<String>())).unwrap();
+        let space = Space::new(&FINKEL);
+        let moves = space.moves(&Scattered, &position, throw(1)).unwrap();
+        assert_eq!(moves.len(), 3, "{moves:?}");
+        assert!(moves[0].1 > moves[2].1 + 0.05, "{moves:?}");
+        let best = moves[0].0;
+        let others = |strength: u8| (0..400u64).filter(|&seed| choose_solved(&space, &Scattered, &position, throw(1), strength, seed) != Some(best)).count();
+        assert_eq!(others(PERFECT), 0);
+        let (weak, middling) = (others(0), others(12));
+        assert!(weak > 100, "{weak}");
+        assert!(middling < weak, "{middling} against {weak}");
     }
 
     #[test]

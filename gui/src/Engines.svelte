@@ -6,6 +6,7 @@
   import * as api from "./api.js";
   import { t, i18n } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
+  import UrTables from "./UrTables.svelte";
 
   /** @type {{ family: any, go: (page: any) => void }} */
   let { family, go } = $props();
@@ -82,7 +83,9 @@
 
 <section class="engines">
   <h1>{family.name}: {t("sidebar.engines")}</h1>
-  {#if page}
+  {#if family.id === "ur"}
+    <UrTables />
+  {:else if page}
     <h2>{t("engines.by_variant")}</h2>
     <table>
       <tbody>

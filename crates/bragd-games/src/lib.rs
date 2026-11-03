@@ -393,6 +393,21 @@ pub fn bot_move<S: AsRef<str>>(key: &str, initial: Option<&str>, entries: &[S]) 
     }
 }
 
+/// The rule set of an Ur Variant, for the solved tables; None for any other Variant.
+pub fn ur_rules(key: &str) -> Option<&'static rules_ur::Rules> {
+    Variant::from_key(key).filter(|v| v.family() == Family::Ur).map(ur::rules)
+}
+
+/// An Ur Game replayed from its record, as `rules_ur` keeps it, for the solved tables.
+pub fn ur_game<S: AsRef<str>>(key: &str, initial: Option<&str>, entries: &[S]) -> Result<rules_ur::Game, GameError> {
+    let variant = variant(key)?;
+    if variant.family() != Family::Ur {
+        return Err(GameError::bad_position(format!("{key} is not an Ur Variant")));
+    }
+    let entries: Vec<&str> = entries.iter().map(AsRef::as_ref).collect();
+    ur::game(variant, initial.filter(|text| !text.trim().is_empty()), &entries).map(|(game, _)| game)
+}
+
 /// [`replay`] with one more entry: the Game after `entry`, or why it is refused.
 pub fn apply<S: AsRef<str>>(
     key: &str,

@@ -46,7 +46,7 @@ fn opening(rules: &'static Rules, text: &str) -> Result<Position, GameError> {
     }
 }
 
-fn game(variant: Variant, initial: Option<&str>, entries: &[&str]) -> Result<(Game, Option<(Side, rules_ur::Move)>), GameError> {
+pub(crate) fn game(variant: Variant, initial: Option<&str>, entries: &[&str]) -> Result<(Game, Option<(Side, rules_ur::Move)>), GameError> {
     let rules = rules(variant);
     let position = initial
         .map(|text| opening(rules, text))

@@ -106,7 +106,7 @@ pub struct Rules {
     pub columns: u8,
     pub rows: u8,
     /// White's path and Black's, as indices into `board`, in the order a piece walks them.
-    paths: [&'static [usize]; 2],
+    pub(crate) paths: [&'static [usize]; 2],
     /// The rosettes, as indices into `board`. Landing on one earns another throw.
     pub rosettes: &'static [usize],
     /// How many pieces each side brings.

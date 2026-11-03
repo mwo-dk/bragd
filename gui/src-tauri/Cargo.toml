@@ -13,6 +13,8 @@ tauri-build = { version = "2", features = [] }
 bragd-core = { path = "../../crates/bragd-core" }
 bragd-games = { path = "../../crates/bragd-games" }
 bragd-engines = { path = "../../crates/bragd-engines" }
+# Ur's solved tables: the Bot's strength and the positions' ranks.
+rules-ur = { path = "../../crates/rules-ur" }
 # Settings opens config.toml in the system's editor and pages in the browser, from Rust.
 tauri-plugin-opener = "2"
 # Engines, tablebases and their downloads; opening books and names from the library.

@@ -48,6 +48,34 @@ Columns are counted 1 to 8 (1 to 12 on Aseb's board) from the end where pieces t
 
 Ur has no outside Engine, so Bragd's own Bot plays it (`rules_ur::bot`). For each legal move it weighs every next throw by how likely it is, assumes whoever throws picks their best reply, and counts how far each side's pieces have come, with a little extra for a piece home or on a safe square. It asks the rule set everything, so it plays all four Variants. The same position and throw always give the same move.
 
+## Solved
+
+Every rule set here is small enough to solve outright: Bragd works out, for every position, the exact chance that the side about to throw wins if both sides play perfectly (`rules_ur::solve`). The RoyalUr.net team did this first for Finkel's, Masters' and Blitz rules ([Solving the Royal Game of Ur](https://royalur.net/blog/solved), P. Lamont, 2025); Bragd does it again in Rust, for Aseb too, and on your computer ([Ur: the solved tables](../play/ur.md#the-solved-tables)).
+
+**How.** Each position gets a number with no gaps between them, so the table is a flat array and nothing is searched. A position is counted from the side to throw, since the two paths mirror each other. Pieces home never come back, so positions are grouped by how many pieces each side has home and solved from the end back. Within a group the turn passes back and forth, so it is iterated: each position becomes the average over the throws of the best move's chance, until no chance moves by more than 10⁻⁷. Positions where a side has already won are not stored. Each chance is kept as a 16-bit number, to a 65,535th.
+
+**Checked.** The chance that the side throwing first wins, from the start, against the values published with the RoyalUr.net team's maps (J. Olieslagers, [`game_of_ur`](https://github.com/JeroenOlieslagers/game_of_ur), 2025), and the number of positions where no side has won, against that solver's counts:
+
+| Rule set | Positions | Published | Bragd | First wins, published | First wins, Bragd |
+|---|---|---|---|---|---|
+| Finkel | 137,870,097 | 137,870,097 | same | 51.5404732509 % | 51.5404641628 % |
+| Blitz | 41,243,781 | 41,243,781 | same | 50.4052555093 % | 50.4052519798 % |
+| Masters | 500,929,993 | 500,981,472, counting won positions | — | 50.4809002027 % | 50.4808962345 % |
+| Aseb | 41,243,781 | — | — | — | 50.6492078304 % |
+
+The test `crates/rules-ur/tests/solved.rs` makes each table and checks it to a thousandth of a percentage point (Aseb against Bragd's own first value, as nobody has published one); it takes minutes, so it runs when asked (`cargo test --release -p rules-ur --test solved -- --ignored`). The tests that always run check the counts, that every rank belongs to one position, and that small rule sets of two pieces solve to what the crate's own moves give, worked out the slow way.
+
+**The work, counted.** A sweep works out every position of a group once. Each position is worked out about 65 times for Blitz, 100 times for Finkel and 105 times for Masters before it settles:
+
+| Rule set | Positions worked out | Moves looked at | Sweeps |
+|---|---|---|---|
+| Blitz | 2,696,297,816 | 45,766,593,452 | 947 |
+| Finkel | 13,880,766,904 | 291,709,590,056 | 2,644 |
+| Masters | 52,804,239,762 | 1,142,237,445,328 | 3,094 |
+| Aseb | 5,183,832,838 | 90,105,932,012 | 1,284 |
+
+On a computer with 32 threads that took about a minute and a quarter for Blitz, a few minutes for Finkel, and under half an hour for Masters while other work shared the computer. Making a table needs four bytes of memory a position, so 165 MB for Blitz and Aseb, 552 MB for Finkel and 2 GB for Masters: practical on any computer with 4 GB of memory to spare for Masters, and less for the others.
+
 ## Questions
 
 #### Why is Finkel's the default?

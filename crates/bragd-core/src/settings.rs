@@ -359,10 +359,12 @@ pub enum Item {
 }
 
 /// The items of the Family `id`: chess has Tablebases and Opening books too; a Family with no
-/// outside Engine has only Play, Databases and Rules (no Engines, no Engine matches).
+/// outside Engine has only Play, Databases and Rules (no Engines, no Engine matches), except
+/// Ur, whose Engines page makes its solved tables, which Analyse reads.
 pub fn items(id: &str) -> Vec<Item> {
     use Item::*;
     match Family::from_key(id) {
+        Some(Family::Ur) => vec![Play, Analyse, Databases, Engines, Rules],
         Some(f) if !f.has_engine() => vec![Play, Databases, Rules],
         _ if id == "chess" => vec![
             Play,
@@ -582,9 +584,8 @@ mod tests {
         );
         let tafl = families.iter().find(|f| f.id == "tafl").unwrap();
         assert_eq!(tafl.items, [Play, Databases, Rules]);
-        for id in ["ur", "senet"] {
-            assert_eq!(items(id), [Play, Databases, Rules]);
-        }
+        assert_eq!(items("ur"), [Play, Analyse, Databases, ENGINES, Rules]);
+        assert_eq!(items("senet"), [Play, Databases, Rules]);
         assert_eq!(items("go"), [Play, Analyse, Databases, ENGINES, Matches, Rules]);
 
         // One Family on: its items at the top.
