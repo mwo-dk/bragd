@@ -9,6 +9,7 @@ needs `fake-uci` (a stand-in UCI engine) in the demo home; see `engine()`.
 """
 
 import json, os, shutil, sys
+from urllib.parse import urlparse
 from pathlib import Path
 
 from cap import HERE, SEEN, WIDTHS, Desktop, _env, gif, widths
@@ -516,15 +517,12 @@ def fake_model(text="The Spanish Game. White attacks the knight that defends the
 def commentary():
     """commentary-chess-390.png and -1100.png: a Game reviewed in Analyse (as `review`), and the
     language model's Commentary on 3… Qg5?? beside its Annotation. The model is a stand-in
-    unless MODEL_URL and MODEL_NAME name a real server; once written, the Commentary is kept in
-    the demo home's Position store, so the second width finds it there."""
-    fake = None
-    if os.environ.get("MODEL_URL"):
-        url, name = os.environ["MODEL_URL"], os.environ.get("MODEL_NAME", "")
-    else:
-        fake = fake_model("Black's queen goes to g5, where White's knight on f3 can simply take it, so the Engine marks 3… Qg5 "
-                          "as a blunder that leaves a piece hanging. Before the move the position was about level.")
-        url, name = f"http://127.0.0.1:{fake.server_port}/v1", "demo-writer"
+    (fake_model), never a server of this machine's, whose name a picture would show; once
+    written, the Commentary is kept in the demo home's Position store, so the second width finds
+    it there."""
+    fake = fake_model("Black's queen goes to g5, where White's knight on f3 can simply take it, so the Engine marks 3… Qg5 "
+                      "as a blunder that leaves a piece hanging. Before the move the position was about level.")
+    url, name = f"http://127.0.0.1:{fake.server_port}/v1", "demo-writer"
     config(f'[engines.paths]\nstockfish = "/home/demo/fake-uci"\n\n[model]\nurl = "{url}"\nname = "{name}"\n')
     try:
         def page(d):
@@ -544,11 +542,10 @@ def commentary():
                 d.wait(1)
             js(d, "document.querySelector('main .notes .written')?.scrollIntoView({block: 'center'})")
 
-        widths("commentary-chess", page)
+        widths("commentary-chess", page, reach=[fake.server_port])
     finally:
         config("")
-        if fake:
-            fake.shutdown()
+        fake.shutdown()
 
 
 def stand_in_picker(path):
@@ -679,17 +676,13 @@ def source_pages():
 
 
 def model():
-    """language-model-390.png and -1100.png: Settings → Language model with the model server
-    running on this machine, and translate-comment-390.png and -1100.png: a German comment
-    translated in replay, and translate-library-*.png: the same comment in a Library Game. The model is a stand-in (fake_model) unless MODEL_URL and MODEL_NAME
-    name a real server on the host; one translation is asked, then kept in the demo home. The Foreign database
+    """language-model-390.png and -1100.png: Settings → Language model with the stand-in set and
+    nothing running on this machine (the sandbox reaches none), and translate-comment-390.png and -1100.png: a German comment
+    translated in replay, and translate-library-*.png: the same comment in a Library Game. The model is a stand-in (fake_model), never a
+    server of this machine's; one translation is asked, then kept in the demo home. The Foreign database
     is opened through a stand-in for Coxswain's picker, put beside bragd-gui for the run."""
-    fake = None
-    if os.environ.get("MODEL_URL"):
-        url, name = os.environ["MODEL_URL"], os.environ.get("MODEL_NAME", "")
-    else:
-        fake = fake_model()
-        url, name = f"http://127.0.0.1:{fake.server_port}/v1", "demo-translator"
+    fake = fake_model()
+    url, name = f"http://127.0.0.1:{fake.server_port}/v1", "demo-translator"
     home = Path(_env()["DEMO_HOME"])
     (home / "Games/comments.pgn").write_text(COMMENTS_PGN)
     picker = stand_in_picker("/home/demo/Games/comments.pgn")
@@ -702,7 +695,7 @@ def model():
             click(d, "Language model", "main")
             d.wait(2)
 
-        widths("language-model", settings)
+        widths("language-model", settings, reach=[fake.server_port])
 
         def comment(d):
             js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
@@ -722,7 +715,7 @@ def model():
                 d.wait(1)
             js(d, "document.querySelector('main .comment')?.scrollIntoView({block: 'center'})")
 
-        widths("translate-comment", comment)
+        widths("translate-comment", comment, reach=[fake.server_port])
 
         def library(d):
             unfold(d)
@@ -741,12 +734,11 @@ def model():
                 d.wait(1)
             js(d, "document.querySelector('main .comment')?.scrollIntoView({block: 'center'})")
 
-        widths("translate-library", library, out=Path(os.environ.get("CAP_OUT", HERE)))
+        widths("translate-library", library, out=Path(os.environ.get("CAP_OUT", HERE)), reach=[fake.server_port])
     finally:
         config("")
         picker.unlink(missing_ok=True)
-        if fake:
-            fake.shutdown()
+        fake.shutdown()
 
 
 def background():
@@ -807,7 +799,7 @@ def background():
 def peers():
     """peers-390.png and peers-1100.png: Settings → Peers on, a code shown, and one paired
     machine that is not reachable now (at 192.0.2.10, an address kept for documentation). The
-    sandbox's Helper listens on the host's home network while it runs, under the name demo."""
+    sandbox's Helper listens only on the sandbox's own network, under the name demo."""
     home = Path(_env()["DEMO_HOME"])
     folder = home / ".local/share/bragd/helper/peers"
     folder.mkdir(parents=True, exist_ok=True)
@@ -822,7 +814,7 @@ def peers():
             d.wait(4)
             click(d, "Show a code", "main")
             d.wait(1)
-            # The host's own addresses stay out of the docs: an example address in their place.
+            # The address shown is an example one, as on a home network.
             js(d, "const s = document.querySelector('main .peers .state'); if (s) s.textContent = s.textContent.replace(/listening on .*$/, 'listening on 192.168.1.20:47247.');")
 
         widths("peers", page)
@@ -904,7 +896,8 @@ def sharing():
 def online():
     """Play online against the fake servers (`fake-online`, built by `cargo build --release -p
     bragd-online --features fake --example fake-online`), never the real ones. Each fake runs on
-    this machine, started and stopped here by its own PID; the app is pointed at it by
+    this machine, started and stopped here by its own PID, and only its port is joined into the
+    sandbox; the app is pointed at it by
     BRAGD_<SERVER>_URL, and BRAGD_<SERVER>_TOKEN stands in for the keychain the sandbox does not
     have. Lichess: online-sign-in, online-lobby and online-game; Lishogi: online-lishogi-sign-in
     and online-lishogi; OGS: online-ogs-sign-in and online-ogs; each -390.png and -1100.png."""
@@ -954,11 +947,11 @@ def online():
             p = subprocess.Popen([str(fake), key], stdout=subprocess.PIPE, text=True)
             try:
                 url = p.stdout.readline().strip()
-                with Desktop(size=(w, h), env={f"{var}_URL": url}) as d:
+                with Desktop(size=(w, h), env={f"{var}_URL": url}, reach=[urlparse(url).port]) as d:
                     open_page(d, family, server)
                     d.shot(HERE / f"{sign_in}-{w}.png")
                 config("[online]\nchat = true\n")
-                with Desktop(size=(w, h), env={f"{var}_URL": url, f"{var}_TOKEN": token}) as d:
+                with Desktop(size=(w, h), env={f"{var}_URL": url, f"{var}_TOKEN": token}, reach=[urlparse(url).port]) as d:
                     open_page(d, family, server)
                     if key == "lichess":
                         d.shot(HERE / f"online-lobby-{w}.png")
@@ -989,10 +982,10 @@ def friends():
         p = subprocess.Popen([str(fake), "bragd"], stdout=subprocess.PIPE, text=True)
         try:
             url = p.stdout.readline().strip()
-            with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url}) as d:
+            with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url}, reach=[urlparse(url).port]) as d:
                 open_page(d)
                 d.shot(HERE / f"friends-sign-in-{w}.png")
-            with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url, "BRAGD_FRIENDS_TOKEN": "fake-refresh"}) as d:
+            with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url, "BRAGD_FRIENDS_TOKEN": "fake-refresh"}, reach=[urlparse(url).port]) as d:
                 open_page(d)
                 d.shot(HERE / f"friends-{w}.png")
                 js(d, "document.querySelector('main .lobby')?.scrollIntoView();")
@@ -1033,7 +1026,7 @@ def friends():
         p = subprocess.Popen([str(fake), "bragd-dice"], stdout=subprocess.PIPE, text=True)
         try:
             url = p.stdout.readline().strip()
-            with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url, "BRAGD_FRIENDS_TOKEN": "fake-refresh"}) as d:
+            with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url, "BRAGD_FRIENDS_TOKEN": "fake-refresh"}, reach=[urlparse(url).port]) as d:
                 open_page(d)
                 js(d, "document.querySelector('main .game')?.scrollIntoView();")
                 d.wait(0.5)

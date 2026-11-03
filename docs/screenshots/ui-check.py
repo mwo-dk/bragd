@@ -11,7 +11,8 @@
     region, group or aside with no accessible name;
   - axe-core's rules on contrast, names and labels, and keyboard focus (axe-core is a
     devDependency of gui/, read from gui/node_modules: nothing is fetched);
-  - a board that does not fit the window: at 1100 × 700 every Family's whole board shows.
+  - a board that does not fit the window: at 1100 × 700 every Family's whole board shows;
+  - a sandbox that reaches a port opened on this machine, whose servers a picture could show.
 
 It runs the release build in the screenshot sandbox (cap.py: a fake home, BRAGD_OFFLINE=1, GTK
 Broadway in a headless Chromium) and checks the app's own page through WebKit's inspector.
@@ -25,7 +26,7 @@ and width. Needs what cap.py needs, and `npm ci` in gui/.
 import json, sys, time
 from pathlib import Path
 
-from cap import HERE, SEEN, Desktop
+from cap import HERE, SEEN, Desktop, sees_host
 from pages import FAMILIES, NAMES, js
 
 AXE = HERE.parent.parent / "gui/node_modules/axe-core/axe.min.js"
@@ -288,6 +289,10 @@ if __name__ == "__main__":
         Path(shots).mkdir(parents=True, exist_ok=True)
     only = [a for a in args if not a.startswith("--") and a != shots] or None
     if not self_test():
+        sys.exit(1)
+    # A picture must show only the fake home: no server of this machine's reaches its page (#352).
+    if sees_host():
+        print("FAULT the sandbox reaches a port opened on this machine: a picture could show its servers")
         sys.exit(1)
     faults = check([(390, 844), (1100, 760), (1100, 700)], shots, only)
     for f in faults:
