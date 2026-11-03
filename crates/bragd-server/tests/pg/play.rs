@@ -42,20 +42,21 @@ fn mv(db: &Db, u: &User, id: &str, ply: u64, e: &str) -> (u16, serde_json::Value
 
 fn a_clock_is_charged_on_the_server_and_its_flag_falls_there(pg: &Pg) {
     let db = pg.fresh();
-    let (anna, bo, id) = playing(&db, json!({ "minutes": 1, "increment": 2 }));
+    // A large increment, so the real time between the requests cannot blur what is proved.
+    let (anna, bo, id) = playing(&db, json!({ "minutes": 1, "increment": 60 }));
     let g = game(&db, &bo);
     assert_eq!(g["clock"]["running"], 0);
-    assert_eq!(g["clock"]["increment"], 2000);
+    assert_eq!(g["clock"]["increment"], 60000);
     assert!(g["clock"]["left"][0].as_i64().unwrap() <= 60000);
     assert_eq!(mv(&db, &anna, &id, 0, "e2e4").0, 200);
     wait(&db, &id, 30);
     assert_eq!(mv(&db, &bo, &id, 1, "e7e5").0, 200);
     let left = game(&db, &anna)["clock"]["left"].clone();
     let bo_left = left[1].as_i64().unwrap();
-    assert!((31000..=32000).contains(&bo_left), "30 s used, 2 s added: {left}");
-    assert!(left[0].as_i64().unwrap() > 60000, "Anna's increment: {left}");
+    assert!((80000..=90000).contains(&bo_left), "30 s used, 60 s added: {left}");
+    assert!((110000..=120000).contains(&left[0].as_i64().unwrap()), "Anna's increment: {left}");
     // Anna's flag falls while she thinks: her move comes too late, and the Game is Bo's.
-    wait(&db, &id, 120);
+    wait(&db, &id, 200);
     let (s, v) = mv(&db, &anna, &id, 2, "g1f3");
     assert_eq!((s, &v["status"]), (200, &json!("over")), "{v}");
     let g = game(&db, &anna);
