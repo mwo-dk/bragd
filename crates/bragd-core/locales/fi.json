@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "Tämä poistaa tilisi Bragd-palvelimelta heti: nimesi, ystäväsi, pyynnöt, kutsukoodit, estot, ilmoitukset, klubit, jotka olet luonut, chat-rivisi ja pelisi. Tätä ei voi perua.",
  "friends.delete_account.keep_games": "Jätä päättyneet pelini muille pelaajille poistettuna pelaajana",
  "friends.delete_account.confirm": "Vahvista kirjoittamalla nimesi, {name}",
+ "friends.delete_account.confirm_word": "Sinulla ei ole vielä nimeä. Vahvista kirjoittamalla ”{word}”",
+ "friends.delete_account.word": "poista",
  "friends.delete_account.button": "Poista tilini pysyvästi",
  "friends.deleted": "Tilisi Bragd-palvelimella on poistettu, ja Bragd on kirjannut sinut ulos.",
  "friends.deleted_player": "Poistettu pelaaja",

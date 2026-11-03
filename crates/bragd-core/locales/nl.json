@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "Dit verwijdert je account op de Bragd-server meteen: je naam, Vrienden, verzoeken, uitnodigingscodes, blokkeringen, meldingen, de Clubs die je hebt gemaakt, je regels in de Chat en je Partijen. Dit kan niet ongedaan worden gemaakt.",
  "friends.delete_account.keep_games": "Mijn afgeronde Partijen overlaten aan de andere spelers, als verwijderde speler",
  "friends.delete_account.confirm": "Typ je naam, {name}, om te bevestigen",
+ "friends.delete_account.confirm_word": "Je hebt nog geen naam. Typ “{word}” om te bevestigen",
+ "friends.delete_account.word": "verwijder",
  "friends.delete_account.button": "Verwijder mijn account voorgoed",
  "friends.deleted": "Je account op de Bragd-server is verwijderd, en Bragd heeft je uitgelogd.",
  "friends.deleted_player": "Verwijderde speler",

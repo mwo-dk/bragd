@@ -1840,6 +1840,8 @@
  "friends.delete_account.what": "Bragd 서버의 계정을 바로 삭제합니다. 이름, 친구, 요청, 초대 코드, 차단, 신고, 내가 만든 클럽, 채팅 기록, 대국이 모두 삭제됩니다. 되돌릴 수 없습니다.",
  "friends.delete_account.keep_games": "끝난 대국은 삭제된 플레이어로서 다른 플레이어에게 남기기",
  "friends.delete_account.confirm": "확인하려면 {name}을(를) 입력하세요",
+ "friends.delete_account.confirm_word": "아직 이름이 없습니다. 확인하려면 “{word}”을(를) 입력하세요",
+ "friends.delete_account.word": "삭제",
  "friends.delete_account.button": "내 계정을 영구히 삭제",
  "friends.deleted": "Bragd 서버의 계정이 삭제되었고, Bragd에서 로그아웃되었습니다.",
  "friends.deleted_player": "삭제된 플레이어",

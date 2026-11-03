@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "See kustutab kohe sinu konto Bragdi serveris: su nime, sõbrad, taotlused, kutsekoodid, blokeeringud, teated, klubid, mille oled loonud, su chati read ja su mängud. Seda ei saa tagasi võtta.",
  "friends.delete_account.keep_games": "Jäta mu lõppenud mängud teistele mängijatele, kustutatud mängijana",
  "friends.delete_account.confirm": "Kinnitamiseks kirjuta oma nimi, {name}",
+ "friends.delete_account.confirm_word": "Sul ei ole veel nime. Kinnitamiseks kirjuta „{word}“",
+ "friends.delete_account.word": "kustuta",
  "friends.delete_account.button": "Kustuta mu konto lõplikult",
  "friends.deleted": "Su konto Bragdi serveris on kustutatud ja Bragd on sind välja logitud.",
  "friends.deleted_player": "Kustutatud mängija",

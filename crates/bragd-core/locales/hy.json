@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "Սա անմիջապես ջնջում է ձեր հաշիվը Bragd սերվերում՝ ձեր անունը, Ընկերները, հարցումները, հրավիրատոմսերը, արգելափակումները, բողոքները, ձեր ստեղծած Ակումբները, ձեր Chat-ի տողերը և ձեր Պարտիաները։ Սա հնարավոր չէ հետ բերել։",
  "friends.delete_account.keep_games": "Թողնել իմ ավարտված Պարտիաները մյուս խաղացողներին՝ որպես ջնջված խաղացող",
  "friends.delete_account.confirm": "Հաստատելու համար մուտքագրեք ձեր անունը՝ {name}",
+ "friends.delete_account.confirm_word": "Դուք դեռ անուն չունեք։ Հաստատելու համար մուտքագրեք «{word}»",
+ "friends.delete_account.word": "ջնջել",
  "friends.delete_account.button": "Ընդմիշտ ջնջել իմ հաշիվը",
  "friends.deleted": "Ձեր հաշիվը Bragd սերվերում ջնջված է, և Bragd-ը դուրս է եկել համակարգից։",
  "friends.deleted_player": "Ջնջված խաղացող",

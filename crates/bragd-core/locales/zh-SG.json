@@ -1840,6 +1840,8 @@
  "friends.delete_account.what": "这会立即删除你在 Bragd 服务器上的账户：你的名称、好友、请求、邀请码、屏蔽、举报、你创建的俱乐部、你的聊天消息和你的对局。此操作无法撤销。",
  "friends.delete_account.keep_games": "将我已结束的对局留给其他玩家，作为已删除的玩家",
  "friends.delete_account.confirm": "输入你的名称 {name} 以确认",
+ "friends.delete_account.confirm_word": "你还没有名称。输入 “{word}” 以确认",
+ "friends.delete_account.word": "删除",
  "friends.delete_account.button": "永久删除我的账户",
  "friends.deleted": "你在 Bragd 服务器上的账户已删除，Bragd 已为你退出登录。",
  "friends.deleted_player": "已删除的玩家",

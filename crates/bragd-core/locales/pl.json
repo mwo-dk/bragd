@@ -1873,6 +1873,8 @@
  "friends.delete_account.what": "To od razu usuwa twoje konto na serwerze Bragd: twoją nazwę, Znajomych, prośby, kody zaproszeń, blokady, zgłoszenia, Kluby, które założyłeś, twoje wpisy w Czacie i twoje Partie. Nie da się tego cofnąć.",
  "friends.delete_account.keep_games": "Zostaw moje zakończone Partie pozostałym graczom, jako usuniętego gracza",
  "friends.delete_account.confirm": "Wpisz swoją nazwę, {name}, aby potwierdzić",
+ "friends.delete_account.confirm_word": "Nie masz jeszcze nazwy. Wpisz „{word}”, aby potwierdzić",
+ "friends.delete_account.word": "usuń",
  "friends.delete_account.button": "Usuń moje konto na zawsze",
  "friends.deleted": "Twoje konto na serwerze Bragd zostało usunięte, a Bragd wylogował cię.",
  "friends.deleted_player": "Usunięty gracz",

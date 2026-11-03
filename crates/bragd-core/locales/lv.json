@@ -1862,6 +1862,8 @@
  "friends.delete_account.what": "Tas uzreiz dzēš jūsu kontu Bragd serverī: jūsu vārdu, Draugus, pieprasījumus, uzaicinājuma kodus, bloķējumus, ziņojumus, Klubus, ko esat izveidojis, jūsu Chat rindas un Partijas. To nevar atsaukt.",
  "friends.delete_account.keep_games": "Atstāt manas pabeigtās Partijas citiem spēlētājiem kā dzēsta spēlētāja",
  "friends.delete_account.confirm": "Lai apstiprinātu, ierakstiet savu vārdu, {name}",
+ "friends.delete_account.confirm_word": "Jums vēl nav vārda. Lai apstiprinātu, ierakstiet „{word}“",
+ "friends.delete_account.word": "dzēst",
  "friends.delete_account.button": "Dzēst manu kontu uz visiem laikiem",
  "friends.deleted": "Jūsu konts Bragd serverī ir dzēsts, un Bragd ir izrakstījis jūs.",
  "friends.deleted_player": "Dzēsts spēlētājs",

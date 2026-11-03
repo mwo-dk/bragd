@@ -56,11 +56,28 @@
   const report = () => act("reports", { name: reporting, reason }).then(() => ((reporting = ""), (reason = "")));
 </script>
 
+{#snippet deleteForm()}
+  {#if !deleting}
+    <div class="form"><button onclick={() => ((deleting = true), (confirmName = ""))} disabled={busy}>{t("friends.delete_account")}</button></div>
+  {:else}
+    <form class="panel delete" onsubmit={(e) => (e.preventDefault(), deleteAccount())}>
+      <h2>{t("friends.delete_account")}</h2>
+      <p>{t("friends.delete_account.what")}</p>
+      <label class="check"><input type="checkbox" bind:checked={keepGames} /> {t("friends.delete_account.keep_games")}</label>
+      <label class="field">{view?.deletePrompt} <input bind:value={confirmName} autocomplete="off" spellcheck="false" /></label>
+      <div class="form">
+        <button class="primary" type="submit" disabled={busy || confirmName.trim() !== view?.deleteWord}>{t("friends.delete_account.button")}</button>
+        <button type="button" onclick={() => (deleting = false)}>{t("common.cancel")}</button>
+      </div>
+    </form>
+  {/if}
+{/snippet}
+
 <section class="friends">
   <header class="bar">
     <h1>{t("friends.title")}</h1>
-    {#if view?.signedIn && view.name}
-      <span class="who">{t("friends.signed_in_as", { name: view.name })}</span>
+    {#if view?.signedIn}
+      {#if view.name}<span class="who">{t("friends.signed_in_as", { name: view.name })}</span>{/if}
       <button onclick={signOut} disabled={busy}>{t("online.sign_out")}</button>
     {/if}
   </header>
@@ -100,6 +117,7 @@
       <label class="field">{t("friends.choose_name")} <input bind:value={name} maxlength="30" autocomplete="nickname" /></label>
       <button class="primary" type="submit" disabled={busy || name.trim().length < 2}>{t("friends.save_name")}</button>
     </form>
+    {@render deleteForm()}
   {:else if view}
     <div class="columns">
       <div class="panel">
@@ -195,20 +213,7 @@
     <h2>{t("friends.games")}</h2>
     <PlayOnline server="bragd" family={null} {save} embedded />
 
-    {#if !deleting}
-      <div class="form"><button onclick={() => ((deleting = true), (confirmName = ""))} disabled={busy}>{t("friends.delete_account")}</button></div>
-    {:else}
-      <form class="panel delete" onsubmit={(e) => (e.preventDefault(), deleteAccount())}>
-        <h2>{t("friends.delete_account")}</h2>
-        <p>{t("friends.delete_account.what")}</p>
-        <label class="check"><input type="checkbox" bind:checked={keepGames} /> {t("friends.delete_account.keep_games")}</label>
-        <label class="field">{t("friends.delete_account.confirm", { name: view.name })} <input bind:value={confirmName} autocomplete="off" spellcheck="false" /></label>
-        <div class="form">
-          <button class="primary" type="submit" disabled={busy || confirmName.trim() !== view.name}>{t("friends.delete_account.button")}</button>
-          <button type="button" onclick={() => (deleting = false)}>{t("common.cancel")}</button>
-        </div>
-      </form>
-    {/if}
+    {@render deleteForm()}
   {/if}
 </section>
 

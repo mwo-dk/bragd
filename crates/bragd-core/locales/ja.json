@@ -1840,6 +1840,8 @@
  "friends.delete_account.what": "Bragdサーバー上のアカウントをすぐに削除します。名前、フレンド、申し込み、招待コード、ブロック、報告、作成したクラブ、チャットの発言、対局が削除されます。元に戻せません。",
  "friends.delete_account.keep_games": "終了した対局は、削除されたプレイヤーとして他のプレイヤーに残す",
  "friends.delete_account.confirm": "確認のため、名前 {name} を入力してください",
+ "friends.delete_account.confirm_word": "まだ名前がありません。確認のため「{word}」と入力してください",
+ "friends.delete_account.word": "削除",
  "friends.delete_account.button": "アカウントを完全に削除",
  "friends.deleted": "Bragdサーバー上のアカウントが削除され、Bragdからサインアウトしました。",
  "friends.deleted_player": "削除されたプレイヤー",

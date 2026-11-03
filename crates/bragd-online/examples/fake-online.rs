@@ -6,7 +6,8 @@
 //!
 //! `lishogi` takes `BRAGD_LISHOGI_URL` and `BRAGD_LISHOGI_TOKEN` (`lip_fake`), `ogs` takes
 //! `BRAGD_OGS_URL` and `BRAGD_OGS_TOKEN` (`ogs_fake`), `bragd` takes `BRAGD_FRIENDS_URL` and
-//! `BRAGD_FRIENDS_TOKEN` (`fake-refresh`), or the password `bragd-fake`. It prints its address, then serves until
+//! `BRAGD_FRIENDS_TOKEN` (`fake-refresh`), or the password `bragd-fake`; `bragd-nameless` is the
+//! same account before it chose a name. It prints its address, then serves until
 //! it is stopped.
 
 fn main() {
@@ -17,13 +18,18 @@ fn main() {
         "lichess" => bragd_online::fake::lichess_on(port),
         "lishogi" => bragd_online::fake::lishogi_on(port),
         "ogs" => bragd_online::fake::ogs_on(port),
-        "bragd" => {
+        "bragd" | "bragd-nameless" => {
             let (fake, world) = bragd_online::fake_bragd::bragd_on(port);
-            world.lock().unwrap_or_else(|e| e.into_inner()).agree = true;
+            let mut w = world.lock().unwrap_or_else(|e| e.into_inner());
+            w.agree = true;
+            if server == "bragd-nameless" {
+                w.me = None;
+            }
+            drop(w);
             fake
         }
         _ => {
-            eprintln!("usage: fake-online lichess|lishogi|ogs|bragd [port]");
+            eprintln!("usage: fake-online lichess|lishogi|ogs|bragd|bragd-nameless [port]");
             std::process::exit(2);
         }
     };

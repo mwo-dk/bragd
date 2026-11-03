@@ -116,6 +116,10 @@ pub struct FriendsView {
     pub signing_in: bool,
     /// The public name; none until one is chosen.
     pub name: Option<String>,
+    /// What Delete my account asks to be typed: the name, or without one a word.
+    pub delete_word: String,
+    /// The label asking for it.
+    pub delete_prompt: String,
     pub friends: Vec<Friend>,
     /// Who asks to be the user's Friend.
     pub asked: Vec<String>,
@@ -401,12 +405,12 @@ impl BragdServer {
 
     /// Deletes the account on the Bragd server and everything with it; with `keep_games`, the
     /// Games that ended stay with the other players, against a deleted player. Then signs out
-    /// here and removes the sign-in from the keychain. `confirm` is the name the user typed: it
-    /// must be theirs.
+    /// here and removes the sign-in from the keychain. `confirm` is what the user typed: it
+    /// must be their name, or the word shown when they have none (`delete_confirm`).
     pub fn delete_account(&self, confirm: &str, keep_games: bool) -> Result<(), String> {
-        let name = self.lock().state["me"].as_str().map(str::to_string);
-        if name.as_deref() != Some(confirm.trim()) {
-            return Err(t!("friends.delete_account.confirm", "name" => name.unwrap_or_default()));
+        let (word, prompt) = delete_confirm(&self.lock().state);
+        if confirm.trim() != word {
+            return Err(prompt);
         }
         self.call("DELETE", "/v1/me", &json!({ "keep_games": keep_games }))?;
         <Self as Play>::sign_out(self)?;
@@ -446,12 +450,15 @@ impl BragdServer {
         let providers = self.lock().public.as_ref().map(|p| p.oauth.iter().map(|o| (o.clone(), provider_name(o))).collect()).unwrap_or_default();
         let i = self.lock();
         let st = &i.state;
+        let (delete_word, delete_prompt) = delete_confirm(st);
         FriendsView {
             address,
             providers,
             signed_in: i.session.is_some(),
             signing_in: i.signing_in.is_some(),
             name: st["me"].as_str().map(str::to_string),
+            delete_word,
+            delete_prompt,
             friends: st["friends"].as_array().map(|a| a.iter().map(|f| Friend { name: s(&f["name"]), club: f["club"].as_bool().unwrap_or(false) }).collect()).unwrap_or_default(),
             asked: strings(&st["asked"]),
             asking: strings(&st["asking"]),
@@ -756,6 +763,20 @@ impl Play for BragdServer {
     }
 }
 
+/// What Delete my account asks to be typed, and the label asking for it: the user's name, or a
+/// word when they chose none. The page shows these, and [`BragdServer::delete_account`] compares
+/// with the same word.
+fn delete_confirm(state: &Value) -> (String, String) {
+    match state["me"].as_str().filter(|n| !n.is_empty()) {
+        Some(name) => (name.to_string(), t!("friends.delete_account.confirm", "name" => name)),
+        None => {
+            let word = t!("friends.delete_account.word");
+            let prompt = t!("friends.delete_account.confirm_word", "word" => &word);
+            (word, prompt)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -812,6 +833,23 @@ mod tests {
         assert!(!v.signed_in);
         assert_eq!(v.notice, Some(t!("friends.deleted")));
         assert!(b.delete_account("BragdTester", false).is_err(), "signed out: nothing more is sent");
+    }
+
+    #[test]
+    fn bragd_server_an_account_without_a_name_confirms_with_the_word_shown() {
+        let (b, _fake, world) = signed_in();
+        assert_eq!(b.friends_view().delete_word, "BragdTester", "a named account types its name");
+        world.lock().unwrap().me = None;
+        b.poll().unwrap();
+        let word = b.friends_view().delete_word;
+        assert_eq!(word, t!("friends.delete_account.word"));
+        assert!(b.friends_view().delete_prompt.contains(&word), "the label shows the word");
+        assert!(!word.is_empty());
+        assert!(b.delete_account("", true).is_err(), "an empty name does not confirm");
+        assert!(b.delete_account("BragdTester", true).is_err());
+        assert_eq!(world.lock().unwrap().deleted, None);
+        b.delete_account(&format!(" {word} "), false).unwrap();
+        assert_eq!(world.lock().unwrap().deleted, Some(false));
     }
 
     #[test]

@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "Das löscht dein Konto auf dem Bragd-Server sofort: deinen Namen, Freunde, Anfragen, Einladungscodes, Blockierungen, Meldungen, die Clubs, die du angelegt hast, deine Chat-Zeilen und deine Partien. Das lässt sich nicht rückgängig machen.",
  "friends.delete_account.keep_games": "Meine beendeten Partien den anderen Spielern überlassen, als gelöschter Spieler",
  "friends.delete_account.confirm": "Gib zur Bestätigung deinen Namen ein, {name}",
+ "friends.delete_account.confirm_word": "Du hast noch keinen Namen. Gib zur Bestätigung „{word}“ ein",
+ "friends.delete_account.word": "löschen",
  "friends.delete_account.button": "Mein Konto endgültig löschen",
  "friends.deleted": "Dein Konto auf dem Bragd-Server ist gelöscht, und Bragd hat dich abgemeldet.",
  "friends.deleted_player": "Gelöschter Spieler",

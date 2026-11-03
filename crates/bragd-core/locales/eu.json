@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "Honek berehala ezabatzen du zure kontua Bragd zerbitzarian: zure izena, lagunak, eskaerak, gonbidapen-kodeak, blokeoak, salaketak, sortu dituzun klubak, zure txat-lerroak eta zure partidak. Ezin da desegin.",
  "friends.delete_account.keep_games": "Utzi nire amaitutako partidak beste jokalariei, ezabatutako jokalari gisa",
  "friends.delete_account.confirm": "Idatzi zure izena, {name}, baieztatzeko",
+ "friends.delete_account.confirm_word": "Ez duzu oraindik izenik. Baieztatzeko idatzi «{word}»",
+ "friends.delete_account.word": "ezabatu",
  "friends.delete_account.button": "Ezabatu nire kontua betiko",
  "friends.deleted": "Zure kontua Bragd zerbitzarian ezabatu da, eta Bragd-ek saioa itxi du.",
  "friends.deleted_player": "Ezabatutako jokalaria",

@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "Dette sletter kontoen din på Bragd-serveren med ein gong: namnet ditt, Vener, førespurnader, invitasjonskodar, blokkeringar, rapportar, Klubbane du har laga, linjene dine i chatten og Partiane dine. Det kan ikkje angrast.",
  "friends.delete_account.keep_games": "Late dei ferdige Partiane mine bli att for dei andre spelarane, som ein sletta spelar",
  "friends.delete_account.confirm": "Skriv inn namnet ditt, {name}, for å stadfeste",
+ "friends.delete_account.confirm_word": "Du har ikkje eit namn enno. Skriv inn «{word}» for å stadfeste",
+ "friends.delete_account.word": "slett",
  "friends.delete_account.button": "Slett kontoen min for godt",
  "friends.deleted": "Kontoen din på Bragd-serveren er sletta, og Bragd har logga deg ut.",
  "friends.deleted_player": "Sletta spelar",

@@ -1873,6 +1873,8 @@
  "friends.delete_account.what": "Це одразу видаляє ваш обліковий запис на сервері Bragd: ваше ім’я, Друзів, запити, коди запрошень, блокування, скарги, Клуби, які ви створили, ваші рядки в Чаті та ваші Партії. Це не можна скасувати.",
  "friends.delete_account.keep_games": "Залишити мої завершені Партії іншим гравцям, як видаленого гравця",
  "friends.delete_account.confirm": "Введіть своє ім’я, {name}, щоб підтвердити",
+ "friends.delete_account.confirm_word": "У вас ще немає імені. Введіть «{word}», щоб підтвердити",
+ "friends.delete_account.word": "видалити",
  "friends.delete_account.button": "Видалити мій обліковий запис назавжди",
  "friends.deleted": "Ваш обліковий запис на сервері Bragd видалено, і Bragd вийшов із системи.",
  "friends.deleted_player": "Видалений гравець",
