@@ -689,7 +689,6 @@
  "tablebases.have": "טבלאות בתיקייה: {n}",
  "tablebases.intro": "טבלאות Syzygy: משחק מושלם לעמדות שחמט עם מעט כלים. לכל מנוע ניתנת התיקייה. ההורדות מגיעות מ־tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd לא מחובר: שום דבר לא יורד ושום דבר לא נשאל ברשת.",
- "tablebases.online": "לשאול את טבלת הסיום של Lichess על עמדות שהטבלאות שלכם לא מכסות",
  "tablebases.online_hint": "נשלחת רק העמדה, ורק כל עוד האפשרות דולקת.",
  "tablebases.plan": "הצגת גודל",
  "tablebases.plan_first": "קודם מציגים את הגודל, ואז מורידים.",

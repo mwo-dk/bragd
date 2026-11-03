@@ -683,7 +683,6 @@
  "tablebases.have": "フォルダー内のテーブル: {n}",
  "tablebases.intro": "Syzygy テーブルベース: 駒の少ないチェス局面の完全な指し手。すべてのエンジンにフォルダーが渡されます。ダウンロード元は tablebase.lichess.ovh です。",
  "tablebases.offline": "Bragd はオフラインです。ダウンロードもオンラインへの問い合わせも行いません。",
- "tablebases.online": "お持ちのテーブルがカバーしない局面について、Lichess のテーブルベースに問い合わせる",
  "tablebases.online_hint": "局面だけが送られ、これがオンの間に限ります。",
  "tablebases.plan": "サイズを表示",
  "tablebases.plan_first": "先にサイズを表示し、それからダウンロードします。",

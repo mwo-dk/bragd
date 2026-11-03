@@ -35,10 +35,15 @@ def js(d, body):
 def click(d, text, scope="", exact=True, nth=0):
     """Click the `nth` button (or tab) whose text is `text`, inside `scope` when given."""
     test = f"t === {json.dumps(text)}" if exact else f"t.startsWith({json.dumps(text)})"
-    r = js(d, f"""const bs = [...document.querySelectorAll({json.dumps((scope + ' ' if scope else '') + 'button')})]
-        .filter(b => {{ const t = b.textContent.trim(); return {test}; }});
-      if (!bs[{nth}]) return 'none'; bs[{nth}].click(); return 'ok';""")
-    if r != "ok":
+    # A page the Helper fills (Sources) can take longer than the wait before the click: try for 10 s.
+    for _ in range(20):
+        r = js(d, f"""const bs = [...document.querySelectorAll({json.dumps((scope + ' ' if scope else '') + 'button')})]
+            .filter(b => {{ const t = b.textContent.trim(); return {test}; }});
+          if (!bs[{nth}]) return 'none'; bs[{nth}].click(); return 'ok';""")
+        if r == "ok":
+            break
+        d.wait(0.5)
+    else:
         raise RuntimeError(f"no button {text!r}")
     d.wait(0.6)
 
@@ -208,6 +213,24 @@ def themes():
                 d.shot(HERE / name)
         finally:
             config("")
+
+
+def extras():
+    """navigation-390.png and -1100.png: F1 open, with Back above the page (the sidebar folded at
+    390 px); settings-knowledge-390.png and -1100.png: Settings at Knowledge, at Disk watch;
+    tablebases-390.png and -1100.png: Chess → Tablebases."""
+    widths("navigation", lambda d: (d.keys("F1"), d.wait(1)))
+    widths("tablebases", lambda d: (unfold(d), nav(d, "chess", "Tablebases")))
+
+    def knowledge(d):
+        js(d, "const f = document.querySelector('nav button.fold'); if (f && f.textContent.trim() === '»') f.click();")
+        d.wait(0.4)
+        click(d, "Settings", "nav")
+        click(d, "Knowledge", "main")
+        d.wait(2)
+        js(d, "[...document.querySelectorAll('main h3')].find(h => h.textContent.trim() === 'Disk watch')?.scrollIntoView()")
+        d.wait(0.5)
+    widths("settings-knowledge", knowledge)
 
 
 def help_():
@@ -411,8 +434,9 @@ def matches():
 
 
 def wizard():
-    """wizard-<step>-390.png and -1100.png: the install wizard's six steps on a first start, and
-    whats-new-card-390.png and -1100.png: the first tour card after an upgrade."""
+    """wizard-<step>-390.png and -1100.png: the install wizard's six steps on a first start,
+    wizard-welcome-he-1100.png: its Welcome step in Hebrew, and whats-new-card-390.png and
+    -1100.png: the first tour card after an upgrade."""
     state = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/state.json"
     for w, h in WIDTHS.items():
         with Desktop(size=(w, h), state={}) as d:
@@ -424,6 +448,9 @@ def wizard():
         with Desktop(size=(w, h), state=dict(SEEN, seen_version="0.1.0")) as d:
             d.wait(2)
             d.shot(HERE / f"whats-new-card-{w}.png")
+    with Desktop(size=W1100, state={}, lang="he_IL.UTF-8") as d:
+        d.wait(2)
+        d.shot(HERE / "wizard-welcome-he-1100.png")
     # The next picture starts as a demo home does, having seen the wizard and every card.
     state.unlink(missing_ok=True)
 
@@ -1313,7 +1340,7 @@ def play():
         config("")
 
 
-ALL = {"play": play, "library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "keyboard": keyboard, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "engines": engines, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
+ALL = {"play": play, "library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "extras": extras, "keyboard": keyboard, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "engines": engines, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":

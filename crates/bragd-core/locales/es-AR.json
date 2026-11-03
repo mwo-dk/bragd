@@ -689,7 +689,6 @@
  "tablebases.have": "Tablas en la carpeta: {n}",
  "tablebases.intro": "Tablas de finales Syzygy: juego perfecto para posiciones de ajedrez con pocas piezas. Cada motor recibe la carpeta. Las descargas vienen de tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd está sin conexión: no se descarga ni se pide nada en línea.",
- "tablebases.online": "Pedir a la tabla de finales de Lichess las posiciones que tus tablas no cubren",
  "tablebases.online_hint": "Solo se envía la posición, y solo mientras esto esté activado.",
  "tablebases.plan": "Mostrar el tamaño",
  "tablebases.plan_first": "Mostrá primero el tamaño y después descargá.",

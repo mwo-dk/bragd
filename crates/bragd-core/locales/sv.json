@@ -686,7 +686,6 @@
  "tablebases.have": "Tabeller i mappen: {n}",
  "tablebases.intro": "Syzygy-slutspelstabeller: perfekt spel för schackställningar med få pjäser. Varje motor får mappen. Nedladdningarna kommer från tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd är offline: ingenting laddas ned eller efterfrågas online.",
- "tablebases.online": "Fråga Lichess slutspelstabell om ställningar som dina tabeller inte täcker",
  "tablebases.online_hint": "Bara ställningen skickas, och bara medan detta är på.",
  "tablebases.plan": "Visa storlek",
  "tablebases.plan_first": "Visa storleken först, ladda sedan ned.",

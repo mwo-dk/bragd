@@ -4,7 +4,7 @@
 
 **← Back**, at the top of the window, takes you back to where you were: the same page, the same tab, the same open item and the same scroll. After F1, Settings, a Tournament or a player's summary, one press returns you to the page you came from.
 
-![The window at 1100 px on F1, with the Back button above the page and Alt+← beside it](../screenshots/navigation-1100.png)
+![The window at 1100 px on F1, with the Back button above the page and Esc, the key that leaves F1, beside it](../screenshots/navigation-1100.png)
 *Back above F1, at 1100 px.*
 
 ![The window at 390 px with the sidebar folded and Back at the top of the page](../screenshots/navigation-390.png)

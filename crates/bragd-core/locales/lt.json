@@ -689,7 +689,6 @@
  "tablebases.have": "Bazės aplanke: {n}",
  "tablebases.intro": "Syzygy galūnių bazės: tobulas žaidimas šachmatų pozicijoms su nedaug figūrų. Kiekvienas variklis gauna aplanką. Atsisiuntimai iš tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd neprisijungęs: nieko neatsisiunčiama ir neklausiama internete.",
- "tablebases.online": "Klausti Lichess galūnių bazės dėl pozicijų, kurių jūsų bazės nepadengia",
  "tablebases.online_hint": "Siunčiama tik pozicija, ir tik kol tai įjungta.",
  "tablebases.plan": "Rodyti dydį",
  "tablebases.plan_first": "Pirma rodyti dydį, tada atsisiųsti.",
