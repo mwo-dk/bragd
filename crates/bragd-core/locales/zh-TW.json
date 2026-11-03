@@ -1874,5 +1874,6 @@
  "feature.chat.a2": "只有雙方都選擇保留才會。否則對局結束時將刪除。",
  "feature.chat.tip": "與 Bragd 玩家在對局中交流：在棋盤旁點擊請求聊天。",
  "tour.chat.title": "與 Bragd 玩家聊天",
- "tour.chat.text": "在 Bragd 伺服器的對局中請求聊天。雙方都同意才會開啟，任一方都可以關閉，只有雙方都勾選保留時才會留存。"
+ "tour.chat.text": "在 Bragd 伺服器的對局中請求聊天。雙方都同意才會開啟，任一方都可以關閉，只有雙方都勾選保留時才會留存。",
+ "talk.error.signalling": "通話無法透過 Bragd 伺服器連線到對方玩家。你們還是好友嗎？"
 }

@@ -1896,5 +1896,6 @@
  "feature.chat.a2": "Tik jei abu pažymite Palikti. Kitaip jis ištrinamas, kai partija baigiasi.",
  "feature.chat.tip": "Kalbėkitės partijos metu su Bragd žaidėju: prie lentos spauskite Prašyti Pokalbio.",
  "tour.chat.title": "Pokalbis su Bragd žaidėjais",
- "tour.chat.text": "Partijoje Bragd serveryje spauskite Prašyti Pokalbio. Jis atsidaro tik tada, kai abu sutinkate, bet kuris gali jį uždaryti, o paliekamas tik tada, jei abu pažymite Palikti."
+ "tour.chat.text": "Partijoje Bragd serveryje spauskite Prašyti Pokalbio. Jis atsidaro tik tada, kai abu sutinkate, bet kuris gali jį uždaryti, o paliekamas tik tada, jei abu pažymite Palikti.",
+ "talk.error.signalling": "Skambutis negalėjo pasiekti kito žaidėjo per Bragd serverį. Ar vis dar esate draugai?"
 }

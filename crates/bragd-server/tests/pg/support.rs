@@ -7,7 +7,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
-use bragd_server::api::{Public, Service};
+use bragd_server::api::{Public, Service, Turn};
 use bragd_server::db::Pool;
 use bragd_server::jwt::{Verifier, sign_hs256, user_claims};
 use postgres::{Client, NoTls};
@@ -98,6 +98,7 @@ impl Pg {
             pool: Pool::new(&format!("{url}?sslmode=disable")).unwrap(),
             verifier: Verifier::new(Some(SECRET), None),
             public: Public { supabase_url: "http://supabase.test".into(), supabase_key: "publishable".into(), oauth: vec!["github".into()] },
+            turn: Turn { urls: vec!["stun:turn.test:3478".into(), "turn:turn.test:3478".into(), "turns:turn.test:5349".into()], secret: "turn-secret".into() },
         };
         Db { url, service }
     }
@@ -143,11 +144,17 @@ impl Db {
 
     /// Runs `sql` as `u` would through Supabase's own API: role `authenticated`, their claims set.
     pub fn sql_as(&self, u: &User, sql: &str) -> Result<Vec<postgres::Row>, postgres::Error> {
+        self.sql_on(u, "", sql)
+    }
+
+    /// [`Db::sql_as`] on the Realtime topic `topic`, as Realtime runs a join's check.
+    pub fn sql_on(&self, u: &User, topic: &str, sql: &str) -> Result<Vec<postgres::Row>, postgres::Error> {
         let mut c = self.owner();
         let mut tx = c.transaction()?;
         tx.batch_execute("set local role authenticated")?;
         let claims = user_claims(u.id, 4_000_000_000).to_string();
         tx.execute("select set_config('request.jwt.claims', $1, true)", &[&claims])?;
+        tx.execute("select set_config('realtime.topic', $1, true)", &[&topic])?;
         let rows = tx.query(sql, &[])?;
         tx.commit()?;
         Ok(rows)

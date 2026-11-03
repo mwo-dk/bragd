@@ -1896,5 +1896,6 @@
  "feature.chat.a2": "Tikai, ja abi atzīmējat Paturēt. Citādi tā tiek dzēsta, kad partija beidzas.",
  "feature.chat.tip": "Runājiet partijas laikā ar Bragd spēlētāju: pie dēļa nospiediet Lūgt tērzēt.",
  "tour.chat.title": "Tērzēšana ar Bragd spēlētājiem",
- "tour.chat.text": "Bragd servera partijā nospiediet Lūgt tērzēt. Tā atveras tikai tad, kad abi sakāt jā, jebkurš var to aizvērt, un tā tiek paturēta tikai tad, ja abi atzīmējat Paturēt."
+ "tour.chat.text": "Bragd servera partijā nospiediet Lūgt tērzēt. Tā atveras tikai tad, kad abi sakāt jā, jebkurš var to aizvērt, un tā tiek paturēta tikai tad, ja abi atzīmējat Paturēt.",
+ "talk.error.signalling": "Zvanam neizdevās sasniegt otru spēlētāju caur Bragd serveri. Vai jūs joprojām esat draugi?"
 }

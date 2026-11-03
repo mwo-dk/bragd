@@ -1885,5 +1885,6 @@
  "feature.chat.a2": "Bara om ni båda kryssar i Behåll. Annars raderas den när partiet är slut.",
  "feature.chat.tip": "Prata med en Bragd-spelare under ett parti: Be om Chatt bredvid brädet.",
  "tour.chat.title": "Chatt med Bragd-spelare",
- "tour.chat.text": "I ett parti på Bragd-servern: Be om Chatt. Den öppnas bara när ni båda säger ja, vem som helst kan stänga den, och den behålls bara om ni båda kryssar i Behåll."
+ "tour.chat.text": "I ett parti på Bragd-servern: Be om Chatt. Den öppnas bara när ni båda säger ja, vem som helst kan stänga den, och den behålls bara om ni båda kryssar i Behåll.",
+ "talk.error.signalling": "Samtalet kunde inte nå den andra spelaren via Bragd-servern. Är ni fortfarande vänner?"
 }

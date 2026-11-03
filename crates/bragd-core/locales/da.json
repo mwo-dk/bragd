@@ -1885,5 +1885,6 @@
  "feature.chat.a2": "Kun hvis I begge sætter kryds ved Behold. Ellers slettes den, når partiet slutter.",
  "feature.chat.tip": "Snak under et parti med en Bragd-spiller: Spørg om Chat ved siden af brættet.",
  "tour.chat.title": "Chat med Bragd-spillere",
- "tour.chat.text": "I et parti på Bragd-serveren: Spørg om Chat. Den åbnes kun, når I begge siger ja, hvem som helst kan lukke den, og den beholdes kun, hvis I begge sætter kryds ved Behold."
+ "tour.chat.text": "I et parti på Bragd-serveren: Spørg om Chat. Den åbnes kun, når I begge siger ja, hvem som helst kan lukke den, og den beholdes kun, hvis I begge sætter kryds ved Behold.",
+ "talk.error.signalling": "Opkaldet kunne ikke nå den anden spiller gennem Bragd-serveren. Er I stadig venner?"
 }

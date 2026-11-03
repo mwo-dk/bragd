@@ -1885,5 +1885,6 @@
  "feature.chat.a2": "Vain jos te molemmat rastitatte Säilytä. Muuten se poistetaan, kun peli päättyy.",
  "feature.chat.tip": "Puhu pelin aikana Bragd-pelaajan kanssa: Pyydä chattia laudan vieressä.",
  "tour.chat.title": "Chat Bragd-pelaajien kanssa",
- "tour.chat.text": "Bragd-palvelimen pelissä pyydä chattia. Se aukeaa vain, kun te molemmat sanotte kyllä, kumpi tahansa voi sulkea sen, ja se säilytetään vain, jos te molemmat rastitatte Säilytä."
+ "tour.chat.text": "Bragd-palvelimen pelissä pyydä chattia. Se aukeaa vain, kun te molemmat sanotte kyllä, kumpi tahansa voi sulkea sen, ja se säilytetään vain, jos te molemmat rastitatte Säilytä.",
+ "talk.error.signalling": "Puhelu ei tavoittanut toista pelaajaa Bragd-palvelimen kautta. Oletteko yhä ystäviä?"
 }
