@@ -184,6 +184,8 @@ jobs:
         run: |
           dpkg -L bragd
           test "$(dpkg-query -W -f '${Version}' bragd)" = "$VER"
+          # Calls need GStreamer's WebRTC plugins: the .deb brought them.
+          for p in gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-nice; do dpkg-query -W "$p"; done
           if ldd /usr/bin/bragd-gui | grep 'not found'; then exit 1; fi
           # It starts and stays up for 30 seconds, on a display of its own, with a home of its own.
           mkdir -p "$RUNNER_TEMP/home"

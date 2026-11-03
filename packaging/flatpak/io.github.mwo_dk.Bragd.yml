@@ -16,6 +16,11 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --device=dri
+  # Calls with Friends: the camera (WebKitGTK reads it through PipeWire's camera portal, or the
+  # device itself), and the microphone and sound through PulseAudio. The runtime has GStreamer's
+  # WebRTC plugins (webrtcbin, nice, srtp, dtls) from the freedesktop SDK.
+  - --device=all
+  - --socket=pulseaudio
   # Foreign databases are read where they are (ADR 0002), and exports are written where the
   # user says.
   - --filesystem=home
