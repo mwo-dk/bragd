@@ -686,7 +686,6 @@
  "tablebases.have": "Tabellen in de map: {n}",
  "tablebases.intro": "Syzygy-eindspeltabellen: perfect spel voor schaakstellingen met weinig stukken. Elke engine krijgt de map. Downloads komen van tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd is offline: er wordt niets gedownload of online gevraagd.",
- "tablebases.online": "Vraag de eindspeltabel van Lichess naar stellingen die je tabellen niet dekken",
  "tablebases.online_hint": "Alleen de stelling wordt verstuurd, en alleen zolang dit aan staat.",
  "tablebases.plan": "Toon grootte",
  "tablebases.plan_first": "Toon eerst de grootte, download daarna.",

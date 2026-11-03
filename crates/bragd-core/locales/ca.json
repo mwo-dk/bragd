@@ -689,7 +689,6 @@
  "tablebases.have": "Taules a la carpeta: {n}",
  "tablebases.intro": "Taules de finals Syzygy: joc perfecte per a posicions d'escacs amb poques peces. Cada motor rep la carpeta. Les descàrregues vénen de tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd és fora de línia: no es descarrega ni es demana res en línia.",
- "tablebases.online": "Demana a la taula de finals de Lichess les posicions que les teves taules no cobreixen",
  "tablebases.online_hint": "Només s'envia la posició, i només mentre això estigui activat.",
  "tablebases.plan": "Mostra la mida",
  "tablebases.plan_first": "Mostra primer la mida i després descarrega.",

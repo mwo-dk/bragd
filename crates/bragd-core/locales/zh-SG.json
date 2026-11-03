@@ -683,7 +683,6 @@
  "tablebases.have": "文件夹中的残局表：{n}",
  "tablebases.intro": "Syzygy 残局库：棋子较少的国际象棋局面的完美走法。每个引擎都会获得该文件夹。下载来自 tablebase.lichess.ovh。",
  "tablebases.offline": "Bragd 处于离线状态：不下载任何内容，也不在线查询。",
- "tablebases.online": "对你的残局表未涵盖的局面，向 Lichess 残局库查询",
  "tablebases.online_hint": "只发送局面，且仅在此项开启时发送。",
  "tablebases.plan": "显示大小",
  "tablebases.plan_first": "先显示大小，再下载。",

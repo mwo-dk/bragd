@@ -4,7 +4,7 @@
 
 A Tablebase holds perfect play for chess positions with few pieces. Bragd uses Syzygy tables. The page sets their folder, downloads a set, and turns the Lichess fallback on or off. Every Engine is given the folder. In F1 → Features this is the entry `tablebases`.
 
-![The Tablebases page: the folder field with Use this folder, three cards for 3–5 pieces, 6 pieces and 7 pieces with Show size buttons, and the switch Ask the Lichess tablebase for positions your tables do not cover](../screenshots/tablebases-1100.png)
+![The Tablebases page: the folder field with Use this folder, three cards for 3–5 pieces, 6 pieces and 7 pieces with Show size buttons, and the switch Ask Lichess for tablebase positions](../screenshots/tablebases-1100.png)
 *The Tablebases page.*
 
 ## How to reach it

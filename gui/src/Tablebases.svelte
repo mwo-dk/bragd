@@ -85,7 +85,7 @@
     {/if}
 
     <div class="panel">
-      <label><input type="checkbox" checked={online} onchange={(e) => run(() => save("tablebases_online", e.currentTarget.checked))} /> {t("tablebases.online")}</label>
+      <label><input type="checkbox" checked={online} onchange={(e) => run(() => save("tablebases_online", e.currentTarget.checked))} /> {t("setting.tablebases_online")}</label>
       <p class="dim">{t("tablebases.online_hint")}</p>
       {#if page.offline}<p class="dim">{t("tablebases.offline")}</p>{/if}
     </div>

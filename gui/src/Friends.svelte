@@ -66,8 +66,8 @@
       <label class="check"><input type="checkbox" bind:checked={keepGames} /> {t("friends.delete_account.keep_games")}</label>
       <label class="field">{view?.deletePrompt} <input bind:value={confirmName} autocomplete="off" spellcheck="false" /></label>
       <div class="form">
-        <button class="primary" type="submit" disabled={busy || confirmName.trim() !== view?.deleteWord}>{t("friends.delete_account.button")}</button>
-        <button type="button" onclick={() => (deleting = false)}>{t("common.cancel")}</button>
+        <button type="submit" disabled={busy || confirmName.trim() !== view?.deleteWord}>{t("friends.delete_account.button")}</button>
+        <button class="primary" type="button" onclick={() => (deleting = false)}>{t("common.cancel")}</button>
       </div>
     </form>
   {/if}

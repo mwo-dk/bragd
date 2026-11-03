@@ -41,7 +41,7 @@ Keys are written dotted here: `look.theme` is `theme` under `[look]`. The top-le
 | `engines.added` | empty | A table: Engines added by their path, name → the Game family they play |
 | `engines.books` | `[]` | Polyglot opening books for chess, by path ([Opening books](../engines/opening-books.md)) |
 | `tablebases.path` | `""` | The Syzygy folder. Empty: `tablebases` in Bragd's data folder ([Tablebases](../engines/tablebases.md)) |
-| `tablebases.online` | `true` | Ask the Lichess tablebase API for a position your tables do not cover |
+| `tablebases.online` | `false` | Ask the Lichess tablebase API for a position your tables do not cover |
 | `online.chat` | `false` | Read and write an online Game's chat in Bragd, on Lichess, Lishogi and OGS ([Playing online](../online/playing-online.md#chat)) |
 | `online.bragd_chat` | `"ask"` | A Bragd player's request to Chat: `ask` shows it, `off` refuses it ([Chat](../online/play-with-friends.md#chat)) |
 | `online.bragd_filter` | `true` | Mask the listed words in a stranger's Chat lines |

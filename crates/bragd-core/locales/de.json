@@ -686,7 +686,6 @@
  "tablebases.have": "Tabellen im Ordner: {n}",
  "tablebases.intro": "Syzygy-Endspieltabellen: perfektes Spiel für Schachstellungen mit wenigen Figuren. Jede Engine bekommt den Ordner. Downloads kommen von tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd ist offline: Nichts wird geladen oder online angefragt.",
- "tablebases.online": "Den Lichess-Endspieltabellen Stellungen anfragen, die Ihre Tabellen nicht abdecken",
  "tablebases.online_hint": "Nur die Stellung wird gesendet, und nur solange das eingeschaltet ist.",
  "tablebases.plan": "Größe anzeigen",
  "tablebases.plan_first": "Zeigen Sie zuerst die Größe, dann laden Sie herunter.",

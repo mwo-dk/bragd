@@ -689,7 +689,6 @@
  "tablebases.have": "Tabelle nella cartella: {n}",
  "tablebases.intro": "Tablebase Syzygy: gioco perfetto per le posizioni di scacchi con pochi pezzi. Ogni motore riceve la cartella. I download arrivano da tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd è offline: non si scarica né si chiede nulla online.",
- "tablebases.online": "Chiedi alla tablebase di Lichess le posizioni che le tue tabelle non coprono",
  "tablebases.online_hint": "Viene inviata solo la posizione, e solo finché questa opzione è attiva.",
  "tablebases.plan": "Mostra la dimensione",
  "tablebases.plan_first": "Mostra prima la dimensione, poi scarica.",

@@ -686,7 +686,6 @@
  "tablebases.have": "Karpetako taulak: {n}",
  "tablebases.intro": "Syzygy amaierako taulak: joko perfektua pieza gutxiko xake-posizioetarako. Motor guztiei ematen zaie karpeta. Deskargak tablebase.lichess.ovh helbidetik datoz.",
  "tablebases.offline": "Bragd lineaz kanpo dago: ez da ezer deskargatzen edo lineara galdetzen.",
- "tablebases.online": "Eskatu Lichess-i zure taulek estaltzen ez dituzten posizioak",
  "tablebases.online_hint": "Posizioa bakarrik bidaltzen da, eta hau aktibatuta dagoen bitartean bakarrik.",
  "tablebases.plan": "Erakutsi tamaina",
  "tablebases.plan_first": "Erakutsi tamaina lehenik, eta gero deskargatu.",

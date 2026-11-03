@@ -692,7 +692,6 @@
  "tablebases.have": "Baz w folderze: {n}",
  "tablebases.intro": "Bazy końcówek Syzygy: doskonała gra w szachowych pozycjach z małą liczbą figur. Każdy silnik dostaje folder. Pobrania pochodzą z tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd jest offline: nic nie jest pobierane ani pytane w sieci.",
- "tablebases.online": "Pytaj bazę końcówek Lichessa o pozycje, których nie obejmują twoje bazy",
  "tablebases.online_hint": "Wysyłana jest tylko pozycja i tylko wtedy, gdy to jest włączone.",
  "tablebases.plan": "Pokaż rozmiar",
  "tablebases.plan_first": "Najpierw pokaż rozmiar, potem pobierz.",

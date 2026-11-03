@@ -686,7 +686,6 @@
  "tablebases.have": "Tables in the folder: {n}",
  "tablebases.intro": "Syzygy tablebases: perfect play for chess positions with few pieces. Every Engine is given the folder. Downloads come from tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd is offline: nothing is downloaded or asked online.",
- "tablebases.online": "Ask the Lichess tablebase for positions your tables do not cover",
  "tablebases.online_hint": "Only the position is sent, and only while this is on.",
  "tablebases.plan": "Show size",
  "tablebases.plan_first": "Show the size first, then download.",

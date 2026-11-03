@@ -171,7 +171,7 @@ Each one is listed here, so the owner can overturn it in the morning.
 - `cap.py` runs the app with `BRAGD_OFFLINE=1`, and gives a demo home without `state.json` one that has seen the wizard, the cards and the hints, so other screenshots stay as they were. `Desktop(state={})` captures a first start.
 - The splash was checked: 0.9 s with its fade, 0.6 s and still when motion is reduced; left as it is. The wizard's rise animation runs only without reduced motion.
 - `UNTRANSLATED.md` was regenerated from the locale files; it had missed the play and move texts S7 added.
-- Screenshots: `wizard-<step>-{390,1100}.png` for the six steps, `whats-new-card-*`, `help-*`, `wizard-welcome-he-1100.png`, `wizard-knowledge-nord-1100.png` and `settings-overview-1100.png`.
+- Screenshots: `wizard-<step>-{390,1100}.png` for the six steps, `whats-new-card-*`, `help-*`, `wizard-welcome-he-1100.png` and `settings-overview-1100.png`.
 
 ### S9a: Knowledge GUI
 - The window finds `bragd-helper` beside its own program (`helper::program`) and dials it with `connect_or_start` in the background as it opens; one line serves every request, and a broken line is dialled again once. A Helper that cannot be reached is asked again after 30 s, or at once with *Try again* on the Jobs page.

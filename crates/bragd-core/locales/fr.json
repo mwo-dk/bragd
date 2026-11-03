@@ -689,7 +689,6 @@
  "tablebases.have": "Tables dans le dossier : {n}",
  "tablebases.intro": "Tables Syzygy : jeu parfait pour les positions d’échecs à peu de pièces. Chaque moteur reçoit le dossier. Les téléchargements viennent de tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd est hors ligne : rien n’est téléchargé ni demandé en ligne.",
- "tablebases.online": "Demander à la table de finales de Lichess les positions que vos tables ne couvrent pas",
  "tablebases.online_hint": "Seule la position est envoyée, et seulement tant que cette option est activée.",
  "tablebases.plan": "Afficher la taille",
  "tablebases.plan_first": "Afficher d’abord la taille, puis télécharger.",

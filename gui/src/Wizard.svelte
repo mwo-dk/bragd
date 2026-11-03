@@ -197,6 +197,8 @@
         <ul class="offers">
           {#each data.offers.filter((/** @type {any} */ o) => !o.list) as o (o.id)}{@render offer(o)}{/each}
         </ul>
+        <!-- Under the Sources it is about, not under the rating lists. -->
+        {#if data.coming}<p class="dim">{data.coming}</p>{/if}
         {#if opt("tablebases_online")?.listed}
           <label class="check"><input type="checkbox" checked={opt("tablebases_online").value} onchange={(e) => save("tablebases_online", e.currentTarget.checked)} /> {opt("tablebases_online").label}</label>
           <p class="dim">{opt("tablebases_online").hint}</p>
@@ -215,7 +217,6 @@
             </ul>
           </details>
         {/if}
-        {#if data.coming}<p class="dim">{data.coming}</p>{/if}
         {#if data.offers.length === 0}
           <p><b>{t("wizard.no_offers")}</b></p>
         {:else if info}

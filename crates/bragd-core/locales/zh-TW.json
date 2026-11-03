@@ -683,7 +683,6 @@
  "tablebases.have": "資料夾中的殘局表：{n}",
  "tablebases.intro": "Syzygy 殘局表：棋子較少的西洋棋局面的完美走法。每個引擎都會獲得該資料夾。下載來自 tablebase.lichess.ovh。",
  "tablebases.offline": "Bragd 處於離線狀態：不下載任何內容，也不在線上查詢。",
- "tablebases.online": "對你的殘局表未涵蓋的局面，向 Lichess 殘局表查詢",
  "tablebases.online_hint": "只傳送局面，且僅在此項開啟時傳送。",
  "tablebases.plan": "顯示大小",
  "tablebases.plan_first": "先顯示大小，再下載。",

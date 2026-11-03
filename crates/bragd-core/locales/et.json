@@ -686,7 +686,6 @@
  "tablebases.have": "Tabeleid kaustas: {n}",
  "tablebases.intro": "Syzygy lõpumängutabelid: täiuslik mäng vähese nupuga maleseisudes. Iga Engine saab kausta. Allalaadimised tulevad aadressilt tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd on võrgust väljas: midagi ei laadita alla ega küsita veebist.",
- "tablebases.online": "Küsi Lichessi lõpumängutabelilt seise, mida su tabelid ei kata",
  "tablebases.online_hint": "Saadetakse ainult seis, ja ainult siis, kui see on sisse lülitatud.",
  "tablebases.plan": "Näita suurust",
  "tablebases.plan_first": "Näita kõigepealt suurust, siis laadi alla.",

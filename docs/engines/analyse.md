@@ -32,7 +32,7 @@ Analyse reads the [Position store](../knowledge/position-store.md) first. When t
 | Setting | `config.toml` key | Default | What it does |
 |---|---|---|---|
 | Engine for each variant | `engines.default` | automatic | The Engine Analyse starts with. The list on the page changes it for this session |
-| Ask Lichess for tablebase positions | `tablebases.online` | `true` | The tablebase answer for chess endings not covered locally |
+| Ask Lichess for tablebase positions | `tablebases.online` | `false` | The tablebase answer for chess endings not covered locally |
 
 ## Questions
 

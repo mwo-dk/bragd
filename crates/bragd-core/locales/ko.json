@@ -683,7 +683,6 @@
  "tablebases.have": "폴더의 테이블: {n}",
  "tablebases.intro": "Syzygy 테이블베이스: 기물이 적은 체스 국면에 대한 완전한 수. 모든 엔진에 폴더가 전달됩니다. 다운로드는 tablebase.lichess.ovh에서 받습니다.",
  "tablebases.offline": "Bragd이 오프라인입니다. 다운로드도 온라인 문의도 하지 않습니다.",
- "tablebases.online": "보유한 테이블이 다루지 않는 국면은 Lichess 테이블베이스에 문의",
  "tablebases.online_hint": "국면만 보내며, 이 설정이 켜져 있는 동안에만 보냅니다.",
  "tablebases.plan": "크기 보기",
  "tablebases.plan_first": "먼저 크기를 보여 준 뒤 다운로드합니다.",

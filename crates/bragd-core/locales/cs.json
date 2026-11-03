@@ -689,7 +689,6 @@
  "tablebases.have": "Tabulek ve složce: {n}",
  "tablebases.intro": "Syzygy tablebáze: dokonalá hra pro šachové pozice s málo figurami. Každý engine dostane složku. Stahování jde z tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd je offline: nic se nestahuje ani se nic nedotazuje online.",
- "tablebases.online": "Dotazovat se online tablebáze Lichess na pozice, které vaše tabulky nepokrývají",
  "tablebases.online_hint": "Odesílá se jen pozice, a jen dokud je to zapnuto.",
  "tablebases.plan": "Ukázat velikost",
  "tablebases.plan_first": "Nejdřív ukázat velikost, pak stáhnout.",

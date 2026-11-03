@@ -686,7 +686,6 @@
  "tablebases.have": "Tabellar i mappa: {n}",
  "tablebases.intro": "Syzygy-sluttspeltabellar: perfekt spel for sjakkstillingar med få brikkjer. Kvar motor får mappa. Nedlastingane kjem frå tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd er frakopla: ingenting blir lasta ned eller spurt om på nettet.",
- "tablebases.online": "Spør Lichess sluttspeltabell om stillingar tabellane dine ikkje dekkjer",
  "tablebases.online_hint": "Berre stillinga blir sendt, og berre medan dette er på.",
  "tablebases.plan": "Vis storleik",
  "tablebases.plan_first": "Vis storleiken først, og last deretter ned.",

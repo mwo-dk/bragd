@@ -689,7 +689,6 @@
  "tablebases.have": "Bāzes mapē: {n}",
  "tablebases.intro": "Syzygy galu bāzes: ideāla spēle šaha pozīcijām ar maz figūrām. Katrs dzinējs saņem mapi. Lejupielādes nāk no tablebase.lichess.ovh.",
  "tablebases.offline": "Bragd ir bezsaistē: nekas netiek lejupielādēts vai jautāts tiešsaistē.",
- "tablebases.online": "Jautāt Lichess galu bāzei par pozīcijām, ko jūsu bāzes nesedz",
  "tablebases.online_hint": "Tiek sūtīta tikai pozīcija, un tikai kamēr tas ir ieslēgts.",
  "tablebases.plan": "Rādīt izmēru",
  "tablebases.plan_first": "Vispirms parādīt izmēru, pēc tam lejupielādēt.",
