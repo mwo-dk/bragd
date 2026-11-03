@@ -525,6 +525,114 @@ def commentary():
             fake.shutdown()
 
 
+def stand_in_picker(path):
+    """A stand-in for Coxswain's file picker, put beside bragd-gui: it answers `path` (as the
+    sandbox sees it) to every pick. Used with `file_picker = "coxswain"`; unlink it afterwards."""
+    picker = HERE.parent.parent / "target/release/coxswain-gui"
+    picker.write_text(f'#!/bin/sh\ncase "$1" in --help) echo "--pick";; *) echo {path};; esac\n')
+    picker.chmod(0o755)
+    return picker
+
+
+def databases():
+    """databases-390.png and -1100.png: Chess → Databases → Files with demo.pgn open (through
+    the stand-in picker), and databases-replay-390.png and -1100.png: its first Game in replay
+    at 2… d6, with its comment, its evaluation profile, and Analyse above the board."""
+    picker = stand_in_picker("/home/demo/Games/demo.pgn")
+    config('[look]\nfile_picker = "coxswain"\n')
+    try:
+        def files(d):
+            unfold(d)
+            nav(d, "chess", "Databases")
+            click(d, "Open a file…", "main")
+            d.wait(1.5)
+        widths("databases", files)
+
+        def replay(d):
+            files(d)
+            js(d, "document.querySelector('main .body .row').click()")
+            d.wait(1.5)
+            js(d, "document.querySelectorAll('main .moves button')[3].click()")
+            d.wait(1)
+            js(d, "document.querySelector('main .replay')?.scrollIntoView()")
+        widths("databases-replay", replay)
+    finally:
+        config("")
+        picker.unlink(missing_ok=True)
+
+
+def jobs():
+    """jobs-390.png and -1100.png: the Jobs page with a background analysis of the Go club Slice
+    running, slowly (`fake-engine.slow`), with Cancel."""
+    home = Path(_env()["DEMO_HOME"])
+    state = home / ".local/share/bragd/helper/state.json"
+    slow = home / "fake-engine.slow"
+    config(ENGINES)
+    slow.touch()
+    try:
+        for w, h in WIDTHS.items():
+            state.unlink(missing_ok=True)
+            with Desktop(size=(w, h)) as d:
+                unfold(d)
+                nav(d, "go", "Databases")
+                click(d, "Libraries", "main")
+                js(d, "document.querySelector('main td button.link').click()")
+                d.wait(1)
+                click(d, "Go club", "main")
+                d.wait(1)
+                click(d, "Analyse in background", "main")
+                d.wait(1)
+                click(d, "Queue", "main .analyse")
+                d.wait(5)
+                js(d, "document.querySelector('button.helper').click()")
+                d.wait(1.5)
+                d.shot(HERE / f"jobs-{w}.png")
+    finally:
+        config("")
+        slow.unlink()
+        state.unlink(missing_ok=True)
+
+
+def source_pages():
+    """sources-routes-390.png and -1100.png: The Week in Chess's Options at its Routes, one into
+    main keeping every Game and one into a new Library, elite, keeping Games where both players
+    are rated 2600 or more; and sources-too-big-390.png and -1100.png: a custom URL Source whose
+    next download, 3.4 GB, is over its limit, with Download it anyway. Both are written into the
+    Helper's state.json, which the sandbox's Helper reads at its start."""
+    import time
+    state = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/helper/state.json"
+    now = int(time.time())
+    every = {"strip": None, "library": "main"}
+    elite = {"library": "elite", "strip": {"min_rating": 2600, "rating_of": "both", "speeds": [], "rated_only": False, "variants": [], "date_from": "",
+                                           "date_to": "", "min_plies": None, "results": [], "titled_only": False, "players": []}}
+    opts = {"enabled": True, "schedule": "weekly", "after_import": "keep"}
+    state.parent.mkdir(parents=True, exist_ok=True)
+    state.write_text(json.dumps({"format": 1, "next_id": 1, "jobs": [], "sources": {
+        "twic": {"options": dict(opts, routes=[every, elite]), "memo": {"last_fetch": now - 3 * 86400, "last_try": now - 3 * 86400}},
+        "custom:club": {"options": dict(opts, url="https://example.org/club/archive.pgn.zst", routes=[every]),
+                        "memo": {"last_fetch": now - 9 * 86400, "last_try": now, "too_big": 3_400_000_000}}}}))
+    try:
+        def routes(d):
+            unfold(d)
+            nav(d, "chess", "Databases")
+            click(d, "Sources", "main")
+            d.wait(1.5)
+            click(d, "Options", "main")
+            d.wait(1)
+            js(d, "document.querySelector('main .routes')?.scrollIntoView()")
+        widths("sources-routes", routes)
+
+        def too_big(d):
+            unfold(d)
+            nav(d, "chess", "Databases")
+            click(d, "Sources", "main")
+            d.wait(1.5)
+            js(d, "[...document.querySelectorAll('main .source')].find(a => a.querySelector('strong')?.textContent.trim() === 'club')?.scrollIntoView({block: 'center'})")
+        widths("sources-too-big", too_big)
+    finally:
+        state.unlink(missing_ok=True)
+
+
 def model():
     """language-model-390.png and -1100.png: Settings → Language model with the model server
     running on this machine, and translate-comment-390.png and -1100.png: a German comment
@@ -539,9 +647,7 @@ def model():
         url, name = f"http://127.0.0.1:{fake.server_port}/v1", "demo-translator"
     home = Path(_env()["DEMO_HOME"])
     (home / "Games/comments.pgn").write_text(COMMENTS_PGN)
-    picker = HERE.parent.parent / "target/release/coxswain-gui"
-    picker.write_text('#!/bin/sh\ncase "$1" in --help) echo "--pick";; *) echo /home/demo/Games/comments.pgn;; esac\n')
-    picker.chmod(0o755)
+    picker = stand_in_picker("/home/demo/Games/comments.pgn")
     config(f'[look]\nfile_picker = "coxswain"\n\n[model]\nurl = "{url}"\nname = "{name}"\n')
     try:
         def settings(d):
@@ -1089,7 +1195,7 @@ def ur_solved():
     widths("review-ur", lambda d: game(d, True))
 
 
-ALL = {"library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources,
+ALL = {"library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":

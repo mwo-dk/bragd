@@ -4,15 +4,12 @@
 
 A Foreign database is a game file in someone else's format. Bragd opens it where it is and reads it in place: it does not copy it, convert it or change it. You can list its Games, filter and sort them, step through one, import the file into a Library, or save a copy. In F1 this is the `databases` entry.
 
-<!-- screenshot: databases-1100.png: The Databases page at its Files tab: a PGN file open, its Games listed with players, ratings, result, date, event and ECO, a filter for player and one for opening, in the default Racing green dark Theme -->
 ![The Databases page at its Files tab: a PGN file open, its Games listed with players, ratings, result, date, event and ECO, a filter for player and one for opening](../screenshots/databases-1100.png)
 *Databases → Files, with a PGN file open.*
 
-<!-- screenshot: databases-replay-1100.png: One Game in replay: the board, the moves with a comment, the evaluation profile under them and the headers, in the default Racing green dark Theme -->
-![One Game in replay: the board, the moves with a comment, the evaluation profile under them and the headers](../screenshots/databases-replay-1100.png)
+![One Game in replay: the board, Analyse beside Flip board and Close above it, the evaluation profile over the moves with a comment, and the headers](../screenshots/databases-replay-1100.png)
 *A Game in replay, with its evaluation profile.*
 
-<!-- screenshot: databases-390.png: The same page in a narrow window: the sidebar folded away, the list below the buttons, in the default Racing green dark Theme -->
 ![The same page in a narrow window: the sidebar folded away, the list below the buttons](../screenshots/databases-390.png)
 *The Files tab at 390 px wide.*
 
@@ -47,7 +44,6 @@ Only the file. These formats open:
 
 A large file is listed while it is read, with the count so far. A very large file is listed up to a cap, and a line says so. A packed file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) is unpacked only as far as an import may unpack it ([Largest unpacking ratio](#why-does-a-packed-file-stop-saying-it-unpacks-too-far)), so a Lichess month opens whole. Only the rows in sight are asked of Rust, so scrolling stays quick.
 
-<!-- screenshot: databases-replay-1100.png: a chess Game of demo.pgn in replay, Analyse beside Flip board and Close above the board -->
 Replay draws a board for chess (and Chess960, from the `Variant` header), shogi and go: a go file's Games are played again from the empty board, with their set-up stones. Draughts and xiangqi Games list their moves without a board for now, because their readers give no position per move; import them into a Library to step through them on a board. **Analyse** above the board opens the position in Analyse, with the moves that led to it.
 
 ## Settings and config.toml

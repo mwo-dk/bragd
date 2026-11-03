@@ -2,7 +2,7 @@
 
 # Language model
 
-A language model translates a Game's comments into your language when you ask. Bragd talks to any server with an OpenAI-compatible address: Ollama, Lemonade or LM Studio on this machine, or a cloud service. It is off until you choose one. In F1 this is the `model` entry.
+A language model translates a Game's comments into your language and writes [Commentary](../engines/commentary.md) on moves when you ask. Bragd talks to any server with an OpenAI-compatible address: Ollama, Lemonade or LM Studio on this machine, or a cloud service. It is off until you choose one. In F1 this is the `model` entry.
 
 ![Settings at Language model: Lemonade found running on this machine with its models, the address and model in use, and Ready](../screenshots/language-model-1100.png)
 *Settings → Language model.*

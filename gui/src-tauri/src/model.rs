@@ -150,10 +150,24 @@ fn kept_commentary(f: &crate::analyse::Facts) -> Result<Option<Written>, String>
 pub fn commentary_view(variant: String, initial: Option<String>, entries: Vec<String>, engine: Option<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Result<CommentaryView, String> {
     let cfg = ctx.cfg();
     let model = bragd_model::ready(&cfg.model) || peer_model(&k, cfg.peers.on);
-    let Some(f) = crate::analyse::facts(&cfg, &variant, initial.as_deref(), &entries, engine)? else {
-        return Ok(CommentaryView { model, why: Some(t!("commentary.no_facts")), ..Default::default() });
+    let f = crate::analyse::facts(&cfg, &variant, initial.as_deref(), &entries, engine)?;
+    let shown = match &f {
+        Some(f) => kept_commentary(f)?,
+        None => None,
     };
-    Ok(CommentaryView { model, offered: model, why: (!model).then(|| t!("commentary.no_model")), shown: kept_commentary(&f)? })
+    Ok(CommentaryView { model, offered: model && f.is_some(), why: why_not(model, f.is_some()), shown })
+}
+
+/// Why Commentary cannot be written now. No model comes first: analysing would not help
+/// someone who has none.
+fn why_not(model: bool, facts: bool) -> Option<String> {
+    if !model {
+        Some(t!("commentary.no_model"))
+    } else if !facts {
+        Some(t!("commentary.no_facts"))
+    } else {
+        None
+    }
 }
 
 /// Commentary on the Game's last move in the reader's language: the one kept, else written now
@@ -191,4 +205,17 @@ pub fn slice_commentary_count(library: String, name: String, family: String, ctx
 pub fn slice_commentary(library: String, name: String, family: String, k: State<'_, Knowledge>) -> Result<u64, String> {
     bragd_core::tips::used("commentary");
     k.link.start(&Request::Start { work: Work::SliceCommentary { library: library.into(), slice: name, family, language: i18n::language().into() } })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_model_is_said_before_analyse_first() {
+        assert_eq!(why_not(false, false), Some(t!("commentary.no_model")));
+        assert_eq!(why_not(false, true), Some(t!("commentary.no_model")));
+        assert_eq!(why_not(true, false), Some(t!("commentary.no_facts")));
+        assert_eq!(why_not(true, true), None);
+    }
 }

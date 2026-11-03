@@ -1127,7 +1127,8 @@ impl Jobs {
                 *kept = Memo { last_fetch: Some(now), last_try: Some(now), last_error: None, too_big: None, allowed: None, ..memo };
             }
             Err(e) => {
-                kept.last_error = Some(e.clone());
+                // A download over its cap is the too-big notice, not an error.
+                kept.last_error = too_big.is_none().then(|| e.clone());
                 kept.too_big = too_big;
             }
         }
@@ -1879,6 +1880,8 @@ pub(crate) mod tests {
         assert_eq!(j.status, Status::Failed);
         let size = PGN.len() as u64;
         assert_eq!(jobs.lock().sources["custom:club"].memo.too_big, Some(size));
+        // Its notice says it in words; no raw error line in bytes beside it.
+        assert_eq!(jobs.lock().sources["custom:club"].memo.last_error, None);
         assert!(!jobs.source_dir("custom:club").join("games.pgn").exists());
         assert!(!d.0.join("lib/main.bragd").exists(), "nothing imported");
         let notice = jobs.disk_report(&Config::default()).crossed.into_iter().find(|c| c.key == "notice.download_too_big").unwrap();

@@ -36,8 +36,7 @@
     gap: 0.5rem;
   }
   input {
-    flex: 1;
-    min-width: 12rem;
+    flex: 1 1 100%;
   }
   .hint {
     margin: 0;
