@@ -30,4 +30,4 @@ Not yet. Play them on pychess.org in your browser. Bragd's own server, after the
 pychess.org's bot API would allow it for a new account made for the purpose, but that is not playing yourself, and Bragd does not offer it.
 
 ---
-[← Previous: Playing on OGS](ogs.md) · [Next: Reference →](../reference/README.md)
+[← Previous: Play with Friends](play-with-friends.md) · [Next: Reference →](../reference/README.md)

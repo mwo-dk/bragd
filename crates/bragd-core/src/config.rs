@@ -295,6 +295,9 @@ pub struct PeersConfig {
 pub struct OnlineConfig {
     /// A Lichess Game's chat is read and written in Bragd. Off by default.
     pub chat: bool,
+    /// The Bragd server's address (its game service). Empty, the default, until the Bragd
+    /// server is up: *Play with Friends* stays hidden and nothing is asked of it.
+    pub server: String,
 }
 
 impl Default for Config {

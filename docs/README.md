@@ -107,6 +107,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Playing online](online/playing-online.md) | Chess on Lichess: signing in, seeks, challenges, clocks, offers, the fair-play lock across windows and chat |
 | [Playing on Lishogi](online/lishogi.md) | Shogi on Lishogi: byoyomi, sente and gote, what Lishogi does not offer |
 | [Playing on OGS](online/ogs.md) | Go on OGS: rules, byoyomi, passing and counting the score |
+| [Play with Friends](online/play-with-friends.md) | Bragd players on the Bragd server: the account, Friends, Clubs and Games refereed by Bragd's rules |
 | [pychess.org](online/pychess.md) | Why pychess.org cannot be played from Bragd |
 
 ## [Reference](reference/README.md)

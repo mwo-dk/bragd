@@ -296,3 +296,15 @@ export const onlineMove = (/** @type {string} */ server, /** @type {string} */ e
 /** draw, no_draw, takeback, no_takeback, resign, abort, score or leave. */
 export const onlineAction = (/** @type {string} */ server, /** @type {string} */ what) => invoke("online_action", { server, what });
 export const onlineSay = (/** @type {string} */ server, /** @type {string} */ text) => invoke("online_say", { server, text });
+
+// Play with Friends (bragd-online's bragd_server, gui/src-tauri/src/friends.rs): the account on
+// the Bragd server, Friends and Clubs. Its Games are Play online's, on the server `bragd`.
+/** @returns {Promise<any>} */
+export const friendsView = () => invoke("friends_view");
+export const friendsSignIn = (/** @type {string} */ email, /** @type {string} */ password) => invoke("friends_sign_in", { email, password });
+export const friendsSignUp = (/** @type {string} */ email, /** @type {string} */ password) => invoke("friends_sign_up", { email, password });
+export const friendsSignInWith = (/** @type {string} */ provider) => invoke("friends_sign_in_with", { provider });
+export const friendsName = (/** @type {string} */ name) => invoke("friends_name", { name });
+export const friendsClubFriends = (/** @type {boolean} */ on) => invoke("friends_club_friends", { on });
+/** A Friends action: `friends`, `friends/remove`, `invites`, `invites/redeem`, `blocks`, `blocks/remove`, `reports`, `clubs`, `clubs/join`, `clubs/leave`. */
+export const friendsAct = (/** @type {string} */ what, /** @type {any} */ body) => invoke("friends_act", { what, body });

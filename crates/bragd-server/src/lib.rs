@@ -4,5 +4,6 @@
 
 pub mod api;
 pub mod db;
+pub mod friends;
 pub mod http;
 pub mod jwt;

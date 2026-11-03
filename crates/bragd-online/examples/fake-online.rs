@@ -1,11 +1,12 @@
-//! A fake Lichess, Lishogi or OGS on 127.0.0.1, for screenshots and trying the Play online page
+//! A fake Lichess, Lishogi, OGS or Bragd server on 127.0.0.1, for screenshots and trying the Play online page
 //! by hand:
 //!
 //!     cargo run -p bragd-online --features fake --example fake-online -- lichess 8765
 //!     BRAGD_LICHESS_URL=http://127.0.0.1:8765 BRAGD_LICHESS_TOKEN=lip_fake bragd-gui
 //!
 //! `lishogi` takes `BRAGD_LISHOGI_URL` and `BRAGD_LISHOGI_TOKEN` (`lip_fake`), `ogs` takes
-//! `BRAGD_OGS_URL` and `BRAGD_OGS_TOKEN` (`ogs_fake`). It prints its address, then serves until
+//! `BRAGD_OGS_URL` and `BRAGD_OGS_TOKEN` (`ogs_fake`), `bragd` takes `BRAGD_FRIENDS_URL` and
+//! `BRAGD_FRIENDS_TOKEN` (`fake-refresh`), or the password `bragd-fake`. It prints its address, then serves until
 //! it is stopped.
 
 fn main() {
@@ -16,8 +17,9 @@ fn main() {
         "lichess" => bragd_online::fake::lichess_on(port),
         "lishogi" => bragd_online::fake::lishogi_on(port),
         "ogs" => bragd_online::fake::ogs_on(port),
+        "bragd" => bragd_online::fake_bragd::bragd_on(port).0,
         _ => {
-            eprintln!("usage: fake-online lichess|lishogi|ogs [port]");
+            eprintln!("usage: fake-online lichess|lishogi|ogs|bragd [port]");
             std::process::exit(2);
         }
     };

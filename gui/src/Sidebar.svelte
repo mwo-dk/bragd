@@ -70,6 +70,7 @@
     </div>
     <div class="always">
       <button class:current={page.kind === "clubs"} onclick={() => go({ kind: "clubs" })}>{t("sidebar.clubs")}</button>
+      {#if snap.friends}<button class:current={page.kind === "friends"} onclick={() => go({ kind: "friends" })}>{t("sidebar.friends")}</button>{/if}
       <button class:current={page.kind === "settings"} onclick={() => go({ kind: "settings" })}>{t("sidebar.settings")}</button>
       <button class:current={page.kind === "help"} onclick={() => go({ kind: "help" })}>{t("sidebar.help")} <kbd>F1</kbd></button>
       <button class:current={page.kind === "whats_new"} onclick={() => go({ kind: "whats_new" })}>{t("sidebar.whats_new")}</button>

@@ -24,6 +24,7 @@
   import Books from "./Books.svelte";
   import Clubs from "./Clubs.svelte";
   import PlayOnline from "./PlayOnline.svelte";
+  import Friends from "./Friends.svelte";
   import splash from "../../assets/brand/splash.svg";
 
   /** @type {any} */
@@ -51,6 +52,10 @@
   // A page whose Family is off (just turned off, or reached by Back) gives way to Settings.
   $effect(() => {
     if (snap && (page.kind === "item" || page.kind === "online") && !snap.families.find((/** @type {any} */ f) => f.id === page.family)?.shown) replace({ kind: "settings" });
+  });
+  // Play with Friends without a Bragd server address set gives way too.
+  $effect(() => {
+    if (snap && page.kind === "friends" && !snap.friends) replace({ kind: "settings" });
   });
 
   api.snapshot().then((s) => {
@@ -144,6 +149,8 @@
         <WhatsNew />
       {:else if page.kind === "clubs"}
         <Clubs {snap} {go} />
+      {:else if page.kind === "friends" && snap.friends}
+        <Friends {save} />
       {:else if page.kind === "online" && onlineFamily?.shown}
         {#key page.server}
           <PlayOnline server={page.server} family={onlineFamily} {save} />

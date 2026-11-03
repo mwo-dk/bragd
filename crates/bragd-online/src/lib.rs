@@ -5,8 +5,11 @@
 //! chat is kept only while the user has turned chat on.
 
 pub mod board;
+pub mod bragd_server;
 #[cfg(any(test, feature = "fake"))]
 pub mod fake;
+#[cfg(any(test, feature = "fake"))]
+pub mod fake_bragd;
 pub mod game;
 pub mod oauth;
 pub mod ogs;

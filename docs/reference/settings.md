@@ -2,7 +2,7 @@
 
 # Every setting
 
-Settings has eight areas: Overview, Game families, Look, Engines, Knowledge, Online, Tips, and Privacy and updates. An item that concerns one Game family only, such as the tablebase items for chess, leaves Settings while that Family is off, and an area left with nothing to show is not listed: without chess, Online is gone. Each item is saved to `config.toml` the moment you change it. This page lists every item by area, with the name the app gives it and the key it writes.
+Settings has eight areas: Overview, Game families, Look, Engines, Knowledge, Online, Tips, and Privacy and updates. An item that concerns one Game family only, such as the tablebase items for chess, leaves Settings while that Family is off, and an area left with nothing to show is not listed: with only backgammon, Ur or senet on, Online is gone. Each item is saved to `config.toml` the moment you change it. This page lists every item by area, with the name the app gives it and the key it writes.
 
 ![Settings at Overview: the areas on the left, the line with the version and how many Game families and Variants are on, and the buttons Run the install wizard again, Open config.toml and Suggest a better translation](../screenshots/settings-overview-1100.png)
 *Settings at Overview.*
@@ -100,7 +100,8 @@ The Engine per Variant, added Engines and their options are on each Family's [En
 | Name | Shown as | `config.toml` key | What it does |
 |---|---|---|---|
 | `tablebases_online` | Ask Lichess for tablebase positions | `tablebases.online` | When your tables do not cover a position, that position is sent to the Lichess tablebase API. Shown while chess is on |
-| `online_chat` | Chat in online Games | `online.chat` | Reads and writes an online Game's chat in Bragd, on every server. Off, no line is fetched or shown. Shown while chess, shogi or go is on |
+| `online_chat` | Chat in online Games | `online.chat` | Reads and writes an online Game's chat in Bragd, on Lichess, Lishogi and OGS. Off, no line is fetched or shown. Shown while chess, shogi or go is on |
+| `bragd_server` | Bragd server address | `online.server` | The Bragd server's address, for [Play with Friends](../online/play-with-friends.md). Empty, the page is hidden and nothing is sent. Shown while chess, xiangqi, shogi, go, draughts or tafl is on |
 
 Signing in is on the Family's *Play → Play on Lichess*, *Play on Lishogi* or *Play on OGS* ([Playing online](../online/playing-online.md)).
 
