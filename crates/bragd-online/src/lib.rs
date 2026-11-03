@@ -12,6 +12,7 @@ pub mod fake;
 pub mod fake_bragd;
 pub mod game;
 pub mod oauth;
+pub mod realtime;
 pub mod ogs;
 pub mod server;
 pub mod session;

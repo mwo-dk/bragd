@@ -114,7 +114,7 @@ pub fn bragd() -> (Fake, Arc<Mutex<World>>) {
 pub fn bragd_on(port: u16) -> (Fake, Arc<Mutex<World>>) {
     let world: Arc<Mutex<World>> = Arc::default();
     let w = world.clone();
-    let fake = Fake::start_on(port, move |r, fake| reply(r, fake, &w));
+    let fake = Fake::start_with_socket(port, move |r, fake| reply(r, fake, &w), realtime);
     (fake, world)
 }
 
@@ -130,10 +130,35 @@ fn tokens() -> Reply {
     ok(json!({ "access_token": TOKEN, "refresh_token": REFRESH, "expires_in": 3600, "token_type": "bearer" }))
 }
 
+/// The players a Call may be between: BragdTester and the Friends, by their ids in `/v1/state`.
+const CALLERS: [&str; 3] = ["id-bragdtester", "id-anna", "id-bo"];
+
+/// Supabase Realtime, as far as Call signalling uses it: a join of a private topic `call:<a>:<b>`
+/// is answered ok for two of the callers in order with the fake's token, and refused otherwise; a
+/// broadcast goes to every socket, as from the other side.
+fn realtime(text: &str, fake: &Fake) {
+    let v: Value = serde_json::from_str(text).unwrap_or(Value::Null);
+    let topic = v["topic"].as_str().unwrap_or_default();
+    match v["event"].as_str() {
+        Some("phx_join") => {
+            let pair = topic.strip_prefix("realtime:call:").and_then(|p| p.split_once(':'));
+            let ok = v["payload"]["access_token"] == TOKEN
+                && v["payload"]["config"]["private"] == true
+                && pair.is_some_and(|(a, b)| a < b && CALLERS.contains(&a) && CALLERS.contains(&b));
+            let status = if ok { "ok" } else { "error" };
+            fake.tell(&json!({ "topic": topic, "event": "phx_reply", "ref": v["ref"], "payload": { "status": status, "response": {} } }).to_string());
+        }
+        Some("broadcast") => fake.tell(&json!({ "topic": topic, "event": "broadcast", "ref": null, "payload": v["payload"] }).to_string()),
+        Some("heartbeat") => fake.tell(&json!({ "topic": "phoenix", "event": "phx_reply", "ref": v["ref"], "payload": { "status": "ok", "response": {} } }).to_string()),
+        _ => {}
+    }
+}
+
 fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
     let body: Value = serde_json::from_str(&r.body).unwrap_or(Value::Null);
     let path = r.path.as_str();
     match (r.method.as_str(), path) {
+        (_, "/realtime/v1/websocket") if r.ws_key.is_some() => return Reply::Socket,
         ("GET", "/v1/config") => return ok(json!({ "supabase_url": fake.url, "supabase_key": "fake-publishable", "oauth": ["github"] })),
         ("POST", "/auth/v1/token") => {
             return match r.query.as_str() {

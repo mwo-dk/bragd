@@ -1896,5 +1896,6 @@
  "feature.chat.a2": "Solo se la spuntate entrambi. Altrimenti viene eliminata quando finisce la partita.",
  "feature.chat.tip": "Parla durante una partita con un giocatore di Bragd: Chiedi Chat accanto al tabellone.",
  "tour.chat.title": "Chat con giocatori di Bragd",
- "tour.chat.text": "In una partita sul server di Bragd, chiedi la Chat. Si apre solo quando dite sì entrambi, chiunque può chiuderla, e viene mantenuta solo se la spuntate entrambi."
+ "tour.chat.text": "In una partita sul server di Bragd, chiedi la Chat. Si apre solo quando dite sì entrambi, chiunque può chiuderla, e viene mantenuta solo se la spuntate entrambi.",
+ "talk.error.signalling": "La chiamata non è riuscita a raggiungere l'altro giocatore tramite il server di Bragd. Siete ancora amici?"
 }

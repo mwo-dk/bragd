@@ -1,6 +1,6 @@
 //! `bragd-server`: the game service, configured by its environment (packaging/server/README.md).
 
-use bragd_server::api::{Public, Service};
+use bragd_server::api::{Public, Service, Turn};
 use bragd_server::{db::Pool, http, jwt::Verifier};
 
 fn var(name: &str) -> String {
@@ -28,7 +28,11 @@ fn main() {
             std::process::exit(2);
         }
     };
-    let service = Service { pool, verifier: Verifier::new(Some(&secret), Some(&jwks)), public };
+    let turn = Turn {
+        urls: var("BRAGD_SERVER_TURN_URLS").split(',').map(str::trim).filter(|s| !s.is_empty()).map(str::to_string).collect(),
+        secret: var("BRAGD_SERVER_TURN_SECRET"),
+    };
+    let service = Service { pool, verifier: Verifier::new(Some(&secret), Some(&jwks)), public, turn };
     let listen = std::env::var("BRAGD_SERVER_LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".into());
     eprintln!("bragd-server: listening on {listen}");
     if let Err(e) = http::serve(service, &listen, 8) {

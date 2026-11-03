@@ -1896,5 +1896,6 @@
  "feature.chat.a2": "Seulement si vous cochez tous les deux Garder. Sinon il est supprimé à la fin de la partie.",
  "feature.chat.tip": "Parlez pendant une partie avec un joueur de Bragd : Demander un Chat à côté du plateau.",
  "tour.chat.title": "Chat avec des joueurs de Bragd",
- "tour.chat.text": "Dans une partie sur le serveur Bragd, demandez un Chat. Il ne s’ouvre que lorsque vous dites oui tous les deux, l’un ou l’autre peut le fermer, et il n’est gardé que si vous cochez tous les deux Garder."
+ "tour.chat.text": "Dans une partie sur le serveur Bragd, demandez un Chat. Il ne s’ouvre que lorsque vous dites oui tous les deux, l’un ou l’autre peut le fermer, et il n’est gardé que si vous cochez tous les deux Garder.",
+ "talk.error.signalling": "L’appel n’a pas pu joindre l’autre joueur via le serveur Bragd. Êtes-vous toujours amis ?"
 }

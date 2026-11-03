@@ -1896,5 +1896,6 @@
  "feature.chat.a2": "Només si tots dos marqueu Mantén. Si no, s'esborra quan acaba la partida.",
  "feature.chat.tip": "Parla durant una partida amb un jugador de Bragd: Demana xat al costat del tauler.",
  "tour.chat.title": "Xat amb jugadors de Bragd",
- "tour.chat.text": "En una partida al servidor de Bragd, demana xat. S'obre només quan tots dos dieu sí, qualsevol dels dos el pot tancar, i es manté només si tots dos marqueu Mantén."
+ "tour.chat.text": "En una partida al servidor de Bragd, demana xat. S'obre només quan tots dos dieu sí, qualsevol dels dos el pot tancar, i es manté només si tots dos marqueu Mantén.",
+ "talk.error.signalling": "La trucada no ha pogut arribar a l'altre jugador a través del servidor de Bragd. Encara sou amics?"
 }

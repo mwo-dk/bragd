@@ -22,6 +22,16 @@ pub struct Service {
     pub pool: Pool,
     pub verifier: Verifier,
     pub public: Public,
+    pub turn: Turn,
+}
+
+/// The STUN and TURN servers a Call may use, and the secret TURN shares with the game service.
+#[derive(Clone, Debug, Default)]
+pub struct Turn {
+    /// `stun:` and `turn:`/`turns:` addresses.
+    pub urls: Vec<String>,
+    /// Empty: no TURN, only STUN.
+    pub secret: String,
 }
 
 /// An answer that is not a success.
@@ -71,6 +81,7 @@ impl Service {
         let parts: Vec<&str> = path.trim_matches('/').split('/').collect();
         match (method, parts.as_slice()) {
             ("GET", ["v1", "state"]) => self.state(&caller),
+            ("GET", ["v1", "turn"]) => Ok(self.ice(&caller)),
             ("PUT", ["v1", "me"]) => self.me(&caller, &body),
             ("POST", ["v1", rest @ ..]) if matches!(rest.first(), Some(&("friends" | "invites" | "blocks" | "reports" | "clubs"))) => self.friends(&caller, rest, &body),
             ("POST", ["v1", "games"]) => self.challenge(&caller, &body),
@@ -128,6 +139,22 @@ impl Service {
             out["games"] = json!(games);
             Ok(out)
         })
+    }
+
+    /// The ICE servers for the caller's Calls: STUN, and TURN with credentials of their own when
+    /// a secret is set. The WebRTC `iceServers` shape.
+    fn ice(&self, caller: &Caller) -> Value {
+        let (stun, turn): (Vec<&String>, Vec<&String>) = self.turn.urls.iter().partition(|u| u.starts_with("stun:"));
+        let mut servers = vec![];
+        if !stun.is_empty() {
+            servers.push(json!({ "urls": stun }));
+        }
+        if !turn.is_empty() && !self.turn.secret.is_empty() {
+            let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+            let (username, credential) = crate::turn::credentials(&self.turn.secret, &caller.id.to_string(), now);
+            servers.push(json!({ "urls": turn, "username": username, "credential": credential }));
+        }
+        json!({ "ice_servers": servers, "ttl": crate::turn::TTL })
     }
 
     /// Makes or renames the caller's profile (`name`), and sets whether members of their Clubs

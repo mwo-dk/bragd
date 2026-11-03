@@ -1885,5 +1885,6 @@
  "feature.chat.a2": "Alleen als jullie allebei Bewaar aanvinken. Anders wordt hij verwijderd als de Partij eindigt.",
  "feature.chat.tip": "Praat tijdens een Partij met een Bragd-speler: kies naast het bord Vraag om Chat.",
  "tour.chat.title": "Chat met Bragd-spelers",
- "tour.chat.text": "In een Partij op de Bragd-server: Vraag om Chat. Hij opent alleen als jullie allebei ja zeggen, ieder kan hem sluiten, en hij blijft alleen bewaard als jullie allebei Bewaar aanvinken."
+ "tour.chat.text": "In een Partij op de Bragd-server: Vraag om Chat. Hij opent alleen als jullie allebei ja zeggen, ieder kan hem sluiten, en hij blijft alleen bewaard als jullie allebei Bewaar aanvinken.",
+ "talk.error.signalling": "De oproep kon de andere speler niet bereiken via de Bragd-server. Zijn jullie nog vrienden?"
 }
