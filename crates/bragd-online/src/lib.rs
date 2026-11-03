@@ -87,6 +87,9 @@ pub trait Play: Send + Sync {
     }
     /// Back to the lobby from a Game that is over.
     fn leave(&self);
+    /// Takes back the last checker of a backgammon turn being moved checker by checker; only
+    /// the Bragd server plays so.
+    fn step_back(&self) {}
     /// Turns the chat on or off. Off, no line is kept or shown and none can be sent; on, the
     /// Game's chat so far is fetched. Nothing happens when it is already so.
     fn set_chat(&self, on: bool) -> Result<(), String>;

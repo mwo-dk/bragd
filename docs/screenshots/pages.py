@@ -946,7 +946,7 @@ def online():
 def friends():
     """Play with Friends against the fake Bragd server (`fake-online bragd`), never a real one:
     friends-sign-in before signing in, friends signed in with Anna's challenge, Carl's request and
-    the Club, friends-seek with the lobby's seek, ratings and Bo's seek, friends-game after accepting Anna's challenge and 1. e4, friends-chat with the Game's Chat open, friends-call asking Anna for voice, friends-delete with Delete my account's form filled in, and friends-dice with a backgammon Game waiting for Throw or Double; each -390.png and
+    the Club, friends-seek with the lobby's seek, ratings and Bo's seek, friends-game after accepting Anna's challenge and 1. e4, friends-chat with the Game's Chat open, friends-call asking Anna for voice, friends-delete with Delete my account's form filled in, friends-dice with a backgammon Game waiting for Throw or Double, and friends-step with one checker of the turn moved and Undo; each -390.png and
     -1100.png. BRAGD_FRIENDS_URL points the app at the fake, and BRAGD_FRIENDS_TOKEN stands in for
     the keychain the sandbox does not have."""
     import subprocess
@@ -1011,6 +1011,15 @@ def friends():
                 js(d, "document.querySelector('main .game')?.scrollIntoView();")
                 d.wait(0.5)
                 d.shot(HERE / f"friends-dice-{w}.png")
+                # friends-step: after the referee's throw, one checker moved, with Undo; the step
+                # is Rust's own first, asked through the page's own commands.
+                click(d, "Throw", "main")
+                d.wait(2)
+                js(d, "const i = window.__TAURI_INTERNALS__; i.invoke('online_view', {server: 'bragd'}).then(v => i.invoke('online_move', {server: 'bragd', entry: v.game.state.steps[0].wire}));")
+                d.wait(2)
+                js(d, "document.querySelector('main .game')?.scrollIntoView();")
+                d.wait(0.5)
+                d.shot(HERE / f"friends-step-{w}.png")
         finally:
             p.terminate()
             p.wait(5)

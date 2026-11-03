@@ -4,6 +4,10 @@
 //! those two only while they are Friends (`supabase/migrations/…_signalling.sql`). The protocol is
 //! Phoenix's channels over a WebSocket: `phx_join`, `broadcast`, `heartbeat`. Media never passes
 //! here.
+//!
+//! The same broadcast tells a player of their Games: `player:<id>`, which only that player may
+//! join and on which only the database sends, after each change the referee makes
+//! (`supabase/migrations/…_live_games.sql`).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -88,8 +92,8 @@ impl Channel {
             topic: full,
             me: me.to_string(),
         };
-        let (inbox, stop, gone, me) = (ch.inbox.clone(), ch.stop.clone(), ch.lost.clone(), ch.me.clone());
-        std::thread::spawn(move || listen(ws, &outbox, &inbox, &stop, &gone, &me));
+        let (inbox, stop, gone, me, topic) = (ch.inbox.clone(), ch.stop.clone(), ch.lost.clone(), ch.me.clone(), ch.topic.clone());
+        std::thread::spawn(move || listen(ws, &outbox, &inbox, &stop, &gone, &me, &topic));
         Ok(ch)
     }
 
@@ -120,7 +124,7 @@ impl Drop for Channel {
     }
 }
 
-fn listen(mut ws: Ws, outbox: &Receiver<String>, inbox: &Mutex<Vec<Value>>, stop: &AtomicBool, lost: &Mutex<Option<String>>, me: &str) {
+fn listen(mut ws: Ws, outbox: &Receiver<String>, inbox: &Mutex<Vec<Value>>, stop: &AtomicBool, lost: &Mutex<Option<String>>, me: &str, topic: &str) {
     let mut beat = Instant::now();
     let mut n = 1u64;
     let why = 'run: loop {
@@ -147,7 +151,7 @@ fn listen(mut ws: Ws, outbox: &Receiver<String>, inbox: &Mutex<Vec<Value>>, stop
                 let p = &v["payload"]["payload"];
                 // A broadcast from the other player; the user's own never comes back (`self: false`),
                 // and one marked as the user's is ignored all the same.
-                if v["event"] == "broadcast" && p["from"].is_string() && p["from"] != me {
+                if v["event"] == "broadcast" && v["topic"] == topic && p["from"].is_string() && p["from"] != me {
                     inbox.lock().unwrap_or_else(|e| e.into_inner()).push(p["signal"].clone());
                 }
             }

@@ -7,6 +7,7 @@ use crate::support::{Db, Pg, User};
 pub const CASES: &[crate::Case] = &[
     ("signals_pass_between_friends_only", signals_pass_between_friends_only),
     ("turn_credentials_are_the_callers_own", turn_credentials_are_the_callers_own),
+    ("a_games_changes_are_told_to_its_two_players_only", a_games_changes_are_told_to_its_two_players_only),
 ];
 
 fn turn_credentials_are_the_callers_own(pg: &Pg) {
@@ -58,4 +59,29 @@ fn signals_pass_between_friends_only(pg: &Pg) {
     assert_eq!(may(&db, &anna, "lobby"), (false, false), "no other topic");
     db.call(&bo, "POST", "/v1/blocks", json!({ "name": "Anna" }));
     assert_eq!(may(&db, &anna, &t), (false, false), "a block ends it");
+}
+
+/// The Games each player is told of on their own topic, oldest first.
+fn told(db: &Db, u: &User) -> Vec<String> {
+    let rows = db.owner().query("select payload from realtime.messages where topic = $1 order by id", &[&format!("player:{}", u.id)]).unwrap();
+    rows.iter().map(|r| r.get::<_, serde_json::Value>(0)).map(|p| { assert_eq!(p["from"], "bragd"); p["signal"]["game"].as_str().unwrap().to_string() }).collect()
+}
+
+fn a_games_changes_are_told_to_its_two_players_only(pg: &Pg) {
+    let db = pg.fresh();
+    let anna = db.user("Anna");
+    let bo = db.user("Bo");
+    let eve = db.user("Eve");
+    let (_, v) = db.call(&anna, "POST", "/v1/games", json!({ "opponent": "Bo", "variant": "chess", "side": "first" }));
+    let id = v["id"].as_str().unwrap().to_string();
+    assert_eq!(told(&db, &bo), std::slice::from_ref(&id), "the challenge");
+    assert_eq!(db.call(&bo, "POST", &format!("/v1/games/{id}/accept"), json!({})).0, 200);
+    let before = told(&db, &bo).len();
+    assert_eq!(db.call(&anna, "POST", &format!("/v1/games/{id}/move"), json!({ "ply": 0, "entry": "e2e4" })).0, 200);
+    assert!(told(&db, &bo).len() > before, "a move without a clock is told too");
+    assert_eq!(told(&db, &anna).last(), Some(&id));
+    assert!(told(&db, &eve).is_empty());
+    let mine = format!("player:{}", anna.id);
+    assert_eq!(may(&db, &anna, &mine), (true, false), "Anna listens on her own topic and never sends on it");
+    assert_eq!(may(&db, &bo, &mine), (false, false), "nobody else listens there");
 }

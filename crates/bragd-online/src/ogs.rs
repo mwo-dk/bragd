@@ -237,6 +237,7 @@ impl Game {
             initial: None,
             entries: self.entries.clone(),
             dead: (self.phase == "stone removal").then(|| points(&self.removed, self.size)),
+            part: 0,
         }
     }
 

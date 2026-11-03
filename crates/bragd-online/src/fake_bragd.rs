@@ -149,18 +149,19 @@ fn tokens() -> Reply {
 /// The players a Call may be between: BragdTester and the Friends, by their ids in `/v1/state`.
 const CALLERS: [&str; 3] = ["id-bragdtester", "id-anna", "id-bo"];
 
-/// Supabase Realtime, as far as Call signalling uses it: a join of a private topic `call:<a>:<b>`
-/// is answered ok for two of the callers in order with the fake's token, and refused otherwise; a
-/// broadcast goes to every socket, as from the other side.
+/// Supabase Realtime, as far as Bragd uses it: a join of a private topic `call:<a>:<b>` is
+/// answered ok for two of the callers in order with the fake's token, and of `player:<id>` for a
+/// caller, and refused otherwise; a broadcast goes to every socket, as from the other side.
 fn realtime(text: &str, fake: &Fake) {
     let v: Value = serde_json::from_str(text).unwrap_or(Value::Null);
     let topic = v["topic"].as_str().unwrap_or_default();
     match v["event"].as_str() {
         Some("phx_join") => {
             let pair = topic.strip_prefix("realtime:call:").and_then(|p| p.split_once(':'));
+            let player = topic.strip_prefix("realtime:player:");
             let ok = v["payload"]["access_token"] == TOKEN
                 && v["payload"]["config"]["private"] == true
-                && pair.is_some_and(|(a, b)| a < b && CALLERS.contains(&a) && CALLERS.contains(&b));
+                && (pair.is_some_and(|(a, b)| a < b && CALLERS.contains(&a) && CALLERS.contains(&b)) || player.is_some_and(|p| CALLERS.contains(&p)));
             let status = if ok { "ok" } else { "error" };
             fake.tell(&json!({ "topic": topic, "event": "phx_reply", "ref": v["ref"], "payload": { "status": status, "response": {} } }).to_string());
         }
