@@ -1247,10 +1247,7 @@ pub(crate) mod tests {
         let script = "while read l; do case \"$l\" in uci) echo 'id name Fake'; echo uciok;; isready) echo readyok;; go*) echo 'bestmove 0000';; quit) exit 0;; esac; done";
         let mut keys = vec![];
         for k in ["fake-a", "fake-b"] {
-            let p = d.0.join(k);
-            let mut sh = std::process::Command::new("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(&p).stdin(std::process::Stdio::piped()).spawn().unwrap();
-            std::io::Write::write_all(&mut sh.stdin.take().unwrap(), format!("#!/bin/sh\n{script}\n").as_bytes()).unwrap();
-            assert!(sh.wait().unwrap().success());
+            let p = bragd_engines::fake_program(&d.0, k, script);
             let _config = CONFIG.lock().unwrap_or_else(|e| e.into_inner());
             Config::save_value(&["engines", "added", k], "chess".into()).unwrap();
             Config::save_value(&["engines", "paths", k], p.display().to_string().as_str().into()).unwrap();
@@ -1282,10 +1279,7 @@ pub(crate) mod tests {
     /// The caller holds `CONFIG`.
     pub(crate) fn fake_analyst(d: &Path, key: &str) {
         let script = "while read l; do case \"$l\" in uci) echo 'id name Fake 2.0'; echo uciok;; isready) echo readyok;; go*) echo 'info depth 20 score cp 31 pv e2e4 e7e5'; echo 'bestmove e2e4';; quit) exit 0;; esac; done";
-        let p = d.join(key);
-        let mut sh = std::process::Command::new("/bin/sh").arg("-c").arg("cat > \"$0\" && chmod 755 \"$0\"").arg(&p).stdin(std::process::Stdio::piped()).spawn().unwrap();
-        std::io::Write::write_all(&mut sh.stdin.take().unwrap(), format!("#!/bin/sh\n{script}\n").as_bytes()).unwrap();
-        assert!(sh.wait().unwrap().success());
+        let p = bragd_engines::fake_program(d, key, script);
         Config::save_value(&["engines", "added", key], "chess".into()).unwrap();
         Config::save_value(&["engines", "paths", key], p.display().to_string().as_str().into()).unwrap();
     }

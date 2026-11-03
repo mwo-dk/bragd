@@ -412,12 +412,9 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn an_engine_plays_a_side() {
-        use std::os::unix::fs::PermissionsExt;
         let d = std::env::temp_dir().join(format!("bragd-gui-engine-{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap();
-        let p = d.join("fake");
-        std::fs::write(&p, "#!/bin/sh\nwhile read l; do case \"$l\" in uci) echo 'id name Fake 1'; echo 'option name Skill Level type spin default 20 min 0 max 20'; echo uciok;; go*) echo 'info depth 3 score cp 20 pv e7e5'; echo 'bestmove e7e5';; quit) exit 0;; esac; done\n").unwrap();
-        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let p = bragd_engines::fake_program(&d, "fake", "while read l; do case \"$l\" in uci) echo 'id name Fake 1'; echo 'option name Skill Level type spin default 20 min 0 max 20'; echo uciok;; go*) echo 'info depth 3 score cp 20 pv e7e5'; echo 'bestmove e7e5';; quit) exit 0;; esac; done");
         let mut cfg = Config::default();
         cfg.engines.added.insert("fake".into(), "chess".into());
         cfg.engines.paths.insert("fake".into(), p.display().to_string());

@@ -133,13 +133,15 @@ impl Fake {
             Reply::Socket => {
                 let key = req.ws_key.unwrap_or_default();
                 let accept = tungstenite::handshake::derive_accept_key(key.as_bytes());
+                // Listed before the handshake is answered: once the client has its socket, what
+                // the fake tells reaches it, never only the sockets that were open before.
+                let (tx, rx) = channel::<String>();
+                lock(&self.sockets).push(tx);
                 if write!(out, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n").is_err() {
                     return;
                 }
                 let _ = out.set_read_timeout(Some(Duration::from_millis(20)));
                 let mut ws = tungstenite::WebSocket::from_raw_socket(out, tungstenite::protocol::Role::Server, None);
-                let (tx, rx) = channel::<String>();
-                lock(&self.sockets).push(tx);
                 loop {
                     while let Ok(text) = rx.try_recv() {
                         if ws.send(tungstenite::Message::text(text)).is_err() {

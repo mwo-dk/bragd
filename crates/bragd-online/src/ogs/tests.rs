@@ -42,6 +42,19 @@ fn said(f: &fake::Fake, command: &str) -> Vec<Value> {
     f.said().iter().filter_map(|t| serde_json::from_str::<Value>(t).ok()).filter(|v| v[0] == command).map(|v| v[1].clone()).collect()
 }
 
+/// Waits for the socket to have been sent `command`: the client's view does not wait for the
+/// fake to read what it sent. The limit only guards against a hang.
+fn heard(f: &fake::Fake, command: &str) -> Vec<Value> {
+    for _ in 0..1000 {
+        let s = said(f, command);
+        if !s.is_empty() {
+            return s;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    panic!("the socket was never sent {command}: {:?}", f.said());
+}
+
 #[test]
 fn ogs_points_turn_both_ways() {
     // OGS counts from the top-left; Bragd names the row from the bottom and skips i.
@@ -83,7 +96,7 @@ fn ogs_sign_in_keeps_the_token_and_opens_the_socket() {
     assert_eq!(v.signed_in.as_deref(), Some("BragdTester"));
     let token = f.seen().into_iter().find(|r| r.path == "/oauth2/token/").unwrap();
     assert!(token.body.contains("code=ogs_code") && token.body.contains("code_verifier=") && token.body.contains("client_id=bragd-fake"), "{}", token.body);
-    let auth = said(&f, "authenticate");
+    let auth = heard(&f, "authenticate");
     assert_eq!(auth[0]["jwt"], "jwt_fake", "the socket signs in with the account's key");
     let c = &v.challenges[0];
     assert!(c.incoming && c.rated && c.variant == Some("go-19"));
@@ -147,7 +160,8 @@ fn ogs_seek_keeps_its_challenge_open_until_taken_and_the_score_is_agreed() {
     assert_eq!(said(&f, "challenge/keepalive")[0]["challenge_id"], 66);
     assert_eq!(ogs.live(), Some((false, true, false)), "casual: not locked");
     ogs.play("pass").unwrap();
-    let g = until(&ogs, |v| v.game.as_ref().is_some_and(|g| g.dead.is_some())).game.unwrap();
+    // The phase and the marked stones come in two messages: wait for the stones.
+    let g = until(&ogs, |v| v.game.as_ref().is_some_and(|g| g.dead.as_ref().is_some_and(|d| !d.is_empty()))).game.unwrap();
     assert_eq!(g.dead.unwrap(), ["c16"]);
     ogs.accept_score().unwrap();
     let g = until(&ogs, |v| v.game.as_ref().is_some_and(|g| g.over)).game.unwrap();
