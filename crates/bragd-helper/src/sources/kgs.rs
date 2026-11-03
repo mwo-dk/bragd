@@ -51,6 +51,8 @@ impl Source for Kgs {
             url: KGS_INDEX.into(),
             fetchable: true,
             kind: Kind::Games,
+            parts: vec![],
+            months: false,
         }
     }
 
