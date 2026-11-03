@@ -15,6 +15,8 @@
   webkitgtk_4_1,
   librsvg,
   glib-networking,
+  gst_all_1,
+  libnice,
 }:
 
 let
@@ -29,7 +31,17 @@ let
     # wrapGAppsHook3 in both steps: it adds GTK's paths to PKG_CONFIG_PATH, and a change there
     # would run the -sys crates' build scripts again, and all built on them.
     nativeBuildInputs = [ pkg-config wrapGAppsHook3 ];
-    buildInputs = [ openssl webkitgtk_4_1 librsvg glib-networking ];
+    # GStreamer's WebRTC plugins, for Calls: wrapGAppsHook3 puts them on the app's plugin path.
+    buildInputs = [
+      openssl
+      webkitgtk_4_1
+      librsvg
+      glib-networking
+      gst_all_1.gst-plugins-base
+      gst_all_1.gst-plugins-good
+      gst_all_1.gst-plugins-bad
+      libnice
+    ];
     # Built from our tags: the update check names `nix` as the way to upgrade.
     env.BRAGD_FROM_FLAKE = "1";
   };
