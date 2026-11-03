@@ -1897,6 +1897,7 @@
  "feature.chat.tip": "Parla durant una partida amb un jugador de Bragd: Demana xat al costat del tauler.",
  "tour.chat.title": "Xat amb jugadors de Bragd",
  "tour.chat.text": "En una partida al servidor de Bragd, demana xat. S'obre només quan tots dos dieu sí, qualsevol dels dos el pot tancar, i es manté només si tots dos marqueu Mantén.",
+ "talk.error.signalling": "La trucada no ha pogut arribar a l'altre jugador a través del servidor de Bragd. Encara sou amics?",
  "ur.solved": "Joc perfecte (taula resolta)",
  "ur.no_table": "Aquest conjunt de regles encara no té taula resolta. Fes-la a la pàgina de Motors d'Ur.",
  "ur.tables": "Taules resoltes",

@@ -1875,6 +1875,7 @@
  "feature.chat.tip": "與 Bragd 玩家在對局中交流：在棋盤旁點擊請求聊天。",
  "tour.chat.title": "與 Bragd 玩家聊天",
  "tour.chat.text": "在 Bragd 伺服器的對局中請求聊天。雙方都同意才會開啟，任一方都可以關閉，只有雙方都勾選保留時才會留存。",
+ "talk.error.signalling": "通話無法透過 Bragd 伺服器連線到對方玩家。你們還是好友嗎？",
  "ur.solved": "完美對弈（已求解表）",
  "ur.no_table": "這套規則還沒有求解表。請在烏爾棋的「引擎」頁面製作。",
  "ur.tables": "求解表",

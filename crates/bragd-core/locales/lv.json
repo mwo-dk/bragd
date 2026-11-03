@@ -1897,6 +1897,7 @@
  "feature.chat.tip": "Runājiet partijas laikā ar Bragd spēlētāju: pie dēļa nospiediet Lūgt tērzēt.",
  "tour.chat.title": "Tērzēšana ar Bragd spēlētājiem",
  "tour.chat.text": "Bragd servera partijā nospiediet Lūgt tērzēt. Tā atveras tikai tad, kad abi sakāt jā, jebkurš var to aizvērt, un tā tiek paturēta tikai tad, ja abi atzīmējat Paturēt.",
+ "talk.error.signalling": "Zvanam neizdevās sasniegt otru spēlētāju caur Bragd serveri. Vai jūs joprojām esat draugi?",
  "ur.solved": "Ideāla spēle (atrisināta tabula)",
  "ur.no_table": "Šai noteikumu kopai vēl nav atrisinātas tabulas. Izveidojiet to sadaļā Dzinēji pie Ur.",
  "ur.tables": "Atrisinātās tabulas",

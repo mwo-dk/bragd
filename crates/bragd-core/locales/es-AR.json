@@ -1894,6 +1894,7 @@
  "feature.chat.tip": "Hablá durante una partida con un jugador de Bragd: Pedir Chat junto al tablero.",
  "tour.chat.title": "Chat con jugadores de Bragd",
  "tour.chat.text": "En una partida en el servidor de Bragd, pedí Chat. Se abre solo cuando los dos dicen que sí, cualquiera lo puede cerrar, y se mantiene solo si los dos marcan Mantener.",
+ "talk.error.signalling": "La llamada no pudo llegar al otro jugador a través del servidor de Bragd. ¿Todavía son amigos?",
  "ur.solved": "Juego perfecto (tabla resuelta)",
  "ur.no_table": "Este conjunto de reglas todavía no tiene tabla resuelta. Hacela en la página de Motores de Ur.",
  "ur.tables": "Tablas resueltas",

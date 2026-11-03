@@ -1886,6 +1886,7 @@
  "feature.chat.tip": "Hitz egin partida batean Bragd jokalari batekin: Eskatu txata taularen ondoan.",
  "tour.chat.title": "Txata Bragd jokalariekin",
  "tour.chat.text": "Bragd zerbitzarian partida batean, eskatu txata. Biok baiezten duzuenean bakarrik irekitzen da, edozeinek itxi dezake, eta bi jokalariek Gorde markatzen baduzue bakarrik gordetzen da.",
+ "talk.error.signalling": "Deiak ezin izan du beste jokalariarekin konektatu Bragd zerbitzariaren bidez. Oraindik lagunak zarete?",
  "ur.solved": "Jokaldi perfektua (taula ebatzia)",
  "ur.no_table": "Arau multzo honek ez du oraindik ebatzitako taularik. Egin ezazu Ur-en Motorrak orrian.",
  "ur.tables": "Ebatzitako taulak",

@@ -1886,6 +1886,7 @@
  "feature.chat.tip": "Talk during a Game with a Bragd player: Ask to Chat beside the board.",
  "tour.chat.title": "Chat with Bragd players",
  "tour.chat.text": "In a Game on the Bragd server, Ask to Chat. It opens only when both of you say yes, either can close it, and it is kept only if both tick Keep.",
+ "talk.error.signalling": "The Call could not reach the other player through the Bragd server. Are you still Friends?",
  "ur.solved": "Perfect play (solved table)",
  "ur.no_table": "This rule set has no solved table yet. Make it on Ur's Engines page.",
  "ur.tables": "Solved tables",

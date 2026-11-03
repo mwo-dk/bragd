@@ -1908,6 +1908,7 @@
  "feature.chat.tip": "Rozmawiaj podczas Partii z graczem Bragd: obok planszy wybierz Poproś o Czat.",
  "tour.chat.title": "Czat z graczami Bragd",
  "tour.chat.text": "W Partii na serwerze Bragd wybierz Poproś o Czat. Otwiera się dopiero, gdy obaj powiecie tak, każdy może go zamknąć, a zostaje tylko wtedy, gdy oboje zaznaczycie Zachowaj.",
+ "talk.error.signalling": "Połączenie nie mogło dotrzeć do drugiego gracza przez serwer Bragd. Czy nadal jesteście znajomymi?",
  "ur.solved": "Gra doskonała (rozwiązana tablica)",
  "ur.no_table": "Ten zestaw zasad nie ma jeszcze rozwiązanej tablicy. Utwórz ją na stronie Silniki w Ur.",
  "ur.tables": "Rozwiązane tablice",

@@ -1886,6 +1886,7 @@
  "feature.chat.tip": "Snakk under et parti med en Bragd-spiller: Be om Chat ved siden av brettet.",
  "tour.chat.title": "Chat med Bragd-spillere",
  "tour.chat.text": "I et parti på Bragd-serveren: Be om Chat. Den åpnes bare når dere begge sier ja, begge kan lukke den, og den beholdes bare hvis dere begge krysser av for Behold.",
+ "talk.error.signalling": "Samtalen kunne ikke nå den andre spilleren gjennom Bragd-serveren. Er dere fortsatt venner?",
  "ur.solved": "Perfekt spill (løst tabell)",
  "ur.no_table": "Dette regelsettet har ingen løst tabell ennå. Lag den under Motorer for Ur.",
  "ur.tables": "Løste tabeller",

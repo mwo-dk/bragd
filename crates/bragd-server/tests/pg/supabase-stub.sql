@@ -15,3 +15,24 @@ create table auth.users (
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub', '')::uuid
 $$;
+
+-- Realtime's table of broadcast messages, whose policies decide who joins a private topic, and
+-- `realtime.topic()`, the topic being joined, as Realtime sets it.
+create schema realtime;
+grant usage on schema realtime to anon, authenticated, service_role;
+
+create table realtime.messages (
+  id bigint generated always as identity primary key,
+  topic text not null,
+  extension text not null,
+  payload jsonb,
+  event text,
+  private boolean default true,
+  inserted_at timestamptz not null default now()
+);
+alter table realtime.messages enable row level security;
+grant select, insert on realtime.messages to authenticated;
+
+create function realtime.topic() returns text language sql stable as $$
+  select nullif(current_setting('realtime.topic', true), '')
+$$;

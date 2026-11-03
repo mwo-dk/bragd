@@ -1886,6 +1886,7 @@
  "feature.chat.tip": "Sprechen Sie während einer Partie mit einem Bragd-Spieler: Chat anfragen neben dem Brett.",
  "tour.chat.title": "Chat mit Bragd-Spielern",
  "tour.chat.text": "In einer Partie auf dem Bragd-Server: Chat anfragen. Er öffnet sich nur, wenn beide Ja sagen, jeder kann ihn schließen, und er bleibt nur erhalten, wenn beide „Behalten“ ankreuzen.",
+ "talk.error.signalling": "Der Anruf konnte den anderen Spieler über den Bragd-Server nicht erreichen. Sind wir noch Freunde?",
  "ur.solved": "Perfektes Spiel (gelöste Tabelle)",
  "ur.no_table": "Dieses Regelwerk hat noch keine gelöste Tabelle. Erstellen Sie sie auf der Engines-Seite von Ur.",
  "ur.tables": "Gelöste Tabellen",

@@ -1886,6 +1886,7 @@
  "feature.chat.tip": "Snakk under eit parti med ein Bragd-spelar: Be om Chat ved sida av brettet.",
  "tour.chat.title": "Chat med Bragd-spelarar",
  "tour.chat.text": "I eit parti på Bragd-tenaren: Be om Chat. Han opnast berre når de begge seier ja, kven som helst kan lukke han, og han blir behalden berre om de begge kryssar av for Behald.",
+ "talk.error.signalling": "Samtalen kunne ikkje nå den andre spelaren gjennom Bragd-serveren. Er de framleis vener?",
  "ur.solved": "Perfekt spel (løyst tabell)",
  "ur.no_table": "Dette regelsettet har ingen løyst tabell enno. Lag han under Motorar for Ur.",
  "ur.tables": "Løyste tabellar",

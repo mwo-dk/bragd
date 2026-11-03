@@ -1886,6 +1886,7 @@
  "feature.chat.tip": "Räägi mängu ajal Bragdi mängijaga: Küsi vestlust laua kõrval.",
  "tour.chat.title": "Vestlus Bragdi mängijatega",
  "tour.chat.text": "Bragdi serveris toimuvas mängus küsi vestlust. See avaneb ainult siis, kui te mõlemad ütlete jah, kumbki võib selle sulgeda ja see jääb alles ainult siis, kui te mõlemad märgite Hoia.",
+ "talk.error.signalling": "Kõnet ei saanud Bragdi serveri kaudu teise mängijani viia. Kas olete ikka veel sõbrad?",
  "ur.solved": "Täiuslik mäng (lahendatud tabel)",
  "ur.no_table": "Sellel reeglistikul pole veel lahendatud tabelit. Tee see Uri lehel Engines.",
  "ur.tables": "Lahendatud tabelid",
