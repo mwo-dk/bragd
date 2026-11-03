@@ -458,7 +458,7 @@
       </div>
 
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-      <aside class="panel info" tabindex="0">
+      <aside class="panel info" tabindex="0" aria-labelledby="moves-title">
         {#if st.toMove && !st.outcome && st.board.opening?.length}
           <p class="turn">{t("play.opening", { side: side(st.toMove), high: st.board.dice[0], low: st.board.dice[1] })}</p>
         {:else if st.toMove && !st.outcome}
@@ -542,7 +542,7 @@
           <Analysis {family} onmore={choices.more || analyse ? moreEngines : null} game={{ variant: key, initial, entries }} over={!!st.outcome} onentries={setEntries} onsetup={setUp} bind:marks bind:titles />
         {/if}
 
-        <h2>{t("play.moves")}</h2>
+        <h2 id="moves-title">{t("play.moves")}</h2>
         <p class="moves">
           {#each groups(st.numbers) as group}
             <span class="group">

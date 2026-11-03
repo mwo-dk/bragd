@@ -23,10 +23,15 @@
   };
 
   // A diagram or table wider than the page scrolls on its own; the keyboard can reach it to scroll it.
+  // A table is named by the heading above it (or the page's title), for a screen reader.
   const scrollable = (/** @type {HTMLElement} */ node) => {
+    node.querySelectorAll("h1, h2, h3, h4").forEach((h, i) => (h.id ||= `rules-h-${i}`));
     for (const box of node.querySelectorAll("pre, table")) {
       /** @type {HTMLElement} */ (box).tabIndex = 0;
-      if (box.tagName === "TABLE") box.setAttribute("role", "group");
+      if (box.tagName !== "TABLE") continue;
+      box.setAttribute("role", "group");
+      const heads = [...node.querySelectorAll("h1, h2, h3, h4")].filter((h) => h.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING);
+      box.setAttribute("aria-labelledby", heads.at(-1)?.id ?? "rules-title");
     }
   };
 </script>
@@ -44,7 +49,7 @@
 {/snippet}
 
 <section class="rules">
-  <h1>{family.name}: {t("sidebar.rules")}</h1>
+  <h1 id="rules-title">{family.name}: {t("sidebar.rules")}</h1>
   {#if page}
     {#if page.positions.length}
       <h2>{t("rules.positions")}</h2>

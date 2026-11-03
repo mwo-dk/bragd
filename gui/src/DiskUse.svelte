@@ -78,12 +78,12 @@
 </script>
 
 <section class="disk">
-  <h2>{t("disk.title")}</h2>
+  <h2 id="disk-title">{t("disk.title")}</h2>
   <p class="hint">{t("disk.intro")}</p>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
   {#if r}
     {#each r.notices as n}<p class="notice" role="alert">{n}</p>{/each}
-    <Scroll>
+    <Scroll by="disk-title">
       <table>
         <thead>
           <tr><th>{t("disk.item")}</th><th>{t("disk.size")}</th><th>{t("disk.where")}</th><th>{t("disk.limit")}</th></tr>
@@ -126,14 +126,14 @@
     </div>
     {#if job !== null}<JobLine id={job} ondone={load} />{/if}
 
-    <h3>{t("positions.title")}</h3>
+    <h3 id="positions-title">{t("positions.title")}</h3>
     <p class="hint">{t("positions.hint")}</p>
     <div class="row">
       <button onclick={() => positions(k.positionsExport)}>{t("positions.export")}</button>
       <button onclick={() => positions(k.positionsImport)}>{t("positions.import")}</button>
     </div>
     {#if stored}<p role="status">{stored}</p>{/if}
-    <StorePanel />
+    <StorePanel by="positions-title" />
 
     <h3>{t("disk.auto_title")}</h3>
     <p class="hint">{t("disk.auto_hint")}</p>

@@ -6,6 +6,9 @@
   import { t, num } from "./i18n.svelte.js";
   import Scroll from "./Scroll.svelte";
 
+  // The id of the heading it sits under, for its table.
+  let { by } = $props();
+
   /** @type {any} */
   let s = $state(null);
   let error = $state("");
@@ -43,7 +46,7 @@
   {#if !s.editions.length}
     <p class="hint">{t("store.empty")}</p>
   {:else}
-    <Scroll>
+    <Scroll {by}>
       <table>
         <thead>
           <tr><th>{t("store.engine")}</th><th>{t("store.edition")}</th><th>{t("store.positions")}</th><th>{t("disk.size")}</th></tr>
