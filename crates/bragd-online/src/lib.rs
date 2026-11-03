@@ -15,6 +15,7 @@ pub mod oauth;
 pub mod ogs;
 pub mod server;
 pub mod session;
+pub mod words;
 
 pub use session::{ChallengeView, ChatLine, GameView, Online, View};
 

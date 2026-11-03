@@ -68,6 +68,22 @@ pub fn friends_club_friends(on: bool) -> Res<FriendsView> {
     Ok(server().friends_view())
 }
 
+/// Says yes to the Game's Chat, or closes it for both (also *Not now*).
+#[tauri::command(async)]
+pub fn friends_chat(on: bool) -> Res<()> {
+    server().chat(on)?;
+    if on {
+        bragd_core::tips::used("chat");
+    }
+    Ok(())
+}
+
+/// Keeps the Chat with the Game, if the opponent says so too.
+#[tauri::command(async)]
+pub fn friends_keep(on: bool) -> Res<()> {
+    server().keep_chat(on)
+}
+
 /// A Friends action ([`BragdServer::friends`]).
 #[tauri::command(async)]
 pub fn friends_act(what: String, body: Value) -> Res<FriendsView> {

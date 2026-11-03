@@ -43,6 +43,8 @@
 .model.name string
 .model.url string
 .online object
+.online.bragd_chat string
+.online.bragd_filter bool
 .online.chat bool
 .online.server string
 .peers object

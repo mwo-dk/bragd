@@ -126,6 +126,32 @@ pub struct FriendsView {
     pub notice: Option<String>,
 }
 
+/// A Chat line.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct Line {
+    pub mine: bool,
+    pub text: String,
+}
+
+/// The Chat of the Game shown: it opens only while both players say yes.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatView {
+    pub opponent: String,
+    /// The opponent is a Friend: their lines are never filtered.
+    pub friend: bool,
+    pub open: bool,
+    /// The opponent asks; the user has not answered.
+    pub asked: bool,
+    /// The user asked; the opponent has not answered.
+    pub waiting: bool,
+    pub keep_mine: bool,
+    pub keep_theirs: bool,
+    pub lines: Vec<Line>,
+    /// The Game is under way: a Chat can be asked for, and lines said.
+    pub live: bool,
+}
+
 fn s(v: &Value) -> String {
     v.as_str().unwrap_or_default().to_string()
 }
@@ -472,6 +498,47 @@ impl BragdServer {
         }
     }
 
+    /// The Chat of the Game shown; with `filter`, a stranger's listed words are masked.
+    pub fn chat_view(&self, filter: bool) -> Option<ChatView> {
+        let g = self.shown()?;
+        let c = &g["chat"];
+        let (mine, theirs) = (c["mine"].as_bool().unwrap_or(false), c["theirs"].as_bool().unwrap_or(false));
+        let friend = g["friend"].as_bool().unwrap_or(false);
+        let lines = c["lines"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .map(|l| {
+                        let mine = l["mine"].as_bool().unwrap_or(false);
+                        let text = s(&l["text"]);
+                        Line { mine, text: if filter && !friend && !mine { crate::words::mask(&text) } else { text } }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        Some(ChatView {
+            opponent: s(&g["opponent"]),
+            friend,
+            open: mine && theirs,
+            asked: theirs && !mine,
+            waiting: mine && !theirs,
+            keep_mine: c["keep_mine"].as_bool().unwrap_or(false),
+            keep_theirs: c["keep_theirs"].as_bool().unwrap_or(false),
+            lines,
+            live: g["status"] == "playing",
+        })
+    }
+
+    /// Says yes to the Chat (asks, or allows), or closes it for both (`on` false, also *Not now*).
+    pub fn chat(&self, on: bool) -> Result<(), String> {
+        self.act("chat", json!({ "on": on }))
+    }
+
+    /// Keeps the Chat with the Game, if the opponent says so too.
+    pub fn keep_chat(&self, on: bool) -> Result<(), String> {
+        self.act("keep", json!({ "on": on }))
+    }
+
     fn act(&self, what: &str, body: Value) -> Result<(), String> {
         let id = self.shown().map(|g| s(&g["id"])).ok_or_else(|| t!("online.error.no_game"))?;
         self.call("POST", &format!("/v1/games/{id}/{what}"), &body)?;
@@ -655,12 +722,14 @@ impl Play for BragdServer {
         }
     }
 
+    /// The Play online page's chat switch is Lichess's: the Bragd server's Chat asks both
+    /// players instead ([`BragdServer::chat`]).
     fn set_chat(&self, _on: bool) -> Result<(), String> {
         Ok(())
     }
 
-    fn say(&self, _text: &str) -> Result<(), String> {
-        Err(t!("online.error.chat_off", "server" => SERVER.name))
+    fn say(&self, text: &str) -> Result<(), String> {
+        self.act("say", json!({ "text": text.trim() }))
     }
 }
 
@@ -771,5 +840,38 @@ mod tests {
         assert!(b.seek("chess", "none", false).is_err());
         assert!(!b.variants().contains(&"backgammon"));
         assert!(b.variants().contains(&"brandubh"));
+    }
+}
+
+#[cfg(test)]
+mod chat_tests {
+    use super::*;
+    use crate::fake_bragd;
+
+    #[test]
+    fn bragd_server_chat_asks_both_and_filters_a_stranger() {
+        bragd_model::key::mock();
+        let (fake, world) = fake_bragd::bragd();
+        let b = BragdServer::at(&fake.url);
+        b.sign_in_email("t@example.org", fake_bragd::PASSWORD).unwrap();
+        b.answer("g-anna", "accept").unwrap();
+        assert_eq!(b.chat_view(true).map(|c| (c.open, c.asked, c.waiting)), Some((false, false, false)), "off by default");
+        b.chat(true).unwrap();
+        assert!(b.chat_view(true).unwrap().waiting);
+        world.lock().unwrap().games[0].chat_theirs = true;
+        world.lock().unwrap().games[0].lines.push((false, "what the fuck".into()));
+        b.poll().unwrap();
+        let c = b.chat_view(true).unwrap();
+        assert!(c.open);
+        assert_eq!(c.lines[0].text, "what the fuck", "Anna is a Friend: never filtered");
+        world.lock().unwrap().games[0].friend = false;
+        b.poll().unwrap();
+        assert_eq!(b.chat_view(true).unwrap().lines[0].text, "what the ****");
+        assert_eq!(b.chat_view(false).unwrap().lines[0].text, "what the fuck", "the filter can be turned off");
+        b.say("hello").unwrap();
+        assert_eq!(world.lock().unwrap().games[0].lines.last().unwrap(), &(true, "hello".to_string()));
+        b.chat(false).unwrap();
+        let c = b.chat_view(true).unwrap();
+        assert!(!c.open && !c.waiting, "closed for both");
     }
 }
