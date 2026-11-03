@@ -169,7 +169,7 @@ impl Reviewer {
 }
 
 /// The Annotation of an Ur move judged by its table (`crate::ur_table::judge`): marked by the
-/// chance it gave away against the best move, in percentage points as go's are, and `!` or
+/// chance it gave away against the best move, in percentage points (2, 5 and 10 for `?!`, `?` and `??`), and `!` or
 /// `!!` when it was the best and the next best gave much away.
 pub fn ur_annotation(j: &crate::ur_table::Judged, variant: &str, key: u64, edition: &Edition, time: i64) -> Annotation {
     // Chances from the first Side's view, as every Evaluation is.
@@ -181,7 +181,7 @@ pub fn ur_annotation(j: &crate::ur_table::Judged, variant: &str, key: u64, editi
         key,
         mv: j.played.clone(),
         edition: edition.clone(),
-        mark: annotation::mark(first(j.best_chance), first(j.chance), j.first, gap),
+        mark: annotation::mark_by(annotation::UR_WIN_RATE, first(j.best_chance), first(j.chance), j.first, gap),
         better: if j.played == j.best { String::new() } else { j.best.clone() },
         motifs: vec![],
         depth: 0,
@@ -533,7 +533,7 @@ mod tests {
     }
 
     /// An Ur Game reviewed from a table: every move judged by the chance it gives away against
-    /// the best one for its throw, in percentage points as for go; the throws are not judged;
+    /// the best one for its throw, in percentage points, 2, 5 and 10; the throws are not judged;
     /// the chances before each throw and the Annotations go into the store.
     #[cfg(unix)]
     #[test]
@@ -561,7 +561,7 @@ mod tests {
         let mut marked = 0;
         for (ply, j) in r.plies.iter().zip(&judged) {
             let lost = (j.best_chance - j.chance) * 100.0;
-            let want = [(20.0, Mark::Blunder), (10.0, Mark::Mistake), (5.0, Mark::Inaccuracy)].into_iter().find(|(at, _)| lost >= *at).map(|m| m.1);
+            let want = [(10.0, Mark::Blunder), (5.0, Mark::Mistake), (2.0, Mark::Inaccuracy)].into_iter().find(|(at, _)| lost >= *at).map(|m| m.1);
             if want.is_some() {
                 assert_eq!(ply.mark, want, "{j:?}");
                 assert_eq!(ply.better, std::slice::from_ref(&j.best));

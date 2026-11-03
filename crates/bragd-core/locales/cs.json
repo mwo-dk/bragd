@@ -1950,7 +1950,7 @@
  "feature.ur_solved.q2": "Jak silný je bot?",
  "feature.ur_solved.a2": "Na síle 20 vždy hraje nejlepší tah. Při nižší síle občas zahraje slabší tah, a čím víc tah ztrácí, tím méně často jej hraje.",
  "feature.ur_solved.q3": "Jak se označuje tah v Uru?",
- "feature.ur_solved.a3": "Podle šance na výhru, kterou tah ztratil oproti nejlepšímu tahu se stejným hodem: 5 bodů je ?!, 10 je ?, 20 je ??.",
+ "feature.ur_solved.a3": "Podle šance na výhru, kterou tah ztratil oproti nejlepšímu tahu se stejným hodem: 2 bodů je ?!, 5 je ?, 10 je ??.",
  "feature.ur_solved.tip": "Vyřešené tabulky Uru vytvořte na jeho stránce Enginy, pak hrajte dokonalou hru nebo zhodnoťte partii.",
  "tour.ur_solved.title": "Ur, vyřešený",
  "tour.ur_solved.text": "Vytvořte vyřešenou tabulku sady pravidel Uru na jeho stránce Enginy. Hra pak nabídne dokonalou hru na síle, kterou nastavíte, a Analýza označí každý tah přesnou šancí na výhru, kterou ztratil."

@@ -1950,7 +1950,7 @@
  "feature.ur_solved.q2": "Quanto è forte il bot?",
  "feature.ur_solved.a2": "Alla forza 20 gioca sempre la mossa migliore. Più in basso, a volte gioca una mossa più debole, e più una mossa cede, meno spesso la gioca.",
  "feature.ur_solved.q3": "Come si marca una mossa dell'Ur?",
- "feature.ur_solved.a3": "Con la probabilità di vittoria che cede rispetto alla mossa migliore per lo stesso lancio: 5 punti sono ?!, 10 sono ?, 20 sono ??.",
+ "feature.ur_solved.a3": "Con la probabilità di vittoria che cede rispetto alla mossa migliore per lo stesso lancio: 2 punti sono ?!, 5 sono ?, 10 sono ??.",
  "feature.ur_solved.tip": "Crea le tabelle risolte dell'Ur nella sua pagina Motori, poi gioca il gioco perfetto o rivedi una partita.",
  "tour.ur_solved.title": "Ur, risolto",
  "tour.ur_solved.text": "Crea la tabella risolta di un set di regole dell'Ur nella sua pagina Motori. Gioca offre allora il gioco perfetto alla forza che imposti, e Analisi marca ogni mossa con la probabilità esatta di vittoria che ha ceduto."

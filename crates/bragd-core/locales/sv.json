@@ -1939,7 +1939,7 @@
  "feature.ur_solved.q2": "Hur stark är boten?",
  "feature.ur_solved.a2": "På styrka 20 spelar den alltid bästa draget. Lägre spelar den ibland ett svagare drag, och ju mer ett drag ger bort, desto mer sällan spelas det.",
  "feature.ur_solved.q3": "Hur markeras ett Ur-drag?",
- "feature.ur_solved.a3": "Efter vinstchansen det gav bort mot det bästa draget för samma kast: 5 poäng är ?!, 10 är ?, 20 är ??.",
+ "feature.ur_solved.a3": "Efter vinstchansen det gav bort mot det bästa draget för samma kast: 2 poäng är ?!, 5 är ?, 10 är ??.",
  "feature.ur_solved.tip": "Skapa Urs lösta tabeller under Motorer och spela sedan perfekt spel eller granska ett parti.",
  "tour.ur_solved.title": "Ur, löst",
  "tour.ur_solved.text": "Skapa ett Ur-regelverks lösta tabell under Motorer. Spela erbjuder då perfekt spel med en styrka du väljer, och Analys markerar varje drag med den exakta vinstchans det kostade."

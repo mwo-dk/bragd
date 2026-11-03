@@ -1,0 +1,1 @@
+| **Ur marks smaller losses.** Review and Analyse mark an Ur move ?! from 2 points of win chance lost, ? from 5 and ?? from 10, as 5, 10 and 20 rarely fired in real games. | [Ur](play/ur.md#the-solved-tables) | <!-- families: ur -->

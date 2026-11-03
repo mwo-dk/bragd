@@ -1939,7 +1939,7 @@
  "feature.ur_solved.q2": "Kor sterk er boten?",
  "feature.ur_solved.a2": "På styrke 20 speler han alltid det beste trekket. Lågare speler han av og til eit svakare trekk, og jo meir eit trekk gir bort, jo sjeldnare blir det spela.",
  "feature.ur_solved.q3": "Korleis blir eit Ur-trekk markert?",
- "feature.ur_solved.a3": "Etter vinnarsjansen det gav bort mot det beste trekket for same kast: 5 poeng er ?!, 10 er ?, 20 er ??.",
+ "feature.ur_solved.a3": "Etter vinnarsjansen det gav bort mot det beste trekket for same kast: 2 poeng er ?!, 5 er ?, 10 er ??.",
  "feature.ur_solved.tip": "Lag Ur sine løyste tabellar under Motorar, og speel deretter perfekt spel eller gjennomgå eit parti.",
  "tour.ur_solved.title": "Ur, løyst",
  "tour.ur_solved.text": "Lag eit Ur-regelsett sin løyste tabell under Motorar. Spel tilbyr då perfekt spel med ein styrke du vel, og Analyse markerer kvart trekk etter den eksakte vinnarsjansen det gav bort."

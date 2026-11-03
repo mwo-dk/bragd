@@ -1950,7 +1950,7 @@
  "feature.ur_solved.q2": "Kiek stiprus yra botas?",
  "feature.ur_solved.a2": "Stiprumu 20 jis visada žaidžia geriausią ėjimą. Žemiau jis kartais žaidžia silpnesnį ėjimą, o kuo daugiau ėjimas atiduoda, tuo rečiau jis jį žaidžia.",
  "feature.ur_solved.q3": "Kaip pažymimas Ur ėjimas?",
- "feature.ur_solved.a3": "Pagal laimėjimo tikimybę, kurią jis atidavė, palyginti su geriausiu ėjimu tam pačiam metimui: 5 taškai yra ?!, 10 yra ?, 20 yra ??.",
+ "feature.ur_solved.a3": "Pagal laimėjimo tikimybę, kurią jis atidavė, palyginti su geriausiu ėjimu tam pačiam metimui: 2 taškai yra ?!, 5 yra ?, 10 yra ??.",
  "feature.ur_solved.tip": "Sukurkite Ur išspręstas lenteles jos Variklių puslapyje, tada žaiskite tobulai arba peržiūrėkite partiją.",
  "tour.ur_solved.title": "Ur, išspręsta",
  "tour.ur_solved.text": "Sukurkite Ur taisyklių varianto išspręstą lentelę jos Variklių puslapyje. Žaisti tada siūlo tobulą žaidimą nustatytu stiprumu, o Analizė kiekvieną ėjimą pažymi tiksliai laimėjimo tikimybe, kurią jis atidavė."

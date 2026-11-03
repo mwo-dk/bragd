@@ -1939,7 +1939,7 @@
  "feature.ur_solved.q2": "Wie stark ist der Bot?",
  "feature.ur_solved.a2": "Bei Stärke 20 spielt er immer den besten Zug. Bei niedrigeren Stufen spielt er manchmal einen schwächeren Zug, und je mehr ein Zug verschenkt, desto seltener spielt er ihn.",
  "feature.ur_solved.q3": "Wie wird ein Ur-Zug markiert?",
- "feature.ur_solved.a3": "Nach der Gewinnchance, die er gegenüber dem besten Zug mit demselben Wurf verschenkt: 5 Punkte sind ?!, 10 sind ?, 20 sind ??.",
+ "feature.ur_solved.a3": "Nach der Gewinnchance, die er gegenüber dem besten Zug mit demselben Wurf verschenkt: 2 Punkte sind ?!, 5 sind ?, 10 sind ??.",
  "feature.ur_solved.tip": "Erstellen Sie die gelösten Tabellen von Ur auf seiner Engines-Seite, dann spielen Sie perfektes Spiel oder prüfen eine Partie.",
  "tour.ur_solved.title": "Ur, gelöst",
  "tour.ur_solved.text": "Erstellen Sie die gelöste Tabelle eines Ur-Regelwerks auf seiner Engines-Seite. Spielen bietet dann perfektes Spiel mit einer Stärke an, die Sie einstellen, und Analyse markiert jeden Zug mit der genauen Gewinnchance, die er verschenkt."

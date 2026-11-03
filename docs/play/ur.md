@@ -56,7 +56,7 @@ With a table, the rule set gets *Perfect play (solved table)* as an Engine:
 |---|---|
 | Play | **Opponent** → *Against an Engine*, **Engine** → *Perfect play*. **Strength** 20 always plays the best move. Lower, it sometimes plays a weaker move, the less often the more it gives away |
 | Analyse | Before a throw: the chance to win of the side to throw. After a throw: each move with the chance it keeps, best first. The last move's mark shows under them |
-| Review | **Review** in Analyse marks each move by the chance to win it gave away against the best move for the same throw: 5 percentage points or more is `?!`, 10 is `?`, 20 is `??`. The best move is `!` when the next best gave 10 points away, and `!!` at 20. The better move is named |
+| Review | **Review** in Analyse marks each move by the chance to win it gave away against the best move for the same throw: 2 percentage points or more is `?!`, 5 is `?`, 10 is `??`. The best move is `!` when the next best gave 5 points away, and `!!` at 10. The better move is named |
 
 ![Analyse of a Blitz Game with Perfect play: after a throw, each legal move with the chance to win it keeps, best first](../screenshots/analyse-ur-1100.png)
 
@@ -123,7 +123,7 @@ Minutes on a desktop computer, and longer on a laptop: it uses every core. On a 
 
 #### Why are Ur's marks given in percentage points?
 
-The table gives the exact chance to win, so a move is judged by how much of it the move threw away, as go's moves are. A move can be the right one and still lose, because the dice decide the rest.
+The table gives the exact chance to win, so a move is judged by how much of it the move threw away, as go's moves are, but with smaller amounts: an Ur game is short and its table exact, so go's 5, 10 and 20 points would rarely mark a move. A move can be the right one and still lose, because the dice decide the rest.
 
 ---
 [← Previous: Backgammon](backgammon.md) · [Next: Senet →](senet.md)

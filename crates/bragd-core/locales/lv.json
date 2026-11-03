@@ -1950,7 +1950,7 @@
  "feature.ur_solved.q2": "Cik spēcīgs ir bots?",
  "feature.ur_solved.a2": "Stiprumā 20 tas vienmēr spēlē labāko gājienu. Zemāk tas dažkārt spēlē vājāku gājienu, un jo vairāk gājiens atdod, jo retāk to spēlē.",
  "feature.ur_solved.q3": "Kā tiek atzīmēts Ur gājiens?",
- "feature.ur_solved.a3": "Pēc uzvaras iespējas, ko tas atdeva salīdzinājumā ar labāko gājienu tam pašam metienam: 5 punkti ir ?!, 10 ir ?, 20 ir ??.",
+ "feature.ur_solved.a3": "Pēc uzvaras iespējas, ko tas atdeva salīdzinājumā ar labāko gājienu tam pašam metienam: 2 punkti ir ?!, 5 ir ?, 10 ir ??.",
  "feature.ur_solved.tip": "Izveidojiet Ur atrisinātās tabulas sadaļā Dzinēji, tad spēlējiet ideālu spēli vai pārskatiet partiju.",
  "tour.ur_solved.title": "Ur, atrisināts",
  "tour.ur_solved.text": "Izveidojiet Ur noteikumu kopas atrisināto tabulu sadaļā Dzinēji. Spēlēt tad piedāvā ideālu spēli ar stiprumu, ko izvēlaties, un Analīze atzīmē katru gājienu pēc precīzās uzvaras iespējas, ko tas atdeva."

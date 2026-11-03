@@ -1939,7 +1939,7 @@
  "feature.ur_solved.q2": "Kuinka vahva botti on?",
  "feature.ur_solved.a2": "Vahvuudella 20 se pelaa aina parhaan siirron. Alemmalla vahvuudella se joskus pelaa heikomman siirron, ja mitä enemmän siirto antaa pois, sitä harvemmin se sen pelaa.",
  "feature.ur_solved.q3": "Miten Ur-siirto merkitään?",
- "feature.ur_solved.a3": "Sillä voittomahdollisuudella, jonka se antoi pois verrattuna parhaaseen siirtoon samalla heitolla: 5 pistettä on ?!, 10 on ?, 20 on ??.",
+ "feature.ur_solved.a3": "Sillä voittomahdollisuudella, jonka se antoi pois verrattuna parhaaseen siirtoon samalla heitolla: 2 pistettä on ?!, 5 on ?, 10 on ??.",
  "feature.ur_solved.tip": "Tee Urin ratkaistut taulukot sen Engines-sivulla, ja pelaa sitten täydellistä peliä tai käy peli läpi.",
  "tour.ur_solved.title": "Ur, ratkaistu",
  "tour.ur_solved.text": "Tee Ur-sääntöversion ratkaistu taulukko sen Engines-sivulla. Pelaa tarjoaa sitten täydellisen pelin valitsemallasi vahvuudella, ja Analyysi merkitsee jokaisen siirron sen mukaan, kuinka paljon tarkkaa voittomahdollisuutta se antoi pois."
