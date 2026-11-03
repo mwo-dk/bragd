@@ -146,6 +146,7 @@ fn state(variant: Variant, game: &Game<Rules>) -> State {
         throws: Vec::new(),
         history: game.san_history(),
         numbers: crate::full_moves(first_ply(game.initial_position()), game.moves().len()),
+        written: Vec::new(),
         check,
         forced: None,
         passed: None,

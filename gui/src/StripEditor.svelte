@@ -41,11 +41,11 @@
     <label class="check"><input type="checkbox" bind:checked={rule.titled_only} /> {t("strip.titled_only")}</label>
   </div>
   <div class="row">
-    <label>{t("strip.date_from")} <input type="text" bind:value={rule.date_from} placeholder="2024.01" size="10" /></label>
-    <label>{t("strip.date_to")} <input type="text" bind:value={rule.date_to} placeholder="2024.12.31" size="10" /></label>
+    <label>{t("strip.date_from")} <input type="text" bind:value={rule.date_from} placeholder={t("strip.example", { x: "2024.01" })} size="16" /></label>
+    <label>{t("strip.date_to")} <input type="text" bind:value={rule.date_to} placeholder={t("strip.example", { x: "2024.12.31" })} size="16" /></label>
     <label
       >{t("strip.variants")}
-      <input type="text" value={rule.variants.join(", ")} onchange={(e) => (rule.variants = list(e.currentTarget.value))} placeholder="standard, chess960" />
+      <input type="text" value={rule.variants.join(", ")} onchange={(e) => (rule.variants = list(e.currentTarget.value))} placeholder={t("strip.example", { x: "standard, chess960" })} />
     </label>
   </div>
   <label class="wide"
@@ -90,6 +90,10 @@
   .wide input {
     width: 100%;
     box-sizing: border-box;
+  }
+  /* Grey and slanted, so an example never passes for a value filled in. */
+  input::placeholder {
+    font-style: italic;
   }
   input[type="number"] {
     width: 6rem;

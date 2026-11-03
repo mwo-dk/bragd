@@ -147,7 +147,7 @@ fn kept_commentary(f: &crate::analyse::Facts) -> Result<Option<Written>, String>
 }
 
 #[tauri::command(async)]
-pub fn commentary_view(variant: String, initial: Option<String>, entries: Vec<String>, engine: Option<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>) -> Result<CommentaryView, String> {
+pub fn commentary_view(variant: String, initial: Option<String>, entries: Vec<String>, engine: Option<String>, ctx: State<'_, Ctx>, k: State<'_, Knowledge>, held: State<'_, crate::analyse::Held>) -> Result<CommentaryView, String> {
     let cfg = ctx.cfg();
     let model = bragd_model::ready(&cfg.model) || peer_model(&k, cfg.peers.on);
     let f = crate::analyse::facts(&cfg, &variant, initial.as_deref(), &entries, engine)?;
@@ -155,14 +155,16 @@ pub fn commentary_view(variant: String, initial: Option<String>, entries: Vec<St
         Some(f) => kept_commentary(f)?,
         None => None,
     };
-    Ok(CommentaryView { model, offered: model && f.is_some(), why: why_not(model, f.is_some()), shown })
+    Ok(CommentaryView { model, offered: model && f.is_some(), why: why_not(model, f.is_some(), crate::analyse::now(&held).is_some_and(|n| n.running)), shown })
 }
 
 /// Why Commentary cannot be written now. No model comes first: analysing would not help
-/// someone who has none.
-fn why_not(model: bool, facts: bool) -> Option<String> {
+/// someone who has none. A running Engine writes to the store only when it stops.
+fn why_not(model: bool, facts: bool, running: bool) -> Option<String> {
     if !model {
         Some(t!("commentary.no_model"))
+    } else if !facts && running {
+        Some(t!("commentary.engine_running"))
     } else if !facts {
         Some(t!("commentary.no_facts"))
     } else {
@@ -213,9 +215,16 @@ mod tests {
 
     #[test]
     fn no_model_is_said_before_analyse_first() {
-        assert_eq!(why_not(false, false), Some(t!("commentary.no_model")));
-        assert_eq!(why_not(false, true), Some(t!("commentary.no_model")));
-        assert_eq!(why_not(true, false), Some(t!("commentary.no_facts")));
-        assert_eq!(why_not(true, true), None);
+        assert_eq!(why_not(false, false, false), Some(t!("commentary.no_model")));
+        assert_eq!(why_not(false, true, false), Some(t!("commentary.no_model")));
+        assert_eq!(why_not(true, false, false), Some(t!("commentary.no_facts")));
+        assert_eq!(why_not(true, true, false), None);
+    }
+
+    #[test]
+    fn a_running_engine_is_asked_to_stop_not_to_start() {
+        assert_eq!(why_not(true, false, true), Some(t!("commentary.engine_running")));
+        assert_eq!(why_not(false, false, true), Some(t!("commentary.no_model")));
+        assert_eq!(why_not(true, true, true), None, "what the store had already can be written about");
     }
 }

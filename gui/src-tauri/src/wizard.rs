@@ -80,9 +80,6 @@ struct EngineView {
     installed: Option<String>,
     /// Its sealed image is published, so it can be pulled.
     image: bool,
-    /// Its download page; empty: install it from the system's packages, as `program`.
-    site: &'static str,
-    program: &'static str,
 }
 
 #[derive(Serialize)]
@@ -144,7 +141,7 @@ fn engines(cfg: &Config) -> Vec<FamilyEngines> {
                 // The engines' own Variant keys differ from the catalogue's (S5): the Family decides.
                 .filter(|_| f.has_engine())
                 .filter(|k| k.variants.iter().any(|v| known::family(v).and_then(|kf| serde_json::to_value(kf).ok()).is_some_and(|kf| kf == f.key())))
-                .map(|k| EngineView { name: k.name, installed: crate::engines::installed(cfg, k.key, Some(k)).map(|p| p.display().to_string()), image: k.image().is_some(), site: k.site, program: k.programs[0] })
+                .map(|k| EngineView { name: k.name, installed: crate::engines::installed(cfg, k.key, Some(k)).map(|p| p.display().to_string()), image: k.image().is_some() })
                 .collect(),
         })
         .collect()
@@ -276,7 +273,7 @@ mod tests {
         let me = std::env::current_exe().unwrap();
         let mut cfg = Config::default();
         cfg.engines.paths.insert("stockfish".into(), me.display().to_string());
-        let seen = engines(&cfg).into_iter().flat_map(|f| f.engines).find(|e| e.program == "stockfish").unwrap();
+        let seen = engines(&cfg).into_iter().flat_map(|f| f.engines).find(|e| e.name == "Stockfish").unwrap();
         assert_eq!(seen.installed.as_deref(), Some(me.display().to_string().as_str()));
     }
 

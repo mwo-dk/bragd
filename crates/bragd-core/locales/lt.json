@@ -287,16 +287,12 @@
  "wizard.close": "Uždaryti vedlį",
  "wizard.done": "Baigta",
  "wizard.engine_found": "Įdiegta: {path}",
- "wizard.engine_get": "Kur gauti",
- "wizard.engine_missing": "Neįdiegta",
  "wizard.engines": "Varikliai, kuriuos Bragd rado šiame kompiuteryje, kiekvienai įjungtai žaidimų šeimai.",
  "wizard.bot": "Jį žaidžia Bragd savo botas.",
  "wizard.engines_none": "Nė viena įjungta žaidimų šeima nenaudoja išorinio variklio.",
  "wizard.failed": "Nepavyko paleisti {what}: {error}",
  "wizard.families": "Kokius žaidimus žaidžiate? Pasirinkite vieną, ir Bragd visur rodys tik jį. Daugiau galite pridėti bet kada Nustatymuose.",
  "wizard.helper": "Pagalbininkas atsisiunčia šaltinius ir fone tvarko jūsų bibliotekas visiems Bragd langams.",
- "wizard.image_ready": "Uždarą vaizdą galima atsisiųsti su podman ar docker.",
- "wizard.image_unpublished": "Bragd neturi jo uždaro vaizdo.",
  "wizard.knowledge": "Atsisiuntimai, kurie padaro Bragd naudingesnį. Kiekvienas pirmiau parodo savo dydį. Nieko neatsisiunčiama, kol nepaspaudžiate Atlikta paskutiniame žingsnyje.",
  "wizard.languages": "Kalbos, pateiktos jų pačių pavadinimais",
  "wizard.later": "Tai galite pakeisti vėliau: Nustatymai → {area}.",
@@ -1955,5 +1951,20 @@
  "feature.ur_solved.a3": "Pagal laimėjimo tikimybę, kurią jis atidavė, palyginti su geriausiu ėjimu tam pačiam metimui: 5 taškai yra ?!, 10 yra ?, 20 yra ??.",
  "feature.ur_solved.tip": "Sukurkite Ur išspręstas lenteles jos Variklių puslapyje, tada žaiskite tobulai arba peržiūrėkite partiją.",
  "tour.ur_solved.title": "Ur, išspręsta",
- "tour.ur_solved.text": "Sukurkite Ur taisyklių varianto išspręstą lentelę jos Variklių puslapyje. Žaisti tada siūlo tobulą žaidimą nustatytu stiprumu, o Analizė kiekvieną ėjimą pažymi tiksliai laimėjimo tikimybe, kurią jis atidavė."
+ "tour.ur_solved.text": "Sukurkite Ur taisyklių varianto išspręstą lentelę jos Variklių puslapyje. Žaisti tada siūlo tobulą žaidimą nustatytu stiprumu, o Analizė kiekvieną ėjimą pažymi tiksliai laimėjimo tikimybe, kurią jis atidavė.",
+ "commentary.engine_running": "Sustabdykite variklį, kad būtų galima parašyti aprašymą apie tai, ką jis rado.",
+ "strip.example": "pvz. {x}",
+ "wizard.engines_images": {
+  "one": "Dar {n} variklį galima atsisiųsti kaip uždarą vaizdą su podman ar docker: šoninė juosta → {family} → Varikliai.",
+  "few": "Dar {n} varikliai galima atsisiųsti kaip uždarus vaizdus su podman ar docker: šoninė juosta → {family} → Varikliai.",
+  "other": "Dar {n} variklių galima atsisiųsti kaip uždarus vaizdus su podman ar docker: šoninė juosta → {family} → Varikliai."
+ },
+ "wizard.engines_by_hand": {
+  "one": "Dar {n} variklis neturi uždaro vaizdo. Įdiekite jį patys: šoninė juosta → {family} → Varikliai nurodo, kur jį gauti.",
+  "few": "Dar {n} varikliai neturi uždarų vaizdų. Įdiekite juos patys: šoninė juosta → {family} → Varikliai nurodo, kur juos gauti.",
+  "other": "Dar {n} variklių neturi uždarų vaizdų. Įdiekite juos patys: šoninė juosta → {family} → Varikliai nurodo, kur juos gauti."
+ },
+ "play.resign_menu": "Pasiduoti…",
+ "play.resign_ask": "Kokią pergalę suteiksite priešininkui?",
+ "play.opening": "{side} pradeda: {high} prieš {low}. Didesnis kauliukas žaidžia abu kauliukus."
 }

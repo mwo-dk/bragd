@@ -140,6 +140,9 @@ fn state(game: &Game, last: Option<rules_senet::Move>) -> State {
         .collect();
 
     let info = Variant::Senet.info();
+    let history: Vec<String> = game.entries().iter().map(|entry| entry.to_wire()).collect();
+    let is_throw: Vec<bool> = game.entries().iter().map(|entry| matches!(entry, Entry::Throw(_))).collect();
+    let (numbers, written) = crate::race_turns(&history, &is_throw, matches!(needs, Needed::Move { .. }));
     State {
         variant: Variant::Senet,
         position: position.to_picture(),
@@ -149,8 +152,9 @@ fn state(game: &Game, last: Option<rules_senet::Move>) -> State {
         steps: Vec::new(),
         targets: BTreeMap::new(),
         throws,
-        history: game.entries().iter().map(|entry| entry.to_wire()).collect(),
-        numbers: Vec::new(),
+        history,
+        numbers,
+        written,
         check: false,
         forced: match moves.as_slice() {
             [only] => Some(only.wire.clone()),

@@ -287,16 +287,12 @@
  "wizard.close": "關閉精靈",
  "wizard.done": "完成",
  "wizard.engine_found": "已安裝：{path}",
- "wizard.engine_get": "取得方式",
- "wizard.engine_missing": "未安裝",
  "wizard.engines": "每個已開啟的遊戲系列在本機找到的引擎。",
  "wizard.bot": "由 Bragd 自帶的機器人對弈。",
  "wizard.engines_none": "已開啟的遊戲系列中沒有使用外部引擎的。",
  "wizard.failed": "無法啟動 {what}：{error}",
  "wizard.families": "你玩哪些遊戲？選擇一個，Bragd 就只在各處顯示它。以後隨時可以在設定中新增更多。",
  "wizard.helper": "輔助程式在背景為每個 Bragd 視窗抓取來源，並整理你的收藏庫。",
- "wizard.image_ready": "可以透過 podman 或 docker 拉取封裝的映像。",
- "wizard.image_unpublished": "Bragd 沒有它的封裝映像。",
  "wizard.knowledge": "讓 Bragd 更好用的下載內容。每項都會先顯示大小。在最後一步按下「完成」之前，不會下載任何內容。",
  "wizard.languages": "語言（以各自的名稱顯示）",
  "wizard.later": "以後可在 設定 → {area} 中更改。",
@@ -1933,5 +1929,16 @@
  "feature.ur_solved.a3": "依同一擲骰下它相對最佳著法讓出的獲勝機率計：5 分為 ?!，10 分為 ?，20 分為 ??。",
  "feature.ur_solved.tip": "在烏爾棋的「引擎」頁面製作求解表，然後下完美棋或覆盤對局。",
  "tour.ur_solved.title": "烏爾棋，已求解",
- "tour.ur_solved.text": "在烏爾棋規則集的「引擎」頁面製作求解表。之後「下棋」會提供可設定強度的完美對弈，「分析」會依每步讓出的精確獲勝機率為每步做標記。"
+ "tour.ur_solved.text": "在烏爾棋規則集的「引擎」頁面製作求解表。之後「下棋」會提供可設定強度的完美對弈，「分析」會依每步讓出的精確獲勝機率為每步做標記。",
+ "commentary.engine_running": "停止引擎，即可為它找到的內容撰寫解說。",
+ "strip.example": "例如：{x}",
+ "wizard.engines_images": {
+  "other": "另外有 {n} 個引擎可以透過 podman 或 docker 以封閉容器映像的形式取得：側邊欄 → {family} → 引擎。"
+ },
+ "wizard.engines_by_hand": {
+  "other": "另外有 {n} 個引擎沒有封閉映像。請自行安裝：側邊欄 → {family} → 引擎會說明去哪裡取得。"
+ },
+ "play.resign_menu": "認輸…",
+ "play.resign_ask": "你要讓對手取得哪一種勝利？",
+ "play.opening": "{side}先行：{high} 對 {low}。較大的點數用兩顆骰子走子。"
 }

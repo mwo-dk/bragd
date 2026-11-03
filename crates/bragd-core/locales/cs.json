@@ -287,16 +287,12 @@
  "wizard.close": "Zavřít průvodce",
  "wizard.done": "Hotovo",
  "wizard.engine_found": "Nainstalováno: {path}",
- "wizard.engine_get": "Kde ho získat",
- "wizard.engine_missing": "Není nainstalováno",
  "wizard.engines": "Enginy, které Bragd našel na tomto počítači, pro každou zapnutou herní rodinu.",
  "wizard.bot": "Hraje to vlastní bot Bragdu.",
  "wizard.engines_none": "Žádná zapnutá herní rodina nepoužívá externí engine.",
  "wizard.failed": "{what} nešlo spustit: {error}",
  "wizard.families": "Které hry hrajete? Vyberte jednu a Bragd ukáže jen tu všude. Další můžete přidat kdykoli v Nastavení.",
  "wizard.helper": "Pomocník stahuje zdroje a na pozadí udržuje vaše knihovny v pořádku, pro každé okno Bragdu.",
- "wizard.image_ready": "Uzavřený obraz lze stáhnout pomocí podman nebo docker.",
- "wizard.image_unpublished": "Bragd pro něj nemá žádný uzavřený obraz.",
  "wizard.knowledge": "Stahování, která udělají Bragd užitečnějším. Každé nejdřív ukáže svou velikost. Nic se nestáhne, dokud na posledním kroku nestisknete Hotovo.",
  "wizard.languages": "Jazyky, pod jejich vlastními názvy",
  "wizard.later": "Můžete to později změnit v Nastavení → {area}.",
@@ -1955,5 +1951,20 @@
  "feature.ur_solved.a3": "Podle šance na výhru, kterou tah ztratil oproti nejlepšímu tahu se stejným hodem: 5 bodů je ?!, 10 je ?, 20 je ??.",
  "feature.ur_solved.tip": "Vyřešené tabulky Uru vytvořte na jeho stránce Enginy, pak hrajte dokonalou hru nebo zhodnoťte partii.",
  "tour.ur_solved.title": "Ur, vyřešený",
- "tour.ur_solved.text": "Vytvořte vyřešenou tabulku sady pravidel Uru na jeho stránce Enginy. Hra pak nabídne dokonalou hru na síle, kterou nastavíte, a Analýza označí každý tah přesnou šancí na výhru, kterou ztratil."
+ "tour.ur_solved.text": "Vytvořte vyřešenou tabulku sady pravidel Uru na jeho stránce Enginy. Hra pak nabídne dokonalou hru na síle, kterou nastavíte, a Analýza označí každý tah přesnou šancí na výhru, kterou ztratil.",
+ "commentary.engine_running": "Zastavte Engine, aby se mohl napsat Výklad o tom, co našel.",
+ "strip.example": "např. {x}",
+ "wizard.engines_images": {
+  "one": "{n} další Engine lze stáhnout jako uzavřený obraz kontejneru pomocí podman nebo docker: postranní panel → {family} → Enginy.",
+  "few": "{n} další Enginy lze stáhnout jako uzavřené obrazy kontejnerů pomocí podman nebo docker: postranní panel → {family} → Enginy.",
+  "other": "{n} dalších Enginů lze stáhnout jako uzavřené obrazy kontejnerů pomocí podman nebo docker: postranní panel → {family} → Enginy."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} další Engine nemá uzavřený obraz kontejneru. Nainstalujte jej sami: postranní panel → {family} → Enginy říká, kde jej získat.",
+  "few": "{n} další Enginy nemají uzavřený obraz kontejneru. Nainstalujte je sami: postranní panel → {family} → Enginy říká, kde je získat.",
+  "other": "{n} dalších Enginů nemá uzavřený obraz kontejneru. Nainstalujte je sami: postranní panel → {family} → Enginy říká, kde je získat."
+ },
+ "play.resign_menu": "Vzdát…",
+ "play.resign_ask": "Jakou výhru dáte soupeři?",
+ "play.opening": "{side} začíná: {high} proti {low}. Vyšší kostka hraje oběma kostkami."
 }

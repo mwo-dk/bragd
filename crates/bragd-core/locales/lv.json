@@ -287,16 +287,12 @@
  "wizard.close": "Aizvērt vedni",
  "wizard.done": "Gatavs",
  "wizard.engine_found": "Uzstādīts: {path}",
- "wizard.engine_get": "Kur to dabūt",
- "wizard.engine_missing": "Nav uzstādīts",
  "wizard.engines": "Dzinēji, ko Bragd atrada šajā datorā, katrai ieslēgtajai spēļu saimei.",
  "wizard.bot": "To spēlē Bragd pašu bots.",
  "wizard.engines_none": "Neviena ieslēgta spēļu saime neizmanto ārēju dzinēju.",
  "wizard.failed": "Nevarēja palaist {what}: {error}",
  "wizard.families": "Kādas spēles jūs spēlējat? Izvēlieties vienu, un Bragd visur rādīs tikai to. Vairāk var pievienot jebkurā laikā Iestatījumos.",
  "wizard.helper": "Palīgs fonā ielādē avotus un kārto jūsu bibliotēkas visiem Bragd logiem.",
- "wizard.image_ready": "Slēgtu attēlu var ievilkt ar podman vai docker.",
- "wizard.image_unpublished": "Bragdam nav tā slēgtā attēla.",
  "wizard.knowledge": "Lejupielādes, kas padara Bragd noderīgāku. Katra vispirms parāda savu izmēru. Nekas netiek lejupielādēts, līdz pēdējā solī nospiežat Gatavs.",
  "wizard.languages": "Valodas to pašu nosaukumos",
  "wizard.later": "To var mainīt vēlāk: Iestatījumi → {area}.",
@@ -1955,5 +1951,20 @@
  "feature.ur_solved.a3": "Pēc uzvaras iespējas, ko tas atdeva salīdzinājumā ar labāko gājienu tam pašam metienam: 5 punkti ir ?!, 10 ir ?, 20 ir ??.",
  "feature.ur_solved.tip": "Izveidojiet Ur atrisinātās tabulas sadaļā Dzinēji, tad spēlējiet ideālu spēli vai pārskatiet partiju.",
  "tour.ur_solved.title": "Ur, atrisināts",
- "tour.ur_solved.text": "Izveidojiet Ur noteikumu kopas atrisināto tabulu sadaļā Dzinēji. Spēlēt tad piedāvā ideālu spēli ar stiprumu, ko izvēlaties, un Analīze atzīmē katru gājienu pēc precīzās uzvaras iespējas, ko tas atdeva."
+ "tour.ur_solved.text": "Izveidojiet Ur noteikumu kopas atrisināto tabulu sadaļā Dzinēji. Spēlēt tad piedāvā ideālu spēli ar stiprumu, ko izvēlaties, un Analīze atzīmē katru gājienu pēc precīzās uzvaras iespējas, ko tas atdeva.",
+ "commentary.engine_running": "Apturiet dzinēju, lai varētu uzrakstīt skaidrojumu par to, ko tas atrada.",
+ "strip.example": "piem., {x}",
+ "wizard.engines_images": {
+  "zero": "Vēl {n} dzinēju var lejupielādēt kā slēgtus konteinera attēlus ar podman vai docker: sānjosla → {family} → Dzinēji.",
+  "one": "Vēl {n} dzinējs var tikt lejupielādēts kā slēgts konteinera attēls ar podman vai docker: sānjosla → {family} → Dzinēji.",
+  "other": "Vēl {n} dzinēji var tikt lejupielādēti kā slēgti konteinera attēli ar podman vai docker: sānjosla → {family} → Dzinēji."
+ },
+ "wizard.engines_by_hand": {
+  "zero": "Vēl {n} dzinēju nav slēgtu attēlu. Uzstādiet tos paši: sānjosla → {family} → Dzinēji norāda, kur tos dabūt.",
+  "one": "Vēl {n} dzinējs nav slēgta attēla. Uzstādiet to paši: sānjosla → {family} → Dzinēji norāda, kur to dabūt.",
+  "other": "Vēl {n} dzinēju nav slēgtu attēlu. Uzstādiet tos paši: sānjosla → {family} → Dzinēji norāda, kur tos dabūt."
+ },
+ "play.resign_menu": "Padoties…",
+ "play.resign_ask": "Kādu uzvaru atdosiet pretiniekam?",
+ "play.opening": "{side} sāk: {high} pret {low}. Lielākais kauliņš izmanto abus kauliņus."
 }

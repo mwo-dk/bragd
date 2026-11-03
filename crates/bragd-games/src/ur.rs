@@ -203,6 +203,9 @@ fn state(variant: Variant, game: &Game, last: Option<(Side, rules_ur::Move)>) ->
         .map(|(_, throw)| rules.steps(throw).to_string());
 
     let info = variant.info();
+    let history: Vec<String> = game.entries().iter().map(|entry| entry.to_wire(rules)).collect();
+    let is_throw: Vec<bool> = game.entries().iter().map(|entry| matches!(entry, Entry::Throw(_))).collect();
+    let (numbers, written) = crate::race_turns(&history, &is_throw, matches!(needs, Needed::Move { .. }));
     State {
         variant,
         position: position.to_picture(),
@@ -212,8 +215,9 @@ fn state(variant: Variant, game: &Game, last: Option<(Side, rules_ur::Move)>) ->
         steps: Vec::new(),
         targets: BTreeMap::new(),
         throws,
-        history: game.entries().iter().map(|entry| entry.to_wire(rules)).collect(),
-        numbers: Vec::new(),
+        history,
+        numbers,
+        written,
         check: false,
         forced: match game.moves().as_slice() {
             [only] => Some(only.chosen.to_wire(rules)),

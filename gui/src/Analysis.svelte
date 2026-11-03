@@ -50,8 +50,10 @@
       .then(() => (error = ""))
       .catch((e) => ((error = String(e)), (on = false)));
   });
+  // It keeps asking after Stop until the engine has stopped, so Commentary learns it settled.
+  const polling = $derived(on || !!now?.running);
   $effect(() => {
-    if (!on) return;
+    if (!polling) return;
     const id = setInterval(async () => {
       now = await api.analysisNow();
     }, 400);

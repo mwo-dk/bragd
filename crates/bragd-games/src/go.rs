@@ -217,6 +217,7 @@ fn state(variant: Variant, game: &Game) -> State {
         throws: Vec::new(),
         history: game.entries().iter().map(Entry::to_wire).collect(),
         numbers: Vec::new(),
+        written: Vec::new(),
         check: false,
         forced: None,
         passed: None,

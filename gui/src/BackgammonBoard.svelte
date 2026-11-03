@@ -13,6 +13,8 @@
   const byPoint = $derived(new Map(b.pieces.filter((/** @type {any} */ p) => p.square !== "bar").map((/** @type {any} */ p) => [p.x, p])));
   const onBar = $derived(b.pieces.filter((/** @type {any} */ p) => p.square === "bar"));
   const numbers = Array.from({ length: 24 }, (_, i) => i + 1);
+  // Rust numbers the points from the side to move, as its moves are written.
+  const label = $derived(new Map(b.labels.map((/** @type {any} */ l) => [l.x, l.text])));
   // White's bar checkers wait at the bottom of the bar, Black's at the top (from White's side).
   const barTop = (/** @type {any} */ p) => (p.x === 25) !== flipped;
   const offFor = (/** @type {number} */ seat) => b.off.find((/** @type {any} */ h) => h.seat === seat)?.pieces?.[0];
@@ -48,7 +50,7 @@
     {#if targets.includes(String(n))}
       <circle class="target" cx={p.col + 0.5} cy={p.top ? 5.5 : H - 5.5} r="0.2" />
     {/if}
-    <text class="number" x={p.col + 0.5} y={p.top ? -0.12 : H + 0.34}>{n}</text>
+    <text class="number" x={p.col + 0.5} y={p.top ? -0.12 : H + 0.34}>{label.get(n) ?? n}</text>
   {/each}
 
   {#each onBar as pc}
@@ -83,6 +85,10 @@
       {#each pips(d) as [x, y]}
         <circle class="pip" cx={x} cy={y} r="0.09" />
       {/each}
+      {#if b.opening?.length}
+        <!-- The opening throw: a checker of the Side that threw it under each die. -->
+        <use href="#{offFor(b.opening[i])?.sprite}" x="0.25" y="1.1" width="0.5" height="0.5" />
+      {/if}
     </g>
   {/each}
   {#if b.cube}

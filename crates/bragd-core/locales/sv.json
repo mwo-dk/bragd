@@ -287,16 +287,12 @@
  "wizard.close": "Stäng guiden",
  "wizard.done": "Klar",
  "wizard.engine_found": "Installerad: {path}",
- "wizard.engine_get": "Var du får den",
- "wizard.engine_missing": "Inte installerad",
  "wizard.engines": "Motorer som Bragd hittade på den här datorn, för varje spelfamilj som är på.",
  "wizard.bot": "Bragds egen bot spelar det.",
  "wizard.engines_none": "Ingen påslagen spelfamilj använder en extern motor.",
  "wizard.failed": "{what} kunde inte startas: {error}",
  "wizard.families": "Vilka spel spelar du? Välj ett, så visar Bragd bara det överallt. Du kan lägga till fler under Inställningar när som helst.",
  "wizard.helper": "Hjälparen hämtar källor och håller dina bibliotek i ordning i bakgrunden, för alla Bragd-fönster.",
- "wizard.image_ready": "En låst bild kan laddas ned med podman eller docker.",
- "wizard.image_unpublished": "Bragd har ingen låst bild för den.",
  "wizard.knowledge": "Nedladdningar som gör Bragd mer användbart. Varje visar sin storlek först. Inget laddas ned förrän du trycker på Klar på sista steget.",
  "wizard.languages": "Språk, med deras egna namn",
  "wizard.later": "Du kan ändra detta senare under Inställningar → {area}.",
@@ -1944,5 +1940,18 @@
  "feature.ur_solved.a3": "Efter vinstchansen det gav bort mot det bästa draget för samma kast: 5 poäng är ?!, 10 är ?, 20 är ??.",
  "feature.ur_solved.tip": "Skapa Urs lösta tabeller under Motorer och spela sedan perfekt spel eller granska ett parti.",
  "tour.ur_solved.title": "Ur, löst",
- "tour.ur_solved.text": "Skapa ett Ur-regelverks lösta tabell under Motorer. Spela erbjuder då perfekt spel med en styrka du väljer, och Analys markerar varje drag med den exakta vinstchans det kostade."
+ "tour.ur_solved.text": "Skapa ett Ur-regelverks lösta tabell under Motorer. Spela erbjuder då perfekt spel med en styrka du väljer, och Analys markerar varje drag med den exakta vinstchans det kostade.",
+ "commentary.engine_running": "Stoppa motorn för att kunna skriva Förklaring om vad den hittade.",
+ "strip.example": "t.ex. {x}",
+ "wizard.engines_images": {
+  "one": "{n} annan motor kan hämtas som en låst containerbild med podman eller docker: sidomeny → {family} → Motorer.",
+  "other": "{n} andra motorer kan hämtas som låsta containerbilder med podman eller docker: sidomeny → {family} → Motorer."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} annan motor har ingen låst containerbild. Installera den själv: sidomeny → {family} → Motorer säger var du får den.",
+  "other": "{n} andra motorer har ingen låst containerbild. Installera dem själva: sidomeny → {family} → Motorer säger var du får dem."
+ },
+ "play.resign_menu": "Ge upp…",
+ "play.resign_ask": "Vilken seger ger du din motståndare?",
+ "play.opening": "{side} börjar: {high} mot {low}. Den högre tärningen spelar båda tärningarna."
 }

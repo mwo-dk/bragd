@@ -191,6 +191,7 @@ fn state(variant: Variant, game: &Game) -> State {
         throws: Vec::new(),
         history: game.moves().iter().map(|&mv| notation(geometry, mv)).collect(),
         numbers: Vec::new(),
+        written: Vec::new(),
         check: false,
         forced: None,
         passed: None,

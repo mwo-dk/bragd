@@ -287,16 +287,12 @@
  "wizard.close": "Assistenten schließen",
  "wizard.done": "Fertig",
  "wizard.engine_found": "Installiert: {path}",
- "wizard.engine_get": "Woher man sie bekommt",
- "wizard.engine_missing": "Nicht installiert",
  "wizard.engines": "Engines, die Bragd auf diesem Rechner findet, für jede eingeschaltete Spielfamilie.",
  "wizard.bot": "Der eigene Bot von Bragd spielt es.",
  "wizard.engines_none": "Keine eingeschaltete Spielfamilie nutzt eine externe Engine.",
  "wizard.failed": "{what} konnte nicht gestartet werden: {error}",
  "wizard.families": "Welche Spiele spielen Sie? Wählen Sie eines, dann zeigt Bragd überall nur dieses. Weitere können Sie jederzeit unter Einstellungen hinzufügen.",
  "wizard.helper": "Der Helfer lädt Quellen und hält Ihre Bibliotheken im Hintergrund in Ordnung, für jedes Bragd-Fenster.",
- "wizard.image_ready": "Ein gekapseltes Image kann mit podman oder docker geladen werden.",
- "wizard.image_unpublished": "Bragd hat dafür kein gekapseltes Image.",
  "wizard.knowledge": "Downloads, die Bragd nützlicher machen. Jeder zeigt zuerst seine Größe. Nichts wird geladen, bis Sie im letzten Schritt Fertig drücken.",
  "wizard.languages": "Sprachen, in ihren eigenen Namen",
  "wizard.later": "Sie können das später unter Einstellungen → {area} ändern.",
@@ -1944,5 +1940,18 @@
  "feature.ur_solved.a3": "Nach der Gewinnchance, die er gegenüber dem besten Zug mit demselben Wurf verschenkt: 5 Punkte sind ?!, 10 sind ?, 20 sind ??.",
  "feature.ur_solved.tip": "Erstellen Sie die gelösten Tabellen von Ur auf seiner Engines-Seite, dann spielen Sie perfektes Spiel oder prüfen eine Partie.",
  "tour.ur_solved.title": "Ur, gelöst",
- "tour.ur_solved.text": "Erstellen Sie die gelöste Tabelle eines Ur-Regelwerks auf seiner Engines-Seite. Spielen bietet dann perfektes Spiel mit einer Stärke an, die Sie einstellen, und Analyse markiert jeden Zug mit der genauen Gewinnchance, die er verschenkt."
+ "tour.ur_solved.text": "Erstellen Sie die gelöste Tabelle eines Ur-Regelwerks auf seiner Engines-Seite. Spielen bietet dann perfektes Spiel mit einer Stärke an, die Sie einstellen, und Analyse markiert jeden Zug mit der genauen Gewinnchance, die er verschenkt.",
+ "commentary.engine_running": "Stoppen Sie die Engine, damit eine Erläuterung zu ihren Befunden geschrieben werden kann.",
+ "strip.example": "z. B. {x}",
+ "wizard.engines_images": {
+  "one": "{n} weitere Engine kann als gekapseltes Container-Image mit podman oder docker geladen werden: Seitenleiste → {family} → Engines.",
+  "other": "{n} weitere Engines können als gekapselte Container-Images mit podman oder docker geladen werden: Seitenleiste → {family} → Engines."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} weitere Engine hat kein gekapseltes Container-Image. Installieren Sie sie selbst: Seitenleiste → {family} → Engines nennt die Bezugsquelle.",
+  "other": "{n} weitere Engines haben kein gekapseltes Container-Image. Installieren Sie sie selbst: Seitenleiste → {family} → Engines nennt die Bezugsquellen."
+ },
+ "play.resign_menu": "Aufgeben…",
+ "play.resign_ask": "Welchen Sieg überlassen Sie Ihrem Gegner?",
+ "play.opening": "{side} beginnt: {high} gegen {low}. Der höhere Würfel spielt beide Würfel."
 }

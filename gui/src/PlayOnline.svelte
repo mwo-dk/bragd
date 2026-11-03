@@ -314,7 +314,7 @@
           <h2>{t("play.moves")}</h2>
           <p class="moves">
             {#each st.history as h, i}
-              <span class="entry">{#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}{h}</span>
+              <span class="entry">{#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}{st.written[i]}</span>
             {/each}
           </p>
         {/if}

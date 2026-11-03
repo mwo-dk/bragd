@@ -54,6 +54,10 @@ pub struct State {
     /// number full moves: `1.` before the first Side's move, nothing before the reply, and `1…`
     /// when a Game opens with the second Side. Every other Family numbers each entry: `1`, `2` …
     pub numbers: Vec<String>,
+    /// The move list's text for each entry of `history`, the same length. Most Families write
+    /// the record's own entry; Ur and senet write a throw as `4:` before the move made with it,
+    /// and a throw that allowed no move as `0: –`.
+    pub written: Vec<String>,
     /// The side to move is in check (chess-like Families only).
     pub check: bool,
     /// The one legal move, when a throw of the dice left exactly one: a front end
@@ -150,11 +154,14 @@ pub struct Board {
     pub dice: Vec<u8>,
     /// Beside `dice`, which of them a backgammon turn moved checker by checker has used.
     pub used: Vec<bool>,
+    /// Beside `dice`, while backgammon's opening throw is played: the seat that threw each die.
+    pub opening: Vec<u8>,
     /// Ur's pyramid dice in the last throw: each one, whether a marked tip is up.
     pub pyramids: Vec<bool>,
     /// Each Side's path across a race track, as `[x, y]` cells in the order walked.
     pub paths: Vec<Vec<[u8; 2]>>,
-    /// Printed cell labels: draughts square numbers, senet house numbers.
+    /// Printed cell labels: draughts square numbers, senet house numbers, backgammon point
+    /// numbers from the side to move.
     pub labels: Vec<Label>,
     /// Every cell a piece can stand on or move to, with its name in the Family's
     /// notation, so a front end can match a click to a legal move's `from` and `to`.
@@ -337,6 +344,9 @@ fn finish(mut state: State) -> State {
     if state.numbers.is_empty() {
         state.numbers = (1..=state.history.len()).map(|n| n.to_string()).collect();
     }
+    if state.written.is_empty() {
+        state.written = state.history.clone();
+    }
     state
 }
 
@@ -447,6 +457,24 @@ fn targets(moves: &[LegalMove]) -> BTreeMap<String, Vec<String>> {
         }
     }
     map
+}
+
+/// Ur's and senet's move list, as `(numbers, written)`: a turn is numbered once, at its throw,
+/// written `4:` before the move made with it, or `0: –` when it allowed none.
+pub(crate) fn race_turns(history: &[String], throw: &[bool], awaiting_move: bool) -> (Vec<String>, Vec<String>) {
+    let mut turn = 0;
+    history
+        .iter()
+        .enumerate()
+        .map(|(i, entry)| {
+            if !throw[i] {
+                return (String::new(), entry.clone());
+            }
+            turn += 1;
+            let moved = throw.get(i + 1).map_or(awaiting_move, |next| !next);
+            (turn.to_string(), if moved { format!("{entry}:") } else { format!("{entry}: –") })
+        })
+        .unzip()
 }
 
 #[cfg(test)]

@@ -327,6 +327,11 @@
   /** The text for a move that has no square: Pass, Double, Take, Drop, Accept, Resume. */
   // Analyse has no opponent to double or resign to.
   const offered = (/** @type {string} */ wire) => wire === "double" || wire.startsWith("resign");
+  let resigning = $state(false);
+  // Resigning is to an Engine, on your own turn: against yourself there is no one to resign to.
+  const resigns = $derived(
+    !analyse && opponent === "engine" && st && st.toMove?.index !== engineSeat ? plainMoves(st).filter((/** @type {any} */ m) => m.wire.startsWith("resign")) : [],
+  );
   const plainLabel = (/** @type {any} */ m) => {
     const label = t(`move.${m.notation}`);
     return label.startsWith("move.") ? m.notation : label;
@@ -424,7 +429,9 @@
       </div>
 
       <aside class="panel info">
-        {#if st.toMove && !st.outcome}
+        {#if st.toMove && !st.outcome && st.board.opening?.length}
+          <p class="turn">{t("play.opening", { side: side(st.toMove), high: st.board.dice[0], low: st.board.dice[1] })}</p>
+        {:else if st.toMove && !st.outcome}
           <p class="turn">
             {st.awaiting === "throw" ? t("play.to_throw", { side: side(st.toMove) }) : t("play.to_move", { side: side(st.toMove) })}
           </p>
@@ -446,14 +453,26 @@
           {#if st.awaiting === "throw"}
             <button class="primary" onclick={doThrow}>{t("play.throw")}</button>
           {/if}
-          {#each plainMoves(st).filter((/** @type {any} */ m) => !analyse || !offered(m.wire)) as m}
+          {#each plainMoves(st).filter((/** @type {any} */ m) => !m.wire.startsWith("resign") && (!analyse || !offered(m.wire))) as m}
             {#if m.wire === "dead:"}
               <button onclick={() => playEntry("dead:" + dead.join(","))}>{t("move.dead")}</button>
             {:else}
               <button onclick={() => playEntry(m.wire)}>{plainLabel(m)}</button>
             {/if}
           {/each}
+          {#if resigns.length && !resigning}
+            <button onclick={() => (resigning = true)}>{t("play.resign_menu")}</button>
+          {/if}
         </div>
+        {#if resigning && resigns.length}
+          <div class="choose">
+            <p>{t("play.resign_ask")}</p>
+            {#each resigns as m}
+              <button onclick={() => ((resigning = false), playEntry(m.wire))}>{plainLabel(m)}</button>
+            {/each}
+            <button onclick={() => (resigning = false)}>{t("common.cancel")}</button>
+          </div>
+        {/if}
         {#if scoring}
           <p class="hint">{t("play.scoring")}</p>
         {/if}
@@ -494,7 +513,7 @@
         <h2>{t("play.moves")}</h2>
         <p class="moves">
           {#each st.history as h, i}
-            <span class="entry">{#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}{h}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")} title={titles[i] || null}>{marks[i]}</span>{/if}</span>
+            <span class="entry">{#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}{st.written[i]}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")} title={titles[i] || null}>{marks[i]}</span>{/if}</span>
           {/each}
         </p>
       </aside>

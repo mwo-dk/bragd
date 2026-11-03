@@ -124,6 +124,7 @@ fn state(variant: Variant, game: &Game) -> State {
             .map(|mv| if mv.is_pass() { "pass".to_string() } else { mv.to_wire() })
             .collect(),
         numbers: Vec::new(),
+        written: Vec::new(),
         check,
         forced: None,
         passed: None,
