@@ -7,11 +7,13 @@
   /** A piece sliding along cells as a move is played: its sprite, the square it leaves, the
    * cells it passes, and how far along it is, 0 to 1.
    * @typedef {{ sprite: string, from: string, pts: number[][], p: number }} Glide */
-  /** @type {{ state: any, family: string, flipped?: boolean, selected?: string | null, targets?: string[], dead?: string[], glide?: Glide | null, oncell?: (square: string) => void, onpress?: (square: string, e: PointerEvent) => void }} */
-  let { state, family, flipped = false, selected = null, targets = [], dead = [], glide = null, oncell, onpress } = $props();
+  /** @type {{ state: any, family: string, flipped?: boolean, selected?: string | null, targets?: string[], dead?: string[], glide?: Glide | null, sideways?: boolean, oncell?: (square: string) => void, onpress?: (square: string, e: PointerEvent) => void }} */
+  let { state, family, flipped = false, selected = null, targets = [], dead = [], glide = null, sideways = false, oncell, onpress } = $props();
 
   const b = $derived(state.board);
-  const at = (/** @type {number} */ x, /** @type {number} */ y) => place(x, y, b.files, b.ranks, flipped);
+  const at = (/** @type {number} */ x, /** @type {number} */ y) => place(x, y, b.files, b.ranks, flipped, sideways);
+  // The drawing's width and height, in cells: swapped when the board lies on its side.
+  const [w, h] = $derived(sideways ? [b.ranks, b.files] : [b.files, b.ranks]);
   const grid = $derived(
     Array.from({ length: b.files * b.ranks }, (_, i) => ({ x: i % b.files, y: Math.floor(i / b.files) })),
   );
@@ -29,7 +31,8 @@
       path
         .map(([x, y]) => {
           const p = at(x, y);
-          return `${p.col + 0.5},${p.row + 0.5 + (side ? -0.12 : 0.12) * (flipped ? -1 : 1)}`;
+          const d = (side ? -0.12 : 0.12) * (flipped ? -1 : 1);
+          return sideways ? `${p.col + 0.5 - d},${p.row + 0.5}` : `${p.col + 0.5},${p.row + 0.5 + d}`;
         })
         .join(" "),
     ),
@@ -50,11 +53,11 @@
 <svg
   class="board {b.geometry} {family}"
   class:chequered={b.chequered}
-  viewBox="-0.08 -0.08 {b.files + 0.16} {b.ranks + 0.16}"
+  viewBox="-0.08 -0.08 {w + 0.16} {h + 0.16}"
   role="grid"
   tabindex="-1"
 >
-  <rect class="ground" x="-0.08" y="-0.08" width={b.files + 0.16} height={b.ranks + 0.16} />
+  <rect class="ground" x="-0.08" y="-0.08" width={w + 0.16} height={h + 0.16} />
 
   <!-- A track has only its cells; any other board is the whole grid (draughts names only the
        dark squares). -->
@@ -93,16 +96,6 @@
     </g>
   {/if}
 
-  {#if paths.length}
-    <defs>
-      <marker id="path-end" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
-        <path d="M0 0 L10 5 L0 10 Z" class="path-arrow" />
-      </marker>
-    </defs>
-    {#each paths as points, side}
-      <polyline class="path side{side}" {points} marker-end="url(#path-end)" />
-    {/each}
-  {/if}
 
   {#if family === "shogi"}
     {#each [[3, 3], [3, 6], [6, 3], [6, 6]] as [x, y]}
@@ -130,6 +123,18 @@
       <rect class={h.kind} x={p.col} y={p.row} width="1" height="1" />
     {/if}
   {/each}
+
+  <!-- The paths over the rosettes, so the arrow on the last square shows. -->
+  {#if paths.length}
+    <defs>
+      <marker id="path-end" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="0.36" markerHeight="0.36" orient="auto">
+        <path d="M0 0 L10 5 L0 10 Z" class="path-arrow" />
+      </marker>
+    </defs>
+    {#each paths as points, side}
+      <polyline class="path side{side}" {points} marker-end="url(#path-end)" />
+    {/each}
+  {/if}
 
   {#each b.labels as l}
     {@const p = at(l.x, l.y)}
@@ -263,8 +268,11 @@
     opacity: 0.55;
     pointer-events: none;
   }
+  /* Big enough to read on the last square's rosette, with a light edge to stand out on it. */
   .path-arrow {
     fill: var(--board-dark);
+    stroke: var(--board-light);
+    stroke-width: 1;
   }
   .gliding {
     pointer-events: none;
