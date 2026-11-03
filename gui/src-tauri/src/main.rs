@@ -146,6 +146,8 @@ fn choices(name: &str, cfg: &Config) -> Vec<Choice> {
             .chain(i18n::LANGUAGES.iter().map(|l| choice(l.code, l.name.to_string(), l.group)))
             .collect(),
         "file_picker" => picker_choices(files::coxswain().is_some()),
+        // What a request for a Chat or a Call channel does.
+        "bragd_chat" => ["ask", "off"].iter().map(|c| choice(c, i18n::tr(&format!("online.consent.{c}"), &[]), "")).collect(),
         "tips" => bragd_core::tips::FREQUENCIES.iter().map(|f| choice(f, i18n::tr(&format!("tips.{f}"), &[]), "")).collect(),
         "engines_runtime" => vec![
             choice("auto", i18n::tr("settings.runtime_auto", &[]), ""),
@@ -416,6 +418,8 @@ fn main() {
             friends::friends_name,
             friends::friends_club_friends,
             friends::friends_act,
+            friends::friends_chat,
+            friends::friends_keep,
             online::online_view,
             online::online_servers,
             online::online_sign_in,

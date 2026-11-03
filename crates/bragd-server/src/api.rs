@@ -91,7 +91,15 @@ impl Service {
                 "select g.id, f.name, s.name, g.first = auth.uid(), g.challenger = auth.uid(), g.variant, g.status, \
                  coalesce(g.result, ''), coalesce(g.reason, ''), g.draw_offer is not null and g.draw_offer <> auth.uid(), \
                  g.draw_offer = auth.uid(), \
-                 coalesce((select array_agg(m.entry order by m.ply) from public.moves m where m.game_id = g.id), '{}') \
+                 coalesce((select array_agg(m.entry order by m.ply) from public.moves m where m.game_id = g.id), '{}'), \
+                 case when g.first = auth.uid() then g.chat_first else g.chat_second end, \
+                 case when g.first = auth.uid() then g.chat_second else g.chat_first end, \
+                 case when g.first = auth.uid() then g.keep_first else g.keep_second end, \
+                 case when g.first = auth.uid() then g.keep_second else g.keep_first end, \
+                 bragd.are_friends(auth.uid(), case when g.first = auth.uid() then g.second else g.first end), \
+                 case when g.first = auth.uid() then g.second else g.first end, \
+                 (select coalesce(json_agg(json_build_object('mine', c.sender = auth.uid(), 'text', c.text) order by c.id), '[]'::json) \
+                  from (select * from public.chat where game_id = g.id order by id desc limit 100) c) \
                  from public.games g join public.profiles f on f.id = g.first join public.profiles s on s.id = g.second \
                  where g.status in ('offered', 'playing') or g.updated_at > now() - interval '1 day' \
                  order by g.updated_at desc limit 50",
@@ -108,11 +116,15 @@ impl Service {
                         "result": r.get::<_, String>(7), "reason": r.get::<_, String>(8),
                         "draw_offered": r.get::<_, bool>(9), "draw_asked": r.get::<_, Option<bool>>(10).unwrap_or(false),
                         "moves": r.get::<_, Vec<String>>(11),
+                        "chat": { "mine": r.get::<_, bool>(12), "theirs": r.get::<_, bool>(13), "keep_mine": r.get::<_, bool>(14),
+                            "keep_theirs": r.get::<_, bool>(15), "lines": r.get::<_, Value>(18) },
+                        "friend": r.get::<_, bool>(16), "opponent_id": r.get::<_, uuid::Uuid>(17).to_string(),
                     })
                 })
                 .collect();
             let mut out = crate::friends::state(tx)?;
             out["me"] = json!(me);
+            out["id"] = json!(caller.id.to_string());
             out["games"] = json!(games);
             Ok(out)
         })
@@ -204,6 +216,33 @@ impl Game {
             ("decline", "offered") if challenged => self.set(tx, "declined", None, None),
             ("cancel", "offered") if !challenged => self.set(tx, "cancelled", None, None),
             ("move", "playing") => self.play(tx, me, body),
+            // Chat: the caller's yes, or closing it for both; keeping it; a line.
+            ("chat", "playing") => {
+                let on = body["on"].as_bool().unwrap_or(false);
+                let sql = match (on, me == self.first) {
+                    (true, true) => "update public.games set chat_first = true where id = $1",
+                    (true, false) => "update public.games set chat_second = true where id = $1",
+                    (false, _) => "update public.games set chat_first = false, chat_second = false where id = $1",
+                };
+                tx.execute(sql, &[&self.id])?;
+                Ok(json!({ "chat": on }))
+            }
+            ("keep", "playing") => {
+                let on = body["on"].as_bool().unwrap_or(false);
+                let sql = if me == self.first { "update public.games set keep_first = $2 where id = $1" } else { "update public.games set keep_second = $2 where id = $1" };
+                tx.execute(sql, &[&self.id, &on])?;
+                Ok(json!({ "keep": on }))
+            }
+            ("say", "playing") => {
+                let line = text(body, "text")?;
+                // As the caller: the policy lets a line in only while both said yes.
+                tx.batch_execute("set local role authenticated")?;
+                tx.execute("insert into public.chat (game_id, text) values ($1, $2)", &[&self.id, &line]).map_err(|e| match Error::from(e) {
+                    Error(403, _) => Error(409, "chat_closed"),
+                    other => other,
+                })?;
+                Ok(json!({}))
+            }
             ("resign", "playing") => {
                 let result = if me == self.first { "0-1" } else { "1-0" };
                 self.set(tx, "over", Some(result), Some("resign"))
@@ -218,7 +257,7 @@ impl Game {
                     (false, false) => Err(Error(409, "no_draw")),
                 }
             }
-            ("accept" | "decline" | "cancel" | "move" | "resign" | "draw", _) => Err(Error(409, "not_now")),
+            ("accept" | "decline" | "cancel" | "move" | "resign" | "draw" | "chat" | "keep" | "say", _) => Err(Error(409, "not_now")),
             _ => Err(Error(404, "not_found")),
         }
     }

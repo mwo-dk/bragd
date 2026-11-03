@@ -290,7 +290,7 @@ pub struct PeersConfig {
 }
 
 /// Playing online (`bragd-online`).
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct OnlineConfig {
     /// A Lichess Game's chat is read and written in Bragd. Off by default.
@@ -298,6 +298,16 @@ pub struct OnlineConfig {
     /// The Bragd server's address (its game service). Empty, the default, until the Bragd
     /// server is up: *Play with Friends* stays hidden and nothing is asked of it.
     pub server: String,
+    /// What a Bragd player's request to Chat does: `ask` shows it, `off` refuses it unseen.
+    pub bragd_chat: String,
+    /// A stranger's Chat lines have the words on the filter's list masked.
+    pub bragd_filter: bool,
+}
+
+impl Default for OnlineConfig {
+    fn default() -> Self {
+        OnlineConfig { chat: false, server: String::new(), bragd_chat: "ask".into(), bragd_filter: true }
+    }
 }
 
 impl Default for Config {

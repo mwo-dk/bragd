@@ -792,7 +792,7 @@ def online():
 def friends():
     """Play with Friends against the fake Bragd server (`fake-online bragd`), never a real one:
     friends-sign-in before signing in, friends signed in with Anna's challenge, Carl's request and
-    the Club, and friends-game after accepting Anna's challenge and 1. e4; each -390.png and
+    the Club, friends-game after accepting Anna's challenge and 1. e4, and friends-chat with the Game's Chat open; each -390.png and
     -1100.png. BRAGD_FRIENDS_URL points the app at the fake, and BRAGD_FRIENDS_TOKEN stands in for
     the keychain the sandbox does not have."""
     import subprocess
@@ -821,6 +821,15 @@ def friends():
                 js(d, "document.querySelector('main .game')?.scrollIntoView();")
                 d.wait(0.5)
                 d.shot(HERE / f"friends-game-{w}.png")
+                click(d, "Ask to Chat", "main")
+                d.wait(2.5)
+                js(d, "const i = document.querySelector('main .say input'); i.value = 'Thanks, you too!'; i.dispatchEvent(new Event('input', {bubbles: true}));")
+                d.wait(0.3)
+                click(d, "Send", "main")
+                d.wait(2.5)
+                js(d, "document.querySelector('main .say')?.scrollIntoView({block: 'center'});")
+                d.wait(0.5)
+                d.shot(HERE / f"friends-chat-{w}.png")
         finally:
             p.terminate()
             p.wait(5)
