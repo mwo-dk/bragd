@@ -197,6 +197,10 @@
         <ul class="offers">
           {#each data.offers.filter((/** @type {any} */ o) => !o.list) as o (o.id)}{@render offer(o)}{/each}
         </ul>
+        {#if opt("tablebases_online")?.listed}
+          <label class="check"><input type="checkbox" checked={opt("tablebases_online").value} onchange={(e) => save("tablebases_online", e.currentTarget.checked)} /> {opt("tablebases_online").label}</label>
+          <p class="dim">{opt("tablebases_online").hint}</p>
+        {/if}
         {#if data.offers.some((/** @type {any} */ o) => o.list)}
           <h4>{t("clubs.lists")}</h4>
           <ul class="offers">
@@ -210,10 +214,6 @@
               {#each data.offers.filter((/** @type {any} */ o) => o.more) as o (o.id)}{@render offer(o)}{/each}
             </ul>
           </details>
-        {/if}
-        {#if opt("tablebases_online")?.listed}
-          <label class="check"><input type="checkbox" checked={opt("tablebases_online").value} onchange={(e) => save("tablebases_online", e.currentTarget.checked)} /> {opt("tablebases_online").label}</label>
-          <p class="dim">{opt("tablebases_online").hint}</p>
         {/if}
         {#if data.coming}<p class="dim">{data.coming}</p>{/if}
         {#if data.offers.length === 0}
