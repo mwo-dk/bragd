@@ -5,6 +5,8 @@
 #[cfg(target_os = "linux")]
 mod support;
 #[cfg(target_os = "linux")]
+mod account;
+#[cfg(target_os = "linux")]
 mod chat;
 #[cfg(target_os = "linux")]
 mod signal;
@@ -22,7 +24,7 @@ fn main() {
     use std::panic::{AssertUnwindSafe, catch_unwind};
     let filter = std::env::args().skip(1).find(|a| !a.starts_with('-'));
     let pg = support::Pg::start();
-    let cases: Vec<Case> = [games::CASES, friends::CASES, chat::CASES, signal::CASES].concat();
+    let cases: Vec<Case> = [games::CASES, friends::CASES, chat::CASES, signal::CASES, account::CASES].concat();
     let mut failed = vec![];
     for (name, case) in cases {
         if filter.as_ref().is_some_and(|f| !name.contains(f.as_str())) {

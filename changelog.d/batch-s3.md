@@ -1,0 +1,1 @@
+| **Delete my account on Play with Friends deletes your Bragd server account and everything with it.** Type your name to confirm; your finished Games can stay with the other players as a deleted player's. | [Play with Friends](online/play-with-friends.md#deleting-your-account) |

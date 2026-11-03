@@ -16,6 +16,11 @@ role may). Each request runs as `authenticated` with the caller's token claims s
 own API does, so the row-level security decides what a caller may read and write. Only the
 referee's writes, made after the rules have checked a move, step out of that role.
 
+*Delete my account* (`DELETE /v1/me`) runs `bragd.forget` from
+`supabase/migrations/…_delete_account.sql` as that role too. It deletes the caller's row in
+`auth.users`, whose cascades take everything else, so the role must be allowed to delete there, as
+Supabase's `postgres` role is. A player cannot run it themselves.
+
 ## Running it
 
 ```sh

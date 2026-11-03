@@ -305,6 +305,7 @@ export const friendsSignIn = (/** @type {string} */ email, /** @type {string} */
 export const friendsSignUp = (/** @type {string} */ email, /** @type {string} */ password) => invoke("friends_sign_up", { email, password });
 export const friendsSignInWith = (/** @type {string} */ provider) => invoke("friends_sign_in_with", { provider });
 export const friendsName = (/** @type {string} */ name) => invoke("friends_name", { name });
+export const friendsDeleteAccount = (/** @type {string} */ confirm, /** @type {boolean} */ keepGames) => invoke("friends_delete_account", { confirm, keepGames });
 export const friendsClubFriends = (/** @type {boolean} */ on) => invoke("friends_club_friends", { on });
 /** A Friends action: `friends`, `friends/remove`, `invites`, `invites/redeem`, `blocks`, `blocks/remove`, `reports`, `clubs`, `clubs/join`, `clubs/leave`. */
 export const friendsChat = (/** @type {boolean} */ on) => invoke("friends_chat", { on });

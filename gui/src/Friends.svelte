@@ -24,6 +24,10 @@
   /** The player being reported, and why. */
   let reporting = $state("");
   let reason = $state("");
+  /** Deleting the account: the form is open, the name typed, and the user's choice for their Games. */
+  let deleting = $state(false);
+  let confirmName = $state("");
+  let keepGames = $state(false);
 
   const refresh = () =>
     api.friendsView().then(
@@ -48,6 +52,7 @@
   }
   const act = (/** @type {string} */ what, /** @type {any} */ body = {}) => run(() => api.friendsAct(what, body));
   const signOut = () => run(() => api.onlineSignOut("bragd").then(() => api.friendsView()));
+  const deleteAccount = () => run(() => api.friendsDeleteAccount(confirmName, keepGames)).then(() => (deleting = view?.signedIn ?? false));
   const report = () => act("reports", { name: reporting, reason }).then(() => ((reporting = ""), (reason = "")));
 </script>
 
@@ -189,6 +194,21 @@
 
     <h2>{t("friends.games")}</h2>
     <PlayOnline server="bragd" family={null} {save} embedded />
+
+    {#if !deleting}
+      <div class="form"><button onclick={() => ((deleting = true), (confirmName = ""))} disabled={busy}>{t("friends.delete_account")}</button></div>
+    {:else}
+      <form class="panel delete" onsubmit={(e) => (e.preventDefault(), deleteAccount())}>
+        <h2>{t("friends.delete_account")}</h2>
+        <p>{t("friends.delete_account.what")}</p>
+        <label class="check"><input type="checkbox" bind:checked={keepGames} /> {t("friends.delete_account.keep_games")}</label>
+        <label class="field">{t("friends.delete_account.confirm", { name: view.name })} <input bind:value={confirmName} autocomplete="off" spellcheck="false" /></label>
+        <div class="form">
+          <button class="primary" type="submit" disabled={busy || confirmName.trim() !== view.name}>{t("friends.delete_account.button")}</button>
+          <button type="button" onclick={() => (deleting = false)}>{t("common.cancel")}</button>
+        </div>
+      </form>
+    {/if}
   {/if}
 </section>
 
@@ -267,5 +287,22 @@
   }
   code {
     overflow-wrap: anywhere;
+  }
+  .delete {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    border-left: 3px solid var(--red);
+    padding-left: 0.6rem;
+  }
+  .delete p,
+  .delete h2,
+  .delete .form {
+    margin: 0;
+  }
+  .delete .check {
+    flex-wrap: nowrap;
+    align-items: flex-start;
   }
 </style>
