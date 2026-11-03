@@ -8,6 +8,7 @@
   import { here as place, set, replace } from "./nav.svelte.js";
   import Tournaments from "./Tournaments.svelte";
   import Leagues from "./Leagues.svelte";
+  import Scroll from "./Scroll.svelte";
 
   /** @type {{ snap: any, go: (page: any) => void }} */
   let { snap, go } = $props();
@@ -201,7 +202,7 @@
     {#if !busy}
     <div class="panel">
       <h3>{t("clubs.members")}</h3>
-      <div class="scroll">
+      <Scroll>
         <table class="stack">
           <thead>
             <tr>
@@ -232,7 +233,7 @@
             {/each}
           </tbody>
         </table>
-      </div>
+      </Scroll>
       <button class="primary" disabled={!director} onclick={() => edit(null)}>{t("clubs.add")}</button>
     </div>
 
@@ -322,7 +323,7 @@
       {#if club.log.length === 0}
         <p class="dim">{t("clubs.log_empty")}</p>
       {:else}
-        <div class="scroll">
+        <Scroll>
           <table class="stack">
             <thead>
               <tr><th>{t("clubs.when")}</th><th>{t("clubs.who")}</th><th>{t("clubs.role.member")}</th><th>{t("clubs.change")}</th><th>{t("clubs.why")}</th></tr>
@@ -339,7 +340,7 @@
               {/each}
             </tbody>
           </table>
-        </div>
+        </Scroll>
       {/if}
     </div>
     {/if}
@@ -439,10 +440,6 @@
   }
   form.panel > label {
     margin-bottom: 0.4rem;
-  }
-  .scroll {
-    overflow-x: auto;
-    margin-bottom: 0.5rem;
   }
   table {
     border-collapse: collapse;

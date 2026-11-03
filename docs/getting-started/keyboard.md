@@ -16,6 +16,7 @@ Every board can be played from the keyboard, and Play's buttons have keys of the
 |---|---|
 | Any board on Play, Analyse or Play online | **Tab** until the ring shows on a square, then the keys below |
 | Play and Analyse | The keys on the buttons above and beside the board |
+| A table too wide for the window (Disk watch, Clubs, Leagues, Tournaments, Rules), or the move list beside a board | **Tab** to it, then the arrow keys scroll it |
 
 ## Keys on a board
 

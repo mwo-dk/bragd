@@ -9,6 +9,7 @@
   import { t } from "./i18n.svelte.js";
   import JobLine from "./JobLine.svelte";
   import StorePanel from "./StorePanel.svelte";
+  import Scroll from "./Scroll.svelte";
 
   /** @type {any} */
   let r = $state(null);
@@ -82,7 +83,7 @@
   {#if error}<p class="error" role="alert">{error}</p>{/if}
   {#if r}
     {#each r.notices as n}<p class="notice" role="alert">{n}</p>{/each}
-    <div class="scroll">
+    <Scroll>
       <table>
         <thead>
           <tr><th>{t("disk.item")}</th><th>{t("disk.size")}</th><th>{t("disk.where")}</th><th>{t("disk.limit")}</th></tr>
@@ -106,7 +107,7 @@
           </tr>
         </tfoot>
       </table>
-    </div>
+    </Scroll>
     <div class="row">
       <label>{t("disk.free_below")} <input type="text" bind:value={free} placeholder={t("disk.no_limit")} size="8" /></label>
       <span class="hint">{r.free.map((/** @type {[string, string]} */ [p, b]) => t("disk.free", { path: p, free: b })).join(" · ")}</span>
@@ -163,9 +164,6 @@
   h3 {
     font-size: 1rem;
     margin: 0.6rem 0 0;
-  }
-  .scroll {
-    overflow-x: auto;
   }
   table {
     border-collapse: collapse;

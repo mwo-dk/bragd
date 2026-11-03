@@ -6,6 +6,7 @@
   import { t, num, i18n } from "./i18n.svelte.js";
   import Why from "./Why.svelte";
   import { here, set } from "./nav.svelte.js";
+  import Scroll from "./Scroll.svelte";
 
   /** @type {{ club: any, by: number|null, role: string|null, onclub: (v: any) => void, onopen: (open: boolean) => void }} */
   let { club, by, role, onclub, onopen } = $props();
@@ -216,7 +217,7 @@
             <strong>{L.teams[match.home].name} – {L.teams[match.away].name}</strong>
             <span class="num">{lv.scores[r][m][0]} – {lv.scores[r][m][1]}</span>
           </p>
-          <div class="scroll">
+          <Scroll>
             <table class="stack">
               <thead>
                 <tr><th>{t("tournaments.board")}</th><th>{L.teams[match.home].name}</th><th>{t("tournaments.result")}</th><th>{L.teams[match.away].name}</th></tr>
@@ -242,12 +243,12 @@
                 {/each}
               </tbody>
             </table>
-          </div>
+          </Scroll>
         {/each}
         {#if round.bye !== null}<p class="dim">{t("leagues.sits_out", { team: L.teams[round.bye].name })}</p>{/if}
       {/each}
     {:else if tab === "standings"}
-      <div class="scroll">
+      <Scroll>
         <table class="stack">
           <thead>
             <tr>
@@ -267,7 +268,7 @@
             {/each}
           </tbody>
         </table>
-      </div>
+      </Scroll>
       <p class="dim">{t("leagues.standings_hint")}</p>
     {:else}
       {#if L.log.length === 0}<p class="dim">{t("leagues.log_empty")}</p>{/if}
@@ -338,10 +339,6 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 0.5rem;
-  }
-  .scroll {
-    overflow-x: auto;
-    margin-bottom: 0.5rem;
   }
   table {
     border-collapse: collapse;

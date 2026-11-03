@@ -4,6 +4,7 @@
   // prune the Editions older than the newest and the Engines removed from this machine.
   import * as k from "./knowledge.js";
   import { t, num } from "./i18n.svelte.js";
+  import Scroll from "./Scroll.svelte";
 
   /** @type {any} */
   let s = $state(null);
@@ -42,7 +43,7 @@
   {#if !s.editions.length}
     <p class="hint">{t("store.empty")}</p>
   {:else}
-    <div class="scroll">
+    <Scroll>
       <table>
         <thead>
           <tr><th>{t("store.engine")}</th><th>{t("store.edition")}</th><th>{t("store.positions")}</th><th>{t("disk.size")}</th></tr>
@@ -58,7 +59,7 @@
           {/each}
         </tbody>
       </table>
-    </div>
+    </Scroll>
     <div class="row">
       <button onclick={() => prune("older")} disabled={busy || !s.editions.some((/** @type {any} */ e) => e.older)}>{t("store.prune_older", { positions: s.older })}</button>
       <button onclick={() => prune("removed")} disabled={busy || !s.editions.some((/** @type {any} */ e) => e.removed)}>{t("store.prune_removed", { positions: s.removed })}</button>
@@ -72,9 +73,6 @@
     color: var(--dim);
     font-size: 0.9em;
     margin: 0;
-  }
-  .scroll {
-    overflow-x: auto;
   }
   table {
     border-collapse: collapse;

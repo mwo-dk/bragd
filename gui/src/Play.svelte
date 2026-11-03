@@ -457,7 +457,8 @@
         {@render tray(flipped ? 1 : 0)}
       </div>
 
-      <aside class="panel info">
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <aside class="panel info" tabindex="0">
         {#if st.toMove && !st.outcome && st.board.opening?.length}
           <p class="turn">{t("play.opening", { side: side(st.toMove), high: st.board.dice[0], low: st.board.dice[1] })}</p>
         {:else if st.toMove && !st.outcome}
