@@ -55,7 +55,7 @@ A report goes to the operator alone.
 | Your Games and their moves | Deleted. If you tick *Leave my finished Games to the other players*, the Games that ended stay with the other player, with your side shown as *Deleted player*. A Game under way first ends as your resignation |
 | Call signals | Deleted where the server allows; Supabase Realtime drops them within days anyway |
 
-Bragd then signs out and removes the sign-in from your keychain. Backups of the Bragd server's database, kept on the operator's Storage Box, still hold the account until they expire by the Storage Box's retention; they are never restored for anything but recovering the server.
+Bragd then signs out and removes the sign-in from your keychain. Backups of the Bragd server's database, kept on the operator's Storage Box, still hold the account for up to 30 days after you delete it, when the backups are deleted; they are never restored for anything but recovering the server.
 
 ## The update check
 

@@ -42,6 +42,13 @@ proxy's `https://` address.
 | `BRAGD_SERVER_TURN_URLS` | The STUN and TURN addresses a Call may use, such as `stun:turn.example.org:3478,turn:turn.example.org:3478,turns:turn.example.org:5349` |
 | `BRAGD_SERVER_TURN_SECRET` | The secret shared with coturn (`static-auth-secret`). Empty: Calls get STUN only |
 
+## Backups
+
+`backup.sh` dumps the project's Postgres with `pg_dump` into `BRAGD_BACKUP_DIR`, the Storage Box
+mounted on the host, and **deletes backups older than 30 days**. Run it daily from a timer. Backups
+are kept for 30 days, so a deleted account is gone from them 30 days after it was deleted. They are
+restored for nothing but recovering the server. `backup.sh --check` tests the pruning.
+
 ## Calls: signalling and TURN
 
 A Call's offers, answers and ICE candidates go over Supabase Realtime, on a private broadcast
