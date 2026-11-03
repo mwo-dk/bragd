@@ -17,6 +17,33 @@ pub fn server() -> &'static BragdServer {
     S.get_or_init(BragdServer::new)
 }
 
+/// Lets the webview's WebRTC carry a Call: on Linux WebKitGTK has it off, and asks before the
+/// camera or the microphone opens. Each is granted only while that channel is open for both
+/// players ([`BragdServer::call_permits`]). WebView2 and WKWebView ask the user themselves.
+pub fn media(window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "linux")]
+    let _ = window.with_webview(|wv| {
+        use webkit2gtk::glib::object::Cast;
+        use webkit2gtk::{PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, UserMediaPermissionRequestExt, WebViewExt};
+        let view = wv.inner();
+        if let Some(s) = WebViewExt::settings(&view) {
+            s.set_enable_media_stream(true);
+            s.set_enable_webrtc(true);
+        }
+        view.connect_permission_request(|_, request| {
+            let Some(media) = request.downcast_ref::<UserMediaPermissionRequest>() else { return false };
+            if server().call_permits(media.is_for_audio_device(), media.is_for_video_device()) {
+                request.allow();
+            } else {
+                request.deny();
+            }
+            true
+        });
+    });
+    #[cfg(not(target_os = "linux"))]
+    let _ = window;
+}
+
 /// Whether the page shows: an address is set, and one of the Families played there is on.
 pub fn shown(cfg: &bragd_core::config::Config) -> bool {
     let address = std::env::var(bragd_server::SERVER.url_var).ok().filter(|u| !u.trim().is_empty()).unwrap_or_else(|| cfg.online.server.clone());
@@ -82,6 +109,28 @@ pub fn friends_chat(on: bool) -> Res<()> {
 #[tauri::command(async)]
 pub fn friends_keep(on: bool) -> Res<()> {
     server().keep_chat(on)
+}
+
+/// Says yes to a Call's `channel` (`voice` or `camera`), or closes it for both (also *Not now*).
+#[tauri::command(async)]
+pub fn friends_call_want(channel: String, on: bool) -> Res<()> {
+    server().call_want(&channel, on)?;
+    if on {
+        bragd_core::tips::used("calls");
+    }
+    Ok(())
+}
+
+/// An offer, answer or ICE candidate from the page's WebRTC, for the other machine.
+#[tauri::command(async)]
+pub fn friends_call_signal(signal: Value) -> Res<()> {
+    server().call_signal(signal)
+}
+
+/// The other machine's offers, answers and ICE candidates, for the page's WebRTC.
+#[tauri::command]
+pub fn friends_call_take() -> Vec<Value> {
+    server().call_take()
 }
 
 /// A Friends action ([`BragdServer::friends`]).

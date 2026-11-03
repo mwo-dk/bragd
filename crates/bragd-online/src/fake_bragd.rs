@@ -182,6 +182,7 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
     let parts: Vec<&str> = path.trim_matches('/').split('/').collect();
     match (r.method.as_str(), parts.as_slice()) {
         ("GET", ["v1", "state"]) => return ok(w.state()),
+        ("GET", ["v1", "turn"]) => return ok(json!({ "ice_servers": [], "ttl": 43200 })),
         ("PUT", ["v1", "me"]) => {
             if let Some(n) = body["name"].as_str() {
                 w.me = Some(n.to_string());

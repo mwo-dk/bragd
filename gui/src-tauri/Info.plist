@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Merged into the app's Info.plist by Tauri. macOS shows these when a Call first opens the
+     microphone or the camera; without them it refuses both. -->
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Bragd uses the microphone only during a Call with a Friend, while you both allow voice.</string>
+  <key>NSCameraUsageDescription</key>
+  <string>Bragd uses the camera only during a Call with a Friend, while you both allow the camera.</string>
+</dict>
+</plist>

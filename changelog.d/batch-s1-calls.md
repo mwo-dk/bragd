@@ -1,0 +1,1 @@
+| **Calls with Friends during a Game on the Bragd server.** Voice and camera each open only when both of you say yes, either stops it for both, a red line shows while your microphone or camera is live, and nothing is recorded. | [Calls](online/play-with-friends.md#calls) | <!-- feature --> <!-- tour: calls -->

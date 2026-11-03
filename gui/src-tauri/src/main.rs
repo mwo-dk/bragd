@@ -147,7 +147,7 @@ fn choices(name: &str, cfg: &Config) -> Vec<Choice> {
             .collect(),
         "file_picker" => picker_choices(files::coxswain().is_some()),
         // What a request for a Chat or a Call channel does.
-        "bragd_chat" => ["ask", "off"].iter().map(|c| choice(c, i18n::tr(&format!("online.consent.{c}"), &[]), "")).collect(),
+        "bragd_chat" | "bragd_voice" | "bragd_camera" => ["ask", "off"].iter().map(|c| choice(c, i18n::tr(&format!("online.consent.{c}"), &[]), "")).collect(),
         "tips" => bragd_core::tips::FREQUENCIES.iter().map(|f| choice(f, i18n::tr(&format!("tips.{f}"), &[]), "")).collect(),
         "engines_runtime" => vec![
             choice("auto", i18n::tr("settings.runtime_auto", &[]), ""),
@@ -384,6 +384,7 @@ fn main() {
                 window.min_width = window.min_width.map(|m| m.min(w));
             }
             let main = tauri::WebviewWindowBuilder::from_config(app.handle(), &window)?.build()?;
+            friends::media(&main);
             // Ask for focus once, so a compositor that opens new windows out of sight (niri, a
             // scrolling one) brings this one into view. On Wayland GTK presents the window with
             // the XDG_ACTIVATION_TOKEN (or DESKTOP_STARTUP_ID) the launcher gave Bragd.
@@ -420,6 +421,9 @@ fn main() {
             friends::friends_act,
             friends::friends_chat,
             friends::friends_keep,
+            friends::friends_call_want,
+            friends::friends_call_signal,
+            friends::friends_call_take,
             online::online_view,
             online::online_servers,
             online::online_sign_in,

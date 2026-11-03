@@ -45,9 +45,9 @@ pub fn address() -> String {
 
 /// What the game service says before signing in (`/v1/config`).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-struct Public {
-    supabase_url: String,
-    supabase_key: String,
+pub(crate) struct Public {
+    pub(crate) supabase_url: String,
+    pub(crate) supabase_key: String,
     oauth: Vec<String>,
 }
 
@@ -60,12 +60,12 @@ struct Session {
 }
 
 #[derive(Default)]
-struct Inner {
+pub(crate) struct Inner {
     base: String,
     public: Option<Public>,
     session: Option<Session>,
     /// The last `/v1/state`.
-    state: Value,
+    pub(crate) state: Value,
     /// The Game the page shows.
     game: Option<String>,
     poll: Option<Arc<AtomicBool>>,
@@ -74,6 +74,8 @@ struct Inner {
     /// A one-line message after an action: an invite's code, a sign-up to confirm.
     notice: Option<String>,
     tried: bool,
+    /// The Call with the opponent of the Game shown, when they are a Friend.
+    pub(crate) call: Option<crate::call::CallState>,
 }
 
 /// The Bragd server for this window. Clones share it.
@@ -207,7 +209,7 @@ impl BragdServer {
         self.fixed.clone().unwrap_or_else(address)
     }
 
-    fn lock(&self) -> MutexGuard<'_, Inner> {
+    pub(crate) fn lock(&self) -> MutexGuard<'_, Inner> {
         self.inner.lock().unwrap_or_else(|e| e.into_inner())
     }
 
@@ -244,7 +246,7 @@ impl BragdServer {
         e
     }
 
-    fn public(&self) -> Result<Public, String> {
+    pub(crate) fn public(&self) -> Result<Public, String> {
         let base = self.base()?;
         if let Some(p) = self.lock().public.clone() {
             return Ok(p);
@@ -288,7 +290,7 @@ impl BragdServer {
     }
 
     /// The access token, refreshed when it is about to run out.
-    fn token(&self) -> Result<String, String> {
+    pub(crate) fn token(&self) -> Result<String, String> {
         let session = self.lock().session.clone().ok_or_else(|| t!("online.error.not_signed_in", "server" => SERVER.name))?;
         if session.until.is_some_and(|u| Instant::now() >= u) {
             self.refresh(&session.refresh).map_err(|e| self.fail(e))?;
@@ -298,7 +300,7 @@ impl BragdServer {
     }
 
     /// The game service's `method path` with `body`, as the signed-in user.
-    fn call(&self, method: &str, path: &str, body: &Value) -> Result<Value, String> {
+    pub(crate) fn call(&self, method: &str, path: &str, body: &Value) -> Result<Value, String> {
         let base = self.base()?;
         let token = self.token()?;
         let url = format!("{base}{path}");
@@ -449,7 +451,7 @@ impl BragdServer {
     }
 
     /// The Game the page shows: the one chosen, else one under way.
-    fn shown(&self) -> Option<Value> {
+    pub(crate) fn shown(&self) -> Option<Value> {
         let chosen = self.lock().game.clone();
         let games = self.games();
         match chosen {
