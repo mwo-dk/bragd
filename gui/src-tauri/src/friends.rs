@@ -95,7 +95,7 @@ pub fn friends_club_friends(on: bool) -> Res<FriendsView> {
     Ok(server().friends_view())
 }
 
-/// Deletes the account on the Bragd server, once the user typed their name, and signs out.
+/// Deletes the account on the Bragd server, once the user typed their name (or the word shown), and signs out.
 #[tauri::command(async)]
 pub fn friends_delete_account(confirm: String, keep_games: bool) -> Res<FriendsView> {
     server().delete_account(&confirm, keep_games)?;

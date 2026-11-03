@@ -1859,6 +1859,8 @@
  "friends.delete_account.what": "Esto borra de inmediato tu cuenta en el servidor de Bragd: tu nombre, amigos, solicitudes, códigos de invitación, bloqueos, denuncias, los Clubes que creaste, tus líneas de chat y tus Partidas. No se puede deshacer.",
  "friends.delete_account.keep_games": "Dejar mis Partidas terminadas a los otros jugadores, como jugador eliminado",
  "friends.delete_account.confirm": "Escribí tu nombre, {name}, para confirmar",
+ "friends.delete_account.confirm_word": "Todavía no tenés nombre. Escribí “{word}” para confirmar",
+ "friends.delete_account.word": "borrar",
  "friends.delete_account.button": "Eliminar mi cuenta para siempre",
  "friends.deleted": "Tu cuenta en el servidor de Bragd fue eliminada, y Bragd cerró tu sesión.",
  "friends.deleted_player": "Jugador eliminado",

@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "This deletes your account on the Bragd server at once: your name, Friends, requests, invite codes, blocks, reports, the Clubs you made, your Chat lines and your Games. It cannot be undone.",
  "friends.delete_account.keep_games": "Leave my finished Games to the other players, as a deleted player",
  "friends.delete_account.confirm": "Type your name, {name}, to confirm",
+ "friends.delete_account.confirm_word": "You have no name yet. Type “{word}” to confirm",
+ "friends.delete_account.word": "delete",
  "friends.delete_account.button": "Delete my account for good",
  "friends.deleted": "Your account on the Bragd server is deleted, and Bragd has signed out.",
  "friends.deleted_player": "Deleted player",

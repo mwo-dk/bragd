@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "این کار فوراً حساب شما را روی سرور Bragd حذف می‌کند: نام، دوستان، درخواست‌ها، کدهای دعوت، مسدودی‌ها، گزارش‌ها، باشگاه‌هایی که ساخته‌اید، خط‌های گفتگوی شما و بازی‌های شما. این کار برگشت ندارد.",
  "friends.delete_account.keep_games": "بازی‌های تمام‌شدهٔ من را، به‌عنوان بازیکن حذف‌شده، به بازیکنان دیگر واگذار کن",
  "friends.delete_account.confirm": "برای تأیید، نام خود، {name}، را تایپ کنید",
+ "friends.delete_account.confirm_word": "هنوز نامی ندارید. برای تأیید «{word}» را تایپ کنید",
+ "friends.delete_account.word": "حذف",
  "friends.delete_account.button": "حذف دائمی حساب من",
  "friends.deleted": "حساب شما روی سرور Bragd حذف شد و Bragd شما را خارج کرد.",
  "friends.deleted_player": "بازیکن حذف‌شده",

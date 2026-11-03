@@ -1862,6 +1862,8 @@
  "friends.delete_account.what": "Tím se hned smaže tvůj účet na serveru Bragd: tvé jméno, přátelé, žádosti, kódy pozvánek, blokace, hlášení, Kluby, které jsi založil, tvé řádky chatu a tvé partie. Nelze to vrátit zpět.",
  "friends.delete_account.keep_games": "Nechat mé dokončené partie ostatním hráčům jako smazaného hráče",
  "friends.delete_account.confirm": "Napiš své jméno, {name}, pro potvrzení",
+ "friends.delete_account.confirm_word": "Zatím nemáš jméno. Napiš „{word}“ pro potvrzení",
+ "friends.delete_account.word": "smazat",
  "friends.delete_account.button": "Smazat můj účet nadobro",
  "friends.deleted": "Tvůj účet na serveru Bragd je smazán a Bragd tě odhlásil.",
  "friends.deleted_player": "Smazaný hráč",

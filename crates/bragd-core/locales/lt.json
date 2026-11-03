@@ -1862,6 +1862,8 @@
  "friends.delete_account.what": "Tai iš karto ištrina jūsų paskyrą Bragd serveryje: jūsų vardą, Draugus, prašymus, kvietimo kodus, blokavimus, pranešimus, jūsų sukurtus Klubus, Chat eilutes ir Partijas. Tai neatšaukiama.",
  "friends.delete_account.keep_games": "Palikti mano baigtas Partijas kitiems žaidėjams kaip ištrinto žaidėjo",
  "friends.delete_account.confirm": "Įveskite savo vardą, {name}, patvirtinimui",
+ "friends.delete_account.confirm_word": "Dar neturite vardo. Patvirtinimui įveskite „{word}“",
+ "friends.delete_account.word": "ištrinti",
  "friends.delete_account.button": "Ištrinti mano paskyrą visam laikui",
  "friends.deleted": "Jūsų paskyra Bragd serveryje ištrinta, o Bragd atsijungė.",
  "friends.deleted_player": "Ištrintas žaidėjas",

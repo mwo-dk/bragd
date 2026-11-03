@@ -1862,6 +1862,8 @@
  "friends.delete_account.what": "זה מוחק מיד את החשבון שלכם בשרת Bragd: השם שלכם, החברים, הבקשות, קודי ההזמנה, החסימות, הדיווחים, המועדונים שיצרתם, שורות הצ'אט והמשחקים שלכם. אי אפשר לבטל את זה.",
  "friends.delete_account.keep_games": "להשאיר את המשחקים שסיימתי לשחקנים האחרים, כשחקן שנמחק",
  "friends.delete_account.confirm": "הקלידו את השם שלכם, {name}, לאישור",
+ "friends.delete_account.confirm_word": "עדיין אין לכם שם. הקלידו “{word}” לאישור",
+ "friends.delete_account.word": "מחיקה",
  "friends.delete_account.button": "מחיקת החשבון שלי לתמיד",
  "friends.deleted": "החשבון שלכם בשרת Bragd נמחק, ו-Bragd התנתק.",
  "friends.deleted_player": "שחקן שנמחק",

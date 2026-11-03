@@ -123,7 +123,7 @@ The Bragd server has no clocks, ratings or seeks yet, and does not play backgamm
 
 ## Deleting your account
 
-**Delete my account**, below the Games, deletes your account on the Bragd server and everything with it, at once: your name, Friends, requests, invite codes, blocks, reports, the Clubs you made, your Chat lines and your Games ([Privacy](../reference/privacy.md#the-bragd-server) lists it all). It cannot be undone.
+**Delete my account**, below the Games (or below *Choose the name other players find you by*, if you have not chosen one), deletes your account on the Bragd server and everything with it, at once: your name, Friends, requests, invite codes, blocks, reports, the Clubs you made, your Chat lines and your Games ([Privacy](../reference/privacy.md#the-bragd-server) lists it all). It cannot be undone.
 
 ![Delete my account, 1100 px wide: what is deleted, Leave my finished Games to the other players, the name typed to confirm, and Delete my account for good](../screenshots/friends-delete-1100.png)
 *Deleting the account.*
@@ -132,7 +132,7 @@ The Bragd server has no clocks, ratings or seeks yet, and does not play backgamm
 |---|---|
 | **Delete my account** | Opens the form. Nothing is deleted yet |
 | **Leave my finished Games to the other players, as a deleted player** | Off: your Games go too. On: Games that ended stay with the other player, who sees *Deleted player* as their opponent. A Game under way ends as your resignation |
-| **Type your name** | Your name on the Bragd server, as it is. The button works only when it matches |
+| **Type your name** | Your name on the Bragd server, as it is. An account without a name types the word the form shows instead, such as *delete*. The button works only when it matches |
 | **Delete my account for good** | Deletes the account, signs out, and removes the sign-in from your keychain |
 
 You can make a new account afterwards with the same email; it starts empty.
@@ -174,7 +174,7 @@ Windows and macOS ask once whether Bragd may use the camera and the microphone. 
 
 #### How do I delete my account, and how long does it take?
 
-Press **Delete my account** below the Games, type your name and press **Delete my account for good**. It is deleted on the Bragd server at once. The server's backups hold it until they expire ([Privacy](../reference/privacy.md#the-bragd-server)).
+Press **Delete my account** below the Games, type your name (or, without a name, the word the form shows) and press **Delete my account for good**. It is deleted on the Bragd server at once. The server's backups hold it until they expire ([Privacy](../reference/privacy.md#the-bragd-server)).
 
 #### Can a stranger challenge me?
 

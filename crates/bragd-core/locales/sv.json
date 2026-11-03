@@ -1851,6 +1851,8 @@
  "friends.delete_account.what": "Detta tar direkt bort ditt konto på Bragd-servern: ditt namn, Vänner, förfrågningar, inbjudningskoder, blockeringar, anmälningar, Klubbarna du skapat, dina chattrader och dina Partier. Det kan inte ångras.",
  "friends.delete_account.keep_games": "Lämna mina avslutade Partier kvar åt de andra spelarna, som en borttagen spelare",
  "friends.delete_account.confirm": "Skriv ditt namn, {name}, för att bekräfta",
+ "friends.delete_account.confirm_word": "Du har inget namn än. Skriv ”{word}” för att bekräfta",
+ "friends.delete_account.word": "radera",
  "friends.delete_account.button": "Ta bort mitt konto för gott",
  "friends.deleted": "Ditt konto på Bragd-servern är borttaget, och Bragd har loggat ut dig.",
  "friends.deleted_player": "Borttagen spelare",

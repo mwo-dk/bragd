@@ -1,0 +1,1 @@
+| **An account that never chose a name can delete itself.** Delete my account then asks you to type the word it shows instead of a name, and Sign out shows before a name is chosen. | [Docs](online/play-with-friends.md#deleting-your-account) |

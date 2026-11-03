@@ -1862,6 +1862,8 @@
  "friends.delete_account.what": "Això esborra al moment el teu compte del servidor de Bragd: el nom, els amics, les sol·licituds, els codis d'invitació, els bloquejos, els informes, els Clubs que has creat, les teves línies de xat i les teves partides. No es pot desfer.",
  "friends.delete_account.keep_games": "Deixa les meves partides acabades als altres jugadors, com a jugador esborrat",
  "friends.delete_account.confirm": "Escriu el teu nom, {name}, per confirmar-ho",
+ "friends.delete_account.confirm_word": "Encara no tens nom. Escriu «{word}» per confirmar-ho",
+ "friends.delete_account.word": "esborra",
  "friends.delete_account.button": "Esborra el meu compte per sempre",
  "friends.deleted": "El teu compte al servidor de Bragd s'ha esborrat, i Bragd ha tancat la sessió.",
  "friends.deleted_player": "Jugador esborrat",
