@@ -1,0 +1,36 @@
+[package]
+name = "bragd-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "The Bragd server's game service: referees Games between Bragd players with Bragd's rules, on the same Postgres as the Bragd server's Supabase project"
+
+[dependencies]
+# The referee: a move is legal when Bragd's own rules say so.
+bragd-games = { path = "../bragd-games" }
+# Postgres, with TLS to Supabase's database over rustls on ring, as the rest of Bragd's TLS.
+postgres = { version = "0.19", features = ["with-serde_json-1", "with-uuid-1"] }
+tokio-postgres-rustls = "0.13"
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = "0.6"
+# The HTTP API, behind the host's TLS proxy.
+tiny_http = "0.12"
+# JWT signatures (HS256, ES256, RS256) and TURN credentials: tools/bom/crypto.toml.
+ring = "0.17"
+# The signing keys Supabase Auth publishes (JWKS).
+ureq = { version = "3", features = ["platform-verifier", "json"] }
+base64 = "0.23"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+ureq = { version = "3", features = ["json"] }
+
+# The database tests run against a throwaway plain Postgres (tests/pg/main.rs), all in one
+# program, so the container is started once and removed at the end, whatever happened.
+[[test]]
+name = "pg"
+path = "tests/pg/main.rs"
+harness = false
