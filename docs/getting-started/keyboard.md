@@ -33,8 +33,8 @@ Which squares a piece can go to is Bragd's rules, as with the mouse: a key never
 
 | Key | Button | When |
 |---|---|---|
-| **Ctrl+N** | New game | Always |
-| **Ctrl+Z** | Undo | When there is a move to take back |
+| **Ctrl+N** (**⌘N** on macOS) | New game | Always |
+| **Ctrl+Z** (**⌘Z** on macOS) | Undo | When there is a move to take back |
 | **F** | Flip board | Always |
 | **T** | Throw | Backgammon, Ur and senet, when it is your throw |
 | **P** | Pass | When passing is legal, as in go |

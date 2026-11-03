@@ -1,0 +1,1 @@
+| **Play's key labels say ⌘ on macOS.** New game and Undo show **⌘N** and **⌘Z** on the buttons, to screen readers and in F1 on a Mac, and **Ctrl** on every other system. | [Keys on Play](getting-started/keyboard.md#keys-on-play) |

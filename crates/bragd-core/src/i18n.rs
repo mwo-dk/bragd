@@ -614,9 +614,29 @@ fn lookup(code: &str, key: &str) -> Option<&'static serde_json::Value> {
 }
 
 fn fill(text: &str, args: &[(&str, &str)]) -> String {
-    args.iter().fold(text.to_string(), |s, (k, v)| {
+    fill_on(text, args, std::env::consts::OS)
+}
+
+/// [`fill`] on the operating system `os`: `{mod}` is that system's key modifier.
+fn fill_on(text: &str, args: &[(&str, &str)], os: &str) -> String {
+    args.iter().fold(text.replace("{mod}", modifier(os).0), |s, (k, v)| {
         s.replace(&format!("{{{k}}}"), v)
     })
+}
+
+/// The key that holds a shortcut's modifier on `os` (`std::env::consts::OS`): its label, and its
+/// name in `aria-keyshortcuts`. Cmd on macOS, Ctrl elsewhere.
+pub fn modifier(os: &str) -> (&'static str, &'static str) {
+    if os == "macos" {
+        ("⌘", "Meta")
+    } else {
+        ("Ctrl", "Control")
+    }
+}
+
+/// [`modifier`] on this machine.
+pub fn this_modifier() -> (&'static str, &'static str) {
+    modifier(std::env::consts::OS)
 }
 
 /// The text for `key` in the current language, `{name}` placeholders filled from `args`. A
@@ -934,6 +954,20 @@ mod tests {
                 assert!(!text.contains("**"), "{key}: Markdown in the text");
             }
         }
+    }
+
+    #[test]
+    fn i18n_keys_texts_name_cmd_on_macos_and_ctrl_elsewhere() {
+        for key in ["feature.keys.a2", "tour.keys.text"] {
+            let raw = tr_in(REFERENCE, key);
+            assert!(raw.contains("{mod}"), "{key} names the modifier");
+            assert!(fill_on(&raw, &[], "macos").contains("⌘+N"), "{key}");
+            assert!(!fill_on(&raw, &[], "macos").contains("Ctrl"), "{key}");
+            assert!(fill_on(&raw, &[], "linux").contains("Ctrl+Z"), "{key}");
+            assert!(!fill_on(&raw, &[], "windows").contains("{mod}"), "{key}");
+        }
+        assert_eq!(modifier("macos"), ("⌘", "Meta"));
+        assert_eq!(modifier("freebsd"), ("Ctrl", "Control"));
     }
 
     /// Every `t!("key")` and `tr("key", …)` in the workspace's Rust, and `t("key")` in the

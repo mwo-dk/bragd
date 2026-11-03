@@ -35,7 +35,12 @@
   let choices = $state({ engines: [], more: false, sides: [] });
   /** Settings → Look: a throw that leaves one legal move plays it by itself. */
   let forcedOn = $state(true);
-  api.snapshot().then((s) => (forcedOn = s.settings.find((/** @type {any} */ o) => o.name === "play_forced")?.value !== false));
+  /** The shortcut modifier, as Rust names it for this system: Ctrl, or ⌘ on macOS. */
+  let mod = $state({ label: "Ctrl", aria: "Control" });
+  api.snapshot().then((s) => {
+    forcedOn = s.settings.find((/** @type {any} */ o) => o.name === "play_forced")?.value !== false;
+    mod = { label: s.modifier, aria: s.modifierAria };
+  });
   /** The piece sliding to its square while a move is played. @type {any} */
   let glide = $state(null);
   /** How long the dice stay in view before a forced or an Engine's move. */
@@ -370,8 +375,8 @@
 <section class="play">
   <header class="bar">
     <Picker value={key} choices={variants.map((/** @type {any} */ v) => ({ value: v.key, label: v.name }))} label={t("play.variant")} onchange={(v) => newGame(v)} />
-    <button class="primary" onclick={() => newGame()} aria-keyshortcuts="Control+N">{t("play.new_game")} <kbd>Ctrl+N</kbd></button>
-    <button onclick={undo} disabled={!entries.length} aria-keyshortcuts="Control+Z">{t("play.undo")} <kbd>Ctrl+Z</kbd></button>
+    <button class="primary" onclick={() => newGame()} aria-keyshortcuts="{mod.aria}+N">{t("play.new_game")} <kbd>{mod.label}+N</kbd></button>
+    <button onclick={undo} disabled={!entries.length} aria-keyshortcuts="{mod.aria}+Z">{t("play.undo")} <kbd>{mod.label}+Z</kbd></button>
     <button onclick={() => (flipped = !flipped)} aria-pressed={flipped} aria-keyshortcuts="F">{t("play.flip")} <kbd>F</kbd></button>
     {#if !analyse && choices.engines.length}
       <Picker value={opponent} choices={[{ value: "self", label: t("play.against_self") }, { value: "engine", label: t("play.against_engine") }]} label={t("play.opponent")} onchange={(v) => (opponent = v)} />

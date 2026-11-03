@@ -53,6 +53,9 @@ struct Snapshot {
     version: &'static str,
     language: &'static str,
     rtl: bool,
+    /// The shortcut modifier's label ("Ctrl", "⌘") and its name in `aria-keyshortcuts`.
+    modifier: &'static str,
+    modifier_aria: &'static str,
     strings: HashMap<String, Value>,
     appearance: Appearance,
     sidebar: Sidebar,
@@ -181,6 +184,8 @@ fn snapshot(cfg: &Config) -> Snapshot {
         version: update::VERSION,
         language,
         rtl: i18n::is_rtl(language),
+        modifier: i18n::this_modifier().0,
+        modifier_aria: i18n::this_modifier().1,
         strings: i18n::catalogue(language),
         appearance: themes::appearance(cfg),
         sidebar: settings::sidebar(cfg),
