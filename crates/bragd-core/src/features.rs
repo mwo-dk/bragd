@@ -147,12 +147,14 @@ pub fn fold(s: &str) -> String {
         .collect()
 }
 
-/// The features as F1 lists them, filtered by `query`: each whose title, line, questions or
-/// answers hold every word of it, case and accents aside.
-pub fn list(query: &str) -> Vec<Entry> {
+/// The features as F1 lists them to the user of `cfg` (none of a Family that is off), filtered
+/// by `query`: each whose title, line, questions or answers hold every word of it, case and
+/// accents aside.
+pub fn list(cfg: &crate::config::Config, query: &str) -> Vec<Entry> {
     let words: Vec<String> = fold(query).split_whitespace().map(String::from).collect();
     FEATURES
         .iter()
+        .filter(|f| concerns(cfg, f.families))
         .map(entry)
         .filter(|e| {
             let hay = format!(
@@ -185,16 +187,34 @@ mod tests {
                 );
             }
         }
-        let all = list("");
+        let cfg = crate::config::Config::default();
+        let all = list(&cfg, "");
         assert_eq!(all.len(), FEATURES.len());
         assert!(all.iter().all(|e| e.qa.len() >= 2 && !e.title.is_empty()));
         assert!(find("update").is_some());
-        assert!(list("zzzz-nothing").is_empty());
-        assert_eq!(list("DUPLICATE").len(), list("duplicate").len());
+        assert!(list(&cfg, "zzzz-nothing").is_empty());
+        assert_eq!(list(&cfg, "DUPLICATE").len(), list(&cfg, "duplicate").len());
         assert!(
-            !list("dúplicaté").is_empty(),
+            !list(&cfg, "dúplicaté").is_empty(),
             "accents in the query are ignored"
         );
+    }
+
+    /// F1 leaves out what concerns only Families that are off: with only go on, no Ur, Lichess
+    /// or Tablebases, but go's OGS and what concerns everyone.
+    #[test]
+    fn f1_lists_only_features_of_families_that_are_on() {
+        let only_go = crate::config::Config::parse(
+            "[families.family]\nchess = false\nxiangqi = false\nshogi = false\ndraughts = false\ntafl = false\nbackgammon = false\nur = false\nsenet = false\n",
+        )
+        .unwrap();
+        let ids: Vec<&str> = list(&only_go, "").iter().map(|e| e.id).collect();
+        for gone in ["ur", "ur_solved", "online", "lishogi", "tablebases", "forced"] {
+            assert!(!ids.contains(&gone), "{gone} shows with only go on");
+        }
+        for kept in ["ogs", "friends", "annotations", "play", "update"] {
+            assert!(ids.contains(&kept), "{kept} is missing with go on");
+        }
     }
 
     /// Every Family a Feature, a tour card (through its Feature) or a changelog row names is

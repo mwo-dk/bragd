@@ -36,6 +36,8 @@ pub struct Page {
 pub struct Lesson {
     pub position: Position,
     pub state: State,
+    /// The move the text names, written as the Family's move list writes it (`Rd8`, not `d1d8`).
+    pub answer: Option<String>,
 }
 
 fn html(markdown: &str) -> String {
@@ -54,7 +56,13 @@ pub fn page(family: Family) -> Page {
             .filter_map(|p| {
                 let (initial, line) = p.start();
                 let state = bragd_games::replay(p.variant, initial, line).ok()?;
-                Some(Lesson { position: *p, state })
+                let answer = p.answer.map(|a| {
+                    bragd_games::apply(p.variant, initial, line, a)
+                        .ok()
+                        .and_then(|after| after.written.last().cloned())
+                        .unwrap_or_else(|| a.to_string())
+                });
+                Some(Lesson { position: *p, state, answer })
             })
             .collect(),
     }
@@ -75,5 +83,13 @@ mod tests {
                 .count();
             assert_eq!(page.positions.len(), want, "{family:?}: a teaching position does not play");
         }
+    }
+
+    /// The answer reads as the move list writes it, not in the engine's wire form.
+    #[test]
+    fn a_lesson_names_its_move_as_the_move_list_writes_it() {
+        let chess = page(Family::Chess);
+        let mate = chess.positions.iter().find(|l| l.position.answer == Some("d1d8")).expect("the back-rank mate");
+        assert_eq!(mate.answer.as_deref(), Some("Rd8#"));
     }
 }

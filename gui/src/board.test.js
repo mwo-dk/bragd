@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { place, movesOf, movesTo, plainMoves, point, gates, groups } from "./board.js";
+import { place, sideways, movesOf, movesTo, plainMoves, point, gates, groups } from "./board.js";
 
 test("a move's number keeps the moves after it on its line", () => {
   assert.deepEqual(groups(["1.", "", "2.", ""]), [[0, 1], [2, 3]]);
@@ -78,4 +78,13 @@ test("a tray piece chosen first narrows a move to its gating ones", () => {
   assert.deepEqual(movesOf(state, { gate: H }), []);
   assert.equal(gates(state, H), true);
   assert.equal(gates(state, "shogi-bP"), false);
+});
+
+test("only a grid race track lies on its side on a narrow window, never backgammon's board", () => {
+  const aseb = { files: 12, ranks: 3 };
+  assert.equal(sideways({ id: "ur", race: true }, aseb, 390), true);
+  assert.equal(sideways({ id: "ur", race: true }, aseb, 1100), false);
+  assert.equal(sideways({ id: "ur", race: true }, { files: 8, ranks: 3 }, 390), false);
+  assert.equal(sideways({ id: "backgammon", race: true }, { files: 26, ranks: 2 }, 390), false);
+  assert.equal(sideways({ id: "chess", race: false }, { files: 8, ranks: 2 }, 390), false);
 });

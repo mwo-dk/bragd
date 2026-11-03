@@ -8,6 +8,12 @@ export function place(/** @type {number} */ x, /** @type {number} */ y, /** @typ
   return flipped ? { col: files - 1 - x, row: y } : { col: x, row: ranks - 1 - y };
 }
 
+/** Whether a race Family's long track is drawn on its side: on a narrow window, and only on the
+ * grid board. Backgammon draws its own board, which keeps its width. */
+export function sideways(/** @type {{id: string, race: boolean}} */ family, /** @type {{files: number, ranks: number}} */ board, /** @type {number} */ width) {
+  return width <= 760 && family.race && family.id !== "backgammon" && board.files >= 4 * board.ranks;
+}
+
 /**
  * The moves a selection can make: from a square, or a piece dropped from hand. With a gate
  * (a Seirawan piece chosen in the tray), only the moves from its square that bring it in.

@@ -89,6 +89,14 @@ BOARD = r"""(() => {
   return r.bottom <= innerHeight + 1 ? '' : `the board ends at ${Math.round(r.bottom)} px, below the window (${innerHeight} px)`;
 })()"""
 
+# On a narrow window the board takes the page's width (a board drawn small fits, but cannot be played).
+NARROW_BOARD = r"""(() => {
+  const b = document.querySelector('.board-side svg.board'), p = document.querySelector('main.page');
+  if (!b || !p) return 'no board';
+  const w = b.getBoundingClientRect().width, room = p.clientWidth;
+  return w >= 0.7 * room ? '' : `the board is ${Math.round(w)} px wide on a page ${room} px wide`;
+})()"""
+
 
 def load_axe(d, source):
     """axe-core into the app's page. The inspector drops a message that large, so it comes in
@@ -217,6 +225,9 @@ def look(d, name, w, h, shots):
     found += run_axe(d)
     if h <= 700 and name.startswith("play-"):
         if b := js(d, f"return {BOARD}"):
+            found.append(b)
+    if w < 760 and name.startswith("play-"):
+        if b := js(d, f"return {NARROW_BOARD}"):
             found.append(b)
     print(f"{name} at {w}×{h}: {'ok' if not found else f'{len(found)} faults'}", flush=True)
     return [f"{name} at {w}×{h}: {x}" for x in found]
