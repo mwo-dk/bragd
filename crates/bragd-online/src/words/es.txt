@@ -1,0 +1,25 @@
+# Spanish. Masked in a stranger's Chat lines (src/words.rs). See docs/CREDITS.md.
+bastardo
+bollera
+cabrón
+chupapollas
+culo
+follador
+follar
+gilipichis
+gilipollas
+hijaputa
+hijoputa
+jilipollas
+kapullo
+lameculos
+mamada
+marica
+mariconazo
+maricón
+mierda
+pendejo
+puta
+ramera
+soplagaitas
+soplapollas

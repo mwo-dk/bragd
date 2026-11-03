@@ -94,7 +94,9 @@ A Game's Chat is off. It opens only when both players say yes, and either closes
 | **Keep this Chat with the Game** | The Chat is kept with the Game only when both players tick it. Otherwise its lines are deleted when the Game ends |
 | **Close Chat for both** | Closes it. Opening it again takes both players' yes again |
 
-You can Chat with a player who is not your Friend. Their lines then pass a word filter: a word on its list shows as asterisks. The filter runs on your machine, and **Settings → Online → Filter a stranger's Chat** turns it off. A Friend's lines are never filtered.
+You can Chat with a player who is not your Friend. Their lines then pass a word filter: a word on its lists shows as asterisks. The filter runs on your machine, and **Settings → Online → Filter a stranger's Chat** turns it off. A Friend's lines are never filtered.
+
+The filter has a list for each of these languages, and every list applies to every line, whatever language you use Bragd in: Chinese, Czech, Danish, Dutch, English, Finnish, French, German, Italian, Japanese, Korean, Norwegian, Persian, Polish, Spanish and Swedish. It looks for whole words, so a word that only contains a listed one, such as *Scunthorpe*, stays. In Chinese and Japanese, which have no spaces between words, and in Korean, a listed word is found inside a longer one. Before it compares, it ignores capitals and accents, reads full-width letters as plain ones, and reads the usual stand-ins as letters: `sh1t` and `$hit` are masked as *shit* is. A word that is rude in one language but ordinary in another, such as *bitte* or *negro*, is left off the lists.
 
 **Settings → Online → When a Bragd player asks to Chat**: *Ask me* (the default) shows a request; *Off* refuses it without showing it.
 
@@ -159,6 +161,10 @@ Your name. Your Friends see that you are Friends; the two players of a Game see 
 #### Why is Play with Friends not in my sidebar?
 
 No Bragd server address is set yet, or none of the Families it plays is on. Without an address, F1 and What's new do not offer it either.
+
+#### Can I add a word to the Chat filter?
+
+Not in Bragd itself. The lists are part of Bragd, one file a language in `crates/bragd-online/src/words/`, so a word is added by a pull request or an issue on GitHub. A language without a list yet gets one the same way.
 
 #### Who can read a Chat?
 

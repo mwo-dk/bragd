@@ -1,0 +1,12 @@
+# Persian. Masked in a stranger's Chat lines (src/words.rs). See docs/CREDITS.md.
+تخمی
+جق
+جقی
+جلق
+جنده
+لاشی
+کسکش
+کونکش
+کونی
+کیر
+کیری

@@ -1,0 +1,26 @@
+# Czech. Masked in a stranger's Chat lines (src/words.rs). See docs/CREDITS.md.
+buzna
+chuj
+hovno
+jebat
+kokot
+kokotina
+koňomrd
+kunda
+kurva
+mamrd
+mrdat
+mrdka
+mrdník
+oslošoust
+pizda
+piča
+prdel
+píčus
+sračka
+vypíčenec
+zkurvit
+zkurvysyn
+zmrd
+čurák
+šoustat
