@@ -105,7 +105,7 @@ The Engine per Variant, added Engines and their options are on each Family's [En
 | `bragd_filter` | Filter a stranger's Chat | `online.bragd_filter` | Shows a word on the filter's list as asterisks in Chat lines from a player who is not your Friend |
 | `bragd_voice` | When a Friend asks for voice | `online.bragd_voice` | `ask` shows a request for voice in a Call; `off` refuses it unseen ([Calls](../online/play-with-friends.md#calls)) |
 | `bragd_camera` | When a Friend asks for the camera | `online.bragd_camera` | `ask` shows a request for the camera in a Call; `off` refuses it unseen |
-| `bragd_server` | Bragd server address | `online.server` | The Bragd server's address, for [Play with Friends](../online/play-with-friends.md). Empty, the page is hidden and nothing is sent. Shown while chess, xiangqi, shogi, go, draughts or tafl is on |
+| `bragd_server` | Bragd server address | `online.server` | The Bragd server's address, for [Play with Friends](../online/play-with-friends.md). Empty, the page is hidden and nothing is sent. Shown while any Family is on |
 
 Signing in is on the Family's *Play → Play on Lichess*, *Play on Lishogi* or *Play on OGS* ([Playing online](../online/playing-online.md)).
 

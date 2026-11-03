@@ -26,6 +26,8 @@ pub struct Game {
     pub result: String,
     pub reason: String,
     pub moves: Vec<String>,
+    /// Who moves first, as backgammon's opening throw decided.
+    pub initial: Option<String>,
     pub draw_offered: bool,
     pub friend: bool,
     pub chat_mine: bool,
@@ -72,6 +74,7 @@ impl Default for World {
                 result: String::new(),
                 reason: String::new(),
                 moves: vec![],
+                initial: None,
                 draw_offered: false,
                 friend: true,
                 chat_mine: false,
@@ -94,7 +97,7 @@ impl World {
             .iter()
             .map(|g| {
                 json!({ "id": g.id, "opponent": g.opponent, "first": g.first, "challenger": g.challenger, "variant": g.variant,
-                    "status": g.status, "result": g.result, "reason": g.reason, "moves": g.moves, "draw_offered": g.draw_offered, "draw_asked": false,
+                    "status": g.status, "result": g.result, "reason": g.reason, "moves": g.moves, "initial": g.initial, "draw_offered": g.draw_offered, "draw_asked": false,
                     "friend": g.friend, "opponent_id": format!("id-{}", g.opponent.to_lowercase()),
                     "chat": { "mine": g.chat_mine, "theirs": g.chat_theirs, "keep_mine": g.keep_mine, "keep_theirs": false,
                         "lines": g.lines.iter().map(|(m, t)| json!({ "mine": m, "text": t })).collect::<Vec<_>>() } })
@@ -246,6 +249,7 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
                 result: String::new(),
                 reason: String::new(),
                 moves: vec![],
+                initial: None,
                 draw_offered: false,
                 friend: false,
                 chat_mine: false,
@@ -281,9 +285,15 @@ fn reply(r: &Request, fake: &Fake, world: &Mutex<World>) -> Reply {
                 "keep" => g.keep_mine = body["on"] == true,
                 "say" if g.chat_mine && g.chat_theirs => g.lines.push((true, name_of(&body, "text"))),
                 "say" => return err(409, "chat_closed"),
+                // The referee's throw: the first the rules allow.
+                "throw" => {
+                    let Ok(st) = bragd_games::replay(&g.variant, g.initial.as_deref(), &g.moves) else { return err(500, "server") };
+                    let Some(t) = st.throws.first() else { return err(409, "not_now") };
+                    g.moves.push(t.clone());
+                }
                 "move" => {
                     let entry = body["entry"].as_str().unwrap_or_default();
-                    match bragd_games::apply(&g.variant, None, &g.moves, entry) {
+                    match bragd_games::apply(&g.variant, g.initial.as_deref(), &g.moves, entry) {
                         Ok(_) => {
                             g.moves.push(entry.to_string());
                             answer(g);
@@ -305,7 +315,7 @@ fn name_of(body: &Value, field: &str) -> String {
 
 /// The opponent's move when it is theirs: the first legal one.
 fn answer(g: &mut Game) {
-    let Ok(st) = bragd_games::replay(&g.variant, None, &g.moves) else { return };
+    let Ok(st) = bragd_games::replay(&g.variant, g.initial.as_deref(), &g.moves) else { return };
     let mine = if g.first { 0 } else { 1 };
     if let (Some(seat), Some(mv)) = (st.to_move, st.moves.first())
         && seat.index != mine

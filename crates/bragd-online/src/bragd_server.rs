@@ -17,9 +17,9 @@ use crate::server::Server;
 use crate::session::SERVICE;
 use crate::{Can, ChallengeView, GameView, Play, View, board, oauth};
 
-/// The Families a Game on the Bragd server may be played in: those without dice, until the
-/// referee throws for both players.
-pub const FAMILIES: &[&str] = &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"];
+/// The Families a Game on the Bragd server may be played in: every one. In the dice Families
+/// the referee throws for both players.
+pub const FAMILIES: &[&str] = &["chess", "xiangqi", "shogi", "go", "draughts", "tafl", "backgammon", "ur", "senet"];
 
 pub const SERVER: Server = Server {
     id: "bragd",
@@ -490,8 +490,14 @@ impl BragdServer {
     fn game_view(g: &Value) -> GameView {
         let variant = bragd_games::variant(&s(&g["variant"])).ok().map(|v| v.key());
         let entries = strings(&g["moves"]);
-        let state = variant.and_then(|v| bragd_games::replay(v, None, &entries).ok());
+        let initial = g["initial"].as_str().map(str::to_string);
+        let mut state = variant.and_then(|v| bragd_games::replay(v, initial.as_deref(), &entries).ok());
         let first = g["first"].as_bool().unwrap_or(false);
+        // The referee throws; where the player may double first (backgammon), it waits for them
+        // to ask, so the page offers *Throw* beside *Double*.
+        if let Some(st) = state.as_mut().filter(|st| st.awaiting == bragd_games::Awaiting::Throw && st.to_move.map(|s| s.index) == Some(if first { 0 } else { 1 })) {
+            st.moves.push(bragd_games::LegalMove { wire: "throw".into(), notation: "throw".into(), from: None, to: None, drop: None });
+        }
         let me = t!("friends.you");
         let them = opponent(g);
         let names = if first { [me, them] } else { [them, me] };
@@ -521,7 +527,7 @@ impl BragdServer {
             offering: (g["draw_asked"].as_bool().unwrap_or(false), false),
             opponent_gone: false,
             state,
-            initial: None,
+            initial,
             entries,
             dead: None,
         }
@@ -721,8 +727,11 @@ impl Play for BragdServer {
         if st.to_move.map(|s| s.index) != view.seat {
             return Err(t!("online.error.not_your_turn"));
         }
+        if entry == "throw" {
+            return self.act("throw", json!({}));
+        }
         // Bragd's rules first, so a wrong move never leaves the machine; the referee checks again.
-        bragd_games::apply(view.variant.unwrap_or_default(), None, &view.entries, entry).map_err(|e| e.to_string())?;
+        bragd_games::apply(view.variant.unwrap_or_default(), view.initial.as_deref(), &view.entries, entry).map_err(|e| e.to_string())?;
         self.act("move", json!({ "ply": view.entries.len(), "entry": entry }))
     }
 
@@ -918,8 +927,30 @@ mod tests {
         assert_eq!(body, json!({ "opponent": "Bo", "variant": "xiangqi", "side": "second" }));
         assert!(!world.lock().unwrap().games.last().unwrap().first);
         assert!(b.seek("chess", "none", false).is_err());
-        assert!(!b.variants().contains(&"backgammon"));
+        assert!(b.variants().contains(&"backgammon"));
         assert!(b.variants().contains(&"brandubh"));
+    }
+
+    /// Backgammon, Black to throw with the cube in the middle: the page offers Double and Throw,
+    /// and Throw asks the referee, never the dice on this machine.
+    #[test]
+    fn bragd_server_asks_the_referee_to_throw() {
+        let (b, fake, world) = signed_in();
+        {
+            let mut w = world.lock().unwrap();
+            let g = &mut w.games[0];
+            (g.variant, g.status, g.first, g.initial) = ("backgammon".into(), "playing".into(), false, Some("white".into()));
+            g.moves = vec!["3-1".into(), "8/5 6/5".into()];
+        }
+        b.poll().unwrap();
+        let g = b.view().game.unwrap();
+        assert_eq!(g.initial.as_deref(), Some("white"));
+        let st = g.state.unwrap();
+        let plain: Vec<&str> = st.moves.iter().map(|m| m.wire.as_str()).collect();
+        assert!(plain.contains(&"double") && plain.contains(&"throw"), "{plain:?}");
+        b.play("throw").unwrap();
+        assert!(fake.seen().iter().any(|r| r.path == "/v1/games/g-anna/throw"));
+        assert_eq!(b.view().game.unwrap().entries.len(), 3, "the referee's throw");
     }
 }
 

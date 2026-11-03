@@ -946,7 +946,7 @@ def online():
 def friends():
     """Play with Friends against the fake Bragd server (`fake-online bragd`), never a real one:
     friends-sign-in before signing in, friends signed in with Anna's challenge, Carl's request and
-    the Club, friends-game after accepting Anna's challenge and 1. e4, friends-chat with the Game's Chat open, friends-call asking Anna for voice, and friends-delete with Delete my account's form filled in; each -390.png and
+    the Club, friends-game after accepting Anna's challenge and 1. e4, friends-chat with the Game's Chat open, friends-call asking Anna for voice, friends-delete with Delete my account's form filled in, and friends-dice with a backgammon Game waiting for Throw or Double; each -390.png and
     -1100.png. BRAGD_FRIENDS_URL points the app at the fake, and BRAGD_FRIENDS_TOKEN stands in for
     the keychain the sandbox does not have."""
     import subprocess
@@ -996,6 +996,18 @@ def friends():
                 js(d, "document.querySelector('main .delete')?.scrollIntoView({block: 'center'});")
                 d.wait(0.5)
                 d.shot(HERE / f"friends-delete-{w}.png")
+        finally:
+            p.terminate()
+            p.wait(5)
+        # friends-dice: backgammon, Black to throw, with Throw and Double beside the board.
+        p = subprocess.Popen([str(fake), "bragd-dice"], stdout=subprocess.PIPE, text=True)
+        try:
+            url = p.stdout.readline().strip()
+            with Desktop(size=(w, h), env={"BRAGD_FRIENDS_URL": url, "BRAGD_FRIENDS_TOKEN": "fake-refresh"}) as d:
+                open_page(d)
+                js(d, "document.querySelector('main .game')?.scrollIntoView();")
+                d.wait(0.5)
+                d.shot(HERE / f"friends-dice-{w}.png")
         finally:
             p.terminate()
             p.wait(5)

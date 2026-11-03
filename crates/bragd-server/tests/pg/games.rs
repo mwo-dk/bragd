@@ -14,7 +14,9 @@ pub const CASES: &[crate::Case] = &[
     ("a_game_is_seen_by_its_players_only", a_game_is_seen_by_its_players_only),
     ("players_cannot_write_moves_or_results_themselves", players_cannot_write_moves_or_results_themselves),
     ("resign_and_draw_by_agreement", resign_and_draw_by_agreement),
-    ("dice_families_are_refused", dice_families_are_refused),
+    ("unknown_variants_are_refused", unknown_variants_are_refused),
+    ("ur_and_senet_are_played_with_the_referees_throws", ur_and_senet_are_played_with_the_referees_throws),
+    ("backgammon_opens_and_doubles_with_the_referees_dice", backgammon_opens_and_doubles_with_the_referees_dice),
     ("the_api_over_http", the_api_over_http),
 ];
 
@@ -150,12 +152,108 @@ fn resign_and_draw_by_agreement(pg: &Pg) {
     assert_eq!(st["games"][0]["result"], "0-1");
 }
 
-fn dice_families_are_refused(pg: &Pg) {
+fn unknown_variants_are_refused(pg: &Pg) {
     let db = pg.fresh();
     let anna = db.user("Anna");
     db.user("Bo");
-    assert_eq!(db.call(&anna, "POST", "/v1/games", json!({ "opponent": "Bo", "variant": "backgammon" })), (400, json!({ "error": "variant" })));
-    assert_eq!(db.call(&anna, "POST", "/v1/games", json!({ "opponent": "Bo", "variant": "nonsense" })).0, 400);
+    assert_eq!(db.call(&anna, "POST", "/v1/games", json!({ "opponent": "Bo", "variant": "nonsense" })), (400, json!({ "error": "variant" })));
+}
+
+/// The Game `id` as `u` sees it: its record replayed by Bragd's rules.
+fn seen(db: &crate::support::Db, u: &crate::support::User, id: &str) -> (serde_json::Value, bragd_games::State) {
+    let (_, st) = db.call(u, "GET", "/v1/state", json!({}));
+    let g = st["games"].as_array().unwrap().iter().find(|g| g["id"] == id).unwrap().clone();
+    let entries: Vec<String> = serde_json::from_value(g["moves"].clone()).unwrap();
+    let state = bragd_games::replay(g["variant"].as_str().unwrap(), g["initial"].as_str(), &entries).unwrap();
+    (g, state)
+}
+
+/// Each Game is played to its end, or 300 entries, by the first legal move. The players only
+/// ever move: every throw in the record is the referee's, and no throw is left waiting.
+fn ur_and_senet_are_played_with_the_referees_throws(pg: &Pg) {
+    for variant in ["ur", "senet"] {
+        let db = pg.fresh();
+        let anna = db.user("Anna");
+        let bo = db.user("Bo");
+        let (s, v) = db.call(&anna, "POST", "/v1/games", json!({ "opponent": "Bo", "variant": variant, "side": "first" }));
+        assert_eq!(s, 200, "{v}");
+        let id = v["id"].as_str().unwrap().to_string();
+        assert_eq!(db.call(&bo, "POST", &format!("/v1/games/{id}/accept"), json!({})).0, 200);
+        let mut moved = 0;
+        loop {
+            let (g, state) = seen(&db, &anna, &id);
+            if g["status"] == "over" {
+                assert!(state.outcome.is_some(), "{variant}: over by the rules");
+                break;
+            }
+            assert_eq!(state.awaiting, bragd_games::Awaiting::Move, "{variant}: the referee threw");
+            let who = if state.to_move.unwrap().index == 0 { &anna } else { &bo };
+            let other = if std::ptr::eq(who, &anna) { &bo } else { &anna };
+            let ply = state.history.len();
+            assert_eq!(db.call(other, "POST", &format!("/v1/games/{id}/throw"), json!({})).0, 409, "a throw is not asked for");
+            let (s, v) = db.call(who, "POST", &format!("/v1/games/{id}/move"), json!({ "ply": ply, "entry": state.moves[0].wire }));
+            assert_eq!(s, 200, "{variant}: {v}");
+            moved += 1;
+            if moved == 150 {
+                break;
+            }
+        }
+        let (g, _) = seen(&db, &anna, &id);
+        let entries = g["moves"].as_array().unwrap().len();
+        assert!(entries > moved, "{variant}: the record holds the referee's throws as well as {moved} moves");
+    }
+}
+
+/// The opening throw seats whoever throws higher. Before a later throw the player may double,
+/// so the referee waits for them to ask; a player cannot write the dice themselves.
+fn backgammon_opens_and_doubles_with_the_referees_dice(pg: &Pg) {
+    let db = pg.fresh();
+    let anna = db.user("Anna");
+    let bo = db.user("Bo");
+    let (_, v) = db.call(&anna, "POST", "/v1/games", json!({ "opponent": "Bo", "variant": "backgammon", "side": "first" }));
+    let id = v["id"].as_str().unwrap().to_string();
+    // A player cannot choose who starts through Supabase's own API either.
+    let sql = format!("insert into public.games (first, second, challenger, variant, initial) values ('{0}', '{1}', '{0}', 'backgammon', 'white')", anna.id, bo.id);
+    assert!(db.sql_as(&anna, &sql).is_err());
+    assert_eq!(db.call(&bo, "POST", &format!("/v1/games/{id}/accept"), json!({})).0, 200);
+    let (g, state) = seen(&db, &anna, &id);
+    assert!(matches!(g["initial"].as_str(), Some("white" | "black")), "{g}");
+    assert_eq!(g["moves"].as_array().unwrap().len(), 1, "the opening roll");
+    assert_eq!(state.awaiting, bragd_games::Awaiting::Move);
+    let seat = |s: &bragd_games::State| if s.to_move.unwrap().index == 0 { (&anna, &bo) } else { (&bo, &anna) };
+    let (who, _) = seat(&state);
+    assert_eq!(db.call(who, "POST", &format!("/v1/games/{id}/move"), json!({ "ply": 1, "entry": state.moves[0].wire })).0, 200);
+    // The other player may double before throwing: the referee waits.
+    let (_, state) = seen(&db, &anna, &id);
+    assert_eq!(state.awaiting, bragd_games::Awaiting::Throw);
+    assert!(state.moves.iter().any(|m| m.wire == "double"));
+    let (who, other) = seat(&state);
+    let ply = state.history.len();
+    assert_eq!(db.call(who, "POST", &format!("/v1/games/{id}/move"), json!({ "ply": ply, "entry": "6-6" })), (400, json!({ "error": "illegal" })), "no player throws");
+    assert_eq!(db.call(other, "POST", &format!("/v1/games/{id}/throw"), json!({})), (409, json!({ "error": "not_your_turn" })));
+    assert_eq!(db.call(who, "POST", &format!("/v1/games/{id}/throw"), json!({})).0, 200);
+    let (g, state) = seen(&db, &anna, &id);
+    assert_eq!(g["moves"].as_array().unwrap().len(), ply + 1, "one throw");
+    assert!(state.awaiting == bragd_games::Awaiting::Move || state.passed.is_some());
+    // Doubling, then taking: the taker owns the cube, so the doubler's throw is made at once.
+    let db = pg.fresh();
+    let anna = db.user("Anna");
+    let bo = db.user("Bo");
+    let (_, v) = db.call(&anna, "POST", "/v1/games", json!({ "opponent": "Bo", "variant": "backgammon" }));
+    let id = v["id"].as_str().unwrap().to_string();
+    db.call(&bo, "POST", &format!("/v1/games/{id}/accept"), json!({}));
+    let (g, state) = seen(&db, &anna, &id);
+    // Anna's side is the challenge's random one.
+    let anna_first = g["first"] == true;
+    let seat = |s: &bragd_games::State| if (s.to_move.unwrap().index == 0) == anna_first { (&anna, &bo) } else { (&bo, &anna) };
+    assert_eq!(db.call(seat(&state).0, "POST", &format!("/v1/games/{id}/move"), json!({ "ply": 1, "entry": state.moves[0].wire })).0, 200);
+    let (_, state) = seen(&db, &anna, &id);
+    let (doubler, taker) = seat(&state);
+    assert_eq!(db.call(doubler, "POST", &format!("/v1/games/{id}/move"), json!({ "ply": 2, "entry": "double" })).0, 200);
+    assert_eq!(db.call(taker, "POST", &format!("/v1/games/{id}/move"), json!({ "ply": 3, "entry": "take" })).0, 200);
+    let (g, state) = seen(&db, &anna, &id);
+    assert_eq!(g["moves"].as_array().unwrap().len(), 5, "the doubler's throw follows the take");
+    assert!(state.awaiting == bragd_games::Awaiting::Move || state.passed.is_some());
 }
 
 fn the_api_over_http(pg: &Pg) {

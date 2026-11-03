@@ -100,9 +100,9 @@ impl Opt {
             // The dice Families.
             &["backgammon", "ur", "senet"]
         } else if self.name.starts_with("bragd_") {
-            // The Families the Bragd server referees: those without dice
+            // The Families the Bragd server referees: every one
             // (`bragd_online::bragd_server::FAMILIES`).
-            &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"]
+            &["chess", "xiangqi", "shogi", "go", "draughts", "tafl", "backgammon", "ur", "senet"]
         } else if self.name.starts_with("online_") {
             // The Families of Lichess, Lishogi and OGS (`bragd_online::server`).
             &["chess", "shogi", "go"]

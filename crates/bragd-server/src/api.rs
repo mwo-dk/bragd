@@ -3,6 +3,7 @@
 //! `{"error": "<code>"}`, and Bragd shows the code's text in the user's language.
 
 use postgres::Transaction;
+use bragd_games::Awaiting;
 use serde_json::{Value, json};
 
 use crate::db::{self, Pool};
@@ -111,7 +112,8 @@ impl Service {
                  coalesce(bragd.are_friends(auth.uid(), case when g.first = auth.uid() then g.second else g.first end), false), \
                  case when g.first = auth.uid() then g.second else g.first end, \
                  (select coalesce(json_agg(json_build_object('mine', c.sender = auth.uid(), 'text', c.text) order by c.id), '[]'::json) \
-                  from (select * from public.chat where game_id = g.id order by id desc limit 100) c) \
+                  from (select * from public.chat where game_id = g.id order by id desc limit 100) c), \
+                 g.initial \
                  from public.games g left join public.profiles f on f.id = g.first left join public.profiles s on s.id = g.second \
                  where (g.first is null or f.id is not null) and (g.second is null or s.id is not null) \
                  and (g.status in ('offered', 'playing') or g.updated_at > now() - interval '1 day') \
@@ -133,6 +135,7 @@ impl Service {
                         "chat": { "mine": r.get::<_, bool>(12), "theirs": r.get::<_, bool>(13), "keep_mine": r.get::<_, bool>(14),
                             "keep_theirs": r.get::<_, bool>(15), "lines": r.get::<_, Value>(18) },
                         "friend": r.get::<_, bool>(16), "opponent_id": r.get::<_, Option<uuid::Uuid>>(17).map(|u| u.to_string()),
+                        "initial": r.get::<_, Option<String>>(19),
                     })
                 })
                 .collect();
@@ -224,7 +227,7 @@ impl Service {
             // locked, and read again, so two requests on one Game take turns.
             tx.query_opt("select 1 from public.games where id = $1", &[&id])?.ok_or(Error(404, "no_game"))?;
             db::referee(tx)?;
-            let row = tx.query_one("select first, second, challenger, variant, status, draw_offer from public.games where id = $1 for update", &[&id])?;
+            let row = tx.query_one("select first, second, challenger, variant, status, draw_offer, initial from public.games where id = $1 for update", &[&id])?;
             // A Game left by a deleted player has ended: nothing more is done in it.
             if row.get::<_, Option<uuid::Uuid>>(0).is_none() || row.get::<_, Option<uuid::Uuid>>(1).is_none() {
                 return Err(Error(409, "not_now"));
@@ -237,6 +240,7 @@ impl Service {
                 variant: row.get(3),
                 status: row.get(4),
                 draw_offer: row.get(5),
+                initial: row.get(6),
             };
             g.act(tx, caller.id, what, body)
         })
@@ -252,16 +256,34 @@ struct Game {
     variant: String,
     status: String,
     draw_offer: Option<uuid::Uuid>,
+    /// Who moves first, when the rules decided it at the start (backgammon's opening throw).
+    initial: Option<String>,
 }
 
 impl Game {
     fn act(&self, tx: &mut Transaction, me: uuid::Uuid, what: &str, body: &Value) -> Res {
         let challenged = me != self.challenger;
         match (what, self.status.as_str()) {
-            ("accept", "offered") if challenged => self.set(tx, "playing", None, None),
+            ("accept", "offered") if challenged => {
+                self.set(tx, "playing", None, None)?;
+                self.throws(tx, false)?;
+                Ok(json!({ "status": "playing" }))
+            }
             ("decline", "offered") if challenged => self.set(tx, "declined", None, None),
             ("cancel", "offered") if !challenged => self.set(tx, "cancelled", None, None),
             ("move", "playing") => self.play(tx, me, body),
+            // Backgammon: the player may double before their throw, so the referee waits to be asked.
+            ("throw", "playing") => {
+                let (now, _) = self.now(tx)?;
+                if now.awaiting != Awaiting::Throw {
+                    return Err(Error(409, "not_now"));
+                }
+                if self.seat(&now) != Some(me) {
+                    return Err(Error(409, "not_your_turn"));
+                }
+                let next = self.throws(tx, true)?;
+                self.after(tx, &next)
+            }
             // Chat: the caller's yes, or closing it for both; keeping it; a line.
             ("chat", "playing") => {
                 let on = body["on"].as_bool().unwrap_or(false);
@@ -303,7 +325,7 @@ impl Game {
                     (false, false) => Err(Error(409, "no_draw")),
                 }
             }
-            ("accept" | "decline" | "cancel" | "move" | "resign" | "draw" | "chat" | "keep" | "say", _) => Err(Error(409, "not_now")),
+            ("accept" | "decline" | "cancel" | "move" | "throw" | "resign" | "draw" | "chat" | "keep" | "say", _) => Err(Error(409, "not_now")),
             _ => Err(Error(404, "not_found")),
         }
     }
@@ -321,42 +343,85 @@ impl Game {
         Ok(json!({ "status": self.status }))
     }
 
+    /// The Game's record, and the rules' view of it.
+    fn now(&self, tx: &mut Transaction) -> Result<(bragd_games::State, Vec<String>), Error> {
+        let entries: Vec<String> = tx.query("select entry from public.moves where game_id = $1 order by ply", &[&self.id])?.iter().map(|r| r.get(0)).collect();
+        let now = bragd_games::replay(&self.variant, self.initial.as_deref(), &entries).map_err(|_| Error(500, "server"))?;
+        Ok((now, entries))
+    }
+
+    /// The player whose turn it is, or `None` once the Game is over.
+    fn seat(&self, now: &bragd_games::State) -> Option<uuid::Uuid> {
+        now.to_move.map(|s| if s.index == 0 { self.first } else { self.second })
+    }
+
     /// Plays `entry` at `ply` for `me`, once Bragd's rules say it is legal and theirs to play.
     fn play(&self, tx: &mut Transaction, me: uuid::Uuid, body: &Value) -> Res {
         let entry = text(body, "entry")?;
-        let entries: Vec<String> = tx.query("select entry from public.moves where game_id = $1 order by ply", &[&self.id])?.iter().map(|r| r.get(0)).collect();
+        let (now, entries) = self.now(tx)?;
         if body["ply"].as_u64() != Some(entries.len() as u64) {
             return Err(Error(409, "stale"));
         }
-        let now = bragd_games::replay(&self.variant, None, &entries).map_err(|_| Error(500, "server"))?;
-        let mover = match now.to_move {
-            Some(s) if s.index == 0 => self.first,
-            Some(_) => self.second,
+        match self.seat(&now) {
             None => return Err(Error(409, "not_now")),
-        };
-        if mover != me {
-            return Err(Error(409, "not_your_turn"));
+            Some(p) if p != me => return Err(Error(409, "not_your_turn")),
+            Some(_) => {}
         }
-        let next = bragd_games::apply(&self.variant, None, &entries, entry).map_err(|_| Error(400, "illegal"))?;
-        let ply = entries.len() as i32;
-        tx.execute("insert into public.moves (game_id, ply, entry) values ($1, $2, $3)", &[&self.id, &ply, &entry])?;
+        // The dice are the referee's: while a throw is awaited, a player plays only what the rules
+        // offer before it, such as a double.
+        if now.awaiting == Awaiting::Throw && !now.moves.iter().any(|m| m.wire == entry) {
+            return Err(Error(400, "illegal"));
+        }
+        bragd_games::apply(&self.variant, self.initial.as_deref(), &entries, entry).map_err(|_| Error(400, "illegal"))?;
+        tx.execute("insert into public.moves (game_id, ply, entry) values ($1, $2, $3)", &[&self.id, &(entries.len() as i32), &entry])?;
+        let next = self.throws(tx, false)?;
+        self.after(tx, &next)
+    }
+
+    /// The Game over by the rules, or the turn passed on.
+    fn after(&self, tx: &mut Transaction, next: &bragd_games::State) -> Res {
         match &next.outcome {
             Some(o) => self.set(tx, "over", Some(&o.result), Some(&o.reason)),
             None => self.offer(tx, None),
         }
     }
+
+    /// The referee's throws, from the operating system's random source, recorded as entries:
+    /// backgammon's opening throw, which also seats who starts, then each throw awaited until a
+    /// player has a move to make. Where the player may double first, the referee throws only when
+    /// they ask (`asked`).
+    fn throws(&self, tx: &mut Transaction, mut asked: bool) -> Result<bragd_games::State, Error> {
+        let (_, mut entries) = self.now(tx)?;
+        let family = bragd_games::variant(&self.variant).map_err(|_| Error(500, "server"))?.family();
+        let mut initial = self.initial.clone();
+        let record = |tx: &mut Transaction, entries: &mut Vec<String>, entry: String| -> Result<(), Error> {
+            tx.execute("insert into public.moves (game_id, ply, entry) values ($1, $2, $3)", &[&self.id, &(entries.len() as i32), &entry])?;
+            entries.push(entry);
+            Ok(())
+        };
+        if let Some((first, roll)) = bragd_core::throw::opening(family, &entries) {
+            tx.execute("update public.games set initial = $2 where id = $1", &[&self.id, &first])?;
+            initial = Some(first);
+            record(tx, &mut entries, roll)?;
+        }
+        // A guard against a loop only: turns passed by throws that allow no move end long before.
+        for _ in 0..1000 {
+            let now = bragd_games::replay(&self.variant, initial.as_deref(), &entries).map_err(|_| Error(500, "server"))?;
+            // Resigning before a throw is the `resign` action's; only a double waits for the player.
+            if now.outcome.is_some() || now.awaiting != Awaiting::Throw || (now.moves.iter().any(|m| m.wire == "double") && !asked) {
+                return Ok(now);
+            }
+            asked = false;
+            let t = bragd_core::throw::throw(family, &now.throws).ok_or(Error(500, "server"))?;
+            record(tx, &mut entries, t)?;
+        }
+        Err(Error(500, "server"))
+    }
 }
 
-/// A Variant a Game on the Bragd server may be played in: one Bragd has the rules of, with no
-/// dice. shortcut: the dice Families need the referee to throw for both players; until it does,
-/// they are refused here.
+/// A Variant a Game on the Bragd server may be played in: one Bragd has the rules of.
 fn playable(variant: &str) -> Result<(), Error> {
-    use bragd_games::Family;
-    let v = bragd_games::variant(variant).map_err(|_| Error(400, "variant"))?;
-    match v.family() {
-        Family::Backgammon | Family::Ur | Family::Senet => Err(Error(400, "variant")),
-        _ => Ok(()),
-    }
+    bragd_games::variant(variant).map(|_| ()).map_err(|_| Error(400, "variant"))
 }
 
 pub(crate) fn text<'a>(body: &'a Value, field: &str) -> Result<&'a str, Error> {
