@@ -49,6 +49,24 @@ mounted on the host, and **deletes backups older than 30 days**. Run it daily fr
 are kept for 30 days, so a deleted account is gone from them 30 days after it was deleted. They are
 restored for nothing but recovering the server. `backup.sh --check` tests the pruning.
 
+`bragd-backup.service` runs `backup.sh` once, and `bragd-backup.timer` starts it every day at about
+03:30. `Persistent=true` makes a run missed while the host was off happen at the next boot, and
+`RequiresMountsFor=` stops the run, rather than filling the host's own disk, when the Storage Box
+is not mounted. To set it up on the host (as root):
+
+1. Copy `backup.sh` to `/opt/bragd/backup.sh` and keep it executable. Install `pg_dump` from the
+   `postgresql-client` package, in the same major version as the project's Postgres or newer.
+2. Create `/etc/bragd-backup.env`, readable by root only (`chmod 600`), with two lines:
+   `BRAGD_SERVER_DATABASE_URL=postgres://…` (with `sslmode=require`) and
+   `BRAGD_BACKUP_DIR=/mnt/storagebox/bragd`. The password stays in this file, never in the repository.
+3. Copy `bragd-backup.service` and `bragd-backup.timer` to `/etc/systemd/system/`. If the Storage
+   Box is mounted elsewhere, run `systemctl edit bragd-backup.service` and set
+   `RequiresMountsFor=` to its path under `[Unit]`.
+4. Run `systemctl daemon-reload`, then `systemctl enable --now bragd-backup.timer`.
+5. Test it once with `systemctl start bragd-backup.service`. Read the result with
+   `journalctl -u bragd-backup.service` and look for a new `bragd-*.dump` in the folder.
+   `systemctl list-timers bragd-backup.timer` shows the next run.
+
 ## Calls: signalling and TURN
 
 A Call's offers, answers and ICE candidates go over Supabase Realtime, on a private broadcast

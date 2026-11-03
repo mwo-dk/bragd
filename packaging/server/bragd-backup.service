@@ -1,0 +1,12 @@
+[Unit]
+Description=Back up the Bragd server's Postgres to the Storage Box
+# The Storage Box mount. Set the same path in the drop-in from the README (the default is /mnt/storagebox).
+RequiresMountsFor=/mnt/storagebox
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# BRAGD_SERVER_DATABASE_URL and BRAGD_BACKUP_DIR; the file holds the password, so it is never in the repository.
+EnvironmentFile=/etc/bragd-backup.env
+ExecStart=/opt/bragd/backup.sh
