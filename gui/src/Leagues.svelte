@@ -165,7 +165,7 @@
     </div>
     <div class="tabs" role="tablist">
       {#each TABS as id}
-        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => (set({ league_tab: id }), (error = ""))}>{t(`leagues.tab.${id}`)}</button>
+        <button role="tab" id="lg-tab-{id}" aria-selected={tab === id} class:current={tab === id} onclick={() => (set({ league_tab: id }), (error = ""))}>{t(`leagues.tab.${id}`)}</button>
       {/each}
     </div>
 
@@ -214,10 +214,10 @@
         <h4>{t("leagues.round", { n: num(r + 1) })}</h4>
         {#each round.matches as match, m (m)}
           <p class="match">
-            <strong>{L.teams[match.home].name} – {L.teams[match.away].name}</strong>
+            <strong id="lg-match-{r}-{m}">{L.teams[match.home].name} – {L.teams[match.away].name}</strong>
             <span class="num">{lv.scores[r][m][0]} – {lv.scores[r][m][1]}</span>
           </p>
-          <Scroll>
+          <Scroll by="lg-match-{r}-{m}">
             <table class="stack">
               <thead>
                 <tr><th>{t("tournaments.board")}</th><th>{L.teams[match.home].name}</th><th>{t("tournaments.result")}</th><th>{L.teams[match.away].name}</th></tr>
@@ -248,7 +248,7 @@
         {#if round.bye !== null}<p class="dim">{t("leagues.sits_out", { team: L.teams[round.bye].name })}</p>{/if}
       {/each}
     {:else if tab === "standings"}
-      <Scroll>
+      <Scroll by="lg-tab-standings">
         <table class="stack">
           <thead>
             <tr>

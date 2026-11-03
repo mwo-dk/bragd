@@ -218,9 +218,9 @@
   const when = (/** @type {number} */ at) => new Date(at * 1000).toLocaleString(i18n.lang, { dateStyle: "medium", timeStyle: "short" });
 </script>
 
-{#snippet boards(/** @type {number} */ r)}
+{#snippet boards(/** @type {number} */ r, /** @type {string} */ by)}
   {@const round = T.played[r]}
-  <Scroll>
+  <Scroll {by}>
     <table>
       <thead>
         <tr><th>{t("tournaments.board")}</th><th>{t("tournaments.white")}</th><th>{t("tournaments.result")}</th><th>{t("tournaments.black")}</th></tr>
@@ -329,7 +329,7 @@
     </div>
     <div class="tabs" role="tablist">
       {#each TABS as id}
-        <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => (set({ tournament_tab: id }), (error = note = ""))}>{t(`tournaments.tab.${id}`)}</button>
+        <button role="tab" id="tn-tab-{id}" aria-selected={tab === id} class:current={tab === id} onclick={() => (set({ tournament_tab: id }), (error = note = ""))}>{t(`tournaments.tab.${id}`)}</button>
       {/each}
     </div>
 
@@ -339,7 +339,7 @@
         <div class="row">
           <button disabled={!official || !T.players.some((/** @type {any} */ p) => p.status === "away")} onclick={() => change(() => api.tournamentCheckInAll(by, tv.id))}>{t("tournaments.check_in_all")}</button>
         </div>
-        <Scroll>
+        <Scroll by="tn-tab-players">
           <table class="stack">
             <thead>
               <tr>
@@ -418,8 +418,8 @@
         {#if tv.blocked}<span class="dim">{tv.blocked}</span>{/if}
       </div>
       {#if last >= 0}
-        <h4>{t("tournaments.round_n", { n: last + 1 })}</h4>
-        {@render boards(last)}
+        <h4 id="tn-round-last">{t("tournaments.round_n", { n: last + 1 })}</h4>
+        {@render boards(last, "tn-round-last")}
         <div class="row">
           <button onclick={() => run(() => api.tournamentShow(tv.id, last))}>{t("tournaments.show")}</button>
           <button disabled={!director || T.played[last].games.some((/** @type {any} */ g) => g.result)} onclick={startEdit}>{t("tournaments.change_pairing")}</button>
@@ -478,13 +478,13 @@
         {/if}
         {#each T.played.slice(0, last) as _, r (r)}
           <details>
-            <summary>{t("tournaments.round_n", { n: r + 1 })}</summary>
-            {@render boards(r)}
+            <summary id="tn-round-{r}">{t("tournaments.round_n", { n: r + 1 })}</summary>
+            {@render boards(r, `tn-round-${r}`)}
           </details>
         {/each}
       {/if}
     {:else if tab === "standings"}
-      <Scroll>
+      <Scroll by="tn-tab-standings">
         <table class="stack">
           <thead>
             <tr>
@@ -505,8 +505,8 @@
         </table>
       </Scroll>
       {#if tv.teams.length}
-        <h4>{t("tournaments.team_score")}</h4>
-        <Scroll>
+        <h4 id="tn-team-score">{t("tournaments.team_score")}</h4>
+        <Scroll by="tn-team-score">
           <table>
             <thead>
               <tr><th></th>{#each [1, 2] as n}<th>{t("tournaments.team_n", { n })}</th>{/each}</tr>
@@ -574,7 +574,7 @@
       {#if T.log.length === 0}
         <p class="dim">{t("clubs.log_empty")}</p>
       {:else}
-        <Scroll>
+        <Scroll by="tn-tab-log">
           <table class="stack">
             <thead>
               <tr><th>{t("clubs.when")}</th><th>{t("clubs.who")}</th><th>{t("tournaments.concerns")}</th><th>{t("clubs.change")}</th><th>{t("clubs.why")}</th></tr>

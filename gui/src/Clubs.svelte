@@ -201,8 +201,8 @@
 
     {#if !busy}
     <div class="panel">
-      <h3>{t("clubs.members")}</h3>
-      <Scroll>
+      <h3 id="club-members">{t("clubs.members")}</h3>
+      <Scroll by="club-members">
         <table class="stack">
           <thead>
             <tr>
@@ -319,11 +319,11 @@
     </form>
 
     <div class="panel">
-      <h3>{t("clubs.log")}</h3>
+      <h3 id="club-log">{t("clubs.log")}</h3>
       {#if club.log.length === 0}
         <p class="dim">{t("clubs.log_empty")}</p>
       {:else}
-        <Scroll>
+        <Scroll by="club-log">
           <table class="stack">
             <thead>
               <tr><th>{t("clubs.when")}</th><th>{t("clubs.who")}</th><th>{t("clubs.role.member")}</th><th>{t("clubs.change")}</th><th>{t("clubs.why")}</th></tr>

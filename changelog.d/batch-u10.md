@@ -1,0 +1,1 @@
+| **A screen reader names the tables and panels that scroll.** Each one is announced with the heading it sits under, such as "Members" or "Moves", and the UI check fails on one without a name. | [Keyboard](getting-started/keyboard.md#how-to-reach-it) |

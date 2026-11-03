@@ -7,7 +7,8 @@
   - text that does not fit: a button, label, list item, cell or heading whose text is wider
     than its box, or any element that cuts its text off (overflow hidden, an ellipsis), and a
     page wider than the window;
-  - a scrolling box that keyboard focus cannot reach, whatever the data in the home;
+  - a scrolling box that keyboard focus cannot reach, whatever the data in the home, and a focusable
+    region, group or aside with no accessible name;
   - axe-core's rules on contrast, names and labels, and keyboard focus (axe-core is a
     devDependency of gui/, read from gui/node_modules: nothing is fetched);
   - a board that does not fit the window: at 1100 × 700 every Family's whole board shows.
@@ -44,11 +45,16 @@ OVERFLOW = r"""(() => {
     return s.visibility !== 'hidden' && s.display !== 'none' && r.width > 0 && r.height > 0; };
   const name = (e) => (e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (e.classList.length ? '.' + [...e.classList].join('.') : '')
     + ' "' + (e.innerText || e.value || e.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 60) + '"');
+  const named = (e) => (e.getAttribute('aria-label') || '').trim()
+    || (e.getAttribute('aria-labelledby') || '').split(/\s+/).some((id) => (document.getElementById(id)?.textContent || '').trim());
   const scrolls = (s) => /(auto|scroll)/.test(s.overflowX);
   for (const e of document.querySelectorAll('body *')) {
     if (!seen(e) || e.closest('svg') || e.closest('.splash')) continue;
     const s = getComputedStyle(e);
     // Whatever the data, a box that can scroll is a stop for the keyboard: it is focusable or holds something that is.
+    // A stop in the focus order that is a region, group or aside is announced by its name: it needs one.
+    if (e.tabIndex >= 0 && (/^(region|group)$/.test(e.getAttribute('role')) || e.tagName === 'ASIDE') && !named(e))
+      out.push('a focusable region with no accessible name: ' + name(e));
     if (/(auto|scroll)/.test(s.overflowX + s.overflowY) && !(e.tabIndex >= 0 || e.querySelector('a[href], button, input, select, textarea, summary, [tabindex="0"]')))
       out.push('a scrolling box the keyboard cannot reach: ' + name(e));
     if (scrolls(s)) continue;
@@ -195,7 +201,9 @@ PLANTED = r"""(() => {
   box.id = 'ui-check-planted';
   box.innerHTML = '<button style="width:3rem;overflow:hidden;white-space:nowrap">A button far too long for its box</button>'
     + '<p style="color:#bbb;background:#ccc">Grey on grey</p><button></button>'
-    + '<div style="overflow-x:auto"><table><tr><td>planted scroll box</td></tr></table></div>';
+    + '<div style="overflow-x:auto"><table><tr><td>planted scroll box</td></tr></table></div>'
+    + '<div tabindex="0" role="region" style="overflow-x:auto">planted unnamed region</div>'
+    + '<div tabindex="0" role="region" aria-labelledby="ui-check-gone">planted dangling region</div>';
   document.querySelector('main.page').prepend(box);
   return 0;
 })()"""
@@ -212,7 +220,9 @@ def self_test():
     misses = [what for what, hit in [("the cut-off button", any("far too long" in x for x in over)),
                                      ("grey on grey", any(x.startswith("color-contrast") and "planted" in x for x in found)),
                                      ("the nameless button", any(x.startswith("button-name") and "planted" in x for x in found)),
-                                     ("the scrolling box", any("keyboard cannot reach" in x for x in over))] if not hit]
+                                     ("the scrolling box", any("keyboard cannot reach" in x for x in over)),
+                                     ("the unnamed region", any("no accessible name" in x and "unnamed region" in x for x in over)),
+                                     ("the dangling label", any("no accessible name" in x and "dangling region" in x for x in over))] if not hit]
     for m in misses:
         print("SELF-TEST MISSED", m)
     if misses:
