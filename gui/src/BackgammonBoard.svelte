@@ -3,11 +3,12 @@
   // the bar in the middle and the trays of borne-off checkers on the right. The checkers,
   // dice and cube come from bragd-games; a point is a cell named by its number.
   import { point } from "./board.js";
+  import { boardKey, stop } from "./rove.js";
 
   /** @type {{ state: any, flipped?: boolean, selected?: string | null, targets?: string[], oncell?: (square: string) => void, onpress?: (square: string, e: PointerEvent) => void }} */
-  let { state, flipped = false, selected = null, targets = [], oncell, onpress } = $props();
+  let { state: game, flipped = false, selected = null, targets = [], oncell, onpress } = $props();
 
-  const b = $derived(state.board);
+  const b = $derived(game.board);
   const H = 11; // two rows of points five checkers deep, and a gap
   const at = (/** @type {number} */ n) => point(n, flipped);
   const byPoint = $derived(new Map(b.pieces.filter((/** @type {any} */ p) => p.square !== "bar").map((/** @type {any} */ p) => [p.x, p])));
@@ -19,9 +20,26 @@
   const barTop = (/** @type {any} */ p) => (p.x === 25) !== flipped;
   const offFor = (/** @type {number} */ seat) => b.off.find((/** @type {any} */ h) => h.seat === seat)?.pieces?.[0];
   const offTarget = $derived(targets.includes("off"));
+  /** The points, the bar and the trays where they lie on the screen, for the arrow keys. */
+  const onScreen = $derived([
+    ...numbers.map((n) => ({ square: String(n), col: at(n).col, row: at(n).top ? 0 : 1, x: at(n).col, y: at(n).top ? 0 : H - 5.5, w: 1, h: 5.5 })),
+    { square: "bar", col: 6, row: 0, x: 6, y: 0, w: 1, h: H },
+    { square: "off", col: 13, row: 0.5, x: 13.2, y: 0, w: 0.8, h: H },
+  ]);
+  let cursor = $state(/** @type {string | null} */ (null));
+  /** The cell the keyboard is on, for its ring; none while the mouse has the focus. */
+  let ring = $state(/** @type {string | null} */ (null));
+  const ringBox = $derived(ring ? onScreen.find((c) => c.square === ring) : null);
+  const tabStop = $derived(stop(onScreen.map((c) => c.square), cursor, selected));
 </script>
 
-<svg class="board points" viewBox="-0.1 -0.45 14.2 {H + 0.9}" role="grid" tabindex="-1">
+<svg class="board points" viewBox="-0.1 -0.45 14.2 {H + 0.9}" role="grid" tabindex="-1"
+  onfocusin={(e) => {
+    const el = /** @type {SVGElement} */ (e.target);
+    cursor = el.dataset?.square ?? cursor;
+    ring = el.matches(":focus-visible") ? (el.dataset?.square ?? null) : null;
+  }}
+  onfocusout={() => (ring = null)}>
   <rect class="frame" x="-0.1" y="-0.45" width="14.2" height={H + 0.9} />
   <rect class="field" x="0" y="0" width="6" height={H} />
   <rect class="field" x="7" y="0" width="6" height={H} />
@@ -110,17 +128,21 @@
         width="1"
         height="5.5"
         role="gridcell"
-        tabindex="-1"
+        tabindex={tabStop === String(n) ? 0 : -1}
         aria-label={String(n)}
         onclick={() => oncell(String(n))}
-        onkeydown={(e) => e.key === "Enter" && oncell(String(n))}
+        onkeydown={(e) => boardKey(e, onScreen, oncell)}
         onpointerdown={(e) => onpress?.(String(n), e)}
       />
     {/each}
-    <rect class="hit" data-square="bar" x="6" y="0" width="1" height={H} role="gridcell" tabindex="-1" aria-label="bar"
-      onclick={() => oncell("bar")} onkeydown={(e) => e.key === "Enter" && oncell("bar")} onpointerdown={(e) => onpress?.("bar", e)} />
-    <rect class="hit" data-square="off" x="13.2" y="0" width="0.8" height={H} role="gridcell" tabindex="-1" aria-label="off"
-      onclick={() => oncell("off")} onkeydown={(e) => e.key === "Enter" && oncell("off")} />
+    <rect class="hit" data-square="bar" x="6" y="0" width="1" height={H} role="gridcell" tabindex={tabStop === "bar" ? 0 : -1} aria-label="bar"
+      onclick={() => oncell("bar")} onkeydown={(e) => boardKey(e, onScreen, oncell)} onpointerdown={(e) => onpress?.("bar", e)} />
+    <rect class="hit" data-square="off" x="13.2" y="0" width="0.8" height={H} role="gridcell" tabindex={tabStop === "off" ? 0 : -1} aria-label="off"
+      onclick={() => oncell("off")} onkeydown={(e) => boardKey(e, onScreen, oncell)} />
+  {/if}
+  {#if ringBox}
+    <rect class="focus-ring" x={ringBox.x + 0.07} y={ringBox.y + 0.07} width={ringBox.w - 0.14} height={ringBox.h - 0.14} />
+    <rect class="focus-ring inner" x={ringBox.x + 0.16} y={ringBox.y + 0.16} width={ringBox.w - 0.32} height={ringBox.h - 0.32} />
   {/if}
 </svg>
 
@@ -220,5 +242,16 @@
     fill: transparent;
     cursor: pointer;
     outline: none;
+  }
+  /* The keyboard's ring: dark and bright, so it shows on either colour of the board. */
+  .focus-ring {
+    fill: none;
+    pointer-events: none;
+    stroke: var(--board-dark);
+    stroke-width: 0.14;
+  }
+  .focus-ring.inner {
+    stroke: var(--board-highlight);
+    stroke-width: 0.06;
   }
 </style>

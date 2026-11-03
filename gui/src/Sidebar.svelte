@@ -12,8 +12,8 @@
 
   /** @type {{ snap: any, page: any, collapsed: boolean, go: (page: any) => void, toggle: () => void, slices: Record<string, any[]> }} */
   let { snap, page, collapsed, go, toggle, slices } = $props();
-  /** Families folded open. @type {string[]} */
-  let open = $state([]);
+  /** The Family folded open: one at a time, so Clubs, Settings and Help stay in view. @type {string | null} */
+  let open = $state(null);
 
   const name = (/** @type {string} */ id) => snap.families.find((/** @type {any} */ f) => f.id === id)?.name ?? id;
   const families = $derived(
@@ -22,7 +22,7 @@
   const isCurrent = (/** @type {string} */ family, /** @type {string} */ item) =>
     page.kind === "item" && page.family === family && page.item === item;
   $effect(() => {
-    if (page.kind === "item" && !open.includes(page.family)) open = [...open, page.family];
+    if (page.kind === "item") open = page.family;
   });
 </script>
 
@@ -37,13 +37,13 @@
         {#if snap.sidebar.kind === "families"}
           <button
             class="family"
-            aria-expanded={open.includes(f.id)}
-            onclick={() => (open = open.includes(f.id) ? open.filter((x) => x !== f.id) : [...open, f.id])}
+            aria-expanded={open === f.id}
+            onclick={() => (open = open === f.id ? null : f.id)}
           >
             {name(f.id)}
           </button>
         {/if}
-        {#if snap.sidebar.kind === "one" || open.includes(f.id)}
+        {#if snap.sidebar.kind === "one" || open === f.id}
           {#each f.items as item}
             <button
               class="item"

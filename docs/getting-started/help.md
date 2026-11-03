@@ -23,6 +23,7 @@ The F1 entries and the pages *Show me* opens:
 | `wizard` | Install wizard and What's new | [The install wizard](first-start.md) |
 | `families` | Game families | [Game families and Variants](game-families.md) |
 | `back` | Back | [Going back](navigation.md) |
+| `keys` | Keyboard | [Keyboard](keyboard.md) |
 | `tips` | Tips | [Tips](tips.md) |
 | `play` | Play | [Playing against yourself](../play/against-yourself.md) |
 | `ur` | Ur rule sets and pyramid dice | [Ur](../play/ur.md) |
@@ -116,4 +117,4 @@ No. It searches the F1 texts in your language: titles, lines, questions and answ
 Not from the app. Hints count their showings in `state.json`; a hint that has shown three times stays away.
 
 ---
-[← Previous: Going back](navigation.md) · [Next: What's new →](whats-new.md)
+[← Previous: Keyboard](keyboard.md) · [Next: What's new →](whats-new.md)

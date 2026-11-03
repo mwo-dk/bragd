@@ -11,6 +11,7 @@ How to install Bragd, what the first start asks, which Game families to keep, ho
 | [Game families and Variants](game-families.md) | Turning Families and Variants on and off, what disappears and what stays |
 | [The sidebar](sidebar.md) | Families and their items, collapsing, the Helper line, Settings, Help and What's new |
 | [Going back](navigation.md) | Back, Alt+←, the mouse's back button and Esc on F1; what a place is |
+| [Keyboard](keyboard.md) | Playing a board with the arrows and Enter, the keys for New game, Undo, Flip board, Throw and Pass |
 | [Help (F1) and notices](help.md) | F1 → Features, the filter, *Show me*, notices and hints |
 | [What's new](whats-new.md) | Tour cards after an upgrade, the list of every version |
 | [Tips](tips.md) | One-line suggestions of features you have not used, and how often they come |

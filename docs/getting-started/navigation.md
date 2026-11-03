@@ -59,4 +59,4 @@ On a board, a list or a dialog Esc already means something: it closes the dialog
 No. It lives as long as the window. Bragd opens on Play for the first Family that is on.
 
 ---
-[← Previous: The sidebar](sidebar.md) · [Next: Help (F1) and notices →](help.md)
+[← Previous: The sidebar](sidebar.md) · [Next: Keyboard →](keyboard.md)

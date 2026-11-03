@@ -57,14 +57,6 @@ def nav(d, family, item="Play"):
     d.wait(1.2)
 
 
-def fold(d, family):
-    """Close `family` in the sidebar, so the next picture shows only the Family it is about."""
-    js(d, f"""const bs = [...document.querySelectorAll('nav button')];
-      const i = bs.findIndex(b => b.classList.contains('family') && b.textContent.trim() === {json.dumps(NAMES[family])});
-      if (bs[i + 1] && bs[i + 1].classList.contains('item')) bs[i].click();""")
-    d.wait(0.3)
-
-
 def select(d, label, value):
     """Choose `value` (the text it shows) in the list named `label` (a Picker's aria-label)."""
     r = js(d, f"""const b = document.querySelector('button[aria-haspopup=listbox][aria-label={json.dumps(label)}]');
@@ -96,11 +88,9 @@ def boards():
         config(cfg)
         try:
             with Desktop(size=W1100) as d:
-                for prev, f in zip([None, *FAMILIES], FAMILIES):
+                # Opening a Family folds the one before.
+                for f in FAMILIES:
                     nav(d, f)
-                    # The sidebar keeps the current page's Family open: fold the one before.
-                    if prev:
-                        fold(d, prev)
                     d.shot(HERE / f"board-{f}-{theme}.png")
         finally:
             config("")
@@ -129,6 +119,15 @@ def engine():
             d.shot(HERE / "play-engine-chess-1100.png")
     finally:
         config("")
+
+
+def keyboard():
+    """keyboard-390.png and keyboard-1100.png: chess's e2 picked from the keyboard, the ring on e4."""
+    def page(d):
+        # The board's one tab stop is a1; then real keys, so the ring shows as the keyboard's.
+        js(d, "document.querySelector('main rect.hit[tabindex=\"0\"]').focus()")
+        d.keys("Right", "Right", "Right", "Right", "Up", "Enter", "Up", "Up")
+    widths("keyboard", page)
 
 
 def review():
@@ -1206,7 +1205,6 @@ def ur_solved():
 
     def tables(d):
         unfold(d)
-        fold(d, "chess")
         nav(d, "ur", "Engines")
         d.wait(1)
 
@@ -1214,7 +1212,6 @@ def ur_solved():
 
     def game(d, review):
         unfold(d)
-        fold(d, "chess")
         nav(d, "ur", "Analyse")
         select(d, "Variant", "Ur (Blitz)")
         # Perfect play follows the position once it is on.
@@ -1238,7 +1235,7 @@ def ur_solved():
     widths("review-ur", lambda d: game(d, True))
 
 
-ALL = {"library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "engines": engines, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
+ALL = {"library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "keyboard": keyboard, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "engines": engines, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":

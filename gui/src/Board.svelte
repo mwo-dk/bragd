@@ -3,20 +3,33 @@
   // the cells, the pieces by sprite id, the highlights and the printed labels. The Family decides
   // the look (chequered, ruled, lines with a river and palaces, a track); the rules are not here.
   import { place } from "./board.js";
+  import { boardKey, stop } from "./rove.js";
 
   /** A piece sliding along cells as a move is played: its sprite, the square it leaves, the
    * cells it passes, and how far along it is, 0 to 1.
    * @typedef {{ sprite: string, from: string, pts: number[][], p: number }} Glide */
   /** @type {{ state: any, family: string, flipped?: boolean, selected?: string | null, targets?: string[], dead?: string[], glide?: Glide | null, sideways?: boolean, oncell?: (square: string) => void, onpress?: (square: string, e: PointerEvent) => void }} */
-  let { state, family, flipped = false, selected = null, targets = [], dead = [], glide = null, sideways = false, oncell, onpress } = $props();
+  let { state: game, family, flipped = false, selected = null, targets = [], dead = [], glide = null, sideways = false, oncell, onpress } = $props();
 
-  const b = $derived(state.board);
+  const b = $derived(game.board);
   const at = (/** @type {number} */ x, /** @type {number} */ y) => place(x, y, b.files, b.ranks, flipped, sideways);
   // The drawing's width and height, in cells: swapped when the board lies on its side.
   const [w, h] = $derived(sideways ? [b.ranks, b.files] : [b.files, b.ranks]);
   const grid = $derived(
     Array.from({ length: b.files * b.ranks }, (_, i) => ({ x: i % b.files, y: Math.floor(i / b.files) })),
   );
+  /** The cells where they lie on the screen, for the arrow keys. */
+  const onScreen = $derived(
+    b.cells.map((/** @type {any} */ c) => {
+      const p = at(c.x, c.y);
+      return { square: c.square, ...p, x: p.col, y: p.row, w: 1, h: 1 };
+    }),
+  );
+  let cursor = $state(/** @type {string | null} */ (null));
+  /** The cell the keyboard is on, for its ring; none while the mouse has the focus. */
+  let ring = $state(/** @type {string | null} */ (null));
+  const ringBox = $derived(ring ? onScreen.find((/** @type {any} */ c) => c.square === ring) : null);
+  const tabStop = $derived(stop(onScreen.map((/** @type {any} */ c) => c.square), cursor, selected));
   const occupied = $derived(new Set(b.pieces.map((/** @type {any} */ p) => p.square)));
 
   /** xiangqi: the river between ranks 4 and 5, and the two palaces. */
@@ -56,6 +69,12 @@
   viewBox="-0.08 -0.08 {w + 0.16} {h + 0.16}"
   role="grid"
   tabindex="-1"
+  onfocusin={(e) => {
+    const el = /** @type {SVGElement} */ (e.target);
+    cursor = el.dataset?.square ?? cursor;
+    ring = el.matches(":focus-visible") ? (el.dataset?.square ?? null) : null;
+  }}
+  onfocusout={() => (ring = null)}
 >
   <rect class="ground" x="-0.08" y="-0.08" width={w + 0.16} height={h + 0.16} />
 
@@ -190,13 +209,17 @@
         width="1"
         height="1"
         role="gridcell"
-        tabindex="-1"
+        tabindex={c.square === tabStop ? 0 : -1}
         aria-label={c.square}
         onclick={() => oncell(c.square)}
-        onkeydown={(e) => e.key === "Enter" && oncell(c.square)}
+        onkeydown={(e) => boardKey(e, onScreen, oncell)}
         onpointerdown={(e) => onpress?.(c.square, e)}
       />
     {/each}
+  {/if}
+  {#if ringBox}
+    <rect class="focus-ring" x={ringBox.x + 0.07} y={ringBox.y + 0.07} width={ringBox.w - 0.14} height={ringBox.h - 0.14} />
+    <rect class="focus-ring inner" x={ringBox.x + 0.16} y={ringBox.y + 0.16} width={ringBox.w - 0.32} height={ringBox.h - 0.32} />
   {/if}
 </svg>
 
@@ -328,5 +351,16 @@
     fill: transparent;
     cursor: pointer;
     outline: none;
+  }
+  /* The keyboard's ring: dark and bright, so it shows on either colour of square. */
+  .focus-ring {
+    fill: none;
+    pointer-events: none;
+    stroke: var(--board-dark);
+    stroke-width: 0.14;
+  }
+  .focus-ring.inner {
+    stroke: var(--board-highlight);
+    stroke-width: 0.06;
   }
 </style>

@@ -124,6 +124,12 @@ mod tests {
     }
 }
 
+/// A key on Play or a board was used: the keyboard's usage signal (`tips`).
+#[tauri::command]
+pub fn key_used() {
+    bragd_core::tips::used("keys");
+}
+
 /// Back: one way back per window, kept while the window is open (`bragd_core::history`).
 #[derive(Default)]
 pub struct Ways(std::sync::Mutex<std::collections::HashMap<String, history::History>>);
