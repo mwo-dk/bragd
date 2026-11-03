@@ -28,6 +28,18 @@
   };
 </script>
 
+<!-- The pieces a seat holds in hand (shogi, Seirawan) or has waiting to enter (Ur, senet), as Play shows them. -->
+{#snippet hand(/** @type {any} */ st, /** @type {number} */ seat)}
+  {@const pieces = st.board.hands.filter((/** @type {any} */ h) => h.seat === seat).flatMap((/** @type {any} */ h) => h.pieces).filter((/** @type {any} */ p) => p.count)}
+  {#if pieces.length}
+    <div class="tray">
+      {#each pieces as p}
+        <span class="hand"><svg viewBox="0 0 1 1"><use href="#{p.sprite}" width="1" height="1" /></svg>{p.count}</span>
+      {/each}
+    </div>
+  {/if}
+{/snippet}
+
 <section class="rules">
   <h1>{family.name}: {t("sidebar.rules")}</h1>
   {#if page}
@@ -36,15 +48,18 @@
       <div class="lessons">
         {#each page.positions as l}
           <article class="panel">
-            <h3>{l.position.title}</h3>
+            <h3>{l.title}</h3>
             <div class="mini">
               {#if family.id === "backgammon"}
                 <BackgammonBoard state={l.state} />
               {:else}
-                <Board state={l.state} family={family.id} flipped={l.position.toMove === 1 && family.id !== "go"} />
+                {@const flipped = l.position.toMove === 1 && family.id !== "go"}
+                {@render hand(l.state, flipped ? 0 : 1)}
+                <Board state={l.state} family={family.id} {flipped} />
+                {@render hand(l.state, flipped ? 1 : 0)}
               {/if}
             </div>
-            <p>{l.position.text}</p>
+            <p>{l.text}</p>
             {#if l.answer}
               <p class="answer">{t("rules.answer", { move: l.answer })}</p>
             {/if}
@@ -68,6 +83,21 @@
   }
   .mini {
     max-width: 16rem;
+  }
+  .tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0.2rem 0;
+  }
+  .hand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+  }
+  .hand svg {
+    width: 1.5rem;
+    height: 1.5rem;
   }
   h3 {
     margin: 0 0 0.4rem;

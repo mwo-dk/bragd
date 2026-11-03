@@ -101,3 +101,10 @@ export function nextCell(cells, at, key) {
   }
   return best ? best.square : null;
 }
+
+/** Whether a board is a long, low track (Ur, senet, Aseb) on a wide window: the panel then goes
+ * under it, so the board has the whole width instead of a third of the height. Backgammon draws
+ * its own board, which keeps the panel beside it. */
+export function wide(/** @type {{id: string}} */ family, /** @type {{files: number, ranks: number}} */ board, /** @type {number} */ width) {
+  return width > 760 && family.id !== "backgammon" && board.files >= 2 * board.ranks;
+}

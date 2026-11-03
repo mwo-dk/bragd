@@ -35,6 +35,9 @@ pub struct Page {
 #[derive(Serialize)]
 pub struct Lesson {
     pub position: Position,
+    /// Its title and text in the current language.
+    pub title: String,
+    pub text: String,
     pub state: State,
     /// The move the text names, written as the Family's move list writes it (`Rd8`, not `d1d8`).
     pub answer: Option<String>,
@@ -62,7 +65,8 @@ pub fn page(family: Family) -> Page {
                         .and_then(|after| after.written.last().cloned())
                         .unwrap_or_else(|| a.to_string())
                 });
-                Some(Lesson { position: *p, state, answer })
+                let text = |part: &str| bragd_core::i18n::tr(&format!("position.{}.{part}", p.key), &[]);
+                Some(Lesson { position: *p, title: text("title"), text: text("text"), state, answer })
             })
             .collect(),
     }
@@ -91,5 +95,14 @@ mod tests {
         let chess = page(Family::Chess);
         let mate = chess.positions.iter().find(|l| l.position.answer == Some("d1d8")).expect("the back-rank mate");
         assert_eq!(mate.answer.as_deref(), Some("Rd8#"));
+    }
+
+    /// A lesson's title and text come from the locales, so they read in the language chosen.
+    #[test]
+    fn a_lesson_takes_its_texts_from_the_locales() {
+        let chess = page(Family::Chess);
+        let mate = chess.positions.iter().find(|l| l.position.key == "chess.back-rank-mate").expect("the back-rank mate");
+        assert_eq!(mate.title, "The back-rank mate");
+        assert!(mate.text.starts_with("White plays Rd8"), "{}", mate.text);
     }
 }

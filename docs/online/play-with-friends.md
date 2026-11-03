@@ -18,7 +18,7 @@ Play other Bragd players on the Bragd server. You make an account there, become 
 
 ## How to reach it
 
-*Play with Friends* is in the sidebar, below Clubs, once a Bragd server address is set in **Settings → Online → Bragd server address**. Until then the page is hidden and Bragd sends nothing to any Bragd server. The address is empty until the Bragd server is up; this page will say when it is.
+*Play with Friends* is in the sidebar, below Clubs, once a Bragd server address is set in **Settings → Online → Bragd server address**. Until then the page is hidden and Bragd sends nothing to any Bragd server. F1, What's new, the tour cards and Tips leave out *Play with Friends*, *Chat* and *Calls* too, and Settings → Online shows only the address, not the Chat, filter, voice and camera choices. The address is empty until the Bragd server is up; this page will say when it is.
 
 It also shows only while one of the Families the Bragd server plays is on: chess, xiangqi, shogi, go, draughts or tafl.
 
@@ -158,7 +158,7 @@ Your name. Your Friends see that you are Friends; the two players of a Game see 
 
 #### Why is Play with Friends not in my sidebar?
 
-No Bragd server address is set yet, or none of the Families it plays is on.
+No Bragd server address is set yet, or none of the Families it plays is on. Without an address, F1 and What's new do not offer it either.
 
 #### Who can read a Chat?
 

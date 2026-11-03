@@ -989,8 +989,8 @@ def friends():
 
 
 def sources():
-    """databases-sources-390.png and -1100.png: Chess → Databases → Sources, TWIC first and the
-    Sources not fetched yet greyed out, with their size and no schedule."""
+    """databases-sources-390.png and -1100.png: Chess → Databases → Sources, TWIC first, then the
+    rating lists and Add a custom URL."""
     def page(d):
         unfold(d)
         nav(d, "chess", "Databases")

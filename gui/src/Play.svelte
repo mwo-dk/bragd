@@ -6,7 +6,7 @@
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
-  import { gates, groups, movesOf, movesTo, plainMoves, sideways as onSide } from "./board.js";
+  import { gates, groups, movesOf, movesTo, plainMoves, sideways as onSide, wide } from "./board.js";
   import { playKey } from "./keys.js";
   import Board from "./Board.svelte";
   import UrDice from "./UrDice.svelte";
@@ -72,7 +72,8 @@
   // A track four times longer than wide (Aseb) lies on its side on a narrow window, at most 70 %
   // of the window high, so its cells are big enough to hit.
   const sideways = $derived(!!st && onSide(family, st.board, innerWidth));
-  const fit = $derived(innerWidth > 760 && gameH ? `${Math.max(180, (gameH - trayH[0] - trayH[1] - 12) * aspect)}px` : null);
+  const long = $derived(!!st && wide(family, st.board, innerWidth));
+  const fit = $derived(long ? `calc((100vh - 18rem) * ${aspect})` : innerWidth > 760 && gameH ? `${Math.max(180, (gameH - trayH[0] - trayH[1] - 12) * aspect)}px` : null);
   /** A square, a piece dropped from hand, or a Seirawan piece to gate (with its square once
    * chosen). @type {{from?: string, drop?: string, gate?: string} | null} */
   let sel = $state(null);
@@ -396,7 +397,7 @@
   </header>
 
   {#if st}
-    <div class="game" bind:clientHeight={gameH}>
+    <div class="game" class:long bind:clientHeight={gameH}>
       <div class="board-side" style:max-width={fit}>
         {#snippet tray(/** @type {number} */ seat)}
           {#if hands(seat).length || offs(seat).length}
@@ -590,6 +591,18 @@
     flex: 0 0 15rem;
     max-height: calc(100vh - 7rem);
     overflow: auto;
+  }
+  /* A long, low track (Ur, senet) takes the whole width; the panel goes under it. */
+  .game.long {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .game.long .board-side {
+    flex: none;
+  }
+  .game.long .info {
+    flex: none;
+    max-height: none;
   }
   @media (max-width: 760px) {
     /* One column that scrolls: the board takes the width, the panel follows it. */

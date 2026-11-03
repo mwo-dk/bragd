@@ -68,7 +68,7 @@ pub fn next(cfg: &Config, st: &AppState, now: u64, busy: bool) -> Option<&'stati
         return None;
     }
     let open = |f: &&Feature| {
-        features::concerns(cfg, f.families)
+        features::shown(cfg, f)
             && st.feature_uses.get(f.id).is_none_or(|n| *n == 0)
             && !st.tips_silenced.iter().any(|s| s == f.id)
     };

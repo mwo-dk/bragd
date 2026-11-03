@@ -4,7 +4,7 @@
 
 The Royal Game of Ur, in four rule sets: Irving Finkel's reconstruction, James Masters', RoyalUr.net's Blitz, and Aseb on its own board of twenty squares. Each Side races its pieces along a path and off the board. Squares both Sides walk are shared, and landing on an enemy piece there sends it back to the start. Bragd throws the pyramid dice for you and shows how each one landed.
 
-![Ur (Finkel) in Play: the twenty-square board with its five rosettes and both dashed paths, pieces on the way, and the four pyramid dice of the throw beside the turn line](../screenshots/play-ur-1100.png)
+![Ur (Finkel) in Play, 1100 px wide: the twenty-square board across the whole width with its five rosettes and both dashed paths, a piece on the way, and the panel under it with the turn line, the four pyramid dice and the move list](../screenshots/play-ur-1100.png)
 
 *The Royal Game of Ur: Light at the bottom, Dark at the top.*
 
@@ -17,7 +17,7 @@ The Royal Game of Ur, in four rule sets: Irving Finkel's reconstruction, James M
 
 Each rule set, its path and its sources: [Ur rule sets](../rules/ur.md). The board draws both Sides' paths as dashed lines, each ending in an arrow.
 
-![Ur (Masters) in Play: both dashed paths cross the far end of the board, and three pyramid dice beside the turn line show two marked tips up](../screenshots/play-ur-masters-1100.png)
+![Ur (Masters) in Play: both dashed paths cross the far end of the board, and the pyramid dice under it show the last throw](../screenshots/play-ur-masters-1100.png)
 
 *Masters' rules: three dice, and a path of sixteen squares through the far end.*
 

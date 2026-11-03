@@ -31,7 +31,7 @@ The bar above the board is the same for every Family. Open it from the sidebar: 
 | Move a piece | Click it, then click a cell it can go to. Or drag it there and let go |
 | Use the keyboard | **Tab** moves from cell to cell; **Enter** on a focused cell acts as a click |
 | Pick between moves that end on the same cell | A list, *Which move?*, shows each by its notation. **Cancel** closes it |
-| See the Game so far | *Moves*, beside the board (under it in a narrow window), in the Variant's own notation |
+| See the Game so far | *Moves*, beside the board (under it in a narrow window, and under the long, low boards of Ur and senet), in the Variant's own notation |
 
 The line above the move list says whose turn it is, by the Variant's names for its Sides: White and Black, Red and Black, Cho and Han, Sente and Gote, Attackers and Defenders, Light and Dark, Evens and Odds.
 

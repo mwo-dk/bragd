@@ -46,8 +46,7 @@ pub fn media(window: &tauri::WebviewWindow) {
 
 /// Whether the page shows: an address is set, and one of the Families played there is on.
 pub fn shown(cfg: &bragd_core::config::Config) -> bool {
-    let address = std::env::var(bragd_server::SERVER.url_var).ok().filter(|u| !u.trim().is_empty()).unwrap_or_else(|| cfg.online.server.clone());
-    !address.trim().is_empty() && bragd_server::FAMILIES.iter().any(|f| cfg.family_shown(f))
+    !cfg.bragd_server().is_empty() && bragd_server::FAMILIES.iter().any(|f| cfg.family_shown(f))
 }
 
 fn used() {

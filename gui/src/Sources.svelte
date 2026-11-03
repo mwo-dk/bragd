@@ -3,8 +3,8 @@
   // and has its schedule, the metered rule, a disk cap, the largest download it takes without
   // asking (a bigger one waits for Download it anyway), what becomes of its downloads, and its
   // Routes: each a Library (one there, or a new one by name) and a Strip rule, with Preview (a
-  // dry run) and Apply over all of them. The Sources this version cannot fetch yet are shown
-  // with their notice. A custom URL can be added, and removed again.
+  // dry run) and Apply over all of them. Rust lists only the Sources this version can fetch. A
+  // custom URL can be added, and removed again.
   import * as k from "./knowledge.js";
   import { t, i18n } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
@@ -107,16 +107,16 @@
 </script>
 
 {#snippet source(/** @type {any} */ s)}
-  <article class="panel source" class:off={!s.fetchable}>
+  <article class="panel source">
     <div class="head">
       <label class="check">
-        <input type="checkbox" checked={s.options.enabled} disabled={!s.fetchable} onchange={(e) => save(s.id, { ...s.options, enabled: e.currentTarget.checked })} />
+        <input type="checkbox" checked={s.options.enabled} onchange={(e) => save(s.id, { ...s.options, enabled: e.currentTarget.checked })} />
         <strong>{s.name}</strong>
       </label>
-      <span class="meta">{s.familyName} · {s.size}{s.fetchable ? ` · ${t("source.last", { when: s.last })}` : ""}</span>
+      <span class="meta">{s.familyName} · {s.size} · {t("source.last", { when: s.last })}</span>
       <span class="buttons">
-        <button onclick={() => expand(s)} aria-expanded={open === s.id} disabled={!s.fetchable}>{open === s.id ? t("source.less") : t("source.more")}</button>
-        <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.fetchable || !s.options.enabled}>{t("source.fetch_now")}</button>
+        <button onclick={() => expand(s)} aria-expanded={open === s.id}>{open === s.id ? t("source.less") : t("source.more")}</button>
+        <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.options.enabled}>{t("source.fetch_now")}</button>
         {#if s.custom}<button onclick={() => (removing = s.id)}>{t("source.remove")}</button>{/if}
       </span>
     </div>
@@ -127,7 +127,6 @@
         <button class="primary" onclick={() => (removing = null)}>{t("common.cancel")}</button>
       </div>
     {/if}
-    {#if s.notice}<p class="notice">{s.notice}</p>{/if}
     {#if s.error}<p class="error">{s.error}</p>{/if}
     {#if s.paused}<p class="notice">{t("source.paused")}</p>{/if}
     {#if s.tooBig}
@@ -237,11 +236,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-  }
-  /* A Source that is off reads as such by its switch and border, not by fading its text below
-     a readable contrast. */
-  .source.off {
-    border-style: dashed;
   }
   .head,
   .bar,

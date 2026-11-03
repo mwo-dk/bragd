@@ -923,6 +923,19 @@ mod tests {
         assert_eq!(fill("{a} and {b}", &[("a", "1"), ("b", "2")]), "1 and 2");
     }
 
+    /// Every teaching position has its title and text, shown as they are, not as Markdown.
+    #[test]
+    fn i18n_every_teaching_position_has_its_texts() {
+        let reference = catalogue(REFERENCE);
+        for p in bragd_games::positions::POSITIONS {
+            for part in ["title", "text"] {
+                let key = format!("position.{}.{part}", p.key);
+                let text = reference.get(&key).and_then(|v| v.as_str()).unwrap_or_else(|| panic!("no text {key}"));
+                assert!(!text.contains("**"), "{key}: Markdown in the text");
+            }
+        }
+    }
+
     /// Every `t!("key")` and `tr("key", …)` in the workspace's Rust, and `t("key")` in the
     /// desktop app, names a text that exists.
     #[test]

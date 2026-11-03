@@ -16,14 +16,22 @@ pub struct Feature {
     /// The Families it concerns; none: every user. Its tour card and Tip show only to someone
     /// with one of them on.
     pub families: &'static [&'static str],
+    /// It needs a Bragd server address: until one is set, F1, its tour card and its Tip leave
+    /// it out, as the page it is on is hidden.
+    pub server: bool,
 }
 
 const fn f(id: &'static str, docs: &'static str, open: &'static str) -> Feature {
-    Feature { id, docs, open, families: &[] }
+    Feature { id, docs, open, families: &[], server: false }
 }
 
 const fn only(id: &'static str, docs: &'static str, open: &'static str, families: &'static [&'static str]) -> Feature {
-    Feature { id, docs, open, families }
+    Feature { id, docs, open, families, server: false }
+}
+
+/// A part of *Play with Friends*: for the Families the Bragd server plays, once it has an address.
+const fn friends(id: &'static str) -> Feature {
+    Feature { id, docs: "online/play-with-friends.md", open: "settings:online", families: &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"], server: true }
 }
 
 /// Where "Show me" opens a feature's page.
@@ -43,9 +51,9 @@ pub const FEATURES: &[Feature] = &[
     only("online", "online/playing-online.md", "online:lichess:chess", &["chess"]),
     only("lishogi", "online/lishogi.md", "online:lishogi:shogi", &["shogi"]),
     only("ogs", "online/ogs.md", "online:ogs:go", &["go"]),
-    only("friends", "online/play-with-friends.md", "settings:online", &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"]),
-    only("chat", "online/play-with-friends.md", "settings:online", &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"]),
-    only("calls", "online/play-with-friends.md", "settings:online", &["chess", "xiangqi", "shogi", "go", "draughts", "tafl"]),
+    friends("friends"),
+    friends("chat"),
+    friends("calls"),
     f("databases", "knowledge/foreign-databases.md", "item:databases"),
     f("players", "knowledge/players.md", "item:databases"),
     f("parquet", "knowledge/parquet-export.md", "item:databases"),
@@ -72,6 +80,12 @@ pub const FEATURES: &[Feature] = &[
 /// The feature `id`.
 pub fn find(id: &str) -> Option<&'static Feature> {
     FEATURES.iter().find(|f| f.id == id)
+}
+
+/// Whether the feature `f` shows to the user of `cfg` in F1, its tour card and its Tip: it
+/// concerns one of their Families, and what it needs to be reached is there.
+pub fn shown(cfg: &crate::config::Config, f: &Feature) -> bool {
+    concerns(cfg, f.families) && (!f.server || !cfg.bragd_server().is_empty())
 }
 
 /// Whether what concerns `families` shows to the user of `cfg`: it names none, or one of them
@@ -155,7 +169,7 @@ pub fn list(cfg: &crate::config::Config, query: &str) -> Vec<Entry> {
     let words: Vec<String> = fold(query).split_whitespace().map(String::from).collect();
     FEATURES
         .iter()
-        .filter(|f| concerns(cfg, f.families))
+        .filter(|f| shown(cfg, f))
         .map(entry)
         .filter(|e| {
             let hay = format!(
@@ -188,7 +202,7 @@ mod tests {
                 );
             }
         }
-        let cfg = crate::config::Config::default();
+        let cfg = crate::config::Config::parse("[online]\nserver = \"https://bragd.example\"\n").unwrap();
         let all = list(&cfg, "");
         assert_eq!(all.len(), FEATURES.len());
         assert!(all.iter().all(|e| e.qa.len() >= 2 && !e.title.is_empty()));
@@ -206,7 +220,7 @@ mod tests {
     #[test]
     fn f1_lists_only_features_of_families_that_are_on() {
         let only_go = crate::config::Config::parse(
-            "[families.family]\nchess = false\nxiangqi = false\nshogi = false\ndraughts = false\ntafl = false\nbackgammon = false\nur = false\nsenet = false\n",
+            "[online]\nserver = \"https://bragd.example\"\n[families.family]\nchess = false\nxiangqi = false\nshogi = false\ndraughts = false\ntafl = false\nbackgammon = false\nur = false\nsenet = false\n",
         )
         .unwrap();
         let ids: Vec<&str> = list(&only_go, "").iter().map(|e| e.id).collect();
@@ -216,6 +230,22 @@ mod tests {
         for kept in ["ogs", "friends", "annotations", "play", "update"] {
             assert!(ids.contains(&kept), "{kept} is missing with go on");
         }
+    }
+
+    /// Without a Bragd server address, Play with Friends, Chat and Calls are not offered in F1,
+    /// on a tour card, in What's new or as a Tip: their page is hidden. With one, they are.
+    #[test]
+    fn friends_show_only_once_a_bragd_server_is_set() {
+        let none = crate::config::Config::default();
+        let set = crate::config::Config::parse("[online]\nserver = \"https://bragd.example\"\n").unwrap();
+        let ids = |cfg| list(cfg, "").iter().map(|e| e.id).collect::<Vec<_>>();
+        let cards = |cfg| crate::tour::by_version(cfg).into_iter().flat_map(|(_, v)| v).map(|c| c.id).collect::<Vec<_>>();
+        for id in ["friends", "chat", "calls"] {
+            assert!(!ids(&none).contains(&id) && !cards(&none).contains(&id), "{id} offered with no server");
+            assert!(ids(&set).contains(&id) && cards(&set).contains(&id), "{id} hidden with a server");
+            assert!(!shown(&none, find(id).unwrap()) && shown(&set, find(id).unwrap()), "{id}: its Tip");
+        }
+        assert!(ids(&none).contains(&"ogs"), "other online play stays");
     }
 
     /// Every Family a Feature, a tour card (through its Feature) or a changelog row names is
