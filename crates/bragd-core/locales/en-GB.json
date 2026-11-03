@@ -287,16 +287,12 @@
  "wizard.close": "Close the wizard",
  "wizard.done": "Done",
  "wizard.engine_found": "Installed: {path}",
- "wizard.engine_get": "Where to get it",
- "wizard.engine_missing": "Not installed",
  "wizard.engines": "Engines Bragd found on this machine, for each Game family that is on.",
  "wizard.bot": "Bragd's own Bot plays it.",
  "wizard.engines_none": "No Game family that is on uses an outside Engine.",
  "wizard.failed": "{what} could not be started: {error}",
  "wizard.families": "Which games do you play? Pick one, and Bragd shows only that one everywhere. You can add more in Settings at any time.",
  "wizard.helper": "The Helper fetches Sources and keeps your Libraries in order in the background, for every Bragd window.",
- "wizard.image_ready": "A sealed image can be pulled with podman or docker.",
- "wizard.image_unpublished": "Bragd has no sealed image of it.",
  "wizard.knowledge": "Downloads that make Bragd more useful. Each shows its size first. Nothing downloads until you press Done on the last step.",
  "wizard.languages": "Languages, by their own names",
  "wizard.later": "You can change this later in Settings → {area}.",
@@ -1944,5 +1940,18 @@
  "feature.ur_solved.a3": "By the chance to win it gave away against the best move for the same throw: 5 points is ?!, 10 is ?, 20 is ??.",
  "feature.ur_solved.tip": "Make Ur's solved tables on its Engines page, then play perfect play or review a Game.",
  "tour.ur_solved.title": "Ur, solved",
- "tour.ur_solved.text": "Make an Ur rule set's solved table on its Engines page. Play then offers perfect play at a strength you set, and Analyse marks each move by the exact chance to win it gave away."
+ "tour.ur_solved.text": "Make an Ur rule set's solved table on its Engines page. Play then offers perfect play at a strength you set, and Analyse marks each move by the exact chance to win it gave away.",
+ "commentary.engine_running": "Stop the Engine to write Commentary on what it found.",
+ "strip.example": "e.g. {x}",
+ "wizard.engines_images": {
+  "one": "{n} other Engine can be pulled as a sealed image with podman or docker: sidebar → {family} → Engines.",
+  "other": "{n} other Engines can be pulled as sealed images with podman or docker: sidebar → {family} → Engines."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} other Engine has no sealed image. Install it yourself: sidebar → {family} → Engines says where to get it.",
+  "other": "{n} other Engines have no sealed image. Install them yourself: sidebar → {family} → Engines says where to get them."
+ },
+ "play.resign_menu": "Resign…",
+ "play.resign_ask": "Which win do you give your opponent?",
+ "play.opening": "{side} starts: {high} against {low}. The higher die plays both dice."
 }

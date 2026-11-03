@@ -14,6 +14,8 @@ demo="${DEMO_HOME:-${XDG_RUNTIME_DIR:-/tmp}/bragd-demo-home}"
 # No containers in here (CLAUDE.md, Testing on a machine someone uses): a podman run in the
 # sandbox would start its pause process in the sandbox's namespaces and point the user's
 # rootless podman at it. Every podman and docker on the PATH is covered with an empty file.
+# A picture that needs a container runtime puts a stand-in script in the demo home's
+# .stand-ins, which is on the PATH (pages.py, engines).
 no_containers=()
 for b in $(type -ap podman docker 2>/dev/null) /usr/bin/podman /usr/bin/docker; do
   [ -e "$b" ] && no_containers+=(--ro-bind /dev/null "$(readlink -f "$b")")
@@ -41,7 +43,7 @@ exec bwrap \
   --setenv HOME /home/demo --setenv USER demo --setenv LOGNAME demo \
   --setenv XDG_CONFIG_HOME /home/demo/.config --setenv XDG_CACHE_HOME /home/demo/.cache \
   --setenv XDG_DATA_HOME /home/demo/.local/share \
-  --setenv PATH "/opt/bragd:/usr/local/bin:/usr/bin:/bin" \
+  --setenv PATH "/opt/bragd:/home/demo/.stand-ins:/usr/local/bin:/usr/bin:/bin" \
   --setenv LANG "${LANG:-C.UTF-8}" \
   --setenv XDG_RUNTIME_DIR "$XDG_RUNTIME_DIR" \
   --setenv WAYLAND_DISPLAY "${WAYLAND_DISPLAY:-}" --setenv DISPLAY "${DISPLAY:-}" \

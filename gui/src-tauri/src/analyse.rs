@@ -321,7 +321,7 @@ pub struct LineView {
 
 #[derive(Serialize)]
 pub struct Now {
-    running: bool,
+    pub(crate) running: bool,
     engine: String,
     lines: Vec<LineView>,
     error: Option<String>,

@@ -287,16 +287,12 @@
  "wizard.close": "ウィザードを閉じる",
  "wizard.done": "完了",
  "wizard.engine_found": "インストール済み: {path}",
- "wizard.engine_get": "入手先",
- "wizard.engine_missing": "未インストール",
  "wizard.engines": "オンのゲームファミリーごとに、Bragd がこのパソコンで見つけたエンジン。",
  "wizard.bot": "Bragd 独自のボットが対局します。",
  "wizard.engines_none": "オンのゲームファミリーで外部エンジンを使うものはありません。",
  "wizard.failed": "{what} を起動できませんでした: {error}",
  "wizard.families": "どのゲームで遊びますか。一つ選ぶと、Bragd はどこでもそれだけを表示します。設定でいつでも追加できます。",
  "wizard.helper": "ヘルパーはバックグラウンドで、すべての Bragd ウィンドウのためにソースを取得し、ライブラリーを整理します。",
- "wizard.image_ready": "封印されたイメージは podman か docker で取得できます。",
- "wizard.image_unpublished": "Bragd にはそのための封印されたイメージがありません。",
  "wizard.knowledge": "Bragd をより役立てるためのダウンロードです。それぞれ先にサイズを表示します。最後の手順で「完了」を押すまで、何もダウンロードしません。",
  "wizard.languages": "言語（それぞれの言語名で表示）",
  "wizard.later": "後から 設定 → {area} で変更できます。",
@@ -1933,5 +1929,16 @@
  "feature.ur_solved.a3": "同じ目での最善手と比べて譲った勝率で付きます。5点は ?!、10点は ?、20点は ?? です。",
  "feature.ur_solved.tip": "ウルの解析表はエンジンページで作成し、完全なプレイを行うか、対局を検討してください。",
  "tour.ur_solved.title": "ウル、解析済み",
- "tour.ur_solved.text": "ウルのルールセットの解析表を、そのエンジンページで作成してください。対局では設定した強さの完全なプレイを選べ、解析では各手が譲った正確な勝率で印が付きます。"
+ "tour.ur_solved.text": "ウルのルールセットの解析表を、そのエンジンページで作成してください。対局では設定した強さの完全なプレイを選べ、解析では各手が譲った正確な勝率で印が付きます。",
+ "commentary.engine_running": "エンジンを止めると、見つけた内容の解説を書けます。",
+ "strip.example": "例: {x}",
+ "wizard.engines_images": {
+  "other": "ほかに {n} 個のエンジンを、podman か docker で封印されたコンテナーイメージとして取得できます: サイドバー → {family} → エンジン。"
+ },
+ "wizard.engines_by_hand": {
+  "other": "ほかに {n} 個のエンジンには封印されたイメージがありません。ご自身でインストールしてください: サイドバー → {family} → エンジン で入手先を確認できます。"
+ },
+ "play.resign_menu": "投了…",
+ "play.resign_ask": "相手に与える勝ちはどれですか？",
+ "play.opening": "{side}が先攻: {high} 対 {low}。大きい目で両方のサイコロを動かします。"
 }

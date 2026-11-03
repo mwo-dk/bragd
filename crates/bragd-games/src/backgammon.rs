@@ -13,13 +13,13 @@
 //! White's bar is `x = 0` and Black's bar is `x = 25`, and `y` is always 0.
 
 use crate::{
-    Awaiting, Board, CubeView, GameError, Hand, HandPiece, Highlight, HighlightKind, LegalMove,
-    Outcome, Placed, Seat, State, Variant,
+    Awaiting, Board, CubeView, GameError, Hand, HandPiece, Highlight, HighlightKind, Label,
+    LegalMove, Outcome, Placed, Seat, State, Variant,
 };
 use rules_backgammon::board::{index_of, number_at};
 use rules_backgammon::{
-    Concession, Continuation, Destination, Game, Needed, Origin, POINTS, Play, Position, Side,
-    Turn, WinReason,
+    Concession, Continuation, Destination, Entry, Game, Needed, Origin, POINTS, Play, Position,
+    Side, Turn, WinReason,
 };
 use std::collections::BTreeMap;
 
@@ -293,6 +293,21 @@ fn state(game: &Game, part: &[Play]) -> State {
         })
         .collect();
     used.reverse();
+    // Each point printed in the numbering of the Side to act, as its moves are written; White's
+    // once the Game is over.
+    let reader = needs.map_or(Side::White, |needed| needed.side());
+    let labels = (0..POINTS)
+        .map(|index| Label { x: number_at(Side::White, index), y: 0, text: number_at(reader, index).to_string() })
+        .collect();
+    // The opening throw is one die each, the higher one the starter's: whose each die is, while
+    // the starter plays it.
+    let starter = game.initial_position().to_move();
+    let opening = match (game.entries(), dice.as_slice()) {
+        ([Entry::Roll(_)], [_, _]) if *game.initial_position() == Position::starting_with(starter) => {
+            vec![seat(starter).index, seat(starter.other()).index]
+        }
+        _ => Vec::new(),
+    };
     let info = Variant::Backgammon.info();
     State {
         variant: Variant::Backgammon,
@@ -305,6 +320,7 @@ fn state(game: &Game, part: &[Play]) -> State {
         throws,
         history: game.entries().iter().map(|entry| entry.to_wire()).collect(),
         numbers: Vec::new(),
+        written: Vec::new(),
         check: false,
         // One possible next checker move, played by itself through `step`; or a roll that
         // can play nothing, whose `(no play)` is the whole turn.
@@ -341,6 +357,8 @@ fn state(game: &Game, part: &[Play]) -> State {
             }),
             dice: dice.clone(),
             used,
+            labels,
+            opening,
             ..Board::default()
         },
     }

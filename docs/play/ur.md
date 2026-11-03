@@ -81,7 +81,7 @@ Chances are shown from Light's view, like every evaluation in Bragd. The chances
 | Bear off | Click the piece, then your *Off the board* tray, which is marked when bearing off is legal |
 | Or pick the move | Click it under *Legal moves*. Every legal move for the throw is listed |
 
-A throw with no legal move passes the turn by itself, and *No move with n* says so. A throw with one legal move plays it by itself after a short pause ([Forced moves](against-yourself.md#forced-moves)). Board colours: [Board themes](../look/board-themes.md).
+A throw with no legal move passes the turn by itself, and *No move with n* says so. *Moves* lists one entry a turn: its number, the throw and the move, such as `3 2: 5-7`. A throw that allowed no move is written with a dash, `4 0: –`. Each Side's path is dashed on the board, with an arrow on the last square. On a window narrower than 760 px, Aseb's board, twelve squares long, lies on its side so its squares are big enough to click. A throw with one legal move plays it by itself after a short pause ([Forced moves](against-yourself.md#forced-moves)). Board colours: [Board themes](../look/board-themes.md).
 
 ## Settings and config.toml
 

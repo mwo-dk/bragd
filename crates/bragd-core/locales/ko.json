@@ -287,16 +287,12 @@
  "wizard.close": "마법사 닫기",
  "wizard.done": "완료",
  "wizard.engine_found": "설치됨: {path}",
- "wizard.engine_get": "받을 곳",
- "wizard.engine_missing": "설치되지 않음",
  "wizard.engines": "켜 둔 게임 계열마다, Bragd가 이 컴퓨터에서 찾은 엔진.",
  "wizard.bot": "Bragd 자체 봇이 둡니다.",
  "wizard.engines_none": "켜 둔 게임 계열 중 외부 엔진을 쓰는 것은 없습니다.",
  "wizard.failed": "{what}을(를) 시작할 수 없습니다: {error}",
  "wizard.families": "어떤 게임을 두시나요? 하나를 고르면 Bragd은 어디서나 그것만 보여 줍니다. 설정에서 언제든 더 추가할 수 있습니다.",
  "wizard.helper": "헬퍼는 백그라운드에서 모든 Bragd 창을 위해 출처를 가져오고 라이브러리를 정리합니다.",
- "wizard.image_ready": "봉인된 이미지는 podman 또는 docker로 가져올 수 있습니다.",
- "wizard.image_unpublished": "Bragd에는 그것의 봉인된 이미지가 없습니다.",
  "wizard.knowledge": "Bragd을 더 유용하게 해 주는 다운로드입니다. 각각 먼저 크기를 보여 줍니다. 마지막 단계에서 '완료'를 누르기 전에는 아무것도 받지 않습니다.",
  "wizard.languages": "언어 (각 언어의 고유 이름으로)",
  "wizard.later": "나중에 설정 → {area}에서 바꿀 수 있습니다.",
@@ -1933,5 +1929,16 @@
  "feature.ur_solved.a3": "같은 던지기에서 최선의 수와 비교해 내준 승률로 표시합니다. 5점은 ?!, 10점은 ?, 20점은 ?? 입니다.",
  "feature.ur_solved.tip": "우르의 엔진 페이지에서 해결된 표를 만든 다음, 완벽한 대국을 두거나 대국을 검토하세요.",
  "tour.ur_solved.title": "우르, 해결됨",
- "tour.ur_solved.text": "우르 규칙 세트의 해결된 표를 엔진 페이지에서 만드세요. 두기에서 설정한 세기의 완벽한 대국을 고를 수 있고, 분석은 각 수가 내준 정확한 승률로 표시합니다."
+ "tour.ur_solved.text": "우르 규칙 세트의 해결된 표를 엔진 페이지에서 만드세요. 두기에서 설정한 세기의 완벽한 대국을 고를 수 있고, 분석은 각 수가 내준 정확한 승률로 표시합니다.",
+ "commentary.engine_running": "엔진을 멈추면 엔진이 찾은 내용에 대한 해설을 쓸 수 있습니다.",
+ "strip.example": "예: {x}",
+ "wizard.engines_images": {
+  "other": "다른 엔진 {n}개는 podman 또는 docker로 봉인된 컨테이너 이미지로 받을 수 있습니다: 사이드바 → {family} → 엔진."
+ },
+ "wizard.engines_by_hand": {
+  "other": "다른 엔진 {n}개에는 봉인된 이미지가 없습니다. 직접 설치하세요: 사이드바 → {family} → 엔진에서 받는 곳을 확인하세요."
+ },
+ "play.resign_menu": "기권…",
+ "play.resign_ask": "상대에게 어떤 승리를 주시겠습니까?",
+ "play.opening": "{side}이(가) 선공: {high} 대 {low}. 높은 주사위가 두 주사위를 모두 사용합니다."
 }

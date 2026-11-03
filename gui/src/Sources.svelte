@@ -114,9 +114,11 @@
         <strong>{s.name}</strong>
       </label>
       <span class="meta">{s.familyName} · {s.size}{s.fetchable ? ` · ${t("source.last", { when: s.last })}` : ""}</span>
-      <button onclick={() => expand(s)} aria-expanded={open === s.id} disabled={!s.fetchable}>{open === s.id ? t("source.less") : t("source.more")}</button>
-      <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.fetchable || !s.options.enabled}>{t("source.fetch_now")}</button>
-      {#if s.custom}<button onclick={() => (removing = s.id)}>{t("source.remove")}</button>{/if}
+      <span class="buttons">
+        <button onclick={() => expand(s)} aria-expanded={open === s.id} disabled={!s.fetchable}>{open === s.id ? t("source.less") : t("source.more")}</button>
+        <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.fetchable || !s.options.enabled}>{t("source.fetch_now")}</button>
+        {#if s.custom}<button onclick={() => (removing = s.id)}>{t("source.remove")}</button>{/if}
+      </span>
     </div>
     {#if removing === s.id}
       <div class="notice" role="alertdialog" aria-label={t("source.remove")}>
@@ -264,6 +266,12 @@
   }
   .url {
     overflow-wrap: anywhere;
+  }
+  /* A card's buttons wrap as one group, never Fetch now alone under Options. */
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
   }
   label {
     display: flex;

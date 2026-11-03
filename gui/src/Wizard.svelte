@@ -4,7 +4,7 @@
   // and 6 are saved at once, as in Settings; the Knowledge downloads start only with Done.
   // Closed in any way, it is not shown by itself again.
   import * as api from "./api.js";
-  import { t } from "./i18n.svelte.js";
+  import { t, tn } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
   import { guide } from "./guide.svelte.js";
   import FamilyToggles from "./FamilyToggles.svelte";
@@ -99,7 +99,9 @@
       <button class="x" onclick={close} title={t("wizard.close")} aria-label={t("wizard.close")}>×</button>
     </header>
 
-    <div class="body">
+    <!-- Focusable, so a step with nothing to press (Engines, all found or counted) still scrolls by keys. -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div class="body" tabindex="0" role="region" aria-labelledby="wizard-title">
       {#if tour}
         {@const c = guide.cards[step]}
         <p class="version">{t("whats_new.version", { version: c.version })}</p>
@@ -142,7 +144,7 @@
               <span class="board" aria-hidden="true">
                 {#each Array(16) as _, i}<i class:dark={(i + Math.floor(i / 4)) % 2 === 1}></i>{/each}
               </span>
-              <button class="primary" tabindex="-1">{t("wizard.next")}</button>
+              <i class="accent" aria-hidden="true"></i>
             </div>
           </div>
         </div>
@@ -162,18 +164,20 @@
       {:else if current?.id === "engines"}
         <p class="lead">{t("wizard.engines")}</p>
         {#each data.engines as f}
+          {@const found = f.engines.filter((/** @type {any} */ e) => e.installed)}
+          {@const images = f.engines.filter((/** @type {any} */ e) => !e.installed && e.image).length}
+          {@const byHand = f.engines.filter((/** @type {any} */ e) => !e.installed && !e.image).length}
           <h3>{f.name}</h3>
           {#if !f.engines.length}<p class="dim">{t("wizard.bot")}</p>{/if}
-          <ul>
-            {#each f.engines as e}
-              <li>
-                <b>{e.name}</b>:
-                {#if e.installed}<span class="ok">{t("wizard.engine_found", { path: e.installed })}</span>{:else}{t("wizard.engine_missing")}.{/if}
-                <span class="dim">{e.image ? t("wizard.image_ready") : t("wizard.image_unpublished")}</span>
-                {#if !e.installed && e.site}<button class="link" onclick={() => api.openUrl(e.site)}>{t("wizard.engine_get")}</button>{:else if !e.installed}<span class="dim">{t("engines.install_hint_package", { program: e.program })}</span>{/if}
-              </li>
-            {/each}
-          </ul>
+          {#if found.length}
+            <ul>
+              {#each found as e}
+                <li><b>{e.name}</b>: <span class="ok">{t("wizard.engine_found", { path: e.installed })}</span></li>
+              {/each}
+            </ul>
+          {/if}
+          {#if images}<p class="dim">{tn("wizard.engines_images", images, { family: f.name })}</p>{/if}
+          {#if byHand}<p class="dim">{tn("wizard.engines_by_hand", byHand, { family: f.name })}</p>{/if}
         {:else}
           <p>{t("wizard.engines_none")}</p>
         {/each}
@@ -443,6 +447,14 @@
   }
   .sample .board i.dark {
     background: var(--board-dark);
+  }
+  /* The Theme's accent as a swatch: a button here would look like one to press. */
+  .sample .accent {
+    display: block;
+    width: 6.4rem;
+    height: 0.6rem;
+    border-radius: var(--r-pill);
+    background: var(--accent);
   }
   ul {
     margin: 0 0 0.6rem;

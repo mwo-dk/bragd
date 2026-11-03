@@ -6,7 +6,6 @@ When an Engine is not installed, Bragd can run it from a sealed container image 
 
 Every Engine in the table below has an image. Its card on the Engines page shows **Get it (…)** with the download size, and nothing is downloaded until you press it. Igel and YaneuraOu have no image: install them yourself.
 
-<!-- screenshot: engines-chess-1100.png: the Engines page of chess with podman installed, a card for an Engine that is not installed showing Get it with its download size -->
 ![The Engines page of chess: a card for an Engine that is not installed, saying where it stands and what to do next](../screenshots/engines-chess-1100.png)
 *A card on the Engines page says where the Engine stands.*
 
@@ -104,7 +103,6 @@ No. It runs with no network, a read-only filesystem, no capabilities and an unpr
 
 Pikafish's evaluation network comes under its own licence: legal use only, and no commercial use without permission. So Bragd's Pikafish image holds only the program. Its card on the xiangqi Engines page says the network is missing, with **Read the network's licence…**. That shows the licence as Pikafish's release has it, the size and where it comes from. **Agree and download** downloads Pikafish's own release archive, about 53.6 MB, from GitHub. Bragd checks the archive against its SHA-256, takes `pikafish.nnue` out of it, checks that too, and keeps only the network, in `<data>/bragd/networks/pikafish/`. The image then gets it read-only, and Bragd sets its `EvalFile` option to it. Nothing is downloaded until you agree, and `BRAGD_OFFLINE` stops it. An installed Pikafish brings its own network and needs none of this.
 
-<!-- screenshot: engines-network-licence-1100.png: The licence of Pikafish's evaluation network shown before anything is downloaded, with Agree and download and Cancel, in the default Racing green dark Theme -->
 ![The licence of Pikafish's evaluation network shown before anything is downloaded, with Agree and download and Cancel](../screenshots/engines-network-licence-1100.png)
 
 #### Why did Bragd download an image again after an upgrade?

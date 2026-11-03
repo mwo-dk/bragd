@@ -287,16 +287,12 @@
  "wizard.close": "Tanca l'assistent",
  "wizard.done": "Fet",
  "wizard.engine_found": "Instal·lat: {path}",
- "wizard.engine_get": "On obtenir-lo",
- "wizard.engine_missing": "No instal·lat",
  "wizard.engines": "Motors que Bragd ha trobat en aquest ordinador, per a cada família de jocs activada.",
  "wizard.bot": "El bot propi de Bragd el juga.",
  "wizard.engines_none": "Cap família de jocs activada no fa servir un motor extern.",
  "wizard.failed": "No s'ha pogut iniciar {what}: {error}",
  "wizard.families": "Quins jocs jugues? Tria'n un, i Bragd només mostra aquell a tot arreu. Pots afegir-ne més a Paràmetres en qualsevol moment.",
  "wizard.helper": "L'ajudant descarrega les fonts i manté les teves biblioteques ordenades en segon pla, per a cada finestra de Bragd.",
- "wizard.image_ready": "Es pot baixar una imatge precintada amb podman o docker.",
- "wizard.image_unpublished": "Bragd no té cap imatge precintada seva.",
  "wizard.knowledge": "Descàrregues que fan Bragd més útil. Cada una mostra primer la seva mida. No es descarrega res fins que prems Fet al darrer pas.",
  "wizard.languages": "Llengües, pel seu propi nom",
  "wizard.later": "Ho pots canviar més tard a Paràmetres → {area}.",
@@ -1955,5 +1951,20 @@
  "feature.ur_solved.a3": "Per la probabilitat de guanyar que cedeix respecte de la millor jugada amb la mateixa tirada: 5 punts és ?!, 10 és ?, 20 és ??.",
  "feature.ur_solved.tip": "Fes les taules resoltes d'Ur a la seva pàgina de Motors, i després juga el joc perfecte o revisa una partida.",
  "tour.ur_solved.title": "Ur, resolt",
- "tour.ur_solved.text": "Fes la taula resolta d'un conjunt de regles d'Ur a la seva pàgina de Motors. Juga ofereix aleshores el joc perfecte amb una força que tries, i l'Anàlisi marca cada jugada amb la probabilitat exacta de guanyar que va cedir."
+ "tour.ur_solved.text": "Fes la taula resolta d'un conjunt de regles d'Ur a la seva pàgina de Motors. Juga ofereix aleshores el joc perfecte amb una força que tries, i l'Anàlisi marca cada jugada amb la probabilitat exacta de guanyar que va cedir.",
+ "commentary.engine_running": "Atura el Motor per escriure l'Explicació del que ha trobat.",
+ "strip.example": "p. ex. {x}",
+ "wizard.engines_images": {
+  "one": "{n} altre Motor es pot baixar com a imatge de contenidor precintada amb podman o docker: barra lateral → {family} → Motors.",
+  "many": "{n} altres Motors es poden baixar com a imatges de contenidor precintades amb podman o docker: barra lateral → {family} → Motors.",
+  "other": "{n} altres Motors es poden baixar com a imatges de contenidor precintades amb podman o docker: barra lateral → {family} → Motors."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} altre Motor no té imatge de contenidor precintada. Cal instal·lar-lo a mà: barra lateral → {family} → Motors indica d'on baixar-lo.",
+  "many": "{n} altres Motors no tenen imatge de contenidor precintada. Cal instal·lar-los a mà: barra lateral → {family} → Motors indica d'on baixar-los.",
+  "other": "{n} altres Motors no tenen imatge de contenidor precintada. Cal instal·lar-los a mà: barra lateral → {family} → Motors indica d'on baixar-los."
+ },
+ "play.resign_menu": "Abandona…",
+ "play.resign_ask": "Quina victòria li concedeixes al rival?",
+ "play.opening": "{side} comença: {high} contra {low}. El dau més alt juga els dos daus."
 }

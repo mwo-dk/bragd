@@ -2,7 +2,9 @@
 // worked out here: the moves, their ends and the cells all come from bragd-games.
 
 /** The column and row (from the top left) of cell (x, y), counted from the first Side's bottom left. */
-export function place(/** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ files, /** @type {number} */ ranks, /** @type {boolean} */ flipped) {
+export function place(/** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ files, /** @type {number} */ ranks, /** @type {boolean} */ flipped, sideways = false) {
+  // On its side (a long race track on a narrow window): files run down, the first Side on the left.
+  if (sideways) return flipped ? { col: ranks - 1 - y, row: files - 1 - x } : { col: y, row: x };
   return flipped ? { col: files - 1 - x, row: y } : { col: x, row: ranks - 1 - y };
 }
 
@@ -28,6 +30,15 @@ export function movesTo(/** @type {{moves: any[], steps?: any[]}} */ state, /** 
 }
 
 /** The moves with no square at all: pass, double, take, drop, accept, resume. */
+/**
+ * The move list's entries in groups that wrap as one: a numbered entry and the unnumbered ones
+ * after it, as `1. e4 e5` or Ur's `3 2: 5-7`. Each group holds indexes into `numbers`.
+ * @param {string[]} numbers
+ * @returns {number[][]}
+ */
+export const groups = (numbers) =>
+  numbers.reduce((/** @type {number[][]} */ g, n, i) => (n || !g.length ? g.push([i]) : g[g.length - 1].push(i), g), []);
+
 export const plainMoves = (/** @type {{moves: any[]}} */ state) => state.moves.filter((m) => !m.from && !m.to && !m.drop);
 
 /**

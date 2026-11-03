@@ -1,11 +1,24 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { place, movesOf, movesTo, plainMoves, point, gates } from "./board.js";
+import { place, movesOf, movesTo, plainMoves, point, gates, groups } from "./board.js";
+
+test("a move's number keeps the moves after it on its line", () => {
+  assert.deepEqual(groups(["1.", "", "2.", ""]), [[0, 1], [2, 3]]);
+  assert.deepEqual(groups(["1", "", "2", "3", ""]), [[0, 1], [2], [3, 4]]);
+  assert.deepEqual(groups(["", "2."]), [[0], [1]], "a list opening with a reply");
+  assert.deepEqual(groups([]), []);
+});
 
 test("a1 is bottom left, and top right when flipped", () => {
   assert.deepEqual(place(0, 0, 8, 8, false), { col: 0, row: 7 });
   assert.deepEqual(place(0, 0, 8, 8, true), { col: 7, row: 0 });
   assert.deepEqual(place(8, 9, 9, 10, false), { col: 8, row: 0 });
+});
+
+test("a board on its side runs its files down, the first Side on the left", () => {
+  assert.deepEqual(place(0, 0, 12, 3, false, true), { col: 0, row: 0 });
+  assert.deepEqual(place(11, 2, 12, 3, false, true), { col: 2, row: 11 });
+  assert.deepEqual(place(0, 0, 12, 3, true, true), { col: 2, row: 11 });
 });
 
 test("a selection picks Rust's moves by their ends", () => {

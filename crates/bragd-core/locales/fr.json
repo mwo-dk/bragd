@@ -287,16 +287,12 @@
  "wizard.close": "Fermer l’assistant",
  "wizard.done": "Terminé",
  "wizard.engine_found": "Installé : {path}",
- "wizard.engine_get": "Où le trouver",
- "wizard.engine_missing": "Non installé",
  "wizard.engines": "Moteurs que Bragd a trouvés sur cette machine, pour chaque famille de jeux activée.",
  "wizard.bot": "Le bot propre à Bragd y joue.",
  "wizard.engines_none": "Aucune famille de jeux activée n’utilise de moteur externe.",
  "wizard.failed": "{what} n’a pas pu démarrer : {error}",
  "wizard.families": "À quels jeux jouez-vous ? Choisissez-en un, et Bragd ne montre que celui-là partout. Vous pouvez en ajouter dans Réglages à tout moment.",
  "wizard.helper": "L’assistant récupère les sources et tient vos bibliothèques en ordre en arrière-plan, pour chaque fenêtre de Bragd.",
- "wizard.image_ready": "Une image scellée peut être téléchargée avec podman ou docker.",
- "wizard.image_unpublished": "Bragd n’a aucune image scellée pour lui.",
  "wizard.knowledge": "Téléchargements qui rendent Bragd plus utile. Chacun affiche d’abord sa taille. Rien ne se télécharge avant que vous appuyiez sur Terminé à la dernière étape.",
  "wizard.languages": "Langues, sous leur propre nom",
  "wizard.later": "Vous pourrez changer cela plus tard dans Réglages → {area}.",
@@ -1955,5 +1951,20 @@
  "feature.ur_solved.a3": "Par la probabilité de gagner qu’il cède face au meilleur coup pour le même jet : 5 points valent ?!, 10 valent ?, 20 valent ??.",
  "feature.ur_solved.tip": "Créez les tables résolues de l’Ur sur sa page Moteurs, puis jouez le jeu parfait ou revoyez une partie.",
  "tour.ur_solved.title": "Ur, résolu",
- "tour.ur_solved.text": "Créez la table résolue d’un ensemble de règles de l’Ur sur sa page Moteurs. Jouer propose alors un jeu parfait à la force que vous réglez, et Analyse marque chaque coup selon la probabilité exacte de gagner qu’il cède."
+ "tour.ur_solved.text": "Créez la table résolue d’un ensemble de règles de l’Ur sur sa page Moteurs. Jouer propose alors un jeu parfait à la force que vous réglez, et Analyse marque chaque coup selon la probabilité exacte de gagner qu’il cède.",
+ "commentary.engine_running": "Arrêtez le moteur pour rédiger l’Explication de ce qu’il a trouvé.",
+ "strip.example": "p. ex. {x}",
+ "wizard.engines_images": {
+  "one": "{n} autre moteur peut être téléchargé comme image de conteneur scellée avec podman ou docker : barre latérale → {family} → Moteurs.",
+  "many": "{n} autres moteurs peuvent être téléchargés comme images de conteneur scellées avec podman ou docker : barre latérale → {family} → Moteurs.",
+  "other": "{n} autres moteurs peuvent être téléchargés comme images de conteneur scellées avec podman ou docker : barre latérale → {family} → Moteurs."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} autre moteur n’a pas d’image de conteneur scellée. Installez-le vous-même : barre latérale → {family} → Moteurs indique où le trouver.",
+  "many": "{n} autres moteurs n’ont pas d’image de conteneur scellée. Installez-les vous-mêmes : barre latérale → {family} → Moteurs indique où les trouver.",
+  "other": "{n} autres moteurs n’ont pas d’image de conteneur scellée. Installez-les vous-mêmes : barre latérale → {family} → Moteurs indique où les trouver."
+ },
+ "play.resign_menu": "Abandonner…",
+ "play.resign_ask": "Quelle victoire accordez-vous à votre adversaire ?",
+ "play.opening": "{side} commence : {high} contre {low}. Le dé le plus haut joue les deux dés."
 }

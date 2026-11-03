@@ -287,16 +287,12 @@
  "wizard.close": "Sulge nõustaja",
  "wizard.done": "Valmis",
  "wizard.engine_found": "Paigaldatud: {path}",
- "wizard.engine_get": "Kust see saada",
- "wizard.engine_missing": "Pole paigaldatud",
  "wizard.engines": "Engine'id, mida Bragd leidis sellel arvutil iga sisselülitatud mängupere jaoks.",
  "wizard.bot": "Bragdi enda Bot mängib seda.",
  "wizard.engines_none": "Ükski sisselülitatud mängupere ei kasuta välist Engine'it.",
  "wizard.failed": "{what} ei õnnestunud käivitada: {error}",
  "wizard.families": "Mida sa mängid? Vali üks ja Bragd näitab kõikjal ainult seda. Rohkem saab lisada Sätetes igal ajal.",
  "wizard.helper": "Abiline toob allikaid ja hoiab su kogud taustal korras iga Bragdi akna jaoks.",
- "wizard.image_ready": "Suletud pildi saab tõmmata podmani või dockeriga.",
- "wizard.image_unpublished": "Bragdil pole selle jaoks suletud pilti.",
  "wizard.knowledge": "Allalaadimised, mis teevad Bragdi kasulikumaks. Igaüks näitab enne oma suurust. Midagi ei laadita alla enne, kui vajutad viimasel sammul Valmis.",
  "wizard.languages": "Keeled nende enda nimedega",
  "wizard.later": "Seda saad hiljem muuta jaotises Sätted → {area}.",
@@ -1944,5 +1940,18 @@
  "feature.ur_solved.a3": "Selle järgi, kui palju võidutõenäosust see andis ära parima käigu vastu samal viskel: 5 punkti on ?!, 10 on ?, 20 on ??.",
  "feature.ur_solved.tip": "Tee Uri lahendatud tabelid tema Engines'i lehel ja mängi siis täiuslikku mängu või vaata partii üle.",
  "tour.ur_solved.title": "Ur, lahendatud",
- "tour.ur_solved.text": "Tee Uri reeglistiku lahendatud tabel tema Engines'i lehel. Mängi pakub siis täiuslikku mängu sinu valitud tugevusega ja Analüüs märgib iga käigu täpse võidutõenäosusega, mille see andis ära."
+ "tour.ur_solved.text": "Tee Uri reeglistiku lahendatud tabel tema Engines'i lehel. Mängi pakub siis täiuslikku mängu sinu valitud tugevusega ja Analüüs märgib iga käigu täpse võidutõenäosusega, mille see andis ära.",
+ "commentary.engine_running": "Peata Engine, et saaks kirjutada Selgituse selle leidude kohta.",
+ "strip.example": "nt {x}",
+ "wizard.engines_images": {
+  "one": "{n} muu Engine saab tõmmata suletud konteinerpildina podman või docker abil: külgriba → {family} → Engines.",
+  "other": "{n} muud Engine'it saavad tõmmata suletud konteinerpiltidena podman või docker abil: külgriba → {family} → Engines."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} muu Engine pole suletud konteinerpilti. Paigalda see käsitsi: külgriba → {family} → Engines ütleb, kust see saada.",
+  "other": "{n} muud Engine'it pole suletud konteinerpilti. Paigalda need käsitsi: külgriba → {family} → Engines ütleb, kust need saada."
+ },
+ "play.resign_menu": "Loobu…",
+ "play.resign_ask": "Millist võitu annad vastasele?",
+ "play.opening": "{side} alustab: {high} vastu {low}. Kõrgem täring mängib mõlema täringuga."
 }

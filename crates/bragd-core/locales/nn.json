@@ -287,16 +287,12 @@
  "wizard.close": "Lukk vegvisaren",
  "wizard.done": "Ferdig",
  "wizard.engine_found": "Installert: {path}",
- "wizard.engine_get": "Kvar du får han",
- "wizard.engine_missing": "Ikkje installert",
  "wizard.engines": "Motorar Bragd fann på denne maskina, for kvar spelfamilie som er på.",
  "wizard.bot": "Bragds eigen bot spelar det.",
  "wizard.engines_none": "Ingen påslått spelfamilie brukar ein motor utanfrå.",
  "wizard.failed": "{what} kunne ikkje startast: {error}",
  "wizard.families": "Kva for spel speler du? Vel eitt, so viser Bragd berre det overalt. Du kan leggje til fleire når som helst under Innstillingar.",
  "wizard.helper": "Hjelparen hentar kjelder og held biblioteka dine i orden i bakgrunnen, for kvart Bragd-vindauge.",
- "wizard.image_ready": "Eit lukka bilete kan lastast ned med podman eller docker.",
- "wizard.image_unpublished": "Bragd har ikkje noko lukka bilete for det.",
  "wizard.knowledge": "Nedlastingar som gjer Bragd meir nyttig. Kvar viser storleiken sin først. Ingenting blir lasta ned før du trykkjer Ferdig på siste steg.",
  "wizard.languages": "Språk, med deira eigne namn",
  "wizard.later": "Du kan endre dette seinare under Innstillingar → {area}.",
@@ -1944,5 +1940,18 @@
  "feature.ur_solved.a3": "Etter vinnarsjansen det gav bort mot det beste trekket for same kast: 5 poeng er ?!, 10 er ?, 20 er ??.",
  "feature.ur_solved.tip": "Lag Ur sine løyste tabellar under Motorar, og speel deretter perfekt spel eller gjennomgå eit parti.",
  "tour.ur_solved.title": "Ur, løyst",
- "tour.ur_solved.text": "Lag eit Ur-regelsett sin løyste tabell under Motorar. Spel tilbyr då perfekt spel med ein styrke du vel, og Analyse markerer kvart trekk etter den eksakte vinnarsjansen det gav bort."
+ "tour.ur_solved.text": "Lag eit Ur-regelsett sin løyste tabell under Motorar. Spel tilbyr då perfekt spel med ein styrke du vel, og Analyse markerer kvart trekk etter den eksakte vinnarsjansen det gav bort.",
+ "commentary.engine_running": "Stopp motoren, så kan Forklaring skrivast om det han fann.",
+ "strip.example": "t.d. {x}",
+ "wizard.engines_images": {
+  "one": "{n} annan motor kan hentast som eit forsegla bilete med podman eller docker: sidemeny → {family} → Motorar.",
+  "other": "{n} andre motorar kan hentast som forsegla bilete med podman eller docker: sidemeny → {family} → Motorar."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} annan motor har ikkje eit forsegla bilete. Installer han sjølv: sidemeny → {family} → Motorar fortel kvar du finn han.",
+  "other": "{n} andre motorar har ikkje forsegla bilete. Installer dei sjølve: sidemeny → {family} → Motorar fortel kvar du finn dei."
+ },
+ "play.resign_menu": "Gi opp…",
+ "play.resign_ask": "Kva slags siger gjev du motstandaren?",
+ "play.opening": "{side} startar: {high} mot {low}. Den høgaste terningen speler begge terningane."
 }

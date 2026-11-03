@@ -36,7 +36,7 @@ Choices in steps 1, 2 and 6 are saved at once, as in Settings. Nothing is downlo
 
 ## What it needs
 
-Nothing. The Engines step looks for Engines the way Play does: the path given on a Family's Engines page (`engines.paths`) first, then the programs on the PATH. It lists those it does not find with a *Where to get it* link. The Knowledge step asks the Helper for its Sources and the system for the free space on the data disk.
+Nothing. The Engines step looks for Engines the way Play does: the path given on a Family's Engines page (`engines.paths`) first, then the programs on the PATH. It lists those it finds with their paths, and sums up the rest in a line or two per Family: how many can be pulled as sealed images, and how many you must install yourself. A Family's Engines page names each one and where to get it. The Knowledge step asks the Helper for its Sources and the system for the free space on the data disk.
 
 ## Settings and config.toml
 
@@ -70,9 +70,13 @@ Six as swatches: Racing green (dark), Racing green, Light, Dark, Paper white and
 
 *Settings → Overview → Run the install wizard again*. What you chose before is kept. The Knowledge step starts again with the recommended downloads ticked.
 
-#### Why does the Engines step show "Bragd has no sealed image of it"?
+#### Why does the Engines step say some Engines have no sealed image?
 
-Bragd builds no image of some Engines, such as Igel and YaneuraOu: install them on the machine. Every other Engine shows *A sealed image can be pulled with podman or docker* ([Engine container images](../engines/container-images.md)).
+Bragd builds no image of some Engines, such as Igel and YaneuraOu: install them on the machine. Every other Engine can be pulled as a sealed image with podman or docker from its Family's Engines page ([Engine container images](../engines/container-images.md)).
+
+#### Why does the Engines step not list every Engine?
+
+So the Engines you have stand out. It names those it found, and counts the rest. The Family's Engines page in the sidebar lists every one, with *Get it* or a link to its site.
 
 #### I picked Only Chess. How do I add go?
 

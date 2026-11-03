@@ -24,16 +24,21 @@ Nothing to play against yourself. Against an Engine: GNU Backgammon, installed o
 
 | What you want | What you do |
 |---|---|
-| Throw the dice | **Throw**, under the turn line. The opening throw is one die for each Side: the higher die moves first and plays both dice, and a tie is thrown again, so the first turn is never a double. A double is four dice |
+| Throw the dice | **Throw**, under the turn line. The opening throw is one die for each Side: the higher die moves first and plays both dice, and a tie is thrown again, so the first turn is never a double. A small checker under each die shows whose it is, and the turn line says who starts, such as *White starts: 4 against 2* |
 | Double | **Double**, before you throw. It shows only when you may double: you hold the cube or it is in the middle, and the opening throw is over. Analyse has no Double, as there is no one to double or resign to |
 | Answer a double | **Take** keeps playing at twice the stake. **Drop** gives up the Game at the stake before the double |
 | Move a checker | Click its point, then a marked point (or *off*), or drag it there. The checker moves at once and uses one die, which turns grey. Move the next the same way; when the dice are used, the turn is played |
+| Resign | **Resign…**, then the result you give: a single game, a gammon or a backgammon. Only against an Engine, on your turn |
 | Take a checker back | **Undo**, before the last die is used. After the turn is played, Undo takes back the whole turn |
 | Or pick the whole turn | Click it under *Legal moves*, before you move a checker. Every legal turn for the dice is listed |
 | Come in from the bar | Click the bar, then the point to enter on |
 | Bear off | Click the checker, then the tray at the right of the board. White bears off into the lower tray, Black into the upper one |
 
-Only checkers that leave a legal way to finish the turn are marked: you must use as many dice as you can, and the larger die when only one fits. Points are numbered from White's side, 1 to 24. Board colours: [Board themes](../look/board-themes.md).
+Only checkers that leave a legal way to finish the turn are marked: you must use as many dice as you can, and the larger die when only one fits. Board colours: [Board themes](../look/board-themes.md).
+
+## Point numbers
+
+Each player counts the points from their own side, as backgammon notation does: your home board is 1 to 6, and your back checkers start on your 24-point. The numbers on the board follow the Side to move, so they always match the moves under *Legal moves*. With White to move, White's back checkers stand on 24; when Black is to move, the numbers turn round and Black's back checkers stand on 24. Once the Game is over the board shows White's numbers.
 
 ## Settings and config.toml
 
@@ -54,7 +59,11 @@ No. The record holds whole turns, such as `13/8 13/7`, written once the dice are
 
 #### Who moves first?
 
-The Side that throws the higher die on the opening throw. Bragd throws one die for White and one for Black, again on a tie, and the winner plays those two dice as the first turn. That is why the first turn is never a double.
+The Side that throws the higher die on the opening throw. Bragd throws one die for White and one for Black, again on a tie, and the winner plays those two dice as the first turn. That is why the first turn is never a double. Each die shows a small checker of its Side under it until the first turn is played.
+
+#### Why did the point numbers change?
+
+They follow the Side to move. A move such as `13/8` counts from the mover's side, so Black's `13/8` starts on the point White calls 12. Turning the numbers round keeps the board and the moves in one numbering.
 
 #### Why is there no Throw button after I press Double?
 
@@ -74,7 +83,7 @@ No. GNU Backgammon as an Engine Side always takes a double and never offers one.
 
 #### Can I resign?
 
-Yes, on your turn. The buttons under the turn line resign a single game, a gammon or a backgammon. You lose one, two or three points, times the cube. The Game ends at once, and the banner shows the points.
+Yes, against an Engine, on your turn. **Resign…** under the turn line asks which result you give: a single game, a gammon or a backgammon. Against yourself there is no one to resign to, so it does not show. You lose one, two or three points, times the cube. The Game ends at once, and the banner shows the points.
 
 ---
 [← Previous: Tafl](tafl.md) · [Next: Ur →](ur.md)

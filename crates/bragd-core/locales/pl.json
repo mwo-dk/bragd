@@ -287,16 +287,12 @@
  "wizard.close": "Zamknij kreator",
  "wizard.done": "Gotowe",
  "wizard.engine_found": "Zainstalowany: {path}",
- "wizard.engine_get": "Skąd go wziąć",
- "wizard.engine_missing": "Nie zainstalowany",
  "wizard.engines": "Silniki, które Bragd znalazł na tym komputerze, dla każdej włączonej rodziny gier.",
  "wizard.bot": "Własny bot Bragda gra w nią.",
  "wizard.engines_none": "Żadna włączona rodzina gier nie używa zewnętrznego silnika.",
  "wizard.failed": "Nie udało się uruchomić {what}: {error}",
  "wizard.families": "W jakie gry grasz? Wybierz jedną, a Bragd wszędzie pokaże tylko tę. Więcej możesz dodać w każdej chwili w Ustawieniach.",
  "wizard.helper": "Pomocnik pobiera źródła i w tle porządkuje twoje biblioteki dla każdego okna Bragda.",
- "wizard.image_ready": "Zamknięty obraz można pobrać przez podman lub docker.",
- "wizard.image_unpublished": "Bragd nie ma dla niego zamkniętego obrazu.",
  "wizard.knowledge": "Pobierane dodatki, które czynią Bragda bardziej użytecznym. Każdy pokazuje najpierw swój rozmiar. Nic się nie pobiera, dopóki nie klikniesz Gotowe na ostatnim kroku.",
  "wizard.languages": "Języki, w ich własnych nazwach",
  "wizard.later": "Możesz to zmienić później w Ustawieniach → {area}.",
@@ -1966,5 +1962,22 @@
  "feature.ur_solved.a3": "Szansą na wygraną, którą oddał w porównaniu z najlepszym ruchem przy tym samym rzucie: 5 punktów to ?!, 10 to ?, 20 to ??.",
  "feature.ur_solved.tip": "Utwórz rozwiązane tablice Ur na stronie Silniki, a potem graj doskonale albo przejrzyj partię.",
  "tour.ur_solved.title": "Ur, rozwiązany",
- "tour.ur_solved.text": "Utwórz rozwiązaną tablicę zestawu zasad Ur na stronie Silniki. Gra wtedy oferuje grę doskonałą na wybranej sile, a Analiza oznacza każdy ruch dokładną szansą na wygraną, którą oddał."
+ "tour.ur_solved.text": "Utwórz rozwiązaną tablicę zestawu zasad Ur na stronie Silniki. Gra wtedy oferuje grę doskonałą na wybranej sile, a Analiza oznacza każdy ruch dokładną szansą na wygraną, którą oddał.",
+ "commentary.engine_running": "Zatrzymaj silnik, aby napisać Objaśnienie tego, co znalazł.",
+ "strip.example": "np. {x}",
+ "wizard.engines_images": {
+  "one": "{n} inny silnik można pobrać jako zamknięty obraz kontenera przez podman lub docker: pasek boczny → {family} → Silniki.",
+  "few": "{n} inne silniki można pobrać jako zamknięte obrazy kontenerów przez podman lub docker: pasek boczny → {family} → Silniki.",
+  "many": "{n} innych silników można pobrać jako zamknięte obrazy kontenerów przez podman lub docker: pasek boczny → {family} → Silniki.",
+  "other": "{n} innych silników można pobrać jako zamknięte obrazy kontenerów przez podman lub docker: pasek boczny → {family} → Silniki."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} inny silnik nie ma zamkniętego obrazu. Zainstaluj go sam: pasek boczny → {family} → Silniki podaje, skąd go wziąć.",
+  "few": "{n} inne silniki nie mają zamkniętych obrazów. Zainstaluj je same: pasek boczny → {family} → Silniki podaje, skąd je wziąć.",
+  "many": "{n} innych silników nie ma zamkniętych obrazów. Zainstaluj je same: pasek boczny → {family} → Silniki podaje, skąd je wziąć.",
+  "other": "{n} innych silników nie ma zamkniętych obrazów. Zainstaluj je same: pasek boczny → {family} → Silniki podaje, skąd je wziąć."
+ },
+ "play.resign_menu": "Poddaj…",
+ "play.resign_ask": "Jaką wygraną przyznać przeciwnikowi?",
+ "play.opening": "{side} zaczyna: {high} przeciw {low}. Wyższa kostka gra obiema kostkami."
 }

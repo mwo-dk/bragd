@@ -287,16 +287,12 @@
  "wizard.close": "Cerrar el asistente",
  "wizard.done": "Listo",
  "wizard.engine_found": "Instalado: {path}",
- "wizard.engine_get": "Dónde conseguirlo",
- "wizard.engine_missing": "No instalado",
  "wizard.engines": "Motores que Bragd encontró en esta máquina, para cada familia de juegos activa.",
  "wizard.bot": "El bot propio de Bragd lo juega.",
  "wizard.engines_none": "Ninguna familia de juegos activa usa un motor externo.",
  "wizard.failed": "No se pudo iniciar {what}: {error}",
  "wizard.families": "¿Qué juegos jugás? Elegí uno y Bragd muestra solo ese en todas partes. Podés agregar más en Configuración en cualquier momento.",
  "wizard.helper": "El ayudante trae las fuentes y mantiene ordenadas tus bibliotecas en segundo plano, para todas las ventanas de Bragd.",
- "wizard.image_ready": "Se puede descargar una imagen sellada con podman o docker.",
- "wizard.image_unpublished": "Bragd no tiene ninguna imagen sellada para él.",
  "wizard.knowledge": "Descargas que hacen más útil a Bragd. Cada una muestra primero su tamaño. No se descarga nada hasta que aprietes Listo en el último paso.",
  "wizard.languages": "Idiomas, con su propio nombre",
  "wizard.later": "Podés cambiarlo más tarde en Configuración → {area}.",
@@ -1952,5 +1948,20 @@
  "feature.ur_solved.a3": "Por la probabilidad de ganar que regala frente a la mejor jugada con la misma tirada: 5 puntos es ?!, 10 es ?, 20 es ??.",
  "feature.ur_solved.tip": "Hacé las tablas resueltas de Ur en su página de Motores, y después jugá el juego perfecto o revisá una partida.",
  "tour.ur_solved.title": "Ur, resuelto",
- "tour.ur_solved.text": "Hacé la tabla resuelta de un conjunto de reglas de Ur en su página de Motores. Jugar ofrece entonces el juego perfecto con una fuerza que vos elegís, y Análisis marca cada jugada con la probabilidad exacta de ganar que regaló."
+ "tour.ur_solved.text": "Hacé la tabla resuelta de un conjunto de reglas de Ur en su página de Motores. Jugar ofrece entonces el juego perfecto con una fuerza que vos elegís, y Análisis marca cada jugada con la probabilidad exacta de ganar que regaló.",
+ "commentary.engine_running": "Detené el Motor para escribir la Explicación sobre lo que encontró.",
+ "strip.example": "ej.: {x}",
+ "wizard.engines_images": {
+  "one": "{n} Motor más se puede bajar como imagen de contenedor sellada con podman o docker: barra lateral → {family} → Motores.",
+  "many": "{n} Motores más se pueden bajar como imágenes de contenedor selladas con podman o docker: barra lateral → {family} → Motores.",
+  "other": "{n} Motores más se pueden bajar como imágenes de contenedor selladas con podman o docker: barra lateral → {family} → Motores."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} Motor más no tiene imagen de contenedor sellada. Hay que instalarlo a mano: barra lateral → {family} → Motores indica de dónde bajarlo.",
+  "many": "{n} Motores más no tienen imagen de contenedor sellada. Hay que instalarlos a mano: barra lateral → {family} → Motores indica de dónde bajarlos.",
+  "other": "{n} Motores más no tienen imagen de contenedor sellada. Hay que instalarlos a mano: barra lateral → {family} → Motores indica de dónde bajarlos."
+ },
+ "play.resign_menu": "Rendirse…",
+ "play.resign_ask": "¿Qué victoria le das a tu rival?",
+ "play.opening": "{side} empieza: {high} contra {low}. El dado más alto juega los dos dados."
 }

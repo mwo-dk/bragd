@@ -101,6 +101,7 @@ fn state(game: &Game) -> State {
         throws: Vec::new(),
         history: game.moves().iter().map(|mv| mv.to_uci()).collect(),
         numbers: Vec::new(),
+        written: Vec::new(),
         check,
         forced: None,
         passed: None,

@@ -287,16 +287,12 @@
  "wizard.close": "Chiudi la procedura guidata",
  "wizard.done": "Fatto",
  "wizard.engine_found": "Installato: {path}",
- "wizard.engine_get": "Dove trovarlo",
- "wizard.engine_missing": "Non installato",
  "wizard.engines": "Motori che Bragd ha trovato su questo computer, per ogni famiglia di giochi attiva.",
  "wizard.bot": "Lo gioca il bot proprio di Bragd.",
  "wizard.engines_none": "Nessuna famiglia di giochi attiva usa un motore esterno.",
  "wizard.failed": "Impossibile avviare {what}: {error}",
  "wizard.families": "Quali giochi fai? Scegline uno e Bragd mostra solo quello, ovunque. Puoi aggiungerne altri in Impostazioni in qualsiasi momento.",
  "wizard.helper": "L'assistente scarica le fonti e tiene in ordine le tue biblioteche in background, per ogni finestra di Bragd.",
- "wizard.image_ready": "Un'immagine sigillata può essere scaricata con podman o docker.",
- "wizard.image_unpublished": "Bragd non ha nessuna immagine sigillata per esso.",
  "wizard.knowledge": "Download che rendono Bragd più utile. Ognuno mostra prima la sua dimensione. Non si scarica nulla finché non premi Fatto all'ultimo passaggio.",
  "wizard.languages": "Lingue, con il loro nome",
  "wizard.later": "Puoi cambiarlo più tardi in Impostazioni → {area}.",
@@ -1955,5 +1951,20 @@
  "feature.ur_solved.a3": "Con la probabilità di vittoria che cede rispetto alla mossa migliore per lo stesso lancio: 5 punti sono ?!, 10 sono ?, 20 sono ??.",
  "feature.ur_solved.tip": "Crea le tabelle risolte dell'Ur nella sua pagina Motori, poi gioca il gioco perfetto o rivedi una partita.",
  "tour.ur_solved.title": "Ur, risolto",
- "tour.ur_solved.text": "Crea la tabella risolta di un set di regole dell'Ur nella sua pagina Motori. Gioca offre allora il gioco perfetto alla forza che imposti, e Analisi marca ogni mossa con la probabilità esatta di vittoria che ha ceduto."
+ "tour.ur_solved.text": "Crea la tabella risolta di un set di regole dell'Ur nella sua pagina Motori. Gioca offre allora il gioco perfetto alla forza che imposti, e Analisi marca ogni mossa con la probabilità esatta di vittoria che ha ceduto.",
+ "commentary.engine_running": "Ferma il motore per scrivere la Spiegazione su ciò che ha trovato.",
+ "strip.example": "ad es. {x}",
+ "wizard.engines_images": {
+  "one": "{n} altro Motore può essere scaricato come immagine di container sigillata con podman o docker: barra laterale → {family} → Motori.",
+  "many": "{n} altri Motori possono essere scaricati come immagini di container sigillate con podman o docker: barra laterale → {family} → Motori.",
+  "other": "{n} altri Motori possono essere scaricati come immagini di container sigillate con podman o docker: barra laterale → {family} → Motori."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} altro Motore non ha un'immagine di container sigillata. Installalo a mano: barra laterale → {family} → Motori indica dove prenderlo.",
+  "many": "{n} altri Motori non hanno un'immagine di container sigillata. Installali a mano: barra laterale → {family} → Motori indica dove prenderli.",
+  "other": "{n} altri Motori non hanno un'immagine di container sigillata. Installali a mano: barra laterale → {family} → Motori indica dove prenderli."
+ },
+ "play.resign_menu": "Abbandona…",
+ "play.resign_ask": "Quale vittoria concedi all'avversario?",
+ "play.opening": "{side} inizia: {high} contro {low}. Il dado più alto gioca entrambi i dadi."
 }

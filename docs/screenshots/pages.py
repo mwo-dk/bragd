@@ -8,7 +8,7 @@ and removes it afterwards, so other pictures keep the default Settings. The engi
 needs `fake-uci` (a stand-in UCI engine) in the demo home; see `engine()`.
 """
 
-import json, os, sys
+import json, os, shutil, sys
 from pathlib import Path
 
 from cap import HERE, SEEN, WIDTHS, Desktop, _env, gif, widths
@@ -607,11 +607,16 @@ def source_pages():
                                            "date_to": "", "min_plies": None, "results": [], "titled_only": False, "players": []}}
     opts = {"enabled": True, "schedule": "weekly", "after_import": "keep"}
     state.parent.mkdir(parents=True, exist_ok=True)
-    state.write_text(json.dumps({"format": 1, "next_id": 1, "jobs": [], "sources": {
-        "twic": {"options": dict(opts, routes=[every, elite]), "memo": {"last_fetch": now - 3 * 86400, "last_try": now - 3 * 86400}},
-        "custom:club": {"options": dict(opts, url="https://example.org/club/archive.pgn.zst", routes=[every]),
-                        "memo": {"last_fetch": now - 9 * 86400, "last_try": now, "too_big": 3_400_000_000}}}}))
+
+    def write(too_big):
+        # The download waiting for a yes is a notice, which turns the Helper's dot red: only the
+        # too-big pictures have it, so the Routes pictures show the Helper idle.
+        memo = {"last_fetch": now - 9 * 86400, "last_try": now} | ({"too_big": 3_400_000_000} if too_big else {})
+        state.write_text(json.dumps({"format": 1, "next_id": 1, "jobs": [], "sources": {
+            "twic": {"options": dict(opts, routes=[every, elite]), "memo": {"last_fetch": now - 3 * 86400, "last_try": now - 3 * 86400}},
+            "custom:club": {"options": dict(opts, url="https://example.org/club/archive.pgn.zst", routes=[every]), "memo": memo}}}))
     try:
+        write(False)
         def routes(d):
             unfold(d)
             nav(d, "chess", "Databases")
@@ -621,6 +626,7 @@ def source_pages():
             d.wait(1)
             js(d, "document.querySelector('main .routes')?.scrollIntoView()")
         widths("sources-routes", routes)
+        write(True)
 
         def too_big(d):
             unfold(d)
@@ -786,13 +792,43 @@ def peers():
         (folder / "peers.json").unlink(missing_ok=True)
 
 
+def engines():
+    """engines-chess-390.png and -1100.png: the Engines page of chess with a container runtime,
+    Stockfish ready at its path (fake-uci) and the Engines not installed offering Get it with
+    their download size; engines-network-licence-1100.png: Pikafish's network licence on the
+    xiangqi Engines page, before anything is downloaded. No podman runs in the sandbox (CLAUDE.md):
+    a stand-in `podman` in the demo home's .stand-ins (on the sandbox's PATH, sandbox.sh) answers
+    every question with "no such image", which is all these pages ask before a download."""
+    bin_ = Path(_env()["DEMO_HOME"]) / ".stand-ins"
+    bin_.mkdir(exist_ok=True)
+    stand_in = bin_ / "podman"
+    stand_in.write_text("#!/bin/sh\n# A stand-in for the screenshots: no image is here, and nothing runs.\nexit 1\n")
+    stand_in.chmod(0o755)
+    config('[engines.paths]\nstockfish = "/home/demo/fake-uci"\n')
+    try:
+        def page(d):
+            unfold(d)
+            nav(d, "chess", "Engines")
+            d.wait(2)
+        widths("engines-chess", page, out=Path(os.environ.get("CAP_OUT", HERE)))
+
+        with Desktop(size=W1100) as d:
+            nav(d, "xiangqi", "Engines")
+            d.wait(2)
+            click(d, "Read the network's licence…", "main")
+            d.wait(0.8)
+            d.shot(Path(os.environ.get("CAP_OUT", HERE)) / "engines-network-licence-1100.png")
+    finally:
+        config("")
+        shutil.rmtree(bin_, ignore_errors=True)
+
+
 def sharing():
     """peers-sharing-390.png and peers-sharing-1100.png: Settings → Peers with a real paired
     machine sharing: its sync and what it works on, and the shared queue. SHARING_FROM names a
     home whose Helper was paired with another machine that is running now (the two-machine test
     in `docs/peers/sharing.md`'s PR): its key, its Peers, its Position store and its jobs are
     copied into the demo home, so the sandbox's Helper is that machine, and removed afterwards."""
-    import shutil
     home = Path(_env()["DEMO_HOME"])
     src = Path(os.environ["SHARING_FROM"]) / ".local/share/bragd"
     data = home / ".local/share/bragd"
@@ -1202,7 +1238,7 @@ def ur_solved():
     widths("review-ur", lambda d: game(d, True))
 
 
-ALL = {"library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
+ALL = {"library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "engines": engines, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":

@@ -29,7 +29,7 @@ Nothing. Senet has no outside Engine, and Bragd's built-in Bot for it is not bui
 | Bear off | Click the piece, then your *Off the board* tray, which is marked when bearing off is legal |
 | Or pick the move | Click it under *Legal moves*. Every legal move for the throw is listed |
 
-A throw with no legal move passes the turn by itself. Board colours: [Board themes](../look/board-themes.md).
+A throw with no legal move passes the turn by itself. *Moves* lists one entry a turn: its number, the throw and the move, such as `3 2: 9-11`; a throw that allowed no move is written with a dash, `4 5: –`. Board colours: [Board themes](../look/board-themes.md).
 
 ## The special houses
 

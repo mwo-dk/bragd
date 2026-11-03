@@ -6,7 +6,7 @@
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
-  import { gates, movesOf, movesTo, plainMoves } from "./board.js";
+  import { gates, groups, movesOf, movesTo, plainMoves } from "./board.js";
   import Board from "./Board.svelte";
   import UrDice from "./UrDice.svelte";
   import BackgammonBoard from "./BackgammonBoard.svelte";
@@ -68,6 +68,9 @@
   /** The trays' heights, by seat. @type {number[]} */
   let trayH = $state([0, 0]);
   const aspect = $derived(!st ? 1 : family.id === "backgammon" ? 14.2 / 11.9 : (st.board.files + 0.16) / (st.board.ranks + 0.16));
+  // A track four times longer than wide (Aseb) lies on its side on a narrow window, at most 70 %
+  // of the window high, so its cells are big enough to hit.
+  const sideways = $derived(!!st && innerWidth <= 760 && family.race && st.board.files >= 4 * st.board.ranks);
   const fit = $derived(innerWidth > 760 && gameH ? `${Math.max(180, (gameH - trayH[0] - trayH[1] - 12) * aspect)}px` : null);
   /** A square, a piece dropped from hand, or a Seirawan piece to gate (with its square once
    * chosen). @type {{from?: string, drop?: string, gate?: string} | null} */
@@ -327,6 +330,11 @@
   /** The text for a move that has no square: Pass, Double, Take, Drop, Accept, Resume. */
   // Analyse has no opponent to double or resign to.
   const offered = (/** @type {string} */ wire) => wire === "double" || wire.startsWith("resign");
+  let resigning = $state(false);
+  // Resigning is to an Engine, on your own turn: against yourself there is no one to resign to.
+  const resigns = $derived(
+    !analyse && opponent === "engine" && st && st.toMove?.index !== engineSeat ? plainMoves(st).filter((/** @type {any} */ m) => m.wire.startsWith("resign")) : [],
+  );
   const plainLabel = (/** @type {any} */ m) => {
     const label = t(`move.${m.notation}`);
     return label.startsWith("move.") ? m.notation : label;
@@ -406,11 +414,11 @@
         {/snippet}
 
         {@render tray(flipped ? 0 : 1)}
-        <div class="board-wrap">
+        <div class="board-wrap" style:max-width={sideways ? `${(70 * (st.board.ranks + 0.16)) / (st.board.files + 0.16)}vh` : null} style:margin-inline={sideways ? "auto" : null}>
           {#if family.id === "backgammon"}
             <BackgammonBoard state={st} {flipped} selected={sel?.from ?? null} {targets} oncell={cell} onpress={press} />
           {:else}
-            <Board state={st} family={family.id} {flipped} selected={sel?.from ?? null} {targets} {dead} {glide} oncell={cell} onpress={press} />
+            <Board state={st} family={family.id} {flipped} selected={sel?.from ?? null} {targets} {dead} {glide} {sideways} oncell={cell} onpress={press} />
           {/if}
           {#if st.outcome}
             <div class="banner" role="status">
@@ -424,7 +432,9 @@
       </div>
 
       <aside class="panel info">
-        {#if st.toMove && !st.outcome}
+        {#if st.toMove && !st.outcome && st.board.opening?.length}
+          <p class="turn">{t("play.opening", { side: side(st.toMove), high: st.board.dice[0], low: st.board.dice[1] })}</p>
+        {:else if st.toMove && !st.outcome}
           <p class="turn">
             {st.awaiting === "throw" ? t("play.to_throw", { side: side(st.toMove) }) : t("play.to_move", { side: side(st.toMove) })}
           </p>
@@ -446,14 +456,26 @@
           {#if st.awaiting === "throw"}
             <button class="primary" onclick={doThrow}>{t("play.throw")}</button>
           {/if}
-          {#each plainMoves(st).filter((/** @type {any} */ m) => !analyse || !offered(m.wire)) as m}
+          {#each plainMoves(st).filter((/** @type {any} */ m) => !m.wire.startsWith("resign") && (!analyse || !offered(m.wire))) as m}
             {#if m.wire === "dead:"}
               <button onclick={() => playEntry("dead:" + dead.join(","))}>{t("move.dead")}</button>
             {:else}
               <button onclick={() => playEntry(m.wire)}>{plainLabel(m)}</button>
             {/if}
           {/each}
+          {#if resigns.length && !resigning}
+            <button onclick={() => (resigning = true)}>{t("play.resign_menu")}</button>
+          {/if}
         </div>
+        {#if resigning && resigns.length}
+          <div class="choose">
+            <p>{t("play.resign_ask")}</p>
+            {#each resigns as m}
+              <button onclick={() => ((resigning = false), playEntry(m.wire))}>{plainLabel(m)}</button>
+            {/each}
+            <button onclick={() => (resigning = false)}>{t("common.cancel")}</button>
+          </div>
+        {/if}
         {#if scoring}
           <p class="hint">{t("play.scoring")}</p>
         {/if}
@@ -493,8 +515,12 @@
 
         <h2>{t("play.moves")}</h2>
         <p class="moves">
-          {#each st.history as h, i}
-            <span class="entry">{#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}{h}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")} title={titles[i] || null}>{marks[i]}</span>{/if}</span>
+          {#each groups(st.numbers) as group}
+            <span class="group">
+              {#each group as i}
+                <span class="entry">{#if st.numbers[i]}<span class="no">{st.numbers[i]}</span>{/if}{st.written[i]}{#if marks[i]}<span class="mark" class:bad={marks[i].startsWith("?")} title={titles[i] || null}>{marks[i]}</span>{/if}</span>
+              {/each}
+            </span>
           {/each}
         </p>
       </aside>
@@ -640,6 +666,11 @@
   }
   .moves .entry {
     white-space: nowrap;
+  }
+  /* A move's number and the moves after it wrap as one. */
+  .moves .group {
+    display: inline-flex;
+    gap: 0.4rem;
   }
   h2 {
     font-size: 1rem;

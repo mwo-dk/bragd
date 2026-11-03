@@ -4,9 +4,7 @@
 
 Each Game family with an Engine has an Engines page. It lists the Engines Bragd knows for the Family, says where each one stands on this machine, and chooses the Engine each Variant is played and analysed with. You can add an Engine by its path and change its options. In F1 → Features this is the entry `engines`.
 
-<!-- screenshot: engines-chess-1100.png: the Engines page of chess with podman installed, Stockfish ready with its path and Fairy-Stockfish showing Get it with its download size -->
-<!-- screenshot: engines-chess-390.png: the same at 390 px -->
-![The Engines page of chess: the Engine for each Variant at the top, set to Automatic, then a card for Stockfish marked ready with its path, and a card for Fairy-Stockfish with Get it and its download size](../screenshots/engines-chess-1100.png)
+![The Engines page of chess: the Engine for each Variant at the top, set to Automatic, then a card for Stockfish marked ready with its path, and cards for Leela Chess Zero and Berserk with Get it and their download size](../screenshots/engines-chess-1100.png)
 *The Engines page of chess at 1100 px.*
 
 ![The same page at 390 px: the Variant list above, the Engine cards one under the other](../screenshots/engines-chess-390.png)

@@ -66,6 +66,8 @@ Paired machines swap Commentary with the rest of the Position store ([Sharing be
 
 Either the Engine has not judged this move yet, or no language model is ready. Run the Engine in Analyse, or press **Review the game**, and set a model in *Settings → Language model*. The text beside the button says which.
 
+While the Engine runs it says *Stop the Engine to write Commentary on what it found*: the Engine keeps what it found in the Position store when it stops, and Commentary is written from the store. Press **Stop**, and the button turns on.
+
 #### Does my position leave the machine?
 
 Only to the model you chose. A model on this machine keeps everything here. A cloud model needs your consent first, and then the facts above go to it ([Language model](../knowledge/language-model.md#questions)).

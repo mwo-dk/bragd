@@ -217,3 +217,35 @@ fn a_roll_with_one_way_to_play_is_forced_and_a_choice_is_not() {
     }
     assert!(forced > 0 && free > 0, "forced {forced}, free {free}");
 }
+
+/// The printed number of the point White calls `x`.
+fn label(state: &State, x: u8) -> String {
+    state.board.labels.iter().find(|l| l.x == x).map(|l| l.text.clone()).unwrap_or_default()
+}
+
+#[test]
+fn the_points_are_numbered_from_the_side_to_move_as_its_moves_are() {
+    let white = replay::<&str>("backgammon", None, &["3-1"]).unwrap();
+    assert_eq!((label(&white, 1), label(&white, 24)), ("1".into(), "24".into()));
+    assert!(white.moves.iter().any(|m| m.wire == "8/5 6/5"));
+
+    // Black's 24-point is White's 1-point, where Black's back checkers stand.
+    let black = replay::<&str>("backgammon", Some("black"), &["5-2"]).unwrap();
+    assert_eq!(black.board.labels.len(), 24);
+    assert_eq!((label(&black, 1), label(&black, 24), label(&black, 19)), ("24".into(), "1".into(), "6".into()));
+    assert!(black.moves.iter().any(|m| m.wire == "13/8 6/4"), "{:?}", black.moves);
+}
+
+#[test]
+fn the_opening_throw_says_whose_die_is_whose() {
+    // Black threw 5 against White's 2, so Black starts with 5-2.
+    let state = replay::<&str>("backgammon", Some("black"), &["5-2"]).unwrap();
+    assert_eq!(state.board.dice, [5, 2]);
+    assert_eq!(state.board.opening, [1, 0], "the 5 is Black's (seat 1), the 2 White's");
+    let state = replay::<&str>("backgammon", None, &["4-2"]).unwrap();
+    assert_eq!(state.board.opening, [0, 1]);
+    // Once the opening turn is played the dice are the next Side's own.
+    let after = replay::<&str>("backgammon", None, &["4-2", "8/4 6/4", "6-5"]).unwrap();
+    assert!(after.board.opening.is_empty());
+    assert!(replay::<&str>("backgammon", None, &[]).unwrap().board.opening.is_empty(), "nothing thrown yet");
+}

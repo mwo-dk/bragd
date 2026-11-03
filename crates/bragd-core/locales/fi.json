@@ -287,16 +287,12 @@
  "wizard.close": "Sulje avustaja",
  "wizard.done": "Valmis",
  "wizard.engine_found": "Asennettu: {path}",
- "wizard.engine_get": "Mistä se saadaan",
- "wizard.engine_missing": "Ei asennettu",
  "wizard.engines": "Engine-ohjelmat, jotka Bragd löysi tältä koneelta, jokaiselle päällä olevalle pelilajille.",
  "wizard.bot": "Bragdin oma Botti pelaa sitä.",
  "wizard.engines_none": "Yksikään päällä oleva pelilaji ei käytä ulkoista Engineä.",
  "wizard.failed": "{what} ei voitu käynnistää: {error}",
  "wizard.families": "Mitä pelejä pelaat? Valitse yksi, ja Bragd näyttää vain sen kaikkialla. Lisää muita Asetuksissa milloin tahansa.",
  "wizard.helper": "Apuri noutaa lähteitä ja pitää kirjastosi järjestyksessä taustalla jokaiselle Bragd-ikkunalle.",
- "wizard.image_ready": "Suljetun kuvan voi noutaa podmanilla tai dockerilla.",
- "wizard.image_unpublished": "Bragdilla ei ole sen suljettua kuvaa.",
  "wizard.knowledge": "Lataukset, jotka tekevät Bragdista hyödyllisemmän. Jokainen näyttää kokonsa ensin. Mitään ei ladata, ennen kuin painat viimeisellä vaiheella Valmis.",
  "wizard.languages": "Kielet omilla nimillään",
  "wizard.later": "Voit muuttaa tätä myöhemmin kohdassa Asetukset → {area}.",
@@ -1944,5 +1940,18 @@
  "feature.ur_solved.a3": "Sillä voittomahdollisuudella, jonka se antoi pois verrattuna parhaaseen siirtoon samalla heitolla: 5 pistettä on ?!, 10 on ?, 20 on ??.",
  "feature.ur_solved.tip": "Tee Urin ratkaistut taulukot sen Engines-sivulla, ja pelaa sitten täydellistä peliä tai käy peli läpi.",
  "tour.ur_solved.title": "Ur, ratkaistu",
- "tour.ur_solved.text": "Tee Ur-sääntöversion ratkaistu taulukko sen Engines-sivulla. Pelaa tarjoaa sitten täydellisen pelin valitsemallasi vahvuudella, ja Analyysi merkitsee jokaisen siirron sen mukaan, kuinka paljon tarkkaa voittomahdollisuutta se antoi pois."
+ "tour.ur_solved.text": "Tee Ur-sääntöversion ratkaistu taulukko sen Engines-sivulla. Pelaa tarjoaa sitten täydellisen pelin valitsemallasi vahvuudella, ja Analyysi merkitsee jokaisen siirron sen mukaan, kuinka paljon tarkkaa voittomahdollisuutta se antoi pois.",
+ "commentary.engine_running": "Pysäytä Engine, jotta sen löydöistä voidaan kirjoittaa Selostus.",
+ "strip.example": "esim. {x}",
+ "wizard.engines_images": {
+  "one": "{n} muu Engine voidaan noutaa suljettuna konttikuvana podman- tai docker-ohjelmalla: sivupalkki → {family} → Engines.",
+  "other": "{n} muuta Engineä voidaan noutaa suljettuina konttikuvina podman- tai docker-ohjelmalla: sivupalkki → {family} → Engines."
+ },
+ "wizard.engines_by_hand": {
+  "one": "{n} muu Engine ei ole suljettua konttikuvaa. Asenna se itse: sivupalkki → {family} → Engines kertoo, mistä sen saa.",
+  "other": "{n} muuta Engineä ei ole suljettuina konttikuvina. Asenna ne itse: sivupalkki → {family} → Engines kertoo, mistä ne saa."
+ },
+ "play.resign_menu": "Luovuta…",
+ "play.resign_ask": "Minkä voiton annat vastustajallesi?",
+ "play.opening": "{side} aloittaa: {high} vastaan {low}. Suurempi noppa pelaa molemmilla nopilla."
 }
