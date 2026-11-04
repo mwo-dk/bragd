@@ -208,8 +208,8 @@ impl Online {
         self.lock().client.clone().ok_or_else(|| t!("online.error.not_signed_in", "server" => self.name()))
     }
 
-    fn time(&self, time: &str) -> Result<Time, String> {
-        Time::parse(time).filter(|_| self.dialect.times.contains(&time)).ok_or_else(|| t!("online.error.time", "server" => self.name()))
+    fn time(&self, time: &str, offered: &[&str]) -> Result<Time, String> {
+        Time::parse(time).filter(|_| offered.contains(&time)).ok_or_else(|| t!("online.error.time", "server" => self.name()))
     }
 
     fn variant(&self, variant: &str) -> Result<&'static str, String> {
@@ -347,6 +347,10 @@ impl Online {
     }
 }
 
+fn labelled(times: &[&str]) -> Vec<(String, String)> {
+    times.iter().filter_map(|t| Some((t.to_string(), Time::parse(t)?.label()))).collect()
+}
+
 impl Play for Online {
     fn server(&self) -> &'static crate::server::Server {
         self.dialect.server
@@ -357,7 +361,11 @@ impl Play for Online {
     }
 
     fn times(&self) -> Vec<(String, String)> {
-        self.dialect.times.iter().filter_map(|t| Some((t.to_string(), Time::parse(t)?.label()))).collect()
+        labelled(self.dialect.times)
+    }
+
+    fn challenge_times(&self) -> Vec<(String, String)> {
+        labelled(self.dialect.challenge_times)
     }
 
     fn colours(&self) -> [&'static str; 2] {
@@ -508,7 +516,7 @@ impl Play for Online {
 
     fn seek(&self, variant: &str, time: &str, rated: bool) -> Result<(), String> {
         let v = self.variant(variant)?;
-        let time = self.time(time)?;
+        let time = self.time(time, self.dialect.times)?;
         let client = self.client()?;
         let stop = Arc::new(AtomicBool::new(false));
         {
@@ -544,7 +552,7 @@ impl Play for Online {
 
     fn challenge(&self, user: &str, variant: &str, time: &str, rated: bool, color: &str) -> Result<(), String> {
         let v = self.variant(variant)?;
-        let time = self.time(time)?;
+        let time = self.time(time, self.dialect.challenge_times)?;
         let user = user.trim();
         if user.is_empty() || !user.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
             return Err(t!("online.error.user", "server" => self.name()));
@@ -809,6 +817,16 @@ mod tests {
         online.challenge("anna", "chess960", "15+10", true, "white").unwrap();
         let r = f.seen().into_iter().find(|r| r.path == "/api/challenge/anna").unwrap();
         assert_eq!(r.body, "rated=true&clock.limit=900&clock.increment=10&color=white&variant=chess960");
+        // Blitz: a challenge may ask for it, a seek may not, and bullet is never offered.
+        online.challenge("anna", "chess", "3+2", false, "random").unwrap();
+        let r = f.seen().into_iter().rev().find(|r| r.path == "/api/challenge/anna").unwrap();
+        assert_eq!(r.body, "rated=false&clock.limit=180&clock.increment=2&color=random&variant=standard");
+        let no_time = t!("online.error.time", "server" => "Lichess");
+        assert_eq!(online.challenge("anna", "chess", "1+0", false, "random").unwrap_err(), no_time, "no bullet");
+        assert_eq!(online.seek("chess", "3+2", false).unwrap_err(), no_time, "no blitz seek");
+        let values = |l: Vec<(String, String)>| l.into_iter().map(|(v, _)| v).collect::<Vec<_>>();
+        assert!(!values(online.times()).contains(&"3+2".to_string()));
+        assert!(values(online.challenge_times()).contains(&"3+2".to_string()));
     }
 
     fn signed_in_lishogi() -> (fake::Fake, Online) {

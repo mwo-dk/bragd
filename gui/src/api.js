@@ -295,7 +295,7 @@ export const onlineReconnect = (/** @type {string} */ server) => invoke("online_
 export const onlineSeek = (/** @type {string} */ server, /** @type {string} */ variant, /** @type {string} */ time, /** @type {boolean} */ rated) =>
   invoke("online_seek", { server, variant, time, rated });
 export const onlineSeekCancel = (/** @type {string} */ server) => invoke("online_seek_cancel", { server });
-/** @returns {Promise<any>} */
+/** `time` is one of the page's `challengeTimes`. @returns {Promise<any>} */
 export const onlineChallenge = (/** @type {string} */ server, /** @type {string} */ user, /** @type {string} */ variant, /** @type {string} */ time, /** @type {boolean} */ rated, /** @type {string} */ color) =>
   invoke("online_challenge", { server, user, variant, time, rated, color });
 /** Accepts, declines or cancels a challenge. @returns {Promise<any>} */

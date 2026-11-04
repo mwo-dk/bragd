@@ -23,6 +23,8 @@
   // The seek's and the challenge's settings.
   let variant = $state("");
   let time = $state("");
+  // A challenge has a time of its own: a server may allow more for it than for a seek.
+  let ctime = $state("");
   let rated = $state(false);
   let user = $state("");
   let color = $state("random");
@@ -54,6 +56,9 @@
   $effect(() => {
     if (view && !view.variants.some((/** @type {any} */ v) => v.value === variant) && view.variants.length) variant = view.variants[0].value;
     if (view && !view.times.some((/** @type {any} */ x) => x.value === time) && view.times.length) time = view.times[Math.min(1, view.times.length - 1)].value;
+    // The same default as the seek's, when the challenge offers it.
+    if (view && !view.challengeTimes.some((/** @type {any} */ x) => x.value === ctime) && view.challengeTimes.length)
+      ctime = (view.challengeTimes.find((/** @type {any} */ x) => x.value === time) ?? view.challengeTimes[0]).value;
   });
   const name = $derived(view?.server.name ?? "");
 
@@ -72,7 +77,7 @@
 
   const signIn = () => run(() => api.onlineSignIn(server));
   const seek = () => run(() => api.onlineSeek(server, variant, time, rated));
-  const challenge = () => run(() => api.onlineChallenge(server, user, variant, time, rated, color).then((r) => ((user = ""), r)));
+  const challenge = () => run(() => api.onlineChallenge(server, user, variant, ctime, rated, color).then((r) => ((user = ""), r)));
   const answer = (/** @type {string} */ id, /** @type {string} */ what) => run(() => api.onlineAnswer(server, id, what));
   const act = (/** @type {string} */ what) => run(() => api.onlineAction(server, what));
   const say = () => run(() => api.onlineSay(server, line).then(() => (line = "")));
@@ -202,6 +207,7 @@
         <h3>{t("online.challenge_someone")}</h3>
         <div class="form">
           <label class="field">{t("online.username", { server: name })} <input bind:value={user} autocomplete="off" spellcheck="false" /></label>
+          <Picker value={ctime} choices={view.challengeTimes} label={t("online.time")} onchange={(v) => (ctime = v)} />
           <Picker value={color} choices={view.colours} label={t("online.your_colour")} onchange={(v) => (color = v)} />
           <button onclick={challenge} disabled={busy || !user.trim() || !view.connected}>{t("online.challenge")}</button>
         </div>

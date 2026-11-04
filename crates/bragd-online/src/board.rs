@@ -22,6 +22,9 @@ pub struct Dialect {
     pub colours: [&'static str; 2],
     /// The times offered for a real-time Game, as [`Time`] writes them.
     pub times: &'static [&'static str],
+    /// The times a challenge to a named player may ask for: a server may allow more than it
+    /// lets a seek ask for.
+    pub challenge_times: &'static [&'static str],
     /// Takebacks can be asked for.
     pub takeback: bool,
     /// The challenges can be listed (`GET /api/challenge`) and one's own cancelled. Lishogi sends
@@ -42,6 +45,9 @@ pub const LICHESS: Dialect = Dialect {
     colours: ["white", "black"],
     // Rapid and classical: what the Board API plays in real time.
     times: &["10+0", "10+5", "15+10", "30+0", "30+20"],
+    // A direct challenge may also be blitz (never bullet); a seek and the Board API's other
+    // real-time play may not.
+    challenge_times: &["3+0", "3+2", "5+0", "5+3", "10+0", "10+5", "15+10", "30+0", "30+20"],
     takeback: true,
     challenge_list: true,
     normalise: |_| {},
@@ -55,6 +61,7 @@ pub const LISHOGI: Dialect = Dialect {
     // Lishogi's Board API takes a Game of at least 15 minutes' estimated length when rated
     // (main time + 25 × byoyomi), and a rated Game has one byoyomi period and no increment.
     times: &["10|30", "15|30", "30|30", "30|60"],
+    challenge_times: &["10|30", "15|30", "30|30", "30|60"],
     takeback: false,
     challenge_list: false,
     normalise: game::from_lishogi,
@@ -338,8 +345,14 @@ mod tests {
         assert_eq!(Time::parse("10"), None);
         assert_eq!(Time::parse("x+5"), None);
         for d in [&LICHESS, &LISHOGI] {
-            assert!(d.times.iter().all(|t| Time::parse(t).is_some()), "{}", d.server.id);
+            assert!(d.times.iter().chain(d.challenge_times).all(|t| Time::parse(t).is_some()), "{}", d.server.id);
+            assert!(d.times.iter().all(|t| d.challenge_times.contains(t)), "{}: a challenge may ask for what a seek may", d.server.id);
         }
+        assert_eq!(LISHOGI.challenge_times, LISHOGI.times);
+        // Lichess: blitz (3 to 5 minutes) only in a challenge, never bullet.
+        let blitz = |l: &[&str]| l.iter().filter(|t| Time::parse(t).is_some_and(|t| t.minutes < 10)).count();
+        assert_eq!(blitz(LICHESS.times), 0);
+        assert_eq!(blitz(LICHESS.challenge_times), 4);
         // Lishogi: a rated Game needs 900 s by its estimate.
         assert!(LISHOGI.times.iter().map(|t| Time::parse(t).unwrap()).all(|t| t.minutes * 60 + 25 * t.byoyomi >= 900 && t.increment == 0));
         let f = Time::parse("10|30").unwrap().challenge_form();

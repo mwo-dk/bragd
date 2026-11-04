@@ -122,6 +122,8 @@ pub struct Page {
     terms: &'static str,
     variants: Vec<Choice>,
     times: Vec<Choice>,
+    /// The times a challenge to a named player may ask for.
+    challenge_times: Vec<Choice>,
     colours: Vec<Choice>,
     can: Can,
     /// Bragd can sign in there: OGS needs Bragd registered with it first.
@@ -142,7 +144,9 @@ fn page(s: &dyn Play, ctx: &Ctx) -> Page {
     let info = s.server();
     let tr = |k: &str| bragd_core::i18n::tr(k, &[]);
     let variants = s.variants().into_iter().filter(|v| cfg.variant_on(v)).map(|key| Choice { value: key.into(), label: tr(&format!("variant.{key}")) }).collect();
-    let times = s.times().into_iter().map(|(value, label)| Choice { value, label }).collect();
+    let choices = |l: Vec<(String, String)>| l.into_iter().map(|(value, label)| Choice { value, label }).collect();
+    let times = choices(s.times());
+    let challenge_times = choices(s.challenge_times());
     let colours = std::iter::once("random").chain(s.colours()).map(|c| Choice { value: c.into(), label: if c == "random" { tr("online.color.random") } else { tr(&format!("side.{c}")) } }).collect();
     let family = info.families.iter().find(|f| cfg.family_shown(f)).copied().unwrap_or(info.families[0]);
     let view = s.view();
@@ -151,6 +155,7 @@ fn page(s: &dyn Play, ctx: &Ctx) -> Page {
         terms: info.terms,
         variants,
         times,
+        challenge_times,
         colours,
         can: s.can(),
         ready: s.ready(),
