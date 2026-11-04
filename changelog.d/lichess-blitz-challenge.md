@@ -1,0 +1,1 @@
+| **A challenge to a named player on Lichess can be blitz.** The challenge form has a time of its own, which adds 3+0, 3+2, 5+0 and 5+3. A seek stays rapid or classical, because Lichess allows nothing faster for one. | [Playing online](online/playing-online.md#why-cant-i-seek-a-3-minute-game) |

@@ -24,7 +24,7 @@ Open chess's **Play** and press **Play on Lichess**. The first time, press **Sig
 | **Sign in to Lichess** | Opens Lichess's sign-in page in your browser. Bragd waits up to five minutes for it |
 | **Sign out** | Lichess takes the token back, and it is removed from your keychain |
 | **Seek a Game** | Asks Lichess for an opponent with the Variant, time and *Rated* chosen. **Cancel** stops waiting |
-| **Challenge** | Challenges the Lichess user named, with the same Variant and time, and the colour chosen |
+| **Challenge** | Challenges the Lichess user named, with the Variant and *Rated* chosen above, a time of its own (blitz is offered here) and the colour chosen |
 | **Accept** / **Decline** | Answers a challenge made to you |
 | **Cancel** | Takes back a challenge you made |
 | **Reconnect** | Opens the connection again after it was lost |
@@ -55,7 +55,7 @@ Bragd plays the Lichess Variants it has rules for. A Variant you turned off in S
 
 A challenge in another Variant, such as crazyhouse or atomic, can be declined but not accepted here. Play it on lichess.org.
 
-Real-time Games on Lichess's Board API are rapid or classical: the times offered run from 10 minutes to 30 minutes plus 20 seconds.
+Lichess's Board API plays rapid and classical Games in real time, so a seek offers 10 minutes to 30 minutes plus 20 seconds. A challenge to a named player may also be blitz: 3+0, 3+2, 5+0 or 5+3. Bullet is never offered.
 
 ### Fair play
 
@@ -116,7 +116,7 @@ The token was taken back on Lichess (*Preferences → API access tokens*), or it
 
 #### Why can't I seek a 3-minute Game?
 
-Lichess's Board API, which Bragd plays through, is for rapid and classical Games. Faster Games are played on lichess.org.
+Lichess's Board API, which Bragd plays through, lets an open seek be rapid or classical only. It allows blitz (3+0, 3+2, 5+0, 5+3) just for a challenge to a named player, so type the name and pick the time in the challenge form. Bullet and a blitz seek are played on lichess.org.
 
 #### Can I play a Game I started on lichess.org?
 

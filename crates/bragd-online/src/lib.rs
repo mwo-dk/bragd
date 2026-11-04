@@ -41,6 +41,11 @@ pub trait Play: Send + Sync {
     fn variants(&self) -> Vec<&'static str>;
     /// The time controls a seek or a challenge may ask for: the value sent back, and its label.
     fn times(&self) -> Vec<(String, String)>;
+    /// The time controls a challenge to a named player may ask for: the same unless the server
+    /// allows more than a seek.
+    fn challenge_times(&self) -> Vec<(String, String)> {
+        self.times()
+    }
     /// The colours a challenge may ask for, as its API names them: the first to move first.
     fn colours(&self) -> [&'static str; 2];
     fn can(&self) -> Can;
@@ -68,7 +73,7 @@ pub trait Play: Send + Sync {
     /// casual. It waits until someone takes it or it is cancelled.
     fn seek(&self, variant: &str, time: &str, rated: bool) -> Result<(), String>;
     fn seek_cancel(&self);
-    /// Challenges `user`; `color` is `random` or one of [`Play::colours`].
+    /// Challenges `user` at `time` (one of [`Play::challenge_times`]); `color` is `random` or one of [`Play::colours`].
     fn challenge(&self, user: &str, variant: &str, time: &str, rated: bool, color: &str) -> Result<(), String>;
     /// Accepts, declines or cancels the challenge `id`: `what` is `accept`, `decline` or
     /// `cancel`.
