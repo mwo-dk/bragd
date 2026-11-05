@@ -296,6 +296,8 @@
  "wizard.knowledge": "Downloads, der gør Bragd mere nyttigt. Hver viser sin størrelse først. Intet hentes, før du trykker Færdig på det sidste trin.",
  "wizard.languages": "Sprog, med deres egne navne",
  "wizard.later": "Du kan ændre dette senere under Indstillinger → {area}.",
+ "wizard.later_sources": "Du kan ændre dette senere: Kilder findes under hver spilfamilie i {databases} → {sources}.",
+ "wizard.later_tablebases": "Bed Lichess om slutspilspositioner er under Indstillinger → {online} og {tablebases}.",
  "wizard.next": "Næste",
  "wizard.no_room": "Disse downloads kræver {size}, og kun {free} er ledigt. Hold mindst {spare} ledigt: vælg mindre, eller frigør plads først.",
  "wizard.nothing": "Intet hentes.",

@@ -296,6 +296,8 @@
  "wizard.knowledge": "Atsisiuntimai, kurie padaro Bragd naudingesnį. Kiekvienas pirmiau parodo savo dydį. Nieko neatsisiunčiama, kol nepaspaudžiate Atlikta paskutiniame žingsnyje.",
  "wizard.languages": "Kalbos, pateiktos jų pačių pavadinimais",
  "wizard.later": "Tai galite pakeisti vėliau: Nustatymai → {area}.",
+ "wizard.later_sources": "Tai galite pakeisti vėliau: šaltiniai yra kiekvienos žaidimų šeimos {databases} → {sources} skiltyje.",
+ "wizard.later_tablebases": "Prašymas Lichess pateikti tablebase pozicijas yra Nustatymai → {online} ir {tablebases}.",
  "wizard.next": "Toliau",
  "wizard.no_room": "Šiems atsisiuntimams reikia {size}, o laisva tik {free}. Palikite bent {spare} atsargai: pasirinkite mažiau arba pirma atlaisvinkite vietos.",
  "wizard.nothing": "Nieko neatsisiunčiama.",

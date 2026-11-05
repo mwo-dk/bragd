@@ -296,6 +296,8 @@
  "wizard.knowledge": "Descàrregues que fan Bragd més útil. Cada una mostra primer la seva mida. No es descarrega res fins que prems Fet al darrer pas.",
  "wizard.languages": "Llengües, pel seu propi nom",
  "wizard.later": "Ho pots canviar més tard a Paràmetres → {area}.",
+ "wizard.later_sources": "Ho pots canviar més tard: les fonts són a {databases} → {sources} de cada família de jocs.",
+ "wizard.later_tablebases": "Demanar a Lichess posicions de bases de finals és a Paràmetres → {online} i {tablebases}.",
  "wizard.next": "Següent",
  "wizard.no_room": "Aquestes descàrregues necessiten {size}, i només hi ha {free} lliures. Deixa'n com a mínim {spare} de lliures: tria'n menys, o allibera primer espai.",
  "wizard.nothing": "No es descarrega res.",

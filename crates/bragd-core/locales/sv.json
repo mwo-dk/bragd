@@ -296,6 +296,8 @@
  "wizard.knowledge": "Nedladdningar som gör Bragd mer användbart. Varje visar sin storlek först. Inget laddas ned förrän du trycker på Klar på sista steget.",
  "wizard.languages": "Språk, med deras egna namn",
  "wizard.later": "Du kan ändra detta senare under Inställningar → {area}.",
+ "wizard.later_sources": "Du kan ändra detta senare: Källor finns under varje spelfamilj i {databases} → {sources}.",
+ "wizard.later_tablebases": "Be Lichess om tablebase-positioner finns under Inställningar → {online} och {tablebases}.",
  "wizard.next": "Nästa",
  "wizard.no_room": "De här nedladdningarna behöver {size}, och bara {free} är ledigt. Håll minst {spare} ledigt: välj mindre, eller frigör lite plats först.",
  "wizard.nothing": "Inget laddas ned.",

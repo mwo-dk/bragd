@@ -182,7 +182,7 @@ pub struct About {
     /// About how many bytes one fetch downloads: shown before the first one.
     pub size: u64,
     pub schedule: Schedule,
-    /// Where it comes from, `{issue}`, `{yyyy}` and `{mm}` standing for what changes.
+    /// An address a user can open: the site's page, or the file for a Source that is one file.
     pub url: String,
     /// False for the Sources this version lists but cannot fetch yet.
     pub fetchable: bool,
@@ -322,6 +322,8 @@ pub const OUT_OF_SCOPE: &str = "notice.source_out_of_scope";
 pub struct Twic;
 
 pub const TWIC_URL: &str = "https://theweekinchess.com/zips/twic{issue}g.zip";
+/// The page the weekly zips are listed on: what Settings shows as the Source's address.
+const TWIC_PAGE: &str = "https://theweekinchess.com/twic";
 /// An issue known to be there (July 2023), where the first probe starts.
 pub const TWIC_SEED: u32 = 1500;
 /// The most issues one fetch catches up on (half a year).
@@ -355,7 +357,7 @@ impl Source for Twic {
             family: "chess".into(),
             size: 1_500_000,
             schedule: Schedule::Weekly,
-            url: TWIC_URL.into(),
+            url: TWIC_PAGE.into(),
             fetchable: true,
             kind: Kind::Games,
             parts: vec![],
@@ -547,6 +549,14 @@ pub(crate) mod tests {
             w.write_all(text.as_bytes()).unwrap();
         }
         w.finish().unwrap().into_inner()
+    }
+
+    #[test]
+    fn no_source_shows_a_url_template() {
+        for s in builtin() {
+            let url = s.about().url;
+            assert!(url.starts_with("https://") && !url.contains(['{', '}']), "{}: {url}", s.about().id);
+        }
     }
 
     #[test]

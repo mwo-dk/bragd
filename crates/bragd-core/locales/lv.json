@@ -296,6 +296,8 @@
  "wizard.knowledge": "Lejupielādes, kas padara Bragd noderīgāku. Katra vispirms parāda savu izmēru. Nekas netiek lejupielādēts, līdz pēdējā solī nospiežat Gatavs.",
  "wizard.languages": "Valodas to pašu nosaukumos",
  "wizard.later": "To var mainīt vēlāk: Iestatījumi → {area}.",
+ "wizard.later_sources": "To var mainīt vēlāk: avoti ir katras spēļu saimes {databases} → {sources} sadaļā.",
+ "wizard.later_tablebases": "Lichess pieprasījums pēc tablebase pozīcijām ir sadaļā Iestatījumi → {online} un {tablebases}.",
  "wizard.next": "Tālāk",
  "wizard.no_room": "Šīm lejupielādēm vajag {size}, bet brīvs ir tikai {free}. Atstājiet vismaz {spare} rezervei: izvēlieties mazāk vai vispirms atbrīvojiet vietu.",
  "wizard.nothing": "Nekas netiek lejupielādēts.",

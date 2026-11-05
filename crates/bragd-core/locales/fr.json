@@ -296,6 +296,8 @@
  "wizard.knowledge": "Téléchargements qui rendent Bragd plus utile. Chacun affiche d’abord sa taille. Rien ne se télécharge avant que vous appuyiez sur Terminé à la dernière étape.",
  "wizard.languages": "Langues, sous leur propre nom",
  "wizard.later": "Vous pourrez changer cela plus tard dans Réglages → {area}.",
+ "wizard.later_sources": "Vous pourrez changer cela plus tard : les Sources se trouvent sous chaque famille de jeux, dans {databases} → {sources}.",
+ "wizard.later_tablebases": "Demander à Lichess des positions de tables de finale se trouve dans Réglages → {online} et {tablebases}.",
  "wizard.next": "Suivant",
  "wizard.no_room": "Ces téléchargements demandent {size}, et seulement {free} sont libres. Gardez au moins {spare} de libre : choisissez moins, ou libérez d’abord de la place.",
  "wizard.nothing": "Rien ne se télécharge.",

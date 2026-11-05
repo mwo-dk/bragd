@@ -296,6 +296,8 @@
  "wizard.knowledge": "Stahování, která udělají Bragd užitečnějším. Každé nejdřív ukáže svou velikost. Nic se nestáhne, dokud na posledním kroku nestisknete Hotovo.",
  "wizard.languages": "Jazyky, pod jejich vlastními názvy",
  "wizard.later": "Můžete to později změnit v Nastavení → {area}.",
+ "wizard.later_sources": "Můžete to později změnit: Zdroje najdete u každé herní rodiny v {databases} → {sources}.",
+ "wizard.later_tablebases": "Dotazování Lichess na pozice z koncovkových databází je v Nastavení → {online} a {tablebases}.",
  "wizard.next": "Další",
  "wizard.no_room": "Tato stažení potřebují {size} a volných je jen {free}. Nechte si alespoň {spare} volných: vyberte méně, nebo nejdřív uvolněte místo.",
  "wizard.nothing": "Nic se nestahuje.",

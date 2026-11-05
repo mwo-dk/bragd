@@ -296,6 +296,8 @@
  "wizard.knowledge": "Allalaadimised, mis teevad Bragdi kasulikumaks. Igaüks näitab enne oma suurust. Midagi ei laadita alla enne, kui vajutad viimasel sammul Valmis.",
  "wizard.languages": "Keeled nende enda nimedega",
  "wizard.later": "Seda saad hiljem muuta jaotises Sätted → {area}.",
+ "wizard.later_sources": "Seda saad hiljem muuta: allikad on iga mänguperekonna all {databases} → {sources}.",
+ "wizard.later_tablebases": "Lichessilt lõpumängu seisude küsimine on jaotises Sätted → {online} ja {tablebases}.",
  "wizard.next": "Edasi",
  "wizard.no_room": "Need allalaadimised vajavad {size} ja vaba on ainult {free}. Jäta vähemalt {spare} vabaks: vali vähem või vabasta enne ruumi.",
  "wizard.nothing": "Midagi ei laadita alla.",

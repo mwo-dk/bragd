@@ -296,6 +296,8 @@
  "wizard.knowledge": "Downloads, die Bragd nützlicher machen. Jeder zeigt zuerst seine Größe. Nichts wird geladen, bis Sie im letzten Schritt Fertig drücken.",
  "wizard.languages": "Sprachen, in ihren eigenen Namen",
  "wizard.later": "Sie können das später unter Einstellungen → {area} ändern.",
+ "wizard.later_sources": "Sie können das später ändern: Quellen finden Sie unter {databases} → {sources} bei jeder Spielfamilie.",
+ "wizard.later_tablebases": "Lichess nach Endspiel-Tablebase-Stellungen fragen steht unter Einstellungen → {online} und {tablebases}.",
  "wizard.next": "Weiter",
  "wizard.no_room": "Diese Downloads brauchen {size}, und nur {free} ist frei. Lassen Sie mindestens {spare} frei: Wählen Sie weniger oder machen Sie zuerst Platz frei.",
  "wizard.nothing": "Nichts wird geladen.",

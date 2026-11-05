@@ -296,6 +296,8 @@
  "wizard.knowledge": "Pobierane dodatki, które czynią Bragda bardziej użytecznym. Każdy pokazuje najpierw swój rozmiar. Nic się nie pobiera, dopóki nie klikniesz Gotowe na ostatnim kroku.",
  "wizard.languages": "Języki, w ich własnych nazwach",
  "wizard.later": "Możesz to zmienić później w Ustawieniach → {area}.",
+ "wizard.later_sources": "Możesz to zmienić później: Źródła są w {databases} → {sources} w każdej rodzinie gier.",
+ "wizard.later_tablebases": "Pytanie Lichess o pozycje z tablebase'ów jest w Ustawieniach → {online} i {tablebases}.",
  "wizard.next": "Dalej",
  "wizard.no_room": "Te pobierania potrzebują {size}, a wolne jest tylko {free}. Zostaw co najmniej {spare} wolnego: wybierz mniej albo najpierw zwolnij miejsce.",
  "wizard.nothing": "Nic się nie pobiera.",

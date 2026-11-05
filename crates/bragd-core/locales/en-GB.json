@@ -296,6 +296,8 @@
  "wizard.knowledge": "Downloads that make Bragd more useful. Each shows its size first. Nothing downloads until you press Done on the last step.",
  "wizard.languages": "Languages, by their own names",
  "wizard.later": "You can change this later in Settings → {area}.",
+ "wizard.later_sources": "You can change this later: Sources are under each Game family's {databases} → {sources}.",
+ "wizard.later_tablebases": "Ask Lichess for tablebase positions is under Settings → {online} and {tablebases}.",
  "wizard.next": "Next",
  "wizard.no_room": "These downloads need {size}, and only {free} is free. Keep at least {spare} spare: choose less, or free some space first.",
  "wizard.nothing": "Nothing downloads.",

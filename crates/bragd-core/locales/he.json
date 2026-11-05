@@ -296,6 +296,8 @@
  "wizard.knowledge": "הורדות שמשפרות את Bragd. כל אחת מציגה את גודלה קודם. שום דבר לא יורד עד שלוחצים על סיום בשלב האחרון.",
  "wizard.languages": "שפות, בשמותיהן",
  "wizard.later": "אפשר לשנות זאת מאוחר יותר בהגדרות → {area}.",
+ "wizard.later_sources": "אפשר לשנות זאת מאוחר יותר: המקורות נמצאים תחת {databases} → {sources} של כל משפחת משחקים.",
+ "wizard.later_tablebases": "הבקשה ל-Lichess לעמדות מבסיסי סיום נמצאת בהגדרות → {online} ו-{tablebases}.",
  "wizard.next": "הבא",
  "wizard.no_room": "ההורדות האלה דורשות {size}, ורק {free} פנוי. השאירו לפחות {spare} פנויים: בחרו פחות, או פנו מקום קודם.",
  "wizard.nothing": "שום דבר לא יורד.",

@@ -296,6 +296,8 @@
  "wizard.knowledge": "Nedlastingar som gjer Bragd meir nyttig. Kvar viser storleiken sin først. Ingenting blir lasta ned før du trykkjer Ferdig på siste steg.",
  "wizard.languages": "Språk, med deira eigne namn",
  "wizard.later": "Du kan endre dette seinare under Innstillingar → {area}.",
+ "wizard.later_sources": "Du kan endre dette seinare: Kjelder ligg under kvar spelfamilie i {databases} → {sources}.",
+ "wizard.later_tablebases": "Be Lichess om tablebase-posisjonar ligg under Innstillingar → {online} og {tablebases}.",
  "wizard.next": "Neste",
  "wizard.no_room": "Desse nedlastingane treng {size}, og berre {free} er ledig. Hald minst {spare} ledig: vel mindre, eller frigjer litt plass først.",
  "wizard.nothing": "Ingenting blir lasta ned.",
