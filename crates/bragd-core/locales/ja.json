@@ -1854,6 +1854,7 @@
  "friends.deleted": "Bragdサーバー上のアカウントが削除され、Bragdからサインアウトしました。",
  "friends.deleted_player": "削除されたプレイヤー",
  "friends.your_ratings": "あなたのレーティング：",
+ "friends.provisional": "レーティングの後ろの ? は仮の値であることを示します。そのゲームファミリーでレート対象の対局を約10局指すと確定します。",
  "online.intro.bragd": "どのBragdプレイヤーでも受けられる対局を募集するか、名前を指定してプレイヤーに挑戦するか、挑戦に応じてください。Bragdサーバーの審判が、すべての手をBragdのルールで確認します。",
  "feature.friends.title": "フレンドと対局",
  "feature.friends.what": "Bragdサーバーで他のBragdプレイヤーと対局します。フレンド、クラブ、募集、そして時計とレーティングのある対局があり、Bragd独自のルールで審判されます。",

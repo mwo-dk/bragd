@@ -1865,6 +1865,7 @@
  "friends.deleted": "Kontoen din på Bragd-serveren er sletta, og Bragd har logga deg ut.",
  "friends.deleted_player": "Sletta spelar",
  "friends.your_ratings": "Dine rangeringar:",
+ "friends.provisional": "Eit ? etter ein rating tyder at han er førebels: han blir fastsett etter omtrent ti rangerte parti i den spelfamilien.",
  "online.intro.bragd": "Søk etter eit Parti som kva Bragd-spelar som helst kan ta, utfordr ein spelar på namn, eller svar på ei utfordring. Dommaren på Bragd-serveren kontrollerer kvart trekk etter Bragds reglar.",
  "feature.friends.title": "Spel med vener",
  "feature.friends.what": "Spel Partiar mot andre Bragd-spelarar på Bragd-serveren: Vener, Klubbar, søk og Partiar med klokker og rangeringar, dømde etter Bragds eigne reglar.",

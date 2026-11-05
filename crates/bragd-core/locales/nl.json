@@ -1865,6 +1865,7 @@
  "friends.deleted": "Je account op de Bragd-server is verwijderd, en Bragd heeft je uitgelogd.",
  "friends.deleted_player": "Verwijderde speler",
  "friends.your_ratings": "Jouw ratings:",
+ "friends.provisional": "Een ? achter een rating betekent dat die voorlopig is: hij wordt vastgesteld na ongeveer tien beoordeelde partijen in die spelfamilie.",
  "online.intro.bragd": "Zoek een Partij die elke Bragd-speler mag aannemen, daag een speler uit op naam, of beantwoord een uitdaging. De scheidsrechter van de Bragd-server controleert elke zet volgens de regels van Bragd.",
  "feature.friends.title": "Spelen met vrienden",
  "feature.friends.what": "Speel Partijen tegen andere Bragd-spelers op de Bragd-server: Vrienden, Clubs, zoekopdrachten en Partijen met klokken en ratings, beoordeeld volgens de eigen regels van Bragd.",

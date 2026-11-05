@@ -76,8 +76,8 @@ Seek a Game that any player may take, challenge a player by their name, with the
 | **Challenge** | Challenges the player named, in the Variant, time and rating chosen |
 | **Accept** / **Decline** | Answers a challenge made to you, or takes another player's seek. **Decline** on a seek only hides it from you |
 | **Cancel** | Takes back a challenge you made |
-| **Offer a draw** | Offers a draw; the other player accepts or declines |
-| **Resign** | Gives up the Game |
+| **Offer a draw** | Offers a draw; the other player accepts or declines. Backgammon, Ur and senet have none: they are always won, and the server refuses it |
+| **Resign** | Gives up the Game. In backgammon it is **Resign…**, which asks how much the other player wins: a single game, a gammon or a backgammon |
 | **Back to the lobby** | Leaves a Game that is over |
 
 ### Clocks and ratings
@@ -94,7 +94,7 @@ The clocks are kept by the Bragd server. It counts the time you use from the mom
 
 Each move reaches the other player at once: the server tells both players' Bragd over Supabase Realtime that the Game changed, and Bragd asks it how the Game stands. The message names only the Game, and only you can listen for yours. When Realtime cannot be reached, Bragd asks the server every two seconds instead, which is slow for a 1-minute Game.
 
-A rating is Glicko-2, as [Clubs](../clubs/clubs.md) use: one for each Game family, starting at 1500, and changed after every rated Game ([ADR 0007](../adr/0007-ratings-on-the-bragd-server.md)). *Your ratings* above the seek shows yours in the Families you have on. A rating with a `?`, such as *1500?*, is still provisional: Glicko-2 is not yet sure of it. A Game ended by deleting an account is not rated.
+A rating is Glicko-2, as [Clubs](../clubs/clubs.md) use: one for each Game family, starting at 1500, and changed after every rated Game ([ADR 0007](../adr/0007-ratings-on-the-bragd-server.md)). *Your ratings* above the seek shows yours in the Families you have on. A rating with a `?`, such as *1500?*, is still provisional: Glicko-2 is not yet sure of it, and *Your ratings* says so. It settles after about ten rated Games in that Family. A Game ended by deleting an account is not rated.
 
 During a rated Game, Analyse, Engines, book moves and tablebases are locked in every Bragd window, as on Lichess.
 
@@ -102,14 +102,14 @@ During a rated Game, Analyse, Engines, book moves and tablebases are locked in e
 
 In backgammon, Ur and senet the Bragd server throws the dice and sticks for both players, from its own random source. Neither player's Bragd throws, so neither can choose or foresee a throw. Each throw is kept with the Game's moves, and the move list shows it.
 
-![A backgammon Game against Anna on the Bragd server, 1100 px wide: your turn to throw, with Throw and Double beside the board](../screenshots/friends-dice-1100.png)
+![A backgammon Game against Anna on the Bragd server, 1100 px wide: your turn to throw, with Throw (T), Double and Resign… beside the board](../screenshots/friends-dice-1100.png)
 *Your throw in backgammon: Throw, or Double first.*
 
 The server throws as soon as a throw is due, so you only ever move. In backgammon, while you may double, it waits for you:
 
 | Button | What it does |
 |---|---|
-| **Throw** | Asks the server to throw your dice |
+| **Throw** (**T**) | Asks the server to throw your dice. It is the main button, and the key is shown on it, as on [Play](../play/backgammon.md) |
 | **Double** | Offers the other player a double before you throw. They **Take** or **Drop** it |
 
 Backgammon's opening throw is one die each, thrown by the server too; the higher die moves first.

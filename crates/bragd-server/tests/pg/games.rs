@@ -15,6 +15,7 @@ pub const CASES: &[crate::Case] = &[
     ("players_cannot_write_moves_or_results_themselves", players_cannot_write_moves_or_results_themselves),
     ("resign_and_draw_by_agreement", resign_and_draw_by_agreement),
     ("unknown_variants_are_refused", unknown_variants_are_refused),
+    ("a_race_game_has_no_draw_to_offer", a_race_game_has_no_draw_to_offer),
     ("ur_and_senet_are_played_with_the_referees_throws", ur_and_senet_are_played_with_the_referees_throws),
     ("backgammon_opens_and_doubles_with_the_referees_dice", backgammon_opens_and_doubles_with_the_referees_dice),
     ("the_api_over_http", the_api_over_http),
@@ -150,6 +151,21 @@ fn resign_and_draw_by_agreement(pg: &Pg) {
     assert_eq!(act(&anna, "resign").0, 200);
     let (_, st) = db.call(&bo, "GET", "/v1/state", json!({}));
     assert_eq!(st["games"][0]["result"], "0-1");
+}
+
+fn a_race_game_has_no_draw_to_offer(pg: &Pg) {
+    for variant in ["backgammon", "ur", "senet"] {
+        let db = pg.fresh();
+        let anna = db.user("Anna");
+        let bo = db.user("Bo");
+        let (_, v) = db.call(&anna, "POST", "/v1/games", json!({ "opponent": "Bo", "variant": variant, "side": "first" }));
+        let id = v["id"].as_str().unwrap().to_string();
+        assert_eq!(db.call(&bo, "POST", &format!("/v1/games/{id}/accept"), json!({})).0, 200, "{variant}");
+        let (s, v) = db.call(&anna, "POST", &format!("/v1/games/{id}/draw"), json!({ "yes": true }));
+        assert_eq!((s, v), (409, json!({ "error": "not_now" })), "{variant}");
+        let (_, st) = db.call(&bo, "GET", "/v1/state", json!({}));
+        assert_eq!(st["games"][0]["draw_offered"], false, "{variant}: nothing was offered");
+    }
 }
 
 fn unknown_variants_are_refused(pg: &Pg) {

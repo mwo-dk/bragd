@@ -1865,6 +1865,7 @@
  "friends.deleted": "Din konto på Bragd-serveren er slettet, og Bragd har logget dig af.",
  "friends.deleted_player": "Slettet spiller",
  "friends.your_ratings": "Dine ratings:",
+ "friends.provisional": "Et ? efter en rating betyder, at den er foreløbig: den falder på plads efter cirka ti rangerede partier i den spilfamilie.",
  "online.intro.bragd": "Søg et Parti, som enhver Bragd-spiller må tage, udfordr en spiller ved navn, eller svar på en udfordring. Bragd-serverens dommer tjekker hvert træk efter Bragds regler.",
  "feature.friends.title": "Spil med venner",
  "feature.friends.what": "Spil mod andre Bragd-spillere på Bragd-serveren: venner, Klubber, søgninger og Partier med ure og ratings, dømt efter Bragds egne regler.",

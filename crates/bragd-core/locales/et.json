@@ -1865,6 +1865,7 @@
  "friends.deleted": "Su konto Bragdi serveris on kustutatud ja Bragd on sind välja logitud.",
  "friends.deleted_player": "Kustutatud mängija",
  "friends.your_ratings": "Sinu reitingud:",
+ "friends.provisional": "Hinde järel olev ? tähendab, et see on esialgne: see stabiliseerub pärast umbes kümmet hinnatud partiid selles mängude perekonnas.",
  "online.intro.bragd": "Otsi mängu, mille võib võtta iga Bragdi mängija, kutsu mängija välja tema nime järgi või vasta väljakutsele. Bragdi serveri kohtunik kontrollib iga käiku Bragdi reeglite järgi.",
  "feature.friends.title": "Mängi sõpradega",
  "feature.friends.what": "Mängi teiste Bragdi mängijatega Bragdi serveris: sõbrad, klubid, otsingud ning kellade ja reitingutega mängud, mida juhib Bragdi enda reeglite järgi kohtunik.",

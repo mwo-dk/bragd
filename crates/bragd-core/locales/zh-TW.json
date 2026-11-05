@@ -1854,6 +1854,7 @@
  "friends.deleted": "你在 Bragd 伺服器上的帳號已刪除，Bragd 已為你登出。",
  "friends.deleted_player": "已刪除的玩家",
  "friends.your_ratings": "你的等級分：",
+ "friends.provisional": "評分後的 ? 表示該評分是暫定的：在該遊戲家族中進行約十場計分對局後，評分才會穩定。",
  "online.intro.bragd": "尋找任何 Bragd 玩家都可接受的對局，依名稱挑戰玩家，或回應挑戰。Bragd 伺服器的裁判依 Bragd 規則檢查每一步。",
  "feature.friends.title": "與好友對局",
  "feature.friends.what": "在 Bragd 伺服器上與其他 Bragd 玩家對局：好友、俱樂部、尋找對局，以及帶計時和計分、依 Bragd 自己規則裁判的對局。",

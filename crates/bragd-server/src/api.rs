@@ -441,6 +441,10 @@ impl Game {
             }
             ("resign", "playing") => self.end(tx, Some(if me == self.first { 1 } else { 0 }), "resign"),
             ("draw", "playing") => {
+                // Race Games are always won: an agreement to a draw is not a result there.
+                if !bragd_games::variant(&self.variant).map_err(|_| Error(500, "server"))?.family().draws() {
+                    return Err(Error(409, "not_now"));
+                }
                 let yes = body["yes"].as_bool().unwrap_or(false);
                 let theirs = self.draw_offer.is_some_and(|o| o != me);
                 match (yes, theirs) {

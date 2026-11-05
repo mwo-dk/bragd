@@ -76,6 +76,11 @@ impl Family {
     pub fn race(self) -> bool {
         matches!(self, Family::Backgammon | Family::Ur | Family::Senet)
     }
+
+    /// A Game can end in agreement to a draw: not the race Games, which are always won.
+    pub fn draws(self) -> bool {
+        !self.race()
+    }
 }
 
 /// How the board is built, which decides how a front end draws it.
@@ -242,6 +247,12 @@ mod tests {
     fn the_race_games_are_the_ones_with_dice() {
         let race: Vec<&str> = Family::ALL.iter().filter(|f| f.race()).map(|f| f.key()).collect();
         assert_eq!(race, ["backgammon", "ur", "senet"]);
+    }
+
+    #[test]
+    fn only_the_race_games_have_no_draw_to_offer() {
+        let none: Vec<&str> = Family::ALL.iter().filter(|f| !f.draws()).map(|f| f.key()).collect();
+        assert_eq!(none, ["backgammon", "ur", "senet"]);
     }
 
     #[test]
