@@ -26,7 +26,7 @@ Commentary needs a language model: one set in *Settings → Language model*, or 
 | Analyse → **Review the game** | Press **Commentary** beside a move in the Annotations list |
 | Databases → Libraries → a saved Slice | Press **Write Commentary** beside **Analyse in background**. Bragd counts the reviewed moves of the Slice's Games that have no Commentary in your language yet, says how many, and writes them only when you press **Write** |
 
-![A saved Slice, White wins, in Databases: Write Commentary beside Analyse in background, and the question The model would write Commentary on 6 reviewed moves of White wins, with Write and Cancel](../screenshots/slice-commentary-1100.png)
+![A saved Slice, White wins, in Databases: Write Commentary beside Analyse in background, and the question The model would write Commentary on 4 reviewed moves of White wins, with Write and Cancel](../screenshots/slice-commentary-1100.png)
 *Write Commentary for a Slice says how many moves first.*
 
 ![The same at 390 px](../screenshots/slice-commentary-390.png)

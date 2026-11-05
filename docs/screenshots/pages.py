@@ -549,9 +549,9 @@ def commentary():
 
 
 def slice_commentary():
-    """slice-commentary-390.png and -1100.png: the saved Slice White wins in Databases, analysed in
-    the background by the stand-in Engine, and the question under Write Commentary: how many
-    reviewed moves the model would write about. The model is a stand-in (fake_model), never a
+    """slice-commentary-390.png and -1100.png: the saved Slice White wins in Databases, after the start
+    of its Opera game was reviewed in Analyse (the stand-in Engine calls 2... d6 a blunder), and
+    the question under Write Commentary: how many reviewed moves the model would write about. The model is a stand-in (fake_model), never a
     server of this machine's, whose name a picture would show."""
     if sees_host():
         raise SystemExit("the sandbox reaches this machine's ports: a picture could show a server of yours (#352)")
@@ -562,23 +562,26 @@ def slice_commentary():
     try:
         def page(d):
             unfold(d)
+            # Review the start of the Opera game, a Game of the Slice, in Analyse: the stand-in
+            # Engine calls 2... d6 off its line, a blunder, and the Annotation is kept.
+            nav(d, "chess", "Analyse")
+            for a, b in (m.split() for m in ["e2 e4", "e7 e5", "g1 f3", "d7 d6"]):
+                move(d, a, b)
+            click(d, "Review the game", "main")
+            d.wait(6)
+            unfold(d)
             nav(d, "chess", "Databases")
             click(d, "Libraries", "main")
             js(d, "document.querySelector('main td button.link').click()")
             d.wait(1)
             click(d, "White wins", "main")
             d.wait(1)
-            # The first width analyses the Slice; the second finds its moves reviewed already.
-            click(d, "Analyse in background", "main")
-            d.wait(1)
-            click(d, "Queue", "main .analyse")
-            d.wait(8)
             click(d, "Write Commentary", "main")
             for _ in range(30):
-                if js(d, "return !!document.querySelector('main button.primary')"):
+                if js(d, "return document.querySelector('main').textContent.includes('would write Commentary')"):
                     break
                 d.wait(1)
-            js(d, "document.querySelector('main .actions, main button.primary')?.scrollIntoView({block: 'center'})")
+            js(d, "[...document.querySelectorAll('main p')].find(p => p.textContent.includes('would write Commentary'))?.scrollIntoView({block: 'center'})")
 
         widths("slice-commentary", page, reach=[fake.server_port])
     finally:
