@@ -12,7 +12,7 @@ import json, os, shutil, sys
 from urllib.parse import urlparse
 from pathlib import Path
 
-from cap import HERE, SEEN, WIDTHS, Desktop, _env, gif, widths
+from cap import HERE, SEEN, WIDTHS, Desktop, _env, gif, sees_host, widths
 
 FAMILIES = ["chess", "xiangqi", "shogi", "go", "draughts", "tafl", "backgammon", "ur", "senet"]
 NAMES = {f: f.capitalize() for f in FAMILIES}
@@ -546,6 +546,45 @@ def commentary():
     finally:
         config("")
         fake.shutdown()
+
+
+def slice_commentary():
+    """slice-commentary-390.png and -1100.png: the saved Slice White wins in Databases, analysed in
+    the background by the stand-in Engine, and the question under Write Commentary: how many
+    reviewed moves the model would write about. The model is a stand-in (fake_model), never a
+    server of this machine's, whose name a picture would show."""
+    if sees_host():
+        raise SystemExit("the sandbox reaches this machine's ports: a picture could show a server of yours (#352)")
+    fake = fake_model()
+    url, name = f"http://127.0.0.1:{fake.server_port}/v1", "demo-writer"
+    config(ENGINES + f'\n[model]\nurl = "{url}"\nname = "{name}"\n')
+    state = Path(_env()["DEMO_HOME"]) / ".local/share/bragd/helper/state.json"
+    try:
+        def page(d):
+            unfold(d)
+            nav(d, "chess", "Databases")
+            click(d, "Libraries", "main")
+            js(d, "document.querySelector('main td button.link').click()")
+            d.wait(1)
+            click(d, "White wins", "main")
+            d.wait(1)
+            # The first width analyses the Slice; the second finds its moves reviewed already.
+            click(d, "Analyse in background", "main")
+            d.wait(1)
+            click(d, "Queue", "main .analyse")
+            d.wait(8)
+            click(d, "Write Commentary", "main")
+            for _ in range(30):
+                if js(d, "return !!document.querySelector('main button.primary')"):
+                    break
+                d.wait(1)
+            js(d, "document.querySelector('main .actions, main button.primary')?.scrollIntoView({block: 'center'})")
+
+        widths("slice-commentary", page, reach=[fake.server_port])
+    finally:
+        config("")
+        fake.shutdown()
+        state.unlink(missing_ok=True)
 
 
 def stand_in_picker(path):
@@ -1333,7 +1372,7 @@ def play():
         config("")
 
 
-ALL = {"play": play, "library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "extras": extras, "keyboard": keyboard, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "background": background, "peers": peers, "engines": engines, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
+ALL = {"play": play, "library": library, "ur-solved": ur_solved, "matches": matches, "clubs": clubs, "tournaments": tournaments, "leagues": leagues, "wizard": wizard, "help": help_, "extras": extras, "keyboard": keyboard, "boards": boards, "selfplay": selfplay, "engine": engine, "review": review, "screens": screens, "themes": themes, "players": players, "model": model, "commentary": commentary, "slice-commentary": slice_commentary, "background": background, "peers": peers, "engines": engines, "sharing": sharing, "online": online, "friends": friends, "families": families, "sources": sources, "databases": databases, "jobs": jobs, "source-pages": source_pages,
        "only-go": lambda: families("go"), "only-chess": lambda: families("chess")}
 
 if __name__ == "__main__":
