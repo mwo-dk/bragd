@@ -161,6 +161,8 @@ pub struct Rated {
     pub name: String,
     /// `1612`, or `1500?` while it is provisional.
     pub rating: String,
+    /// Glicko-2 is not yet sure of it: the page says what that means.
+    pub provisional: bool,
     pub games: u64,
 }
 
@@ -568,7 +570,7 @@ impl BragdServer {
                         // Glicko-2's deviation: above 110 the rating is still provisional (docs/adr/0007).
                         let sure = r["deviation"].as_f64().unwrap_or(350.0) <= 110.0;
                         let rating = format!("{}{}", r["rating"].as_f64().unwrap_or(1500.0).round(), if sure { "" } else { "?" });
-                        Rated { name: t!(&format!("family.{family}")), family, rating, games: r["games"].as_u64().unwrap_or(0) }
+                        Rated { name: t!(&format!("family.{family}")), family, rating, provisional: !sure, games: r["games"].as_u64().unwrap_or(0) }
                     })
                     .collect()
             })
@@ -727,8 +729,10 @@ impl Play for BragdServer {
         ["white", "black"]
     }
 
+    /// A Family whose Games are always won has no draw to offer; the referee refuses it too.
     fn can(&self) -> Can {
-        Can { takeback: false, cancel: true, abort: false, draw: true }
+        let draw = self.shown().and_then(|g| bragd_games::variant(&s(&g["variant"])).ok()).is_none_or(|v| v.family().draws());
+        Can { takeback: false, cancel: true, abort: false, draw }
     }
 
     fn ready(&self) -> bool {
@@ -1178,8 +1182,8 @@ mod tests {
     #[test]
     fn bragd_server_shows_ratings_provisional_with_a_question_mark() {
         let (b, _, _) = signed_in();
-        let r: Vec<(String, String)> = b.ratings().into_iter().map(|r| (r.family, r.rating)).collect();
-        assert_eq!(r, [("chess".to_string(), "1612".to_string()), ("shogi".to_string(), "1480?".to_string())]);
+        let r: Vec<(String, String, bool)> = b.ratings().into_iter().map(|r| (r.family, r.rating, r.provisional)).collect();
+        assert_eq!(r, [("chess".to_string(), "1612".to_string(), false), ("shogi".to_string(), "1480?".to_string(), true)]);
     }
 
     /// The running clock reached nought: the referee is asked to see the flag.
@@ -1198,6 +1202,22 @@ mod tests {
         let n = fake.seen().iter().filter(|r| r.path.ends_with("/flag")).count();
         b.poll().unwrap();
         assert_eq!(fake.seen().iter().filter(|r| r.path.ends_with("/flag")).count(), n, "time is left");
+    }
+
+    /// Race Games end in a win, never in agreement: no draw is offered in them, and shogi has it.
+    #[test]
+    fn bragd_server_offers_no_draw_in_a_race_game() {
+        let (b, _, world) = signed_in();
+        assert!(b.can().draw, "no Game yet");
+        for (variant, initial, draw) in [("backgammon", Some("white"), false), ("ur", None, false), ("senet", None, false), ("shogi", None, true)] {
+            {
+                let mut w = world.lock().unwrap();
+                let g = &mut w.games[0];
+                (g.variant, g.status, g.initial) = (variant.into(), "playing".into(), initial.map(String::from));
+            }
+            b.poll().unwrap();
+            assert_eq!(b.can().draw, draw, "{variant}");
+        }
     }
 
     /// Backgammon, Black to throw with the cube in the middle: the page offers Double and Throw,

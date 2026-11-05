@@ -1,0 +1,1 @@
+| **Play with Friends is clearer.** Backgammon, Ur and senet no longer offer a draw, backgammon has one Resign… that asks single game, gammon or backgammon, Throw is the main button with the key T as on Play, and a rating with a ? says it is provisional and settles after about ten rated Games. | [Play with Friends](online/play-with-friends.md#games) |

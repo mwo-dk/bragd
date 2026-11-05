@@ -1867,6 +1867,7 @@
  "friends.deleted": "Dein Konto auf dem Bragd-Server ist gelöscht, und Bragd hat dich abgemeldet.",
  "friends.deleted_player": "Gelöschter Spieler",
  "friends.your_ratings": "Deine Wertungen:",
+ "friends.provisional": "Ein ? hinter einer Wertung bedeutet, dass sie vorläufig ist: Sie pendelt sich nach etwa zehn gewerteten Partien in dieser Spielfamilie ein.",
  "online.intro.bragd": "Suche eine Partie, die jede Person mit Bragd annehmen darf, fordere eine Person bei ihrem Namen heraus oder antworte auf eine Herausforderung. Der Schiedsrichter des Bragd-Servers prüft jeden Zug nach Bragds Regeln.",
  "feature.friends.title": "Mit Freunden spielen",
  "feature.friends.what": "Spiele mit anderen Bragd-Spielenden auf dem Bragd-Server: Freunde, Clubs, Suchen und Partien mit Uhren und Wertungen, geleitet nach Bragds eigenen Regeln.",

@@ -1889,6 +1889,7 @@
  "friends.deleted": "Twoje konto na serwerze Bragd zostało usunięte, a Bragd wylogował cię.",
  "friends.deleted_player": "Usunięty gracz",
  "friends.your_ratings": "Twoje rankingi:",
+ "friends.provisional": "Znak ? za wynikiem oznacza, że jest on wstępny: ustala się po około dziesięciu punktowanych partiach w tej rodzinie gier.",
  "online.intro.bragd": "Szukaj partii, którą może przyjąć każdy gracz Bragd, wyzwij gracza po nazwie albo odpowiedz na wyzwanie. Sędzia serwera Bragd sprawdza każdy ruch według zasad Bragd.",
  "feature.friends.title": "Graj ze znajomymi",
  "feature.friends.what": "Graj z innymi graczami Bragd na serwerze Bragd: Znajomi, Kluby, szukanie partii i Partie z zegarami i rankingami, prowadzone według własnych zasad Bragd.",

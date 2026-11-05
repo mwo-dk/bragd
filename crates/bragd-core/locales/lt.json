@@ -1878,6 +1878,7 @@
  "friends.deleted": "Jūsų paskyra Bragd serveryje ištrinta, o Bragd atsijungė.",
  "friends.deleted_player": "Ištrintas žaidėjas",
  "friends.your_ratings": "Jūsų reitingai:",
+ "friends.provisional": "Prie įvertinimo esantis ? reiškia, kad jis laikinas: jis nusistovi apie dešimt vertinamų partijų toje žaidimų šeimoje.",
  "online.intro.bragd": "Ieškokite partijos, kurią gali paimti bet kuris Bragd žaidėjas, iššaukite žaidėją pagal vardą arba atsakykite į iššūkį. Bragd serverio teisėjas tikrina kiekvieną ėjimą pagal Bragd taisykles.",
  "feature.friends.title": "Žaisti su draugais",
  "feature.friends.what": "Žaiskite su kitais Bragd žaidėjais Bragd serveryje: draugai, klubai, paieškos ir partijos su laikrodžiais bei reitingais, teisiamos pagal Bragd taisykles.",

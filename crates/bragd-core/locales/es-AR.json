@@ -1875,6 +1875,7 @@
  "friends.deleted": "Tu cuenta en el servidor de Bragd fue eliminada, y Bragd cerró tu sesión.",
  "friends.deleted_player": "Jugador eliminado",
  "friends.your_ratings": "Tus puntuaciones:",
+ "friends.provisional": "Un ? después de una puntuación significa que es provisional: se asienta tras unas diez partidas puntuables en esa familia de juegos.",
  "online.intro.bragd": "Buscá una partida que cualquier jugador de Bragd pueda tomar, desafiá a un jugador por su nombre o respondé a un desafío. El árbitro del servidor de Bragd revisa cada jugada según las reglas de Bragd.",
  "feature.friends.title": "Jugá con amigos",
  "feature.friends.what": "Jugá con otros jugadores de Bragd en el servidor de Bragd: amigos, Clubes, búsquedas y partidas con relojes y puntuaciones, arbitradas con las reglas propias de Bragd.",

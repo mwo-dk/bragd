@@ -1878,6 +1878,7 @@
  "friends.deleted": "Jūsu konts Bragd serverī ir dzēsts, un Bragd ir izrakstījis jūs.",
  "friends.deleted_player": "Dzēsts spēlētājs",
  "friends.your_ratings": "Jūsu reitingi:",
+ "friends.provisional": "Aiz vērtējuma esošais ? nozīmē, ka tas ir pagaidu: tas nostabilizējas pēc aptuveni desmit vērtējamām partijām šajā spēļu ģimenē.",
  "online.intro.bragd": "Meklējiet partiju, ko var paņemt jebkurš Bragd spēlētājs, izaiciniet spēlētāju pēc vārda vai atbildiet uz izaicinājumu. Bragd servera tiesnesis pārbauda katru gājienu pēc Bragd noteikumiem.",
  "feature.friends.title": "Spēlēt ar draugiem",
  "feature.friends.what": "Spēlējiet partijas ar citiem Bragd spēlētājiem Bragd serverī: Draugi, klubi, meklējumi un partijas ar pulksteņiem un reitingiem, ko tiesā pēc paša Bragd noteikumiem.",

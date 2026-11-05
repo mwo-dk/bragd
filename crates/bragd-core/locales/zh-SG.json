@@ -1856,6 +1856,7 @@
  "friends.deleted": "你在 Bragd 服务器上的账户已删除，Bragd 已为你退出登录。",
  "friends.deleted_player": "已删除的玩家",
  "friends.your_ratings": "你的等级分：",
+ "friends.provisional": "评分后的 ? 表示该评分是临时的：在该棋类游戏家族中进行约十局计分对局后，评分才会稳定。",
  "online.intro.bragd": "寻找任何 Bragd 玩家都可接受的对局，按名称挑战玩家，或回应挑战。Bragd 服务器的裁判按 Bragd 规则检查每一步。",
  "feature.friends.title": "与好友对局",
  "feature.friends.what": "在 Bragd 服务器上与其他 Bragd 玩家对局：好友、俱乐部、寻找对局，以及带计时和计分、按 Bragd 自己规则裁判的对局。",

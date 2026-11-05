@@ -1033,7 +1033,7 @@ def friends():
                 d.shot(HERE / f"friends-dice-{w}.png")
                 # friends-step: after the referee's throw, one checker moved, with Undo; the step
                 # is Rust's own first, asked through the page's own commands.
-                click(d, "Throw", "main")
+                click(d, "Throw", "main", exact=False)
                 d.wait(2)
                 js(d, "const i = window.__TAURI_INTERNALS__; i.invoke('online_view', {server: 'bragd'}).then(v => i.invoke('online_move', {server: 'bragd', entry: v.game.state.steps[0].wire}));")
                 d.wait(2)

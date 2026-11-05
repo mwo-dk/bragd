@@ -1867,6 +1867,7 @@
  "friends.deleted": "Tilisi Bragd-palvelimella on poistettu, ja Bragd on kirjannut sinut ulos.",
  "friends.deleted_player": "Poistettu pelaaja",
  "friends.your_ratings": "Sinun luokituksesi:",
+ "friends.provisional": "Luvun perässä oleva ? tarkoittaa, että luku on alustava: se vakiintuu noin kymmenen arvostellun pelin jälkeen tässä pelilajissa.",
  "online.intro.bragd": "Hae peliä, jonka mikä tahansa Bragd-pelaaja voi ottaa, haasta pelaaja nimellä tai vastaa haasteeseen. Bragd-palvelimen tuomari tarkistaa jokaisen siirron Bragdin sääntöjen mukaan.",
  "feature.friends.title": "Pelaa ystävien kanssa",
  "feature.friends.what": "Pelaa muita Bragd-pelaajia Bragd-palvelimella: ystävät, klubit, haut sekä kelloilla ja luokituksilla pelattavat pelit, joita Bragdin omat säännöt ohjaavat.",

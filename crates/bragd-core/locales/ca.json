@@ -1878,6 +1878,7 @@
  "friends.deleted": "El teu compte al servidor de Bragd s'ha esborrat, i Bragd ha tancat la sessió.",
  "friends.deleted_player": "Jugador esborrat",
  "friends.your_ratings": "Les teves puntuacions:",
+ "friends.provisional": "Un ? després d'una puntuació vol dir que és provisional: es fixa després de unes deu partides puntuables en aquesta família de jocs.",
  "online.intro.bragd": "Cerca una partida que qualsevol jugador de Bragd pugui agafar, reta un jugador pel seu nom o respon a un repte. L'àrbitre del servidor de Bragd comprova cada jugada segons les regles de Bragd.",
  "feature.friends.title": "Juga amb amics",
  "feature.friends.what": "Juga amb altres jugadors de Bragd al servidor de Bragd: amics, Clubs, cerques i partides amb rellotges i puntuacions, arbitrades per les regles pròpies de Bragd.",

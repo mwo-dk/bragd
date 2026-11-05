@@ -1878,6 +1878,7 @@
  "friends.deleted": "Tvůj účet na serveru Bragd je smazán a Bragd tě odhlásil.",
  "friends.deleted_player": "Smazaný hráč",
  "friends.your_ratings": "Tvoje hodnocení:",
+ "friends.provisional": "Otazník za hodnocením znamená, že je předběžné: ustálí se po zhruba deseti hodnocených partiích v této herní rodině.",
  "online.intro.bragd": "Hledej partii, kterou může přijmout kterýkoli hráč Bragd, vyzvi hráče jménem, nebo odpověz na výzvu. Rozhodčí serveru Bragd kontroluje každý tah podle pravidel Bragd.",
  "feature.friends.title": "Hraj s přáteli",
  "feature.friends.what": "Hraj s jinými hráči Bragd na serveru Bragd: přátelé, Kluby, hledání soupeře a partie s hodinami a hodnocením, které řídí pravidla Bragd.",

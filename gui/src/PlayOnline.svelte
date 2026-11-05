@@ -12,6 +12,7 @@
   import Call from "./Call.svelte";
   import { movesOf, movesTo, plainMoves } from "./board.js";
   import { guide } from "./guide.svelte.js";
+  import { playKey } from "./keys.js";
 
   /** @type {{ server: string, family: any, save: (name: string, value: any) => Promise<any>, embedded?: boolean }} */
   let { server, family, save, embedded = false } = $props();
@@ -46,6 +47,13 @@
   const game = $derived(view?.game ?? null);
   const st = $derived(game?.state ?? null);
   const mine = $derived(!!st && game.seat !== null && !game.over && st.toMove?.index === game.seat);
+  // Moves with no square: Throw, Double, Pass, and backgammon's resignations (one menu, not a button each).
+  const plain = $derived(mine ? plainMoves(st).filter((/** @type {any} */ m) => !m.wire.startsWith("dead:")) : []);
+  const throwMove = $derived(plain.find((/** @type {any} */ m) => m.wire === "throw"));
+  // Backgammon gives up at three grades; elsewhere the one Resign button is enough.
+  const grades = $derived(plain.filter((/** @type {any} */ m) => m.wire.startsWith("resign")));
+  const resigns = $derived(grades.length > 1 ? grades : []);
+  let resigning = $state(false);
   const targets = $derived(st && sel ? [...new Set(movesOf(st, sel).map((/** @type {any} */ m) => m.to).filter(Boolean))] : []);
   // A Game on keeps Tips away.
   $effect(() => {
@@ -86,6 +94,13 @@
     sel = null;
     choose = [];
     run(() => api.onlineMove(server, entry));
+  }
+  /** T throws, as on Play, when the button is there. */
+  function onKey(/** @type {KeyboardEvent} */ e) {
+    if (playKey(e) !== "throw" || !throwMove || busy || guide.wizard || guide.cards.length || document.querySelector("dialog[open], .veil")) return;
+    e.preventDefault();
+    playEntry("throw");
+    api.keyUsed();
   }
   function pick(/** @type {any[]} */ moves) {
     // Backgammon on the Bragd server: one checker at a time, as in local Play; Rust sends the turn.
@@ -153,6 +168,8 @@
   {/if}
 {/snippet}
 
+<svelte:window onkeydown={onKey} />
+
 <section class="online">
   {#if !embedded}<header class="bar">
     <h1>{t("online.title", { server: name })}</h1>
@@ -191,6 +208,9 @@
         <h2>{t("online.new_game")}</h2>
         {#if view.ratings.length}
           <p class="hint">{t("friends.your_ratings")} {view.ratings.map((/** @type {any} */ r) => `${r.name} ${r.rating}`).join(" · ")}</p>
+          {#if view.ratings.some((/** @type {any} */ r) => r.provisional)}
+            <p class="hint">{t("friends.provisional")}</p>
+          {/if}
         {/if}
         <div class="form">
           <Picker value={variant} choices={view.variants} label={t("play.variant")} onchange={(v) => (variant = v)} />
@@ -293,6 +313,15 @@
             <button onclick={() => act("no_takeback")}>{t("online.decline")}</button>
           </div>
         {/if}
+        {#if resigning && resigns.length}
+          <div class="actions">
+            <p>{t("play.resign_ask")}</p>
+            {#each resigns as m}
+              <button onclick={() => ((resigning = false), playEntry(m.wire))}>{plainLabel(m)}</button>
+            {/each}
+            <button onclick={() => (resigning = false)}>{t("common.cancel")}</button>
+          </div>
+        {/if}
         {#if choose.length}
           <div class="actions">
             <p>{t("play.choose")}</p>
@@ -319,11 +348,18 @@
               <button onclick={() => act("step_back")} disabled={busy}>{t("play.undo")}</button>
             {/if}
             {#if mine && !game.dead}
-              {#each plainMoves(st).filter((/** @type {any} */ m) => !m.wire.startsWith("dead:")) as m}
+              {#if throwMove}
+                <button class="primary" onclick={() => playEntry("throw")} disabled={busy} aria-keyshortcuts="T">{t("play.throw")} <kbd>T</kbd></button>
+              {/if}
+              {#each plain.filter((/** @type {any} */ m) => m !== throwMove && !m.wire.startsWith("resign")) as m}
                 <button onclick={() => playEntry(m.wire)} disabled={busy}>{plainLabel(m)}</button>
               {/each}
             {/if}
-            <button onclick={() => act("resign")} disabled={busy}>{t("online.resign")}</button>
+            {#if resigns.length}
+              <button onclick={() => (resigning = !resigning)} disabled={busy} aria-expanded={resigning}>{t("play.resign_menu")}</button>
+            {:else}
+              <button onclick={() => act("resign")} disabled={busy}>{t("online.resign")}</button>
+            {/if}
           {/if}
           {#if game.url}<button class="link" onclick={() => api.openUrl(game.url)}>{t("online.open_on", { site: view.server.site })}</button>{/if}
         </div>

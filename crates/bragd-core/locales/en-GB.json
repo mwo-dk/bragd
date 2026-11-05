@@ -1867,6 +1867,7 @@
  "friends.deleted": "Your account on the Bragd server is deleted, and Bragd has signed out.",
  "friends.deleted_player": "Deleted player",
  "friends.your_ratings": "Your ratings:",
+ "friends.provisional": "A ? after a rating means it is provisional: it settles after about ten rated games in that Game family.",
  "online.intro.bragd": "Seek a Game that any Bragd player may take, challenge a player by their name, or answer a challenge. The Bragd server's referee checks every move by Bragd's rules.",
  "feature.friends.title": "Play with Friends",
  "feature.friends.what": "Play other Bragd players on the Bragd server: Friends, Clubs, seeks, and Games with clocks and ratings, refereed by Bragd's own rules.",
