@@ -828,6 +828,21 @@ mod tests {
     }
 
     #[test]
+    fn i18n_shogi_lessons_name_the_sides_as_the_board_does() {
+        for l in LANGUAGES {
+            let (sente, gote) = (tr_in(l.code, "side.sente"), tr_in(l.code, "side.gote"));
+            for lesson in ["pawn-drop-that-may-not-mate", "knight-out-of-nowhere"] {
+                let text = tr_in(l.code, &format!("position.shogi.{lesson}.text"));
+                assert!(text.contains(&sente), "{} {lesson} lacks {sente}", l.code);
+                assert!(text.contains(&gote), "{} {lesson} lacks {gote}", l.code);
+                if l.code.starts_with("en") {
+                    assert!(!text.contains("Black") && !text.contains("White"), "{} {lesson}", l.code);
+                }
+            }
+        }
+    }
+
+    #[test]
     fn i18n_nearest_language() {
         for (tag, want) in [
             ("en_US.UTF-8", "en-CA"),
