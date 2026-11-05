@@ -296,6 +296,8 @@
  "wizard.knowledge": "Downloads die Bragd nuttiger maken. Elk toont eerst zijn grootte. Er wordt niets gedownload tot je op de laatste stap op Klaar drukt.",
  "wizard.languages": "Talen, in hun eigen naam",
  "wizard.later": "Je kunt dit later wijzigen bij Instellingen → {area}.",
+ "wizard.later_sources": "Je kunt dit later wijzigen: Bronnen staan bij elke spelfamilie onder {databases} → {sources}.",
+ "wizard.later_tablebases": "Lichess vragen om tablebase-posities staat onder Instellingen → {online} en {tablebases}.",
  "wizard.next": "Volgende",
  "wizard.no_room": "Deze downloads hebben {size} nodig, en er is maar {free} vrij. Houd minstens {spare} over: kies er minder of maak eerst ruimte vrij.",
  "wizard.nothing": "Er wordt niets gedownload.",

@@ -252,7 +252,7 @@
     </div>
     <!-- Outside the scrolled body, so it never hides behind the footer on a short window. -->
     {#if current?.later}
-      <p class="later"><button class="link" onclick={() => settings(current.area)}>{current.later}</button></p>
+      <p class="later">{#if current.link}<button class="link" onclick={() => settings(current.area)}>{current.later}</button>{:else}{current.later}{/if}</p>
     {/if}
 
     <footer>

@@ -296,6 +296,8 @@
  "wizard.knowledge": "Lataukset, jotka tekevät Bragdista hyödyllisemmän. Jokainen näyttää kokonsa ensin. Mitään ei ladata, ennen kuin painat viimeisellä vaiheella Valmis.",
  "wizard.languages": "Kielet omilla nimillään",
  "wizard.later": "Voit muuttaa tätä myöhemmin kohdassa Asetukset → {area}.",
+ "wizard.later_sources": "Voit muuttaa tätä myöhemmin: lähteet ovat kunkin pelilajin kohdassa {databases} → {sources}.",
+ "wizard.later_tablebases": "Lichessin loppupeliasemien pyytäminen on kohdassa Asetukset → {online} ja {tablebases}.",
  "wizard.next": "Seuraava",
  "wizard.no_room": "Nämä lataukset tarvitsevat {size}, ja vapaana on vain {free}. Jätä vähintään {spare} vapaaksi: valitse vähemmän tai vapauta ensin tilaa.",
  "wizard.nothing": "Mitään ei ladata.",

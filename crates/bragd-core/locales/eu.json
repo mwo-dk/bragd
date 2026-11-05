@@ -296,6 +296,8 @@
  "wizard.knowledge": "Bragd erabilgarriagoa egiten duten deskargak. Bakoitzak bere tamaina erakusten du lehenik. Ez da ezer deskargatzen azken urratsean Eginda sakatu arte.",
  "wizard.languages": "Hizkuntzak, beren izenekin",
  "wizard.later": "Hau geroago alda dezakezu Ezarpenak → {area} atalean.",
+ "wizard.later_sources": "Hau geroago alda dezakezu: Iturriak jokoen familia bakoitzaren {databases} → {sources} atalean daude.",
+ "wizard.later_tablebases": "Lichessi tablebase posizioak eskatzeko aukera Ezarpenak → {online} eta {tablebases} atalean dago.",
  "wizard.next": "Hurrengoa",
  "wizard.no_room": "Deskarga hauek {size} behar dituzte, eta {free} baino ez daude libre. Utzi gutxienez {spare} libre: aukeratu gutxiago, edo egin lekua lehenik.",
  "wizard.nothing": "Ez da ezer deskargatzen.",

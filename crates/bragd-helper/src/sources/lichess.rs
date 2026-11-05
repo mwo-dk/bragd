@@ -36,7 +36,7 @@ impl Source for Lichess {
             family: "chess".into(),
             size: 30_000_000_000,
             schedule: Schedule::Monthly,
-            url: format!("{BASE}/standard/lichess_db_standard_rated_{{yyyy}}-{{mm}}.pgn.zst"),
+            url: BASE.into(),
             fetchable: true,
             kind: Kind::Games,
             parts: VARIANTS.iter().map(|(id, v)| Part::new(id, &format!("variant.{v}"), v, *id == "standard")).collect(),

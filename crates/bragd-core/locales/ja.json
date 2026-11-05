@@ -296,6 +296,8 @@
  "wizard.knowledge": "Bragd をより役立てるためのダウンロードです。それぞれ先にサイズを表示します。最後の手順で「完了」を押すまで、何もダウンロードしません。",
  "wizard.languages": "言語（それぞれの言語名で表示）",
  "wizard.later": "後から 設定 → {area} で変更できます。",
+ "wizard.later_sources": "後から変更できます: ソースは各ゲームファミリーの {databases} → {sources} にあります。",
+ "wizard.later_tablebases": "Lichess にテーブルベースの局面を問い合わせる項目は 設定 → {online} と {tablebases} にあります。",
  "wizard.next": "次へ",
  "wizard.no_room": "これらのダウンロードには {size} が必要ですが、空きは {free} だけです。少なくとも {spare} は空けておいてください。量を減らすか、先に空き容量を確保してください。",
  "wizard.nothing": "何もダウンロードしません。",

@@ -55,6 +55,9 @@ pub struct StepView {
     /// "You can change this later in Settings → Engines."; empty when Settings does not list
     /// that area for the user's Families (Online without chess, shogi or go).
     pub later: String,
+    /// The line opens `area` in Settings. False when the choices are in several places and the
+    /// line names them (Knowledge: Sources are under Databases, the tablebase switch elsewhere).
+    pub link: bool,
 }
 
 pub fn steps(cfg: &Config) -> Vec<StepView> {
@@ -66,9 +69,20 @@ pub fn steps(cfg: &Config) -> Vec<StepView> {
             id: s.id,
             title: t!("wizard.title", "step" => t!(&format!("wizard.step{}", i + 1)), "n" => i + 1, "of" => STEPS.len()),
             area: s.area,
-            later: if listed.contains(&s.area) { t!("wizard.later", "area" => s.area.label()) } else { String::new() },
+            later: if s.id == "knowledge" { knowledge_later(cfg) } else if listed.contains(&s.area) { t!("wizard.later", "area" => s.area.label()) } else { String::new() },
+            link: s.id != "knowledge",
         })
         .collect()
+}
+
+/// Where the Knowledge step's choices live: Sources under each Family's Databases, and, with
+/// chess on, the Lichess tablebase switch in Settings → Online and on Tablebases.
+fn knowledge_later(cfg: &Config) -> String {
+    let mut line = t!("wizard.later_sources", "databases" => t!("sidebar.databases"), "sources" => t!("db.tab.sources"));
+    if crate::settings::find("tablebases_online").is_some_and(|o| o.listed_for(cfg)) {
+        line = format!("{line} {}", t!("wizard.later_tablebases", "online" => Area::Online.label(), "tablebases" => t!("sidebar.tablebases")));
+    }
+    line
 }
 
 /// The Themes shown as swatches on the Welcome step; every other one is in the list below them.
@@ -344,6 +358,21 @@ mod tests {
             s("custom:x", "go", 7, true),
             s("far-list", "chess", 9, true),
         ]
+    }
+
+    #[test]
+    fn the_knowledge_step_names_where_its_choices_are() {
+        let k = |c: &Config| steps(c).into_iter().find(|s| s.id == "knowledge").unwrap();
+        let chess = k(&Config::default());
+        assert!(!chess.link, "the line names places, so it opens none");
+        assert!(chess.later.contains("Databases → Sources"), "{}", chess.later);
+        assert!(chess.later.contains("Online") && chess.later.contains("Tablebases"), "{}", chess.later);
+        assert!(!chess.later.contains("Settings → Knowledge"), "{}", chess.later);
+        let mut go = Config::default();
+        for f in bragd_games::Family::ALL.iter().filter(|f| f.key() != "go") {
+            go.families.family.insert(f.key().into(), false);
+        }
+        assert!(!k(&go).later.contains("Tablebases"), "tablebases are chess's");
     }
 
     #[test]
