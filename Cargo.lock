@@ -564,7 +564,7 @@ version = "0.1.0"
 dependencies = [
  "bragd-core",
  "getrandom 0.4.3",
- "hmac 0.12.1",
+ "hmac 0.13.0",
  "if-addrs",
  "libc",
  "mdns-sd",

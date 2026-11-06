@@ -18,7 +18,7 @@ ring = "0.17"
 # The pairing code turned into a shared key that an onlooker cannot test guesses against.
 spake2 = "0.4"
 # The key confirmation after SPAKE2.
-hmac = "0.12"
+hmac = "0.13"
 sha2 = "0.10"
 # The code itself, from the system's random source.
 getrandom = "0.4"
