@@ -19,7 +19,7 @@ ring = "0.17"
 spake2 = "0.4"
 # The key confirmation after SPAKE2.
 hmac = "0.12"
-sha2 = "0.10"
+sha2 = "0.11"
 # The code itself, from the system's random source.
 getrandom = "0.4"
 # Finding Peers on the home network.
