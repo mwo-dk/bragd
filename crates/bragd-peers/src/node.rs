@@ -20,7 +20,7 @@ use std::sync::atomic::{AtomicBool, AtomicU16, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use rustls::pki_types::ServerName;
 use rustls::sign::CertifiedKey;
 use serde::{Deserialize, Serialize};
@@ -185,7 +185,7 @@ where
 
 /// HMAC-SHA-256 of `label` and the exporter, keyed by the SPAKE2 key.
 fn proof(key: &[u8], label: &[u8], exporter: &[u8]) -> Hmac<Sha256> {
-    let mut m = <Hmac<Sha256> as Mac>::new_from_slice(key).expect("HMAC takes any key");
+    let mut m = <Hmac<Sha256> as KeyInit>::new_from_slice(key).expect("HMAC takes any key");
     m.update(label);
     m.update(exporter);
     m
