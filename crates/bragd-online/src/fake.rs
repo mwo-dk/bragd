@@ -100,8 +100,10 @@ impl Fake {
 
     /// Sends `line` on the stream of `path`, or keeps it for when that stream opens.
     pub fn push(&self, path: &str, line: &str) {
-        let sent = lock(&self.streams).get(path).is_some_and(|tx| tx.send(Some(line.to_string())).is_ok());
-        if !sent {
+        // Under the streams' lock all the way, as `serve` is when it opens a stream: a line
+        // pushed while a stream opens is sent or kept, never dropped between the two.
+        let streams = lock(&self.streams);
+        if !streams.get(path).is_some_and(|tx| tx.send(Some(line.to_string())).is_ok()) {
             lock(&self.waiting).entry(path.to_string()).or_default().push(line.to_string());
         }
     }
@@ -162,10 +164,13 @@ impl Fake {
             }
             Reply::Stream => {
                 let (tx, rx) = channel();
-                for line in lock(&self.waiting).remove(&req.path).unwrap_or_default() {
-                    let _ = tx.send(Some(line));
+                {
+                    let mut streams = lock(&self.streams);
+                    for line in lock(&self.waiting).remove(&req.path).unwrap_or_default() {
+                        let _ = tx.send(Some(line));
+                    }
+                    streams.insert(req.path.clone(), tx);
                 }
-                lock(&self.streams).insert(req.path.clone(), tx);
                 let _ = write!(out, "HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n");
                 stream(&mut out, &rx);
                 let _ = out.write_all(b"0\r\n\r\n");
