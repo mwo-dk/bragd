@@ -343,7 +343,7 @@ oid = "1.2.840.113549.2.9"
 functions = ["tag", "verify"]
 purpose = "Inside HKDF-SHA-256, for the Secret Service session key and SPAKE2's key; the key confirmation when Peers pair, over a TLS exporter; the game service's HS256 access tokens (ring), and SCRAM-SHA-256 when it signs in to Postgres (hmac, through postgres-protocol)"
 found = [
-  { file = "crates/bragd-peers/src/node.rs", pattern = "Hmac<Sha256> as Mac" },
+  { file = "crates/bragd-peers/src/node.rs", pattern = "Hmac<Sha256> as KeyInit" },
   { file = "crates/bragd-server/src/jwt.rs", pattern = "ring::hmac::HMAC_SHA256" },
 ]
 
