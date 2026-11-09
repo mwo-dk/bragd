@@ -15,8 +15,8 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let done = match args.as_slice() {
-        [] => helper::serve(false).map(drop),
-        [s] if *s == service::STAY => helper::serve(true).map(drop),
+        [] => served(helper::serve(false)),
+        [s] if *s == service::STAY => served(helper::serve(true)),
         ["--service"] => {
             let on = service::installed();
             let said = if on { "on" } else { "off" };
@@ -45,6 +45,17 @@ fn main() -> ExitCode {
 
 /// `--service` alone: the Helper is not registered.
 const OFF: u8 = 3;
+
+/// The Helper left because an update replaced its program: not a success, so launchd
+/// (`SuccessfulExit` false) and systemd (`Restart=on-failure`) start the new program.
+const REPLACED: u8 = 75;
+
+fn served(ended: std::io::Result<helper::Ended>) -> std::io::Result<()> {
+    if matches!(ended, Ok(helper::Ended::Replaced)) {
+        std::process::exit(REPLACED.into());
+    }
+    ended.map(drop)
+}
 
 /// `done`, written into `helper.log` too: on Windows nobody sees what a GUI program prints.
 fn logged(what: &str, done: std::io::Result<()>) -> std::io::Result<()> {

@@ -35,7 +35,7 @@ Windows and the Helper speak protocol version 1, one line of JSON per request an
 - An older window that speaks the same protocol is served. One that does not is refused, and says to restart Bragd.
 - A newer Helper never steps down for an older window.
 
-So the Helper survives an upgrade until a window of the new version opens.
+So the Helper survives an upgrade until a window of the new version opens, or until the upgrade replaces its program file. It looks at that file about every 5 seconds. When the file was changed, replaced or removed, it leaves with a failure code, so systemd and launchd start the new program in its place. On macOS this stops the system from killing the old Helper and reporting a crash. The Homebrew cask also stops the Helper before an upgrade or uninstall. In the Flatpak and the AppImage the Helper cannot see its program replaced, so it stays until no window needs it.
 
 ## What it needs
 
@@ -71,7 +71,7 @@ It fetches Sources, imports into your Libraries and finds Duplicates, so the win
 
 #### When does it stop?
 
-Ten minutes after the last window closes, unless *Start with my session* is on.
+Ten minutes after the last window closes, unless *Start with my session* is on. It also leaves when an update replaces its program, and the new one takes over.
 
 #### Does turning on *Start with my session* start it at login?
 

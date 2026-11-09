@@ -63,10 +63,21 @@ cask "bragd" do
     end
   end
 
-  # Libraries and settings stay: they are the user's games.
-  zap trash: [
-    "~/Library/Caches/dk.mwo.bragd",
-    "~/Library/WebKit/dk.mwo.bragd",
-  ]
+  # The Helper runs from inside the bundle: stopped before an upgrade or uninstall replaces
+  # it, or macOS kills it and reports a crash. A launchctl remove, not the uninstall stanza's
+  # launchctl, which would delete the LaunchAgent and so turn off Start with my session;
+  # launchd loads it again at login, and the next app start hands it back at once.
+  uninstall_preflight_steps do
+    on_macos do
+      run "/bin/launchctl", args: ["remove", "dk.mwo.bragd.helper"], must_succeed: false
+    end
+  end
+
+  # Libraries and settings stay: they are the user's games. The LaunchAgent goes with --zap only.
+  zap launchctl: "dk.mwo.bragd.helper",
+      trash:     [
+        "~/Library/Caches/dk.mwo.bragd",
+        "~/Library/WebKit/dk.mwo.bragd",
+      ]
 end
 RUBY
