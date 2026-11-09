@@ -11,7 +11,7 @@
   import BackgammonBoard from "./BackgammonBoard.svelte";
   import Call from "./Call.svelte";
   import { movesOf, movesTo, plainMoves } from "./board.js";
-  import { guide } from "./guide.svelte.js";
+  import { guide, actionRan } from "./guide.svelte.js";
   import { playKey } from "./keys.js";
 
   /** @type {{ server: string, family: any, save: (name: string, value: any) => Promise<any>, embedded?: boolean }} */
@@ -101,6 +101,7 @@
     e.preventDefault();
     playEntry("throw");
     api.keyUsed();
+    actionRan("throw", true);
   }
   function pick(/** @type {any[]} */ moves) {
     // Backgammon on the Bragd server: one checker at a time, as in local Play; Rust sends the turn.
@@ -349,7 +350,7 @@
             {/if}
             {#if mine && !game.dead}
               {#if throwMove}
-                <button class="primary" onclick={() => playEntry("throw")} disabled={busy} aria-keyshortcuts="T">{t("play.throw")} <kbd>T</kbd></button>
+                <button class="primary" onclick={() => (playEntry("throw"), actionRan("throw", false))} disabled={busy} aria-keyshortcuts="T">{t("play.throw")} <kbd>T</kbd></button>
               {/if}
               {#each plain.filter((/** @type {any} */ m) => m !== throwMove && !m.wire.startsWith("resign")) as m}
                 <button onclick={() => playEntry(m.wire)} disabled={busy}>{plainLabel(m)}</button>

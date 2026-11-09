@@ -456,6 +456,7 @@ fn main() {
             help::nav_go,
             help::nav_back,
             help::key_used,
+            help::action_ran,
             help::notice_list,
             help::notice_dismiss,
             help::family_hint,
