@@ -194,6 +194,15 @@ impl Lock {
     }
 }
 
+/// Let go by an unlock before the handle closes: a program another thread starts meanwhile
+/// holds a copy of every handle until it runs (a fork, then exec), and the lock belongs to all
+/// the copies, so closing ours alone left it held until then.
+impl Drop for Lock {
+    fn drop(&mut self) {
+        let _ = self.0.unlock();
+    }
+}
+
 // ---------------------------------------------------------------- the platform's connection
 
 #[cfg(unix)]
@@ -246,6 +255,39 @@ pub enum Ended {
     Idle,
     /// A window asked it to: a newer version's, or for new settings.
     Asked,
+    /// An update replaced its program: the new one takes over (`main` exits with a failure code,
+    /// so launchd and systemd start it).
+    Replaced,
+}
+
+/// The Helper's own program when it started, and where: an update that replaces it (a new app
+/// bundle, a package) is noticed, and the Helper leaves by itself before the system stops it
+/// (macOS kills a program whose signed file changed under it, and says it crashed).
+static PROGRAM: std::sync::OnceLock<Option<(Program, PathBuf)>> = std::sync::OnceLock::new();
+
+/// What tells one program file from the next at the same path.
+#[derive(Debug, PartialEq)]
+struct Program {
+    len: u64,
+    modified: Option<std::time::SystemTime>,
+    /// Device and inode: a file put in its place is another one.
+    #[cfg(unix)]
+    id: (u64, u64),
+}
+
+fn program_at(path: &Path) -> Option<Program> {
+    let m = std::fs::metadata(path).ok()?;
+    Some(Program {
+        len: m.len(),
+        modified: m.modified().ok(),
+        #[cfg(unix)]
+        id: (std::os::unix::fs::MetadataExt::dev(&m), std::os::unix::fs::MetadataExt::ino(&m)),
+    })
+}
+
+/// Whether the program at `path` is no longer `was`: changed, replaced or gone.
+fn replaced(was: &Program, path: &Path) -> bool {
+    program_at(path).as_ref() != Some(was)
 }
 
 /// Be the Helper, in its folder, with the settings in config.toml. Returns when it leaves.
@@ -254,6 +296,7 @@ pub fn serve(stay: bool) -> io::Result<Ended> {
     let cfg = bragd_core::config::Config::load().unwrap_or_default();
     let library = crate::default_library(&cfg).ok_or_else(|| io::Error::other("no data folder"))?;
     std::fs::create_dir_all(&dir)?;
+    PROGRAM.get_or_init(|| std::env::current_exe().ok().and_then(|p| Some((program_at(&p)?, p))));
     note(format_args!("Helper starts, process {}", std::process::id()));
     let runtime = cfg.engines.runtime.clone();
     let images = Box::new(move || crate::disk::pulled_images(&runtime));
@@ -330,7 +373,14 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
             }
         });
     }
+    let (mut turns, mut gone) = (0u32, false);
     while !quit.load(Ordering::SeqCst) {
+        turns = turns.wrapping_add(1);
+        // About every 5 seconds: an update replaced the program it runs.
+        if turns % 25 == 0 && PROGRAM.get().and_then(Option::as_ref).is_some_and(|(was, at)| replaced(was, at)) {
+            gone = true;
+            break;
+        }
         let idle = last.lock().unwrap_or_else(|e| e.into_inner()).elapsed();
         // *Start with my session* turned on since this Helper started: it stays, as the one
         // the session would start does.
@@ -346,7 +396,13 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
     let _ = analysis_worker.join();
     let _ = model_worker.join();
     let _ = std::fs::remove_file(addr_file);
-    Ok(if quit.load(Ordering::SeqCst) { Ended::Asked } else { Ended::Idle })
+    Ok(if gone {
+        Ended::Replaced
+    } else if quit.load(Ordering::SeqCst) {
+        Ended::Asked
+    } else {
+        Ended::Idle
+    })
 }
 
 /// Where a connection stands: waiting for its hello, or a window.
@@ -701,6 +757,49 @@ mod tests {
             std::thread::sleep(Duration::from_millis(10));
         }
         dial_in(dir, ours)
+    }
+
+    /// The program the Helper runs, written again or put in its place by an update, or gone, is
+    /// noticed; the same file untouched is not.
+    #[test]
+    fn helper_notices_its_program_replaced() {
+        let d = crate::tests::Dir::new("program");
+        let exe = d.0.join("bragd-helper");
+        std::fs::write(&exe, "one").unwrap();
+        let was = program_at(&exe).unwrap();
+        assert!(!replaced(&was, &exe));
+        // An update writes the new program beside it and moves it into its place.
+        std::fs::write(d.0.join("new"), "two, longer").unwrap();
+        std::fs::rename(d.0.join("new"), &exe).unwrap();
+        assert!(replaced(&was, &exe));
+        let was = program_at(&exe).unwrap();
+        std::fs::remove_file(&exe).unwrap();
+        assert!(replaced(&was, &exe));
+    }
+
+    /// A lock let go is free at once, also while another thread starts programs, each holding a
+    /// copy of every handle until it runs. A count, not a time.
+    #[cfg(unix)]
+    #[test]
+    fn a_lock_let_go_is_free_while_programs_start() {
+        let d = crate::tests::Dir::new("lock-held");
+        let stop = Arc::new(AtomicBool::new(false));
+        let (started, first) = std::sync::mpsc::channel();
+        let t = {
+            let stop = stop.clone();
+            std::thread::spawn(move || {
+                while !stop.load(Ordering::Relaxed) {
+                    let _ = std::process::Command::new("true").status();
+                    let _ = started.send(());
+                }
+            })
+        };
+        let begun = first.recv_timeout(LIMIT);
+        let held = (0..2000).filter(|_| Lock::take(&d.0).unwrap().is_none()).count();
+        stop.store(true, Ordering::Relaxed);
+        t.join().unwrap();
+        assert!(begun.is_ok(), "no program started");
+        assert_eq!(held, 0);
     }
 
     #[test]

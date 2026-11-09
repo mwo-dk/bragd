@@ -175,6 +175,8 @@ pub fn capture(mut c: Command, timeout: Duration, max: u64) -> std::io::Result<s
     let mut child = c.spawn()?;
     let (out, err) = (drain(child.stdout.take(), max), drain(child.stderr.take(), 64 << 10));
     let start = Instant::now();
+    // Short at first: most programs here end in a few milliseconds.
+    let mut nap = Duration::from_millis(1);
     let status = loop {
         if let Some(s) = child.try_wait()? {
             break s;
@@ -184,7 +186,8 @@ pub fn capture(mut c: Command, timeout: Duration, max: u64) -> std::io::Result<s
             let _ = child.wait();
             return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "took too long"));
         }
-        std::thread::sleep(Duration::from_millis(20));
+        std::thread::sleep(nap);
+        nap = (nap * 2).min(Duration::from_millis(20));
     };
     Ok(std::process::Output { status, stdout: out.join().unwrap_or_default(), stderr: err.join().unwrap_or_default() })
 }

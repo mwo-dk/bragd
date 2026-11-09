@@ -335,8 +335,8 @@ pub fn upgrade_hint() -> Upgrade {
 
 /// Whether WinGet installed package `id`. The installer lands where a download would, so its
 /// folder does not tell; WinGet's tracking catalogue does: `installed.db` in a folder per source
-/// under its local state, where it records each package it installs and drops it when it
-/// uninstalls it. Nothing is run.
+/// under its local state, where it records each package it installs. `winget uninstall` leaves
+/// the row (WinGet 1.29), so a later hand install still gets the WinGet hint. Nothing is run.
 fn winget_installed(id: &str) -> bool {
     let Some(local) = std::env::var_os("LOCALAPPDATA").map(PathBuf::from) else {
         return false;
