@@ -32,6 +32,8 @@ export const navGo = (/** @type {any} */ from, /** @type {any} */ to) => invoke(
 export const navBack = () => invoke("nav_back");
 /** A key on Play or a board was used (its usage signal). */
 export const keyUsed = () => invoke("key_used");
+/** An action of Play ran, by its key or from its button: the hint naming its key, or null. */
+export const actionRan = (/** @type {string} */ action, /** @type {boolean} */ byKey, /** @type {boolean} */ canShow) => invoke("action_ran", { action, byKey, canShow });
 /** @returns {Promise<{wizard: boolean, cards: any[]}>} */
 export const guideDue = () => invoke("guide_due");
 /** @returns {Promise<any>} */

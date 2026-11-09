@@ -14,7 +14,7 @@
   import Analysis from "./Analysis.svelte";
   import Known from "./Known.svelte";
   import { current, handed } from "./current.svelte.js";
-  import { guide } from "./guide.svelte.js";
+  import { guide, actionRan } from "./guide.svelte.js";
 
   /** @type {{ family: any, mode?: "play" | "analyse", go: (page: any) => void }} */
   let { family, mode = "play", go } = $props();
@@ -367,6 +367,7 @@
     e.preventDefault();
     run();
     api.keyUsed();
+    actionRan(action, true);
   }
 </script>
 
@@ -375,9 +376,9 @@
 <section class="play">
   <header class="bar">
     <Picker value={key} choices={variants.map((/** @type {any} */ v) => ({ value: v.key, label: v.name }))} label={t("play.variant")} onchange={(v) => newGame(v)} />
-    <button class="primary" onclick={() => newGame()} aria-keyshortcuts="{mod.aria}+N">{t("play.new_game")} <kbd>{mod.label}+N</kbd></button>
-    <button onclick={undo} disabled={!entries.length} aria-keyshortcuts="{mod.aria}+Z">{t("play.undo")} <kbd>{mod.label}+Z</kbd></button>
-    <button onclick={() => (flipped = !flipped)} aria-pressed={flipped} aria-keyshortcuts="F">{t("play.flip")} <kbd>F</kbd></button>
+    <button class="primary" onclick={() => (newGame(), actionRan("new", false))} aria-keyshortcuts="{mod.aria}+N">{t("play.new_game")} <kbd>{mod.label}+N</kbd></button>
+    <button onclick={() => (undo(), actionRan("undo", false))} disabled={!entries.length} aria-keyshortcuts="{mod.aria}+Z">{t("play.undo")} <kbd>{mod.label}+Z</kbd></button>
+    <button onclick={() => ((flipped = !flipped), actionRan("flip", false))} aria-pressed={flipped} aria-keyshortcuts="F">{t("play.flip")} <kbd>F</kbd></button>
     {#if !analyse && choices.engines.length}
       <Picker value={opponent} choices={[{ value: "self", label: t("play.against_self") }, { value: "engine", label: t("play.against_engine") }]} label={t("play.opponent")} onchange={(v) => (opponent = v)} />
       {#if opponent === "engine"}
@@ -481,13 +482,13 @@
 
         <div class="actions">
           {#if st.awaiting === "throw"}
-            <button class="primary" onclick={doThrow} aria-keyshortcuts="T">{t("play.throw")} <kbd>T</kbd></button>
+            <button class="primary" onclick={() => (doThrow(), actionRan("throw", false))} aria-keyshortcuts="T">{t("play.throw")} <kbd>T</kbd></button>
           {/if}
           {#each plainMoves(st).filter((/** @type {any} */ m) => !m.wire.startsWith("resign") && (!analyse || !offered(m.wire))) as m}
             {#if m.wire === "dead:"}
               <button onclick={() => playEntry("dead:" + dead.join(","))}>{t("move.dead")}</button>
             {:else if m === pass}
-              <button onclick={() => playEntry(m.wire)} aria-keyshortcuts="P">{plainLabel(m)} <kbd>P</kbd></button>
+              <button onclick={() => (playEntry(m.wire), actionRan("pass", false))} aria-keyshortcuts="P">{plainLabel(m)} <kbd>P</kbd></button>
             {:else}
               <button onclick={() => playEntry(m.wire)}>{plainLabel(m)}</button>
             {/if}

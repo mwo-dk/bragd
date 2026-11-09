@@ -120,6 +120,50 @@ pub fn tablebase_hint(cfg: &Config, st: &mut AppState) -> Option<Notice> {
     })
 }
 
+/// Play's actions that have a key: the action, its button's text and its key (`{mod}` is the
+/// system's modifier).
+const KEYED: [(&str, &str, &str); 5] = [
+    ("new", "play.new_game", "{mod}+N"),
+    ("undo", "play.undo", "{mod}+Z"),
+    ("flip", "play.flip", "F"),
+    ("throw", "play.throw", "T"),
+    ("pass", "move.pass", "P"),
+];
+
+/// How many runs from the button, never one by the key, bring the hint that names the key.
+pub const BUTTON_RUNS: u32 = 3;
+
+/// The action `action` of Play has just run, by its key or (`!by_key`) from its button: the hint
+/// that names its key, once its button ran it `BUTTON_RUNS` times and its key never. Counted in
+/// `hints_shown` as `button_runs.<action>`, `key_used.<action>` and `hint:key_<action>`; and
+/// whether that changed. Where the notice area is taken (`!can_show`) the hint waits for a later
+/// run and is not spent; once shown `TIMES` times nothing more is counted.
+pub fn ran_in(action: &str, by_key: bool, can_show: bool, st: &mut AppState) -> (Option<Notice>, bool) {
+    let Some((_, label, key)) = KEYED.iter().find(|k| k.0 == action) else {
+        return (None, false);
+    };
+    let (used, runs, id) = (format!("key_used.{action}"), format!("button_runs.{action}"), format!("key_{action}"));
+    if st.hints_shown.contains_key(&used) {
+        return (None, false);
+    }
+    if by_key {
+        st.hints_shown.insert(used, 1);
+        return (None, true);
+    }
+    if st.hints_shown.get(&id).copied().unwrap_or(0) >= TIMES {
+        return (None, false);
+    }
+    let n = st.hints_shown.entry(runs).or_default();
+    *n += 1;
+    if *n < BUTTON_RUNS || !can_show {
+        return (None, true);
+    }
+    *st.hints_shown.entry(id.clone()).or_default() += 1;
+    let key = key.replace("{mod}", crate::i18n::this_modifier().0);
+    let text = t!("hint.key_named", "action" => crate::i18n::tr(label, &[]), "key" => key);
+    (Some(Notice::new(format!("hint:{id}"), text, None)), true)
+}
+
 /// The next hint of `hints` (in order, after `after` when given) still to be shown, counted as
 /// shown once more: one hint at a time, the next only once the one before is closed.
 pub fn next_hint<'a>(st: &mut AppState, hints: &[&'a str], after: Option<&str>) -> Option<&'a str> {
@@ -184,6 +228,34 @@ mod tests {
         let go = Config::parse("[families.family]\nchess = false\n").unwrap();
         assert!(tablebase_hint(&go, &mut st).is_none(), "no chess");
         assert!(st.hints_shown.is_empty(), "not counted when not shown");
+    }
+
+    #[test]
+    fn a_key_is_named_after_three_button_runs_and_never_by_key() {
+        let mut st = AppState::default();
+        let run = |st: &mut AppState, by_key, can_show| ran_in("flip", by_key, can_show, st);
+        assert!(run(&mut st, false, true).0.is_none() && run(&mut st, false, true).0.is_none());
+        let n = run(&mut st, false, true).0.expect("the third run from the button");
+        assert!(n.text.contains('F') && n.id == "hint:key_flip", "{}", n.text);
+        assert_eq!(n.settings, None);
+        for _ in 0..2 {
+            assert!(run(&mut st, false, true).0.is_some());
+        }
+        assert_eq!(run(&mut st, false, true), (None, false), "shown TIMES times, then nothing is counted");
+        // Used by its key once: never.
+        let mut st = AppState::default();
+        assert_eq!(run(&mut st, true, false), (None, true));
+        for _ in 0..5 {
+            assert_eq!(run(&mut st, false, true), (None, false));
+        }
+        // Nowhere to say it: not spent.
+        let mut st = AppState::default();
+        for _ in 0..5 {
+            assert!(run(&mut st, false, false).0.is_none());
+        }
+        assert!(run(&mut st, false, true).0.is_some());
+        // Not an action with a key.
+        assert_eq!(ran_in("nothing", false, true, &mut st), (None, false));
     }
 
     #[test]

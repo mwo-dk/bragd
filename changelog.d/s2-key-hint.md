@@ -1,0 +1,1 @@
+| **A key named when you only click.** After you click a button on Play three times without its key, a hint names the key (Ctrl+N, Ctrl+Z, F, T or P), up to three times for each button and never once you have used the key. | [Keyboard](getting-started/keyboard.md#why-did-bragd-name-a-key) |

@@ -42,11 +42,17 @@ Which squares a piece can go to is Bragd's rules, as with the mouse: a key never
 
 A key does nothing while you type in a field, while a list is open, or while the wizard or a dialog is open.
 
+Click one of these buttons three times without ever pressing its key, and a [hint](help.md) names the key once.
+
 ## Questions
 
 #### Why does T do nothing?
 
 Throw is there only when the Side to move throws. In a Game against an Engine, the Engine throws for itself.
+
+#### Why did Bragd name a key?
+
+You clicked a button on Play (New game, Undo, Flip board, Throw or Pass) three times and never pressed its key, so a hint says which key it has. It comes up to three times for each button, only while the notice area is free, and never again once you have pressed that button's key. The counts are kept in `state.json` on your machine.
 
 #### Can I change the keys?
 

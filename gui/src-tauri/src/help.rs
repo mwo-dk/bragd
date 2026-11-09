@@ -68,7 +68,8 @@ pub fn family_hint(family: String, ctx: tauri::State<'_, Ctx>) -> Option<Notice>
 pub fn notice_dismiss(id: String, ctx: tauri::State<'_, Ctx>) -> Option<Notice> {
     let mut st = AppState::load();
     if let Some(h) = id.strip_prefix("hint:") {
-        return hint(&ctx.cfg(), &mut st, Some(h));
+        // A hint of the start list brings the next of it; one of another kind (a key named) none.
+        return hints(&ctx.cfg()).contains(&h).then(|| hint(&ctx.cfg(), &mut st, Some(h))).flatten();
     }
     notices::dismiss(&mut st, &id);
     let _ = st.save();
@@ -142,6 +143,18 @@ mod tests {
 #[tauri::command]
 pub fn key_used() {
     bragd_core::tips::used("keys");
+}
+
+/// An action of Play ran, by its key or (`!by_key`) from its button: the hint that names its key
+/// once only the button ever ran it (`notices::ran_in`); counted.
+#[tauri::command]
+pub fn action_ran(action: String, by_key: bool, can_show: bool) -> Option<Notice> {
+    let mut st = AppState::load();
+    let (notice, changed) = notices::ran_in(&action, by_key, can_show, &mut st);
+    if changed {
+        let _ = st.save();
+    }
+    notice
 }
 
 /// Back: one way back per window, kept while the window is open (`bragd_core::history`).

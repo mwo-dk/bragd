@@ -64,6 +64,7 @@ The hints:
 | `sidebar` | Click a Game family to see its items. The arrow at the bottom folds the sidebar away. |
 | `features` | F1 lists every feature, with the questions people ask about it. |
 | `wizard` | Settings → Overview runs the install wizard again. |
+| `key_named` | *New game has a key: Ctrl+N. It does what the button does.* Comes after a button on Play was clicked three times and its key never used; see [Keyboard](keyboard.md#why-did-bragd-name-a-key) |
 
 ## Settings → Overview
 
