@@ -52,7 +52,7 @@ Each image holds one Engine, built from its released source, and nothing else: n
 | Files | A read-only root, a 256 MB `/tmp` in memory, the tablebase folder read-only at `/syzygy`, and Pikafish's network read-only at `/network.nnue` |
 | Rights | No capabilities, no new privileges, user `65534:65534` (nobody) |
 | Bounds | 3 GB of memory and 256 processes, unless a rootless podman cannot keep them |
-| Pulls | Progress shows on the card. A passing network or registry fault is tried again after 5 s, 30 s and 2 min, then after 5 min, 15 min and every hour, until it works. **Retry now** tries at once |
+| Pulls | Progress shows on the card. A passing network or registry fault is tried again after 5 s, 30 s and 2 min, then after 5 min, 15 min and every hour, until it works. When the system says its network changed, a pull that failed for no network goes again within seconds on Linux, macOS and Windows. **Retry now** tries at once |
 | Updates | A new Bragd brings new pins. Once a day, an image an Engine ran in is pulled at its new pin, and only Bragd's old copy is removed |
 | Pruning | Once a day, an image of Bragd's that no Engine used for 90 days is removed |
 
@@ -115,7 +115,7 @@ No. Bragd removes only its own copies, by their id or old pin. It never runs `im
 
 #### What happens when a pull fails?
 
-A passing fault, such as a dropped connection or a busy registry, does not give up. Bragd tries again after 5 s, 30 s and 2 min, then after 5 min, 15 min and every hour after that. Meanwhile the card says why in plain words, for example "Stockfish couldn't be downloaded: no network. Trying again at 15:10.", with **Retry now** to try at once and the runtime's own words under *Details*. A lasting fault, such as an image that is gone or a full disk, is not tried again: the card says why.
+A passing fault, such as a dropped connection or a busy registry, does not give up. Bragd tries again after 5 s, 30 s and 2 min, then after 5 min, 15 min and every hour after that. When the network comes back, Bragd does not wait for the time to be up: on Linux, macOS and Windows the system says when an address or route is added, and a pull that failed for no network goes again within seconds. On FreeBSD, the other BSDs and illumos it waits out its time. Meanwhile the card says why in plain words, for example "Stockfish couldn't be downloaded: no network. Trying again at 15:10.", with **Retry now** to try at once and the runtime's own words under *Details*. A lasting fault, such as an image that is gone or a full disk, is not tried again: the card says why.
 
 #### Why does my card say neither podman nor docker is there?
 

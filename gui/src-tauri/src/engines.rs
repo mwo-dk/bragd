@@ -328,10 +328,7 @@ pub fn pull(cfg: &Config, held: &Held, key: &str) -> Result<(), String> {
     std::thread::spawn(move || {
         let stop = AtomicBool::new(false);
         let r = images::pull(&rt.path, &image, &stop, &|d| {
-            let end = std::time::Instant::now() + d;
-            while std::time::Instant::now() < end && !wake.swap(false, Ordering::Relaxed) {
-                std::thread::sleep(Duration::from_millis(250));
-            }
+            images::rest(&image, d, &|| wake.swap(false, Ordering::Relaxed));
             true
         });
         crate::lock(&running).remove(&key);

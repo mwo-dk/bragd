@@ -13,6 +13,7 @@ pub mod known;
 pub mod lichess;
 pub mod local;
 pub mod matches;
+pub mod netwatch;
 pub mod network;
 pub mod options;
 pub mod protocol;

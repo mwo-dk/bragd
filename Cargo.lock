@@ -422,6 +422,7 @@ dependencies = [
  "bragd-core",
  "bragd-games",
  "bragd-positions",
+ "libc",
  "rules-backgammon",
  "rules-chess",
  "rules-ur",
