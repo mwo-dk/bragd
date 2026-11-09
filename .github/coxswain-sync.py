@@ -63,6 +63,19 @@ def read_page(text: str) -> tuple[str, list[str], set[int]]:
     return m.group(1), paths, numbers
 
 
+def pages(out: str):
+    """`gh api --paginate` prints one JSON value per page, back to back: decode each in turn."""
+    dec, out, i, values = json.JSONDecoder(), out.strip(), 0, []
+    while i < len(out):
+        v, i = dec.raw_decode(out, i)
+        values.append(v)
+        while i < len(out) and out[i].isspace():
+            i += 1
+    if len(values) == 1 and not isinstance(values[0], list):
+        return values[0]
+    return [x for v in values for x in v]
+
+
 class Api:
     """`gh api`, or a dict of path → answer (the fixtures)."""
 
@@ -78,11 +91,7 @@ class Api:
         r = subprocess.run(["gh", "api", "--paginate", path], capture_output=True, text=True)
         if r.returncode != 0:
             sys.exit(f"coxswain-sync.py: gh api {path} failed: {r.stderr.strip()}")
-        out = r.stdout.strip()
-        if not out.startswith("["):
-            return json.loads(out)
-        # --paginate prints one JSON array per page.
-        return [x for page in re.split(r"(?<=\])\s*(?=\[)", out) if page for x in json.loads(page)]
+        return pages(r.stdout)
 
     def write(self, method: str, path: str, fields: dict, dry: bool):
         self.writes.append((method, path, fields))
@@ -208,6 +217,9 @@ def self_test() -> int:
     # The real page still reads: its commit, a dozen paths or more, its carried issues.
     sha, paths, carried = read_page((ROOT / "docs/coxswain-sync.md").read_text(encoding="utf-8"))
     assert len(paths) >= 12 and carried, (sha, paths, carried)
+    # Pages are split by decoding, not by text: a body holding "][" stays whole.
+    assert pages('[{"body": "a ]  [ b"}]\n[{"n": 2}]') == [{"body": "a ]  [ b"}, {"n": 2}]
+    assert pages('{"sha": "x"}') == {"sha": "x"}
     print(body)
     print("coxswain-sync.py: self-test passed")
     return 0
