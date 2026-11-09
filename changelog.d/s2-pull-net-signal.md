@@ -1,0 +1,1 @@
+| **An engine image pull that failed for no network goes again within seconds of the network coming back,** on Linux, macOS and Windows, instead of waiting out its 5 s, 30 s, 2 min or longer rest. | [Container images](engines/container-images.md#what-happens-when-a-pull-fails) |

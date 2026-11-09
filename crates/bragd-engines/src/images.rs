@@ -203,6 +203,9 @@ pub fn pull(rt: &Path, image: &str, stop: &AtomicBool, sleep: &dyn Fn(Duration) 
                     PULLING.lock().unwrap_or_else(|e| e.into_inner()).remove(image);
                     return Err(e);
                 }
+                if e.fault == Fault::Network {
+                    crate::netwatch::watch();
+                }
                 let wait = BACKOFF.get(tries as usize - 1).copied().unwrap_or_else(|| next_try(tries - BACKOFF.len() as u32));
                 let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
                 PULLING.lock().unwrap_or_else(|e| e.into_inner()).remove(image);
@@ -215,6 +218,14 @@ pub fn pull(rt: &Path, image: &str, stop: &AtomicBool, sleep: &dyn Fn(Duration) 
             }
         }
     }
+}
+
+/// Rests `d` for the pull of `image` that is waiting: ends early (true) when `wake` says so
+/// (*Retry now*), or when the system says its network changed while the pull waits on a network
+/// fault (`netwatch`), so the registry is asked at once rather than at the next try.
+pub fn rest(image: &str, d: Duration, wake: &dyn Fn() -> bool) -> bool {
+    let down = || WAITING.lock().unwrap_or_else(|e| e.into_inner()).get(image).is_some_and(|w| w.error.fault == Fault::Network);
+    crate::netwatch::rest_for(d, wake, &down)
 }
 
 /// One try of `pull`.

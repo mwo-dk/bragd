@@ -34,9 +34,13 @@ sha2 = "0.11"
 # Tablebase files are checked against the BLAKE3 sums that come with Bragd.
 blake3 = "1.8"
 
-# A console engine started from the desktop app must not flash a console window.
+# The system's word that its network changed (netlink on Linux, the routing socket on macOS).
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
+libc = "0.2"
+
+# A console engine started from the desktop app must not flash a console window; the address table's changes.
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_System_Console"] }
+windows-sys = { version = "0.61", features = ["Win32_NetworkManagement_IpHelper", "Win32_System_Console"] }
 
 [dev-dependencies]
 # The stand-in engine of the screenshots (examples/fake-engine.rs) reads a GNU Backgammon board.
