@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Մրցաշարեր",
  "friends.reason.resign": "հանձնվեց",
  "friends.reason.agreement": "ոչ-ոքի համաձայնեցվեց",
- "friends.reason.time": "ժամանակն ավարտվեց"
+ "friends.reason.time": "ժամանակն ավարտվեց",
+ "job.fetch_game": "Ներբեռնել {game}-ը {source}-ից",
+ "source.account": "Ձեր սեփական խաղերը՝ {server} հաշվի միջոցով, որով մուտք եք գործում Օնլայն խաղ բաժնում։",
+ "source.sign_in": "Նախ մուտք գործեք {server} Օնլայն խաղ բաժնում։ Այս աղբյուրը ներբեռնում է ձեր {server} հաշվի խաղերը։",
+ "source.sign_in_again": "{server}-ն այլևս չի ընդունում Bragd-ի մուտքը։ Կրկին մուտք գործեք {server} Օնլայն խաղ բաժնում։",
+ "source.busy": "{server}-ը խնդրել է Bragd-ին դանդաղեցնել։ Հաջորդ ներբեռնումը կշարունակվի այստեղից։",
+ "source.not_a_game": "{game}-ն {server}-ի խաղի հասցե կամ համար չէ։",
+ "source.one_game": "Խաղի հասցեն կամ համարը",
+ "source.fetch_game": "Ներբեռնել այս խաղը"
 }

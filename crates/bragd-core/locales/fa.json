@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "رویدادها",
  "friends.reason.resign": "تسلیم شد",
  "friends.reason.agreement": "تساوی پذیرفته شد",
- "friends.reason.time": "زمان تمام شد"
+ "friends.reason.time": "زمان تمام شد",
+ "job.fetch_game": "دریافت {game} از {source}",
+ "source.account": "بازی‌های خودتان، از طریق حساب {server} که در «بازی آنلاین» با آن وارد می‌شوید.",
+ "source.sign_in": "ابتدا در «بازی آنلاین» با حساب {server} وارد شوید. این منبع بازی‌های حساب {server} شما را دریافت می‌کند.",
+ "source.sign_in_again": "{server} دیگر ورود Bragd را نمی‌پذیرد. دوباره در «بازی آنلاین» با حساب {server} وارد شوید.",
+ "source.busy": "{server} از Bragd خواست آهسته‌تر کار کند. دریافت بعدی از همین‌جا ادامه می‌یابد.",
+ "source.not_a_game": "{game} نشانی یا شمارهٔ یک بازی {server} نیست.",
+ "source.one_game": "نشانی یا شمارهٔ یک بازی",
+ "source.fetch_game": "دریافت این بازی"
 }

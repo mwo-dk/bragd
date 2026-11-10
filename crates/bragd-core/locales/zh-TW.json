@@ -2055,5 +2055,13 @@
  "source.part.pgnmentor.events": "賽事",
  "friends.reason.resign": "認輸",
  "friends.reason.agreement": "協議和棋",
- "friends.reason.time": "超時"
+ "friends.reason.time": "超時",
+ "job.fetch_game": "從 {source} 抓取 {game}",
+ "source.account": "你自己的棋局，透過你在線上對弈中登入的 {server} 帳號抓取。",
+ "source.sign_in": "請先在線上對弈中登入 {server}。此來源會抓取你 {server} 帳號的棋局。",
+ "source.sign_in_again": "{server} 不再接受 Bragd 的登入。請在線上對弈中重新登入 {server}。",
+ "source.busy": "{server} 要求 Bragd 放慢速度。下一次抓取將從此處繼續。",
+ "source.not_a_game": "{game} 不是 {server} 棋局的網址或編號。",
+ "source.one_game": "一個棋局的網址或編號",
+ "source.fetch_game": "抓取此棋局"
 }

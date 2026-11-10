@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Διοργανώσεις",
  "friends.reason.resign": "παραιτήθηκε",
  "friends.reason.agreement": "συμφωνία για ισοπαλία",
- "friends.reason.time": "τέλος χρόνου"
+ "friends.reason.time": "τέλος χρόνου",
+ "job.fetch_game": "Λήψη του {game} από {source}",
+ "source.account": "Οι δικές σας παρτίδες, μέσω του λογαριασμού {server} με τον οποίο συνδέεστε στο Παίξτε online.",
+ "source.sign_in": "Συνδεθείτε πρώτα στο {server} από το Παίξτε online. Αυτή η πηγή κατεβάζει τις παρτίδες του λογαριασμού σας {server}.",
+ "source.sign_in_again": "Το {server} δεν δέχεται πια τη σύνδεση του Bragd. Συνδεθείτε ξανά στο {server} από το Παίξτε online.",
+ "source.busy": "Το {server} ζήτησε από το Bragd να επιβραδύνει. Η επόμενη λήψη θα συνεχίσει από εδώ.",
+ "source.not_a_game": "Το {game} δεν είναι διεύθυνση ή αριθμός παρτίδας του {server}.",
+ "source.one_game": "Η διεύθυνση ή ο αριθμός μιας παρτίδας",
+ "source.fetch_game": "Λήψη αυτής της παρτίδας"
 }

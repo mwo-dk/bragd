@@ -2081,5 +2081,13 @@
  "source.part.pgnmentor.events": "Notikumi",
  "friends.reason.resign": "padevās",
  "friends.reason.agreement": "neizšķirts vienojies",
- "friends.reason.time": "laiks beidzies"
+ "friends.reason.time": "laiks beidzies",
+ "job.fetch_game": "Ielādēt {game} no {source}",
+ "source.account": "Jūsu pašu partijas caur {server} kontu, ar kuru pierakstāties sadaļā Spēlēt tiešsaistē.",
+ "source.sign_in": "Vispirms pierakstieties {server} sadaļā Spēlēt tiešsaistē. Šis avots ielādē jūsu {server} konta partijas.",
+ "source.sign_in_again": "{server} vairs nepieņem Bragd pierakstīšanos. Pierakstieties {server} vēlreiz sadaļā Spēlēt tiešsaistē.",
+ "source.busy": "{server} lūdza Bragd palēnināties. Nākamā ielāde turpināsies no šejienes.",
+ "source.not_a_game": "{game} nav {server} partijas adrese vai numurs.",
+ "source.one_game": "Partijas adrese vai numurs",
+ "source.fetch_game": "Ielādēt šo partiju"
 }

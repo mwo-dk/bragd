@@ -4,7 +4,7 @@
 
 The KGS archive holds the go Games of strong players on the KGS Go Server, collected at [u-go.net/gamerecords](https://u-go.net/gamerecords/). It keeps Games where one player is 7 dan or stronger, or both are 6 dan, without comments. Each zip holds a month of SGF files, or a year before 2016. Bragd fetches the zips and imports their Games through the Source's Routes. A Game in two zips is stored once ([Duplicates](duplicates.md)).
 
-![Go's Sources tab: the KGS archive, off, about 185 MB the first time, with its address u-go.net/gamerecords, and Add a custom URL for SGF files](../screenshots/databases-sources-go-1100.png)
+![Go's Sources tab: OGS, then the KGS archive, off, about 185 MB the first time, with its address u-go.net/gamerecords, and Add a custom URL for SGF files](../screenshots/databases-sources-go-1100.png)
 *Go → Databases → Sources.*
 
 ## How to reach it
@@ -33,7 +33,7 @@ No. Bragd remembers the last month fetched, so a zip deleted by *After import* o
 
 #### Where are the OGS Games?
 
-OGS publishes no archive to download, so Bragd cannot fetch it yet. It is named under *Coming later* in the install wizard.
+OGS publishes no archive of every Game. The OGS Source fetches your own Games, through your OGS account ([Your OGS Games](source-ogs.md)).
 
 ---
-[← Previous: PGN Mentor](source-pgnmentor.md) · [Next: Strip rules →](strip-rules.md)
+[← Previous: PGN Mentor](source-pgnmentor.md) · [Next: Your OGS Games →](source-ogs.md)

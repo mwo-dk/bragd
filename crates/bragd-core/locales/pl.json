@@ -2094,5 +2094,13 @@
  "source.part.pgnmentor.events": "Turnieje",
  "friends.reason.resign": "poddał się",
  "friends.reason.agreement": "remis uzgodniony",
- "friends.reason.time": "skończył się czas"
+ "friends.reason.time": "skończył się czas",
+ "job.fetch_game": "Pobierz {game} z {source}",
+ "source.account": "Twoje własne partie przez konto {server}, na które logujesz się w Graj online.",
+ "source.sign_in": "Najpierw zaloguj się do {server} w Graj online. To źródło pobiera partie z twojego konta {server}.",
+ "source.sign_in_again": "{server} nie przyjmuje już logowania Bragda. Zaloguj się ponownie do {server} w Graj online.",
+ "source.busy": "{server} poprosił Bragda, by zwolnił. Następne pobieranie zacznie się stąd.",
+ "source.not_a_game": "{game} nie jest adresem ani numerem partii {server}.",
+ "source.one_game": "Adres lub numer partii",
+ "source.fetch_game": "Pobierz tę partię"
 }

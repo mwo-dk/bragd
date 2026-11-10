@@ -2094,5 +2094,13 @@
  "source.part.pgnmentor.events": "Турніри",
  "friends.reason.resign": "здався",
  "friends.reason.agreement": "нічию погоджено",
- "friends.reason.time": "час вийшов"
+ "friends.reason.time": "час вийшов",
+ "job.fetch_game": "Завантажити {game} з {source}",
+ "source.account": "Ваші власні партії через обліковий запис {server}, з яким ви входите в Грати онлайн.",
+ "source.sign_in": "Спершу увійдіть до {server} у розділі Грати онлайн. Це джерело завантажує партії вашого облікового запису {server}.",
+ "source.sign_in_again": "{server} більше не приймає вхід Bragd. Увійдіть до {server} знову в розділі Грати онлайн.",
+ "source.busy": "{server} попросив Bragd сповільнитися. Наступне завантаження продовжиться звідси.",
+ "source.not_a_game": "{game} не є адресою чи номером партії на {server}.",
+ "source.one_game": "Адреса або номер партії",
+ "source.fetch_game": "Завантажити цю партію"
 }

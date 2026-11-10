@@ -33,6 +33,8 @@ pub enum Work {
     Export { library: PathBuf, to: PathBuf },
     /// What is new at a Source, into the Library of each of its Routes.
     Fetch { source: String },
+    /// One Game from a Source's site, by its address or id, into the Library of each Route.
+    FetchGame { source: String, game: String },
     /// A Source's Routes' Strip rules applied to its downloads (`AfterImport`: written again
     /// with only the Games some Route keeps, or deleted) and to the Games it brought to each
     /// Route's Library. `dry_run`: nothing changes; the job's report says what would go.
@@ -642,7 +644,8 @@ impl Jobs {
                 Ok(n as u64)
             }
             Work::Export { library, to } => bragd_library::export::to_parquet(&self.open_library(library)?, to).map_err(|e| format!("{}: {e}", to.display())),
-            Work::Fetch { source } => self.fetch(id, source),
+            Work::Fetch { source } => self.fetch(id, source, None),
+            Work::FetchGame { source, game } => self.fetch(id, source, Some(game)),
             Work::Strip { source, dry_run } => self.strip(id, source, *dry_run),
             Work::Prune { library, dry_run } => {
                 let stop = || self.should_stop(id);
@@ -1058,7 +1061,9 @@ impl Jobs {
         r
     }
 
-    fn fetch(&self, id: u64, source: &str) -> Result<u64, String> {
+    /// What is new at `source`, or only `game` (its address or id), which leaves what the
+    /// Source remembers as it was.
+    fn fetch(&self, id: u64, source: &str, game: Option<&str>) -> Result<u64, String> {
         let now = bragd_core::fs::now();
         let kept = self.lock().sources.get(source).cloned().unwrap_or_default();
         let (options, mut memo) = (kept.options, kept.memo);
@@ -1067,7 +1072,7 @@ impl Jobs {
             .then(|| sources::find(source, &options.as_ref().map(|o| o.url.clone()).unwrap_or_default()))
             .flatten()
             .ok_or_else(|| format!("no Source {source}"))?;
-        {
+        if game.is_none() {
             let mut st = self.lock();
             st.sources.entry(source.into()).or_default().memo.last_try = Some(now);
             self.save(&st);
@@ -1081,12 +1086,15 @@ impl Jobs {
         let mut too_big = None;
         let got = (|| {
             std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-            let files = src
-                .fetch(&mut Cx { net: self.net.as_ref(), dir: &dir, cap, memo: &mut memo, options: &options, stop: &stop, progress: &mut |b| self.progress(id, b, None) })
-                .map_err(|e| {
-                    too_big = crate::net::TooBig::of(&e).and_then(|t| t.size);
-                    e.to_string()
-                })?;
+            let mut cx = Cx { net: self.net.as_ref(), dir: &dir, cap, memo: &mut memo, options: &options, stop: &stop, progress: &mut |b| self.progress(id, b, None) };
+            let files = match game {
+                Some(g) => src.one(&mut cx, g).map(|f| vec![f]),
+                None => src.fetch(&mut cx),
+            }
+            .map_err(|e| {
+                too_big = crate::net::TooBig::of(&e).and_then(|t| t.size);
+                e.to_string()
+            })?;
             if let Some(list) = bragd_clubs::lists::LISTS.iter().find(|l| l.id == source) {
                 let db = bragd_clubs::lists::path().ok_or("no data folder")?;
                 let mut n = 0;
@@ -1120,6 +1128,9 @@ impl Jobs {
             Ok(read)
         })();
         prune(&dir, options.disk_cap);
+        if game.is_some() {
+            return got;
+        }
         let mut st = self.lock();
         let kept = &mut st.sources.entry(source.into()).or_default().memo;
         match &got {
@@ -1605,14 +1616,14 @@ pub(crate) mod tests {
         let d = crate::tests::Dir::new("due");
         let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
         assert!(jobs.queue_due(1_000_000, None).is_empty(), "nothing is on");
-        for id in ["twic", "ogs"] {
+        for id in ["twic", "lishogi"] {
             let mut o = sources::find(id, "").unwrap().about().defaults();
             o.enabled = true;
             o.only_unmetered = true;
             jobs.set_source(id, o).unwrap();
         }
         assert!(jobs.queue_due(1_000_000, Some(true)).is_empty(), "metered");
-        assert_eq!(jobs.queue_due(1_000_000, Some(false)).len(), 1, "TWIC, not OGS, which is not fetched yet");
+        assert_eq!(jobs.queue_due(1_000_000, Some(false)).len(), 1, "TWIC, not Lishogi, which is not fetched yet");
         assert!(jobs.queue_due(1_000_000, None).is_empty(), "already queued");
         assert!(jobs.set_source("nope", sources::Twic.about().defaults()).is_err());
     }

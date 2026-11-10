@@ -141,6 +141,7 @@ pub fn what(work: &Work) -> String {
         Work::Dedupe { library } => t!("job.dedupe", "library" => file_name(library)),
         Work::Export { library, .. } => t!("job.export", "library" => file_name(library)),
         Work::Fetch { source } => t!("job.fetch", "source" => source),
+        Work::FetchGame { source, game } => t!("job.fetch_game", "game" => game, "source" => source),
         Work::Strip { source, dry_run: true } => t!("job.strip_preview", "source" => source),
         Work::Strip { source, .. } => t!("job.strip", "source" => source),
         Work::Prune { library, dry_run: true } => t!("job.prune_preview", "library" => file_name(library)),

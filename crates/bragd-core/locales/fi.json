@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Turnaukset",
  "friends.reason.resign": "luovutti",
  "friends.reason.agreement": "tasapeli sovittu",
- "friends.reason.time": "aika loppui"
+ "friends.reason.time": "aika loppui",
+ "job.fetch_game": "Nouda {game} lähteestä {source}",
+ "source.account": "Omat pelisi sen {server}-tilin kautta, jolla kirjaudut Pelaa verkossa -kohdassa.",
+ "source.sign_in": "Kirjaudu ensin palveluun {server} kohdassa Pelaa verkossa. Tämä lähde noutaa {server}-tilisi pelit.",
+ "source.sign_in_again": "{server} ei enää hyväksy Bragdin kirjautumista. Kirjaudu palveluun {server} uudelleen kohdassa Pelaa verkossa.",
+ "source.busy": "{server} pyysi Bragdia hidastamaan. Seuraava nouto jatkuu tästä.",
+ "source.not_a_game": "{game} ei ole palvelun {server} pelin osoite tai numero.",
+ "source.one_game": "Pelin osoite tai numero",
+ "source.fetch_game": "Nouda tämä peli"
 }

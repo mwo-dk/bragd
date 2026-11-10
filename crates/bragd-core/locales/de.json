@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Turniere",
  "friends.reason.resign": "aufgegeben",
  "friends.reason.agreement": "Remis vereinbart",
- "friends.reason.time": "Zeit abgelaufen"
+ "friends.reason.time": "Zeit abgelaufen",
+ "job.fetch_game": "{game} von {source} abrufen",
+ "source.account": "Ihre eigenen Partien über das {server}-Konto, mit dem Sie unter Online spielen angemeldet sind.",
+ "source.sign_in": "Melden Sie sich zuerst unter Online spielen bei {server} an. Diese Quelle lädt die Partien Ihres {server}-Kontos.",
+ "source.sign_in_again": "{server} akzeptiert die Anmeldung von Bragd nicht mehr. Melden Sie sich unter Online spielen erneut bei {server} an.",
+ "source.busy": "{server} hat Bragd gebeten, langsamer zu werden. Der nächste Abruf geht von hier aus weiter.",
+ "source.not_a_game": "{game} ist weder die Adresse noch die Nummer einer Partie auf {server}.",
+ "source.one_game": "Die Adresse oder Nummer einer Partie",
+ "source.fetch_game": "Diese Partie abrufen"
 }

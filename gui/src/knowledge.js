@@ -71,6 +71,7 @@ export const sourceAdd = (/** @type {string} */ name, /** @type {string} */ url)
 export const sourceRemove = (/** @type {string} */ id) => invoke("source_remove", { id });
 /** @returns {Promise<number>} */
 export const sourceFetch = (/** @type {string} */ id) => invoke("source_fetch", { id });
+export const sourceFetchGame = (/** @type {string} */ id, /** @type {string} */ game) => invoke("source_fetch_game", { id, game });
 /** @returns {Promise<number>} */
 export const sourceAllow = (/** @type {string} */ id) => invoke("source_allow", { id });
 /** @returns {Promise<number>} */

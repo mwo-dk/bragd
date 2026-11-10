@@ -15,6 +15,7 @@ use crate::net::{self, Fetcher};
 
 pub(crate) mod fics;
 mod kgs;
+mod ogs;
 mod lichess;
 mod pgnmentor;
 
@@ -199,6 +200,11 @@ pub struct About {
     /// new. False: every fetch is about `size`.
     #[serde(default)]
     pub first_only: bool,
+    /// The online server (`bragd_online::server`'s id) whose signed-in account it fetches the
+    /// user's own Games through; such a Source also fetches one Game by its address (`Source::one`).
+    /// Empty: none.
+    #[serde(default)]
+    pub account: String,
 }
 
 /// A part of a Source the user can pick: a Lichess Variant, a FICS game type, a PGN Mentor
@@ -313,6 +319,65 @@ pub trait Source: Send + Sync {
     /// Downloads what is new into `cx.dir`: the files to import, as they came (a zip, a packed
     /// PGN file).
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>>;
+    /// Downloads the one Game `game` names (its address on the site, or its id) into `cx.dir`,
+    /// leaving `cx.memo` as it was. Only a Source with an `About::account` has it.
+    fn one(&self, _: &mut Cx, game: &str) -> io::Result<PathBuf> {
+        Err(io::Error::other(format!("{game}: this Source fetches no single Game")))
+    }
+}
+
+/// A site's API as the account Bragd signed in to it with, as a `Fetcher`, so `net::download`
+/// and `page` read it. It keeps the site's pace: `pace` seconds before every request but the
+/// first. A 429 waits as long as the site asks and goes again, twice at most; a 401 or 403 says
+/// to sign in again.
+pub struct Account<'a> {
+    net: &'a dyn Fetcher,
+    server: &'static bragd_online::server::Server,
+    token: String,
+    pace: u64,
+    /// What it asks the site's API for (`Accept`), when not empty.
+    pub accept: &'static str,
+    asked: std::sync::atomic::AtomicBool,
+}
+
+impl<'a> Account<'a> {
+    /// The account kept for `server` (its token in the OS keychain); none: an error that says
+    /// where to sign in.
+    pub fn signed_in(net: &'a dyn Fetcher, server: &'static bragd_online::server::Server, pace: u64) -> io::Result<Self> {
+        let token = server.token(&server.base()).filter(|t| !t.is_empty()).ok_or_else(|| io::Error::other(bragd_core::t!("source.sign_in", "server" => server.name)))?;
+        Ok(Account { net, server, token, pace, accept: "", asked: Default::default() })
+    }
+}
+
+impl Fetcher for Account<'_> {
+    fn get(&self, url: &str, _: u64) -> io::Result<net::Got> {
+        self.api(url, "", self.accept)
+    }
+
+    fn api(&self, url: &str, _: &str, accept: &str) -> io::Result<net::Got> {
+        if self.asked.swap(true, std::sync::atomic::Ordering::Relaxed) {
+            self.net.pause(self.pace);
+        }
+        let mut tries = 0;
+        loop {
+            match self.net.api(url, &self.token, accept) {
+                Err(e) => match net::Refused::of(&e) {
+                    Some(r) if r.status == 429 && tries < 2 => {
+                        tries += 1;
+                        self.net.pause(r.wait);
+                    }
+                    Some(r) if r.status == 429 => return Err(io::Error::other(bragd_core::t!("source.busy", "server" => self.server.name))),
+                    Some(_) => return Err(io::Error::other(bragd_core::t!("source.sign_in_again", "server" => self.server.name))),
+                    None => return Err(e),
+                },
+                got => return got,
+            }
+        }
+    }
+
+    fn offline(&self) -> bool {
+        self.net.offline()
+    }
 }
 
 /// The text key of the error a Source this version does not fetch gives when asked to.
@@ -363,6 +428,7 @@ impl Source for Twic {
             parts: vec![],
             months: false,
             first_only: false,
+            account: String::new(),
         }
     }
 
@@ -420,6 +486,7 @@ impl Source for CustomUrl {
             parts: vec![],
             months: false,
             first_only: false,
+            account: String::new(),
         }
     }
 
@@ -461,7 +528,7 @@ pub struct RatingList(pub &'static bragd_clubs::lists::List);
 impl Source for RatingList {
     fn about(&self) -> About {
         let l = self.0;
-        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, kind: Kind::RatingList, parts: vec![], months: false, first_only: false }
+        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, kind: Kind::RatingList, parts: vec![], months: false, first_only: false, account: String::new() }
     }
 
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>> {
@@ -489,6 +556,7 @@ fn later(id: &str, name: &str, family: &str, size: u64, schedule: Schedule, url:
         parts: vec![],
         months: false,
         first_only: false,
+        account: String::new(),
     }))
 }
 
@@ -503,7 +571,7 @@ pub fn builtin() -> Vec<Box<dyn Source>> {
         Box::new(pgnmentor::PgnMentor),
         // shortcut: its site starts each download through a one-time script step and sends 7z; wait for a plain address (#314).
         later("lumbras", "LumbrasGigaBase", "chess", 4_000_000_000, Schedule::Monthly, "https://lumbrasgigabase.com/en/download-in-pgn-format-en/"),
-        later("ogs", "OGS archive", "go", 1_000_000_000, Schedule::Monthly, "https://online-go.com/"),
+        Box::new(ogs::Ogs),
         Box::new(kgs::Kgs),
         later("pychess", "pychess exports", "chess", 500_000_000, Schedule::Monthly, "https://www.pychess.org/"),
         later("lishogi", "Lishogi exports", "shogi", 500_000_000, Schedule::Monthly, "https://lishogi.org/"),
@@ -641,13 +709,13 @@ pub(crate) mod tests {
         let ids: Vec<String> = builtin().iter().map(|s| s.about().id).collect();
         assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings"]);
         let fetched: Vec<String> = builtin().iter().map(|s| s.about()).filter(|a| a.kind == Kind::Games && a.fetchable).map(|a| a.id).collect();
-        assert_eq!(fetched, ["twic", "lichess-db", "fics", "pgnmentor", "kgs"]);
+        assert_eq!(fetched, ["twic", "lichess-db", "fics", "pgnmentor", "ogs", "kgs"]);
         assert!(builtin().iter().all(|s| s.about().size > 0));
         let d = crate::tests::Dir::new("later");
         let net = Recorded::default();
         let o = Twic.about().defaults();
-        let err = find("ogs", "").unwrap().fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap_err();
-        assert!(err.to_string().contains("OGS archive"), "{err}");
+        let err = find("lishogi", "").unwrap().fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap_err();
+        assert!(err.to_string().contains("Lishogi exports"), "{err}");
         assert!(net.asked.lock().unwrap().is_empty(), "nothing is asked of the network");
         assert!(find("custom:club", "https://example.org/a.pgn").unwrap().about().fetchable);
         assert!(find("nope", "").is_none());

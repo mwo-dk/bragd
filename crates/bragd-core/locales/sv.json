@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Turneringar",
  "friends.reason.resign": "gav upp",
  "friends.reason.agreement": "remi överenskommen",
- "friends.reason.time": "tiden ute"
+ "friends.reason.time": "tiden ute",
+ "job.fetch_game": "Hämta {game} från {source}",
+ "source.account": "Dina egna partier via {server}-kontot du loggar in med under Spela online.",
+ "source.sign_in": "Logga först in på {server} under Spela online. Den här källan hämtar partierna från ditt {server}-konto.",
+ "source.sign_in_again": "{server} godtar inte längre Bragds inloggning. Logga in på {server} igen under Spela online.",
+ "source.busy": "{server} bad Bragd att sakta ner. Nästa hämtning fortsätter härifrån.",
+ "source.not_a_game": "{game} är inte adressen eller numret till en parti på {server}.",
+ "source.one_game": "En partis adress eller nummer",
+ "source.fetch_game": "Hämta den här partien"
 }

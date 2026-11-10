@@ -2081,5 +2081,13 @@
  "source.part.pgnmentor.events": "Esdeveniments",
  "friends.reason.resign": "ha abandonat",
  "friends.reason.agreement": "taules acordades",
- "friends.reason.time": "s'ha acabat el temps"
+ "friends.reason.time": "s'ha acabat el temps",
+ "job.fetch_game": "Descarrega {game} de {source}",
+ "source.account": "Les teves pròpies partides, a través del compte de {server} amb què inicies sessió a Juga en línia.",
+ "source.sign_in": "Primer inicia sessió a {server} a Juga en línia. Aquesta font descarrega les partides del teu compte de {server}.",
+ "source.sign_in_again": "{server} ja no accepta l'inici de sessió de Bragd. Torna a iniciar sessió a {server} a Juga en línia.",
+ "source.busy": "{server} ha demanat a Bragd que vagi més a poc a poc. La següent descàrrega continua des d'aquí.",
+ "source.not_a_game": "{game} no és l'adreça ni el número d'una partida de {server}.",
+ "source.one_game": "L'adreça o el número d'una partida",
+ "source.fetch_game": "Descarrega aquesta partida"
 }

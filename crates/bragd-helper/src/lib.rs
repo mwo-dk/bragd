@@ -57,6 +57,24 @@ pub(crate) fn utc(secs: u64) -> String {
     format!("{y:04}-{m:02}-{d:02} {:02}:{:02}:{:02}", s / 3600, s / 60 % 60, s % 60)
 }
 
+/// An ISO 8601 time in UTC (`2026-07-29T10:09:45.69Z`, as an API gives it) as seconds since
+/// 1970: `utc` the other way. None for anything else.
+pub(crate) fn iso_secs(s: &str) -> Option<u64> {
+    let n = |r: std::ops::Range<usize>| s.get(r)?.parse::<i64>().ok();
+    let (y, m, d, hh, mm, ss) = (n(0..4)?, n(5..7)?, n(8..10)?, n(11..13)?, n(14..16)?, n(17..19)?);
+    if !(1..=12).contains(&m) || !(1..=31).contains(&d) || hh > 23 || mm > 59 || ss > 60 {
+        return None;
+    }
+    // Howard Hinnant's days-from-civil.
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146_097 + doe - 719_468;
+    u64::try_from(days * 86_400 + hh * 3600 + mm * 60 + ss).ok()
+}
+
 /// A line in helper.log (the Helper's stderr), with the time.
 /// Appends `line`, with the time, to `helper.log`: for what a Helper started by hand did,
 /// whose stderr goes nowhere when it has no console.
@@ -107,6 +125,12 @@ pub(crate) mod tests {
         assert_eq!(super::utc(0), "1970-01-01 00:00:00");
         assert_eq!(super::utc(1_798_761_600 + 3661), "2027-01-01 01:01:01");
         assert_eq!(super::utc(951_782_400), "2000-02-29 00:00:00");
+        for t in [0, 951_782_400, 1_798_761_600 + 3661, 1_785_319_785] {
+            assert_eq!(super::iso_secs(&super::utc(t).replace(' ', "T")), Some(t), "{t}");
+        }
+        assert_eq!(super::iso_secs("2026-07-29T10:09:45.695573Z"), Some(1_785_319_785));
+        assert_eq!(super::iso_secs("2026-13-01T00:00:00Z"), None);
+        assert_eq!(super::iso_secs("soon"), None);
     }
 
     #[test]

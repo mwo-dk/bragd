@@ -489,6 +489,7 @@ dependencies = [
  "bragd-games",
  "bragd-library",
  "bragd-model",
+ "bragd-online",
  "bragd-peers",
  "bragd-positions",
  "getrandom 0.4.3",

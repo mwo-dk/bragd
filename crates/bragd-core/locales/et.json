@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Turniirid",
  "friends.reason.resign": "alistus",
  "friends.reason.agreement": "viik lepiti kokku",
- "friends.reason.time": "aeg sai otsa"
+ "friends.reason.time": "aeg sai otsa",
+ "job.fetch_game": "Too {game} allikast {source}",
+ "source.account": "Sinu enda partiid läbi serveri {server} konto, millega sisened menüüs Mängi võrgus.",
+ "source.sign_in": "Logi esmalt serveris {server} sisse menüüs Mängi võrgus. See allikas toob sinu {server}-konto partiid.",
+ "source.sign_in_again": "{server} ei võta enam Bragdi sisselogimist vastu. Logi serveris {server} uuesti sisse menüüs Mängi võrgus.",
+ "source.busy": "{server} palus Bragdil aeglustada. Järgmine toomine jätkub siit.",
+ "source.not_a_game": "{game} ei ole serveri {server} partii aadress ega number.",
+ "source.one_game": "Partii aadress või number",
+ "source.fetch_game": "Too see partii"
 }

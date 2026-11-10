@@ -559,6 +559,7 @@ fn main() {
             knowledge::source_add,
             knowledge::source_remove,
             knowledge::source_fetch,
+            knowledge::source_fetch_game,
             knowledge::source_allow,
             knowledge::source_strip,
             knowledge::disk_report,

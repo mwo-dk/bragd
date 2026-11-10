@@ -51,6 +51,8 @@ pub enum Request {
     Import { path: PathBuf, library: Option<PathBuf>, source: Option<String> },
     DedupeNow { library: Option<PathBuf> },
     FetchNow { source: String },
+    /// One Game from a Source's site, by its address or id.
+    FetchGame { source: String, game: String },
     /// The user's yes to a Source's download over its cap: fetched now, that once.
     AllowDownload { source: String },
     Sources,
@@ -529,6 +531,7 @@ fn answer(ours: Ours, stream: Stream, jobs: &Jobs, token: &str, stays: bool, mut
             Request::Import { path, library: l, source } => started(Work::Import { path, library: library(l), source: source.unwrap_or_else(|| "file".into()) }),
             Request::DedupeNow { library: l } => started(Work::Dedupe { library: library(l) }),
             Request::FetchNow { source } => started(Work::Fetch { source }),
+            Request::FetchGame { source, game } => started(Work::FetchGame { source, game }),
             Request::AllowDownload { source } => match jobs.allow_download(&source) {
                 Ok(id) => Reply::Started { id },
                 Err(error) => Reply::Error { error },
