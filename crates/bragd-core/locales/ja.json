@@ -2063,5 +2063,6 @@
  "source.busy": "{server} が Bragd に速度を落とすよう求めました。次の取得はここから続けます。",
  "source.not_a_game": "{game} は {server} の対局の住所または番号ではありません。",
  "source.one_game": "対局の住所または番号",
- "source.fetch_game": "この対局を取得"
+ "source.fetch_game": "この対局を取得",
+ "source.not_shogi": "{game} は、Bragd が指さないバリアントの対局です。"
 }

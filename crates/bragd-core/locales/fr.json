@@ -2089,5 +2089,6 @@
  "source.busy": "{server} a demandé à Bragd de ralentir. La prochaine récupération reprend à partir d’ici.",
  "source.not_a_game": "{game} n’est pas l’adresse ou le numéro d’une partie de {server}.",
  "source.one_game": "L’adresse ou le numéro d’une partie",
- "source.fetch_game": "Récupérer cette partie"
+ "source.fetch_game": "Récupérer cette partie",
+ "source.not_shogi": "{game} est une partie d’une variante que Bragd ne joue pas."
 }

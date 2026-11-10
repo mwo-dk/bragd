@@ -60,7 +60,7 @@ No. Steps 1 to 6 only save settings. The downloads you ticked start when you pre
 
 #### What does "Coming later" name?
 
-The Sources of your Game families that this version cannot fetch yet, in one line under the downloads you can choose. For chess it is LumbrasGigaBase; pychess and Lishogi for the games they play. They have no box to tick until a version of Bragd can fetch them, here or under Sources, which lists them all the same.
+The Sources of your Game families that this version cannot fetch yet, in one line under the downloads you can choose. For chess it is LumbrasGigaBase and pychess. They have no box to tick until a version of Bragd can fetch them, here or under Sources, which lists them all the same.
 
 #### Which Themes are on the Welcome step?
 

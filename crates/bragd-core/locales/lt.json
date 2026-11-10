@@ -2089,5 +2089,6 @@
  "source.busy": "{server} paprašė Bragd sulėtinti. Kitas atsisiuntimas tęsis nuo čia.",
  "source.not_a_game": "{game} nėra {server} partijos adresas ar numeris.",
  "source.one_game": "Partijos adresas arba numeris",
- "source.fetch_game": "Atsisiųsti šią partiją"
+ "source.fetch_game": "Atsisiųsti šią partiją",
+ "source.not_shogi": "{game} yra Bragd nežaidžiamo varianto partija."
 }

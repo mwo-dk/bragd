@@ -2076,5 +2076,6 @@
  "source.busy": "{server} از Bragd خواست آهسته‌تر کار کند. دریافت بعدی از همین‌جا ادامه می‌یابد.",
  "source.not_a_game": "{game} نشانی یا شمارهٔ یک بازی {server} نیست.",
  "source.one_game": "نشانی یا شمارهٔ یک بازی",
- "source.fetch_game": "دریافت این بازی"
+ "source.fetch_game": "دریافت این بازی",
+ "source.not_shogi": "{game} یک بازی از گونه‌ای است که Bragd بازی نمی‌کند."
 }

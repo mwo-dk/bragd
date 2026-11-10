@@ -2076,5 +2076,6 @@
  "source.busy": "{server} palus Bragdil aeglustada. Järgmine toomine jätkub siit.",
  "source.not_a_game": "{game} ei ole serveri {server} partii aadress ega number.",
  "source.one_game": "Partii aadress või number",
- "source.fetch_game": "Too see partii"
+ "source.fetch_game": "Too see partii",
+ "source.not_shogi": "{game} on partii variandist, mida Bragd ei mängi."
 }

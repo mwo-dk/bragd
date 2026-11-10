@@ -2076,5 +2076,6 @@
  "source.busy": "{server} pyysi Bragdia hidastamaan. Seuraava nouto jatkuu tästä.",
  "source.not_a_game": "{game} ei ole palvelun {server} pelin osoite tai numero.",
  "source.one_game": "Pelin osoite tai numero",
- "source.fetch_game": "Nouda tämä peli"
+ "source.fetch_game": "Nouda tämä peli",
+ "source.not_shogi": "{game} on muunnelman peli, jota Bragd ei pelaa."
 }

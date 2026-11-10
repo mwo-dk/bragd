@@ -2076,5 +2076,6 @@
  "source.busy": "{server} heeft Bragd gevraagd langzamer te gaan. De volgende keer gaat het ophalen hier verder.",
  "source.not_a_game": "{game} is geen adres of nummer van een partij op {server}.",
  "source.one_game": "Het adres of nummer van een partij",
- "source.fetch_game": "Deze partij ophalen"
+ "source.fetch_game": "Deze partij ophalen",
+ "source.not_shogi": "{game} is een partij van een variant die Bragd niet speelt."
 }

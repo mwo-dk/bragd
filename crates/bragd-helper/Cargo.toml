@@ -29,6 +29,9 @@ bragd-model = { path = "../bragd-model" }
 # Sources of the user's own Games fetch through the account signed in for online play: its
 # server's address and its token in the OS keychain.
 bragd-online = { path = "../bragd-online" }
+# A Source that gets many Games in one answer (Lishogi) keeps them as a zip of KIF files, one a
+# Game, since a KIF file holds one Game.
+zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # The connection token, from the system's random source.
@@ -55,5 +58,4 @@ static_vcruntime = "3"
 bragd-model = { path = "../bragd-model", features = ["mock-keychain"] }
 bragd-engines = { path = "../bragd-engines", features = ["fake-program"] }
 bragd-core = { path = "../bragd-core", features = ["test-home"] }
-# Zips of PGN, as TWIC sends them, made for the tests.
-zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
+

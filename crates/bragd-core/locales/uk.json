@@ -2102,5 +2102,6 @@
  "source.busy": "{server} попросив Bragd сповільнитися. Наступне завантаження продовжиться звідси.",
  "source.not_a_game": "{game} не є адресою чи номером партії на {server}.",
  "source.one_game": "Адреса або номер партії",
- "source.fetch_game": "Завантажити цю партію"
+ "source.fetch_game": "Завантажити цю партію",
+ "source.not_shogi": "{game} — партія варіанту, який Bragd не грає."
 }

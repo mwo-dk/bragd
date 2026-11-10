@@ -2076,5 +2076,6 @@
  "source.busy": "{server} asked Bragd to slow down. The next fetch goes on from here.",
  "source.not_a_game": "{game} is not the address or number of a {server} Game.",
  "source.one_game": "A Game's address or number",
- "source.fetch_game": "Fetch this Game"
+ "source.fetch_game": "Fetch this Game",
+ "source.not_shogi": "{game} is a Game of a Variant Bragd does not play."
 }

@@ -15,6 +15,7 @@ use crate::net::{self, Fetcher};
 
 pub(crate) mod fics;
 mod kgs;
+mod lishogi;
 mod ogs;
 mod lichess;
 mod pgnmentor;
@@ -575,7 +576,7 @@ pub fn builtin() -> Vec<Box<dyn Source>> {
         Box::new(kgs::Kgs),
         // shortcut: pychess exports a player's Games only to its own signed-in web page, and Bragd cannot sign in to pychess yet (#211).
         later("pychess", "pychess", "chess", 2_000_000, Schedule::Daily, "https://www.pychess.org/"),
-        later("lishogi", "Lishogi exports", "shogi", 500_000_000, Schedule::Monthly, "https://lishogi.org/"),
+        Box::new(lishogi::Lishogi),
     ]
     .into_iter()
     .chain(bragd_clubs::lists::LISTS.iter().map(|l| Box::new(RatingList(l)) as Box<dyn Source>))
@@ -619,6 +620,9 @@ pub(crate) mod tests {
         }
         w.finish().unwrap().into_inner()
     }
+
+    /// One test at a time signs in to a server in the keychain all tests share.
+    pub static KEYCHAIN: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     #[test]
     fn no_source_shows_a_url_template() {
@@ -710,13 +714,13 @@ pub(crate) mod tests {
         let ids: Vec<String> = builtin().iter().map(|s| s.about().id).collect();
         assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings"]);
         let fetched: Vec<String> = builtin().iter().map(|s| s.about()).filter(|a| a.kind == Kind::Games && a.fetchable).map(|a| a.id).collect();
-        assert_eq!(fetched, ["twic", "lichess-db", "fics", "pgnmentor", "ogs", "kgs"]);
+        assert_eq!(fetched, ["twic", "lichess-db", "fics", "pgnmentor", "ogs", "kgs", "lishogi"]);
         assert!(builtin().iter().all(|s| s.about().size > 0));
         let d = crate::tests::Dir::new("later");
         let net = Recorded::default();
         let o = Twic.about().defaults();
-        let err = find("lishogi", "").unwrap().fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap_err();
-        assert!(err.to_string().contains("Lishogi exports"), "{err}");
+        let err = find("pychess", "").unwrap().fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap_err();
+        assert!(err.to_string().contains("pychess"), "{err}");
         assert!(net.asked.lock().unwrap().is_empty(), "nothing is asked of the network");
         assert!(find("custom:club", "https://example.org/a.pgn").unwrap().about().fetchable);
         assert!(find("nope", "").is_none());

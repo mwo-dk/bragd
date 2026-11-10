@@ -2076,5 +2076,6 @@
  "source.busy": "{server} ba Bragd senke farten. Neste henting fortsetter herfra.",
  "source.not_a_game": "{game} er ikke adressen eller nummeret til en parti på {server}.",
  "source.one_game": "En partis adresse eller nummer",
- "source.fetch_game": "Hent denne partien"
+ "source.fetch_game": "Hent denne partien",
+ "source.not_shogi": "{game} er en partie i en variant Bragd ikke spiller."
 }

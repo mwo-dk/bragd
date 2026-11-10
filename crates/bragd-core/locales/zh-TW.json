@@ -2063,5 +2063,6 @@
  "source.busy": "{server} 要求 Bragd 放慢速度。下一次抓取將從此處繼續。",
  "source.not_a_game": "{game} 不是 {server} 棋局的網址或編號。",
  "source.one_game": "一個棋局的網址或編號",
- "source.fetch_game": "抓取此棋局"
+ "source.fetch_game": "抓取此棋局",
+ "source.not_shogi": "{game} 是 Bragd 不下的變體中的一局。"
 }

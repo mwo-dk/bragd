@@ -2089,5 +2089,6 @@
  "source.busy": "{server} lūdza Bragd palēnināties. Nākamā ielāde turpināsies no šejienes.",
  "source.not_a_game": "{game} nav {server} partijas adrese vai numurs.",
  "source.one_game": "Partijas adrese vai numurs",
- "source.fetch_game": "Ielādēt šo partiju"
+ "source.fetch_game": "Ielādēt šo partiju",
+ "source.not_shogi": "{game} ir partija variantā, ko Bragd nespēlē."
 }
