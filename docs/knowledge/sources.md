@@ -4,7 +4,7 @@
 
 A Source is where Games come from, such as The Week in Chess. When a Source is on, the [Helper](helper.md) fetches it on its schedule and imports its Games through its Routes: into `main.bragd` unless you add others. Every Source is off until you turn it on, and its size per fetch and schedule, such as *about 1.5 MB a week*, is shown before it downloads anything. You can also add any address of a game file as a custom URL Source, and remove it again.
 
-![The Sources tab for chess: The Week in Chess, the Lichess database, the FICS games database and PGN Mentor, each with its size, last fetch, Options and Fetch now, the rating lists with More lists folded, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
+![The Sources tab for chess: The Week in Chess, the Lichess database, the FICS games database and PGN Mentor, each with its size, last fetch, Options and Fetch now, then LumbrasGigaBase and pychess with no box to tick and a line saying this version cannot fetch them yet, the rating lists with More lists folded, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
 *Databases → Sources.*
 
 ## How to reach it
@@ -35,7 +35,7 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `sshl-ratings` | Finnish Chess Federation (SShL) | chess | 0.75 MB | Monthly |
 | `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly |
 
-Some Sources are planned but not fetched by this version: LumbrasGigaBase, and the pychess and Lishogi exports. Sources does not list them until a version of Bragd can fetch them. The install wizard names those of your Families in one line, *Coming later*.
+Some well-known Sources are listed but not fetched by this version: LumbrasGigaBase, pychess and Lishogi. Sources shows each with its address and *This version of Bragd cannot fetch it yet*, and no box to tick. The install wizard names those of your Families in one line, *Coming later*.
 
 **Parts and months.** The Lichess database, FICS and PGN Mentor have **What to fetch** in their Options: Variants, game types or sections. The Lichess database and FICS, a file a month, also have **First month**, the month their first fetch starts from. Each has a page of its own, linked in the table.
 
@@ -103,9 +103,13 @@ A packed game file (`.pgn.zst`, `.pgn.bz2`, `.pgn.gz`) is unpacked as it is read
 
 No. Every Source starts off. Nothing is fetched until you tick it, or tick it in the install wizard and press Done.
 
-#### Why is LumbrasGigaBase not listed?
+#### Why can I not tick LumbrasGigaBase?
 
-This version of Bragd cannot fetch it yet, so Sources leaves it out rather than show a box you cannot tick. Its site starts each download from the page itself and sends 7z archives, which Bragd cannot read as a stream. The same goes for the other planned Sources named under [The Sources](#the-sources). Until then, a file you downloaded yourself can be opened in place as a [Foreign database](foreign-databases.md).
+This version of Bragd cannot fetch it yet. Its site starts each download from the page itself and sends 7z archives, which Bragd cannot read as a stream. Sources lists it all the same, so you know where it is. Until then, a file you downloaded yourself can be opened in place as a [Foreign database](foreign-databases.md).
+
+#### Why can I not tick pychess?
+
+pychess.org gives a player's Games only to its own web page, signed in in the browser, and has no sign-in for other apps ([pychess.org](../online/pychess.md)). Bragd fetches them once pychess.org offers one. Until then, export your Games yourself: signed in on pychess.org, open `https://www.pychess.org/api/games/user/<your name>/pgn` in the browser, save the page as a `.pgn` file, and open it in Bragd as a [Foreign database](foreign-databases.md).
 
 #### What does "metered" mean here?
 

@@ -5,8 +5,9 @@
   // Routes: each a Library (one there, or a new one by name) and a Strip rule, with Preview (a
   // dry run) and Apply over all of them. A Source with parts (Lichess Variants, FICS game
   // types) has a box for each, and one of monthly files a first month. A Source of the user's
-  // own Games on a site says which account, and fetches one Game by its address too. Rust lists only the
-  // Sources this version can fetch. A custom URL can be added, and removed again.
+  // own Games on a site says which account, and fetches one Game by its address too. Rust lists
+  // every Source, and says why one this version cannot fetch yet has no box to tick. A custom
+  // URL can be added, and removed again.
   import * as k from "./knowledge.js";
   import { t, i18n } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
@@ -114,15 +115,15 @@
   <article class="panel source">
     <div class="head">
       <label class="check">
-        <input type="checkbox" checked={s.options.enabled} onchange={(e) => save(s.id, { ...s.options, enabled: e.currentTarget.checked })} />
+        <input type="checkbox" checked={s.options.enabled} disabled={!!s.later} onchange={(e) => save(s.id, { ...s.options, enabled: e.currentTarget.checked })} />
         <strong>{s.name}</strong>
       </label>
-      <span class="meta">{s.familyName} · {s.size} · {t("source.last", { when: s.last })}</span>
-      <span class="buttons">
+      <span class="meta">{s.later ? s.familyName : `${s.familyName} · ${s.size} · ${t("source.last", { when: s.last })}`}</span>
+      {#if !s.later}<span class="buttons">
         <button onclick={() => expand(s)} aria-expanded={open === s.id}>{open === s.id ? t("source.less") : t("source.more")}</button>
         <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.options.enabled}>{t("source.fetch_now")}</button>
         {#if s.custom}<button onclick={() => (removing = s.id)}>{t("source.remove")}</button>{/if}
-      </span>
+      </span>{/if}
     </div>
     {#if removing === s.id}
       <div class="notice" role="alertdialog" aria-label={t("source.remove")}>
@@ -137,6 +138,7 @@
       <p class="notice">{s.tooBig} <button onclick={() => start(s.id, k.sourceAllow(s.id))}>{t("source.allow")}</button></p>
     {/if}
     <small class="url">{s.url}</small>
+    {#if s.later}<p class="hint">{s.later}</p>{/if}
     {#if s.account}
       <p class="hint">{s.account}</p>
       <div class="bar">

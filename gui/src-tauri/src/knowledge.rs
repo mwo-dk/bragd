@@ -432,6 +432,9 @@ pub struct SourceView {
     pub parts: Vec<Pick>,
     /// A file a month: `options.since` says from which.
     pub months: bool,
+    /// Why it cannot be turned on, for a well-known Source this version lists but cannot fetch
+    /// yet; empty for one it fetches.
+    pub later: String,
     /// Whose Games it fetches, for a Source of the user's own Games through an online account;
     /// empty for any other. Such a Source also fetches one Game by its address.
     pub account: String,
@@ -487,18 +490,14 @@ fn size_text(a: &sources::About, o: &Options) -> String {
     t!(&bragd_core::wizard::size_key(&schedule, a.first_only), "size" => size)
 }
 
-/// The Sources the page lists: those this version can fetch. The others wait, unlisted, until
-/// it can; the install wizard names them in one line (`wizard::coming`).
-fn listed(all: Vec<(sources::About, Options, sources::Memo)>) -> impl Iterator<Item = (sources::About, Options, sources::Memo)> {
-    all.into_iter().filter(|(a, _, _)| a.fetchable)
-}
 
 #[tauri::command(async)]
 pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<SourcesPage> {
     let now = bragd_core::fs::now();
     let tags = bragd_core::i18n::locale_tags();
     let cfg = ctx.cfg();
-    let sources = listed(sources_of(&k)?)
+    let sources = sources_of(&k)?
+        .into_iter()
         .map(|(a, o, m)| {
             let list = bragd_clubs::lists::LISTS.iter().find(|l| l.id == a.id);
             (a, o, m, list)
@@ -511,6 +510,7 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
         .map(|(a, o, m, list, parts)| SourceView {
             parts,
             months: a.months,
+            later: if a.fetchable { String::new() } else { t!(sources::OUT_OF_SCOPE, "source" => a.name) },
             account: bragd_online::server::find(&a.account).map(|s| t!("source.account", "server" => s.name)).unwrap_or_default(),
             more: list.is_some_and(|l| !l.suggested(&tags)) && !o.enabled,
             family_name: if a.family.is_empty() { t!("source.any_family") } else { t!(&format!("family.{}", a.family)) },
@@ -732,14 +732,10 @@ pub fn library_prune(dry_run: bool, k: State<'_, Knowledge>) -> Res<u64> {
 mod tests {
     use super::*;
 
-    /// The page lists only what this version can fetch: TWIC and the Lichess database, not LumbrasGigaBase.
     #[test]
-    fn sources_this_version_cannot_fetch_are_not_listed() {
-        let all = sources::builtin().iter().map(|s| (s.about(), s.about().defaults(), sources::Memo::default())).collect();
-        let ids: Vec<String> = listed(all).map(|(a, _, _)| a.id).collect();
-        assert!(ids.contains(&"twic".to_string()) && ids.contains(&"lichess-db".to_string()) && !ids.contains(&"lumbras".to_string()), "{ids:?}");
+    fn a_source_says_how_often_it_is_fetched() {
         let twic = sources::builtin().into_iter().find(|s| s.about().id == "twic").unwrap().about();
-        assert!(size_text(&twic, &twic.defaults()).ends_with("a week"), "a Source says how often it is fetched");
+        assert!(size_text(&twic, &twic.defaults()).ends_with("a week"));
     }
 
     /// KGS and PGN Mentor size the first fetch, the whole archive; they must not say "a month".

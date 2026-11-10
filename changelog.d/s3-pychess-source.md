@@ -1,0 +1,1 @@
+| **Sources lists LumbrasGigaBase and pychess even before Bragd can fetch them**, each with its address and a line saying so, and the pychess page says how to export your own pychess Games by hand meanwhile. | [Sources](knowledge/sources.md#why-can-i-not-tick-pychess) |
