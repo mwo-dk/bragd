@@ -76,6 +76,7 @@ impl Source for Fics {
             parts: TYPES.iter().map(|(id, _)| Part::new(id, &format!("source.part.fics.{id}"), "chess", *id == "standard2000")).collect(),
             months: true,
             first_only: false,
+            account: String::new(),
         }
     }
 

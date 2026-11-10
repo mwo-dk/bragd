@@ -432,6 +432,9 @@ pub struct SourceView {
     pub parts: Vec<Pick>,
     /// A file a month: `options.since` says from which.
     pub months: bool,
+    /// Whose Games it fetches, for a Source of the user's own Games through an online account;
+    /// empty for any other. Such a Source also fetches one Game by its address.
+    pub account: String,
 }
 
 /// A value and its label, for a `<select>` or a row of checkboxes.
@@ -508,6 +511,7 @@ pub fn sources_list(k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Sources
         .map(|(a, o, m, list, parts)| SourceView {
             parts,
             months: a.months,
+            account: bragd_online::server::find(&a.account).map(|s| t!("source.account", "server" => s.name)).unwrap_or_default(),
             more: list.is_some_and(|l| !l.suggested(&tags)) && !o.enabled,
             family_name: if a.family.is_empty() { t!("source.any_family") } else { t!(&format!("family.{}", a.family)) },
             size: size_text(&a, &o),
@@ -592,6 +596,12 @@ pub fn source_remove(id: String, k: State<'_, Knowledge>) -> Res<()> {
 #[tauri::command(async)]
 pub fn source_fetch(id: String, k: State<'_, Knowledge>) -> Res<u64> {
     k.link.start(&Request::FetchNow { source: id })
+}
+
+/// One Game from a Source's site, by its address or number.
+#[tauri::command(async)]
+pub fn source_fetch_game(id: String, game: String, k: State<'_, Knowledge>) -> Res<u64> {
+    k.link.start(&Request::FetchGame { source: id, game: game.trim().into() })
 }
 
 /// The user's yes to a download over its Source's cap: fetched now, that once.

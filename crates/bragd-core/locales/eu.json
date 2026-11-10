@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Lehiaketak",
  "friends.reason.resign": "utzi du",
  "friends.reason.agreement": "berdinketa onartu da",
- "friends.reason.time": "denbora agortu da"
+ "friends.reason.time": "denbora agortu da",
+ "job.fetch_game": "Eskuratu {game} hemendik: {source}",
+ "source.account": "Zure partida propioak, saioa hasten duzun {server} kontuaren bidez, Linean jokatu atalean.",
+ "source.sign_in": "Lehenik hasi saioa {server}-en Linean jokatu atalean. Iturri honek {server} kontuko partidak eskuratzen ditu.",
+ "source.sign_in_again": "{server}-ek ez du onartzen jada Bragd-en saioa hasteko modua. Hasi saioa berriro {server}-en, Linean jokatu atalean.",
+ "source.busy": "{server}-ek Bragd moteldu dezan eskatu du. Hurrengo eskuratzea hemendik jarraituko du.",
+ "source.not_a_game": "{game} ez da {server}-eko partida baten helbidea edo zenbakia.",
+ "source.one_game": "Partida baten helbidea edo zenbakia",
+ "source.fetch_game": "Eskuratu partida hau"
 }

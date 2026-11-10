@@ -2055,5 +2055,13 @@
  "source.part.pgnmentor.events": "대회",
  "friends.reason.resign": "기권",
  "friends.reason.agreement": "합의 무승부",
- "friends.reason.time": "시간 초과"
+ "friends.reason.time": "시간 초과",
+ "job.fetch_game": "{source}에서 {game} 가져오기",
+ "source.account": "온라인 대국 메뉴에서 로그인하는 {server} 계정을 통한 내 대국.",
+ "source.sign_in": "먼저 온라인 대국 메뉴에서 {server}에 로그인하세요. 이 출처는 {server} 계정의 대국을 가져옵니다.",
+ "source.sign_in_again": "{server}가 더 이상 Bragd의 로그인을 받지 않습니다. 온라인 대국 메뉴에서 {server}에 다시 로그인하세요.",
+ "source.busy": "{server}가 Bragd에 속도를 늦춰 달라고 요청했습니다. 다음 가져오기는 여기서부터 이어집니다.",
+ "source.not_a_game": "{game}은(는) {server} 대국의 주소나 번호가 아닙니다.",
+ "source.one_game": "대국의 주소 또는 번호",
+ "source.fetch_game": "이 대국 가져오기"
 }

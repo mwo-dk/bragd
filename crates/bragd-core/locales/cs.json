@@ -2081,5 +2081,13 @@
  "source.part.pgnmentor.events": "Turnaje",
  "friends.reason.resign": "vzdal se",
  "friends.reason.agreement": "remíza dohodou",
- "friends.reason.time": "čas vypršel"
+ "friends.reason.time": "čas vypršel",
+ "job.fetch_game": "Stáhnout {game} z {source}",
+ "source.account": "Vaše vlastní partie přes účet {server}, do kterého se přihlašujete v Hrát online.",
+ "source.sign_in": "Nejprve se přihlaste na {server} v Hrát online. Tento zdroj stahuje partie vašeho účtu {server}.",
+ "source.sign_in_again": "{server} už přihlášení Bragdu nepřijímá. Přihlaste se na {server} znovu v Hrát online.",
+ "source.busy": "{server} požádal Bragd, aby zpomalil. Další stahování naváže odtud.",
+ "source.not_a_game": "{game} není adresa ani číslo partie na {server}.",
+ "source.one_game": "Adresa nebo číslo partie",
+ "source.fetch_game": "Stáhnout tuto partii"
 }

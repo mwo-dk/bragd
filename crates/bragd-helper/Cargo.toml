@@ -26,6 +26,9 @@ bragd-games = { path = "../bragd-games" }
 bragd-peers = { path = "../bragd-peers" }
 # Model jobs of the shared queue: a Peer's language model translates for this machine.
 bragd-model = { path = "../bragd-model" }
+# Sources of the user's own Games fetch through the account signed in for online play: its
+# server's address and its token in the OS keychain.
+bragd-online = { path = "../bragd-online" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # The connection token, from the system's random source.
@@ -48,6 +51,8 @@ windows-sys = { version = "0.61", features = ["Win32_System_Power", "Win32_Stora
 static_vcruntime = "3"
 
 [dev-dependencies]
+# keyring's in-memory store: the tests' accounts never reach the real keychain.
+bragd-model = { path = "../bragd-model", features = ["mock-keychain"] }
 bragd-engines = { path = "../bragd-engines", features = ["fake-program"] }
 bragd-core = { path = "../bragd-core", features = ["test-home"] }
 # Zips of PGN, as TWIC sends them, made for the tests.

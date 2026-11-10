@@ -54,6 +54,7 @@ impl Source for Kgs {
             parts: vec![],
             months: false,
             first_only: true,
+            account: String::new(),
         }
     }
 

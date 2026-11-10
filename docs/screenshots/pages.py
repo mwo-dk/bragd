@@ -1089,7 +1089,7 @@ def friends():
 
 def sources():
     """databases-sources-390.png and -1100.png: Chess → Databases → Sources, TWIC first, then the
-    rating lists and Add a custom URL. databases-sources-go-*.png: Go's, the KGS archive."""
+    rating lists and Add a custom URL. databases-sources-go-*.png: Go's, OGS and the KGS archive."""
     def page(family):
         def go(d):
             unfold(d)

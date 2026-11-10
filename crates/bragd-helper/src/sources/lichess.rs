@@ -42,6 +42,7 @@ impl Source for Lichess {
             parts: VARIANTS.iter().map(|(id, v)| Part::new(id, &format!("variant.{v}"), v, *id == "standard")).collect(),
             months: true,
             first_only: false,
+            account: String::new(),
         }
     }
 

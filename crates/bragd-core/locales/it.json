@@ -2081,5 +2081,13 @@
  "source.part.pgnmentor.events": "Eventi",
  "friends.reason.resign": "ha abbandonato",
  "friends.reason.agreement": "patta concordata",
- "friends.reason.time": "tempo scaduto"
+ "friends.reason.time": "tempo scaduto",
+ "job.fetch_game": "Scarica {game} da {source}",
+ "source.account": "Le tue partite, tramite l'account {server} con cui accedi in Gioca online.",
+ "source.sign_in": "Accedi prima a {server} in Gioca online. Questa fonte scarica le partite del tuo account {server}.",
+ "source.sign_in_again": "{server} non accetta più l'accesso di Bragd. Accedi di nuovo a {server} in Gioca online.",
+ "source.busy": "{server} ha chiesto a Bragd di rallentare. Il prossimo scaricamento proseguirà da qui.",
+ "source.not_a_game": "{game} non è l'indirizzo né il numero di una partita di {server}.",
+ "source.one_game": "L'indirizzo o il numero di una partita",
+ "source.fetch_game": "Scarica questa partita"
 }

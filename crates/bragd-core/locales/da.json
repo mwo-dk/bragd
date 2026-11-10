@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Turneringer",
  "friends.reason.resign": "opgav",
  "friends.reason.agreement": "remis aftalt",
- "friends.reason.time": "tiden udløb"
+ "friends.reason.time": "tiden udløb",
+ "job.fetch_game": "Hent {game} fra {source}",
+ "source.account": "Dine egne partier gennem den {server}-konto, du logger ind med under Spil online.",
+ "source.sign_in": "Log først ind på {server} under Spil online. Denne kilde henter partierne på din {server}-konto.",
+ "source.sign_in_again": "{server} accepterer ikke længere Bragds login. Log ind på {server} igen under Spil online.",
+ "source.busy": "{server} bad Bragd om at tage den lidt roligere. Den næste hentning fortsætter herfra.",
+ "source.not_a_game": "{game} er ikke adressen eller nummeret på et parti på {server}.",
+ "source.one_game": "Et partis adresse eller nummer",
+ "source.fetch_game": "Hent dette parti"
 }

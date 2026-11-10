@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Turneringar",
  "friends.reason.resign": "gav opp",
  "friends.reason.agreement": "remis avtalt",
- "friends.reason.time": "tida er ute"
+ "friends.reason.time": "tida er ute",
+ "job.fetch_game": "Hent {game} frå {source}",
+ "source.account": "Dine eigne parti gjennom {server}-kontoen du loggar inn med under Spel på nett.",
+ "source.sign_in": "Logg først inn på {server} under Spel på nett. Denne kjelda hentar partia på {server}-kontoen din.",
+ "source.sign_in_again": "{server} godtek ikkje lenger Bragds innlogging. Logg inn på {server} att under Spel på nett.",
+ "source.busy": "{server} bad Bragd seinke farten. Neste henting held fram herfrå.",
+ "source.not_a_game": "{game} er ikkje adressa eller nummeret til ei parti på {server}.",
+ "source.one_game": "Ei partis adresse eller nummer",
+ "source.fetch_game": "Hent denne partien"
 }

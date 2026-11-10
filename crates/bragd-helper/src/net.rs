@@ -27,6 +27,42 @@ pub trait Fetcher: Send + Sync {
     fn offline(&self) -> bool {
         false
     }
+    /// `url` of a site's API, as the account `token` signed in there (a Bearer token), asking
+    /// for `accept` when it is not empty. A 401, 403 or 429 is `Refused`.
+    fn api(&self, url: &str, token: &str, accept: &str) -> io::Result<Got>;
+    /// Waits `secs` before the next request to a site that asks for a pace.
+    fn pause(&self, secs: u64) {
+        std::thread::sleep(std::time::Duration::from_secs(secs));
+    }
+}
+
+/// A site's API said no: not signed in (401, 403), or too many requests (429), to try again
+/// after `wait` seconds.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Refused {
+    pub url: String,
+    pub status: u16,
+    pub wait: u64,
+}
+
+impl std::fmt::Display for Refused {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: HTTP {}", self.url, self.status)
+    }
+}
+
+impl std::error::Error for Refused {}
+
+impl Refused {
+    /// The `Refused` inside an error a request gave, if that is what it is.
+    pub fn of(e: &io::Error) -> Option<&Refused> {
+        e.get_ref().and_then(|e| e.downcast_ref::<Refused>())
+    }
+}
+
+/// How long a 429 asks to wait: its `Retry-After` in seconds, else a minute, as Lishogi asks.
+fn retry_after(v: Option<&str>) -> u64 {
+    v.and_then(|v| v.trim().parse().ok()).unwrap_or(60).clamp(1, 3600)
 }
 
 /// The real thing, over HTTPS with the system's certificate store. With `BRAGD_OFFLINE` set it
@@ -82,6 +118,27 @@ impl Fetcher for Web {
 
     fn offline(&self) -> bool {
         self.offline
+    }
+
+    fn api(&self, url: &str, token: &str, accept: &str) -> io::Result<Got> {
+        self.refuse()?;
+        let mut req = self.agent.get(url).header("Authorization", format!("Bearer {token}"));
+        if !accept.is_empty() {
+            req = req.header("Accept", accept);
+        }
+        let r = req.call().map_err(io::Error::other)?;
+        match r.status().as_u16() {
+            404 | 410 => Ok(Got::Missing),
+            200 => {
+                let size = r.body().content_length();
+                Ok(Got::Body { resumed: false, size, body: Box::new(r.into_body().into_reader()) })
+            }
+            s @ (401 | 403 | 429) => {
+                let wait = retry_after(r.headers().get("Retry-After").and_then(|v| v.to_str().ok()));
+                Err(io::Error::other(Refused { url: url.into(), status: s, wait }))
+            }
+            s => Err(status_error(url, s)),
+        }
     }
 }
 
@@ -207,6 +264,10 @@ pub(crate) mod tests {
         pub sizes: bool,
         /// As `BRAGD_OFFLINE` makes the real one.
         pub offline: bool,
+        /// URLs whose API answers 429 the first time each is asked.
+        pub busy: Mutex<Vec<String>>,
+        /// The pauses asked for, in seconds.
+        pub paused: Mutex<Vec<u64>>,
     }
 
     impl Fetcher for Recorded {
@@ -225,6 +286,26 @@ pub(crate) mod tests {
         fn offline(&self) -> bool {
             self.offline
         }
+        fn api(&self, url: &str, token: &str, accept: &str) -> io::Result<Got> {
+            self.asked.lock().unwrap().push(format!("API {url} {token} {accept}").trim_end().to_string());
+            let mut busy = self.busy.lock().unwrap();
+            if let Some(i) = busy.iter().position(|u| u == url) {
+                busy.remove(i);
+                return Err(io::Error::other(Refused { url: url.into(), status: 429, wait: 60 }));
+            }
+            let Some(b) = self.files.get(url) else { return Ok(Got::Missing) };
+            Ok(Got::Body { resumed: false, size: self.sizes.then_some(b.len() as u64), body: Box::new(io::Cursor::new(b.clone())) })
+        }
+        fn pause(&self, secs: u64) {
+            self.paused.lock().unwrap().push(secs);
+        }
+    }
+
+    #[test]
+    fn a_429_waits_as_long_as_it_asks() {
+        assert_eq!(retry_after(Some("5")), 5);
+        assert_eq!(retry_after(None), 60);
+        assert_eq!(retry_after(Some("soon")), 60);
     }
 
     #[test]

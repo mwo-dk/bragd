@@ -2078,5 +2078,13 @@
  "source.part.pgnmentor.events": "Eventos",
  "friends.reason.resign": "abandonó",
  "friends.reason.agreement": "tablas acordadas",
- "friends.reason.time": "se acabó el tiempo"
+ "friends.reason.time": "se acabó el tiempo",
+ "job.fetch_game": "Traer {game} de {source}",
+ "source.account": "Tus propias partidas, a través de la cuenta de {server} con la que iniciás sesión en Jugar en línea.",
+ "source.sign_in": "Primero iniciá sesión en {server} en Jugar en línea. Esta fuente trae las partidas de tu cuenta de {server}.",
+ "source.sign_in_again": "{server} ya no acepta el inicio de sesión de Bragd. Volvé a iniciar sesión en {server} desde Jugar en línea.",
+ "source.busy": "{server} le pidió a Bragd que baje el ritmo. La próxima descarga sigue desde acá.",
+ "source.not_a_game": "{game} no es la dirección ni el número de una partida de {server}.",
+ "source.one_game": "La dirección o el número de una partida",
+ "source.fetch_game": "Traer esta partida"
 }

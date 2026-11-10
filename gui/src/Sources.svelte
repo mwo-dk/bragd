@@ -4,7 +4,8 @@
   // asking (a bigger one waits for Download it anyway), what becomes of its downloads, and its
   // Routes: each a Library (one there, or a new one by name) and a Strip rule, with Preview (a
   // dry run) and Apply over all of them. A Source with parts (Lichess Variants, FICS game
-  // types) has a box for each, and one of monthly files a first month. Rust lists only the
+  // types) has a box for each, and one of monthly files a first month. A Source of the user's
+  // own Games on a site says which account, and fetches one Game by its address too. Rust lists only the
   // Sources this version can fetch. A custom URL can be added, and removed again.
   import * as k from "./knowledge.js";
   import { t, i18n } from "./i18n.svelte.js";
@@ -30,6 +31,8 @@
   let message = $state("");
   let name = $state("");
   let url = $state("");
+  /** A Game's address or number, typed for each Source of an online account. @type {Record<string, string>} */
+  let games = $state({});
   /** The custom URL Source whose removal waits for a yes. @type {string | null} */
   let removing = $state(null);
 
@@ -134,6 +137,13 @@
       <p class="notice">{s.tooBig} <button onclick={() => start(s.id, k.sourceAllow(s.id))}>{t("source.allow")}</button></p>
     {/if}
     <small class="url">{s.url}</small>
+    {#if s.account}
+      <p class="hint">{s.account}</p>
+      <div class="bar">
+        <input class="grow" type="text" bind:value={games[s.id]} placeholder={t("source.one_game")} aria-label={t("source.one_game")} />
+        <button onclick={() => start(s.id, k.sourceFetchGame(s.id, games[s.id] ?? ""))} disabled={!games[s.id]?.trim()}>{t("source.fetch_game")}</button>
+      </div>
+    {/if}
 
     {#if open === s.id && draft}
       <div class="options">

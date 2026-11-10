@@ -19,6 +19,7 @@ Everything here is reached from the sidebar: a Family, then **Databases**. The p
 | [The FICS games database](source-fics.md) | Games from the Free Internet Chess Server, a month at a time, by game type |
 | [PGN Mentor](source-pgnmentor.md) | Games by player, opening and event |
 | [The KGS archive](source-kgs.md) | Go Games of strong KGS players, a month at a time |
+| [Your OGS Games](source-ogs.md) | Your own go Games from your OGS account, and any one Game by its address |
 | [Strip rules](strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
 | [Disk watch](disk-watch.md) | What Bragd keeps on disk, limits, warnings and what happens when one is crossed |
 | [Position store](position-store.md) | Evaluations and Annotations kept by position, Export and Import |

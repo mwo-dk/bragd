@@ -1,0 +1,1 @@
+| **Go: your own OGS Games come in by themselves.** Turn on OGS under Databases → Sources, signed in to OGS under Play online, and Bragd fetches each of your Games once it has ended. Any one OGS Game can also be fetched by its address. | [Your OGS Games](knowledge/source-ogs.md) |

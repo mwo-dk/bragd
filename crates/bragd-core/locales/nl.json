@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Toernooien",
  "friends.reason.resign": "opgegeven",
  "friends.reason.agreement": "remise afgesproken",
- "friends.reason.time": "tijd om"
+ "friends.reason.time": "tijd om",
+ "job.fetch_game": "{game} ophalen van {source}",
+ "source.account": "Je eigen partijen, via het {server}-account waarmee je inlogt bij Online spelen.",
+ "source.sign_in": "Log eerst in bij {server} onder Online spelen. Deze bron haalt de partijen van je {server}-account op.",
+ "source.sign_in_again": "{server} accepteert Bragds login niet meer. Log opnieuw in bij {server} onder Online spelen.",
+ "source.busy": "{server} heeft Bragd gevraagd langzamer te gaan. De volgende keer gaat het ophalen hier verder.",
+ "source.not_a_game": "{game} is geen adres of nummer van een partij op {server}.",
+ "source.one_game": "Het adres of nummer van een partij",
+ "source.fetch_game": "Deze partij ophalen"
 }

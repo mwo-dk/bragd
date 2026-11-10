@@ -2055,5 +2055,13 @@
  "source.part.pgnmentor.events": "イベント",
  "friends.reason.resign": "投了",
  "friends.reason.agreement": "合意による引き分け",
- "friends.reason.time": "時間切れ"
+ "friends.reason.time": "時間切れ",
+ "job.fetch_game": "{source} から {game} を取得",
+ "source.account": "オンライン対局でサインインする {server} アカウントを通じた、ご自身の対局。",
+ "source.sign_in": "まず オンライン対局 で {server} にサインインしてください。このソースは、{server} アカウントの対局を取得します。",
+ "source.sign_in_again": "{server} が Bragd のサインインをもう受け付けません。オンライン対局 で {server} に再度サインインしてください。",
+ "source.busy": "{server} が Bragd に速度を落とすよう求めました。次の取得はここから続けます。",
+ "source.not_a_game": "{game} は {server} の対局の住所または番号ではありません。",
+ "source.one_game": "対局の住所または番号",
+ "source.fetch_game": "この対局を取得"
 }

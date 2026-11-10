@@ -2081,5 +2081,13 @@
  "source.part.pgnmentor.events": "אירועים",
  "friends.reason.resign": "נכנע",
  "friends.reason.agreement": "תיקו בהסכמה",
- "friends.reason.time": "נגמר הזמן"
+ "friends.reason.time": "נגמר הזמן",
+ "job.fetch_game": "משיכת {game} מ-{source}",
+ "source.account": "המשחקים שלכם, דרך חשבון {server} שבו אתם נכנסים תחת 'שחקו ברשת'.",
+ "source.sign_in": "היכנסו קודם ל-{server} תחת 'שחקו ברשת'. מקור זה מושך את המשחקים של חשבון ה-{server} שלכם.",
+ "source.sign_in_again": "{server} כבר לא מקבל את הכניסה של Bragd. היכנסו שוב ל-{server} תחת 'שחקו ברשת'.",
+ "source.busy": "{server} ביקש מ-Bragd להאט. המשיכה הבאה תמשיך מכאן.",
+ "source.not_a_game": "{game} אינו כתובת או מספר של משחק ב-{server}.",
+ "source.one_game": "כתובתו או מספרו של משחק",
+ "source.fetch_game": "משיכת המשחק הזה"
 }

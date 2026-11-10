@@ -43,6 +43,7 @@ impl Source for PgnMentor {
             parts: SECTIONS.iter().map(|s| Part::new(s, &format!("source.part.pgnmentor.{s}"), "chess", true)).collect(),
             months: false,
             first_only: true,
+            account: String::new(),
         }
     }
 

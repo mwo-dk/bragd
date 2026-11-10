@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "ტურნირები",
  "friends.reason.resign": "დანებდა",
  "friends.reason.agreement": "ფრე შეთანხმდა",
- "friends.reason.time": "დრო ამოიწურა"
+ "friends.reason.time": "დრო ამოიწურა",
+ "job.fetch_game": "{game} ჩამოტვირთვა — {source}",
+ "source.account": "თქვენი საკუთარი პარტიები {server}-ის ანგარიშით, რომლითაც შედიხართ ონლაინ თამაში განყოფილებაში.",
+ "source.sign_in": "ჯერ შედით {server}-ში ონლაინ თამაში განყოფილებაში. ეს წყარო ჩამოტვირთავს თქვენი {server}-ანგარიშის პარტიებს.",
+ "source.sign_in_again": "{server} აღარ იღებს Bragd-ის შესვლას. შედით {server}-ში ხელახლა ონლაინ თამაში განყოფილებაში.",
+ "source.busy": "{server}-მა Bragd-ს შეანელება სთხოვა. შემდეგი ჩამოტვირთვა აქედან გაგრძელდება.",
+ "source.not_a_game": "{game} არ არის {server}-ის პარტიის მისამართი ან ნომერი.",
+ "source.one_game": "პარტიის მისამართი ან ნომერი",
+ "source.fetch_game": "ამ პარტიის ჩამოტვირთვა"
 }

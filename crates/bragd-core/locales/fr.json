@@ -2081,5 +2081,13 @@
  "source.part.pgnmentor.events": "Événements",
  "friends.reason.resign": "a abandonné",
  "friends.reason.agreement": "nulle acceptée",
- "friends.reason.time": "temps écoulé"
+ "friends.reason.time": "temps écoulé",
+ "job.fetch_game": "Récupérer {game} depuis {source}",
+ "source.account": "Vos propres parties, via le compte {server} avec lequel vous vous connectez dans Jouer en ligne.",
+ "source.sign_in": "Connectez-vous d’abord à {server} dans Jouer en ligne. Cette source récupère les parties de votre compte {server}.",
+ "source.sign_in_again": "{server} n’accepte plus la connexion de Bragd. Reconnectez-vous à {server} dans Jouer en ligne.",
+ "source.busy": "{server} a demandé à Bragd de ralentir. La prochaine récupération reprend à partir d’ici.",
+ "source.not_a_game": "{game} n’est pas l’adresse ou le numéro d’une partie de {server}.",
+ "source.one_game": "L’adresse ou le numéro d’une partie",
+ "source.fetch_game": "Récupérer cette partie"
 }

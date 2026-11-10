@@ -2068,5 +2068,13 @@
  "source.part.pgnmentor.events": "Events",
  "friends.reason.resign": "resigned",
  "friends.reason.agreement": "draw agreed",
- "friends.reason.time": "out of time"
+ "friends.reason.time": "out of time",
+ "job.fetch_game": "Fetch {game} from {source}",
+ "source.account": "Your own Games, through the {server} account you sign in to under Play online.",
+ "source.sign_in": "Sign in to {server} under Play online first. This Source fetches the Games of your {server} account.",
+ "source.sign_in_again": "{server} no longer accepts Bragd's sign-in. Sign in to {server} again under Play online.",
+ "source.busy": "{server} asked Bragd to slow down. The next fetch goes on from here.",
+ "source.not_a_game": "{game} is not the address or number of a {server} Game.",
+ "source.one_game": "A Game's address or number",
+ "source.fetch_game": "Fetch this Game"
 }
