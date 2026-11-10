@@ -2076,5 +2076,6 @@
  "source.busy": "{server}-ը խնդրել է Bragd-ին դանդաղեցնել։ Հաջորդ ներբեռնումը կշարունակվի այստեղից։",
  "source.not_a_game": "{game}-ն {server}-ի խաղի հասցե կամ համար չէ։",
  "source.one_game": "Խաղի հասցեն կամ համարը",
- "source.fetch_game": "Ներբեռնել այս խաղը"
+ "source.fetch_game": "Ներբեռնել այս խաղը",
+ "source.not_shogi": "{game}-ը այն վարիանտի խաղ է, որը Bragd-ը չի խաղում։"
 }

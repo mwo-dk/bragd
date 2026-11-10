@@ -2102,5 +2102,6 @@
  "source.busy": "{server} poprosił Bragda, by zwolnił. Następne pobieranie zacznie się stąd.",
  "source.not_a_game": "{game} nie jest adresem ani numerem partii {server}.",
  "source.one_game": "Adres lub numer partii",
- "source.fetch_game": "Pobierz tę partię"
+ "source.fetch_game": "Pobierz tę partię",
+ "source.not_shogi": "{game} to partia wariantu, którego Bragd nie gra."
 }

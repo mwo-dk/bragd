@@ -2076,5 +2076,6 @@
  "source.busy": "{server} hat Bragd gebeten, langsamer zu werden. Der nächste Abruf geht von hier aus weiter.",
  "source.not_a_game": "{game} ist weder die Adresse noch die Nummer einer Partie auf {server}.",
  "source.one_game": "Die Adresse oder Nummer einer Partie",
- "source.fetch_game": "Diese Partie abrufen"
+ "source.fetch_game": "Diese Partie abrufen",
+ "source.not_shogi": "{game} ist eine Partie einer Variante, die Bragd nicht spielt."
 }

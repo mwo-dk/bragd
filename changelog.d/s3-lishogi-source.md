@@ -1,0 +1,1 @@
+| **Shogi: your own Lishogi Games come in by themselves.** Turn on Lishogi under Databases → Sources, signed in to Lishogi under Play online, and Bragd fetches the Games you played since the last fetch every day. Any one Lishogi Game can also be fetched by its address. | [Your Lishogi Games](knowledge/source-lishogi.md) |

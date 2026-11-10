@@ -1089,7 +1089,7 @@ def friends():
 
 def sources():
     """databases-sources-390.png and -1100.png: Chess → Databases → Sources, TWIC first, then the
-    rating lists and Add a custom URL. databases-sources-go-*.png: Go's, OGS and the KGS archive."""
+    rating lists and Add a custom URL. databases-sources-go-*.png: Go's, OGS and the KGS archive. databases-sources-shogi-*.png: Shogi's, Lishogi."""
     def page(family):
         def go(d):
             unfold(d)
@@ -1099,6 +1099,7 @@ def sources():
         return go
     widths("databases-sources", page("chess"))
     widths("databases-sources-go", page("go"))
+    widths("databases-sources-shogi", page("shogi"))
 
 
 # The stand-in engines of the demo home, for every Family with an Engine but draughts.

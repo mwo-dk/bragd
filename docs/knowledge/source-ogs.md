@@ -55,4 +55,4 @@ Only the one Game you name under *A Game's address or number*. The Source otherw
 From OGS's API at `https://online-go.com/api/v1/`, as your account, under OGS's [terms of service](https://online-go.com/terms-of-service).
 
 ---
-[← Previous: The KGS archive](source-kgs.md) · [Next: Strip rules →](strip-rules.md)
+[← Previous: The KGS archive](source-kgs.md) · [Next: Your Lishogi Games →](source-lishogi.md)

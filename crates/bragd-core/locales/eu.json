@@ -2076,5 +2076,6 @@
  "source.busy": "{server}-ek Bragd moteldu dezan eskatu du. Hurrengo eskuratzea hemendik jarraituko du.",
  "source.not_a_game": "{game} ez da {server}-eko partida baten helbidea edo zenbakia.",
  "source.one_game": "Partida baten helbidea edo zenbakia",
- "source.fetch_game": "Eskuratu partida hau"
+ "source.fetch_game": "Eskuratu partida hau",
+ "source.not_shogi": "{game} Bragd-ek jokatzen ez duen aldaera baten partida bat da."
 }

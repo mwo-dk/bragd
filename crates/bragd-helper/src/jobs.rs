@@ -1616,14 +1616,14 @@ pub(crate) mod tests {
         let d = crate::tests::Dir::new("due");
         let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
         assert!(jobs.queue_due(1_000_000, None).is_empty(), "nothing is on");
-        for id in ["twic", "lishogi"] {
+        for id in ["twic", "pychess"] {
             let mut o = sources::find(id, "").unwrap().about().defaults();
             o.enabled = true;
             o.only_unmetered = true;
             jobs.set_source(id, o).unwrap();
         }
         assert!(jobs.queue_due(1_000_000, Some(true)).is_empty(), "metered");
-        assert_eq!(jobs.queue_due(1_000_000, Some(false)).len(), 1, "TWIC, not Lishogi, which is not fetched yet");
+        assert_eq!(jobs.queue_due(1_000_000, Some(false)).len(), 1, "TWIC, not pychess, which is not fetched yet");
         assert!(jobs.queue_due(1_000_000, None).is_empty(), "already queued");
         assert!(jobs.set_source("nope", sources::Twic.about().defaults()).is_err());
     }

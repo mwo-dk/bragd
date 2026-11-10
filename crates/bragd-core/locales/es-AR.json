@@ -2086,5 +2086,6 @@
  "source.busy": "{server} le pidió a Bragd que baje el ritmo. La próxima descarga sigue desde acá.",
  "source.not_a_game": "{game} no es la dirección ni el número de una partida de {server}.",
  "source.one_game": "La dirección o el número de una partida",
- "source.fetch_game": "Traer esta partida"
+ "source.fetch_game": "Traer esta partida",
+ "source.not_shogi": "{game} es una partida de una variante que Bragd no juega."
 }

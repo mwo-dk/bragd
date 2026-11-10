@@ -112,6 +112,7 @@ mod tests {
     use super::*;
     use crate::jobs::{Status, Work, tests::jobs_in};
     use crate::net::tests::Recorded;
+    use crate::sources::tests::KEYCHAIN;
     use bragd_library::library::Library;
     use std::sync::Arc;
 
@@ -230,9 +231,6 @@ mod tests {
         let e = Ogs.fetch(&mut Cx { net: &net, dir: &d.0, cap: SGF_BYTES, memo: &mut memo, options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap_err();
         assert_eq!(TooBig::of(&e).and_then(|t| t.size), Some(2 * SGF_BYTES));
     }
-
-    /// One test at a time signs in to OGS in the keychain all tests share.
-    static KEYCHAIN: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     /// The test account's token in the keychain while it lives.
     struct Token(String);

@@ -67,6 +67,10 @@ For testing, `BRAGD_OGS_URL` and `BRAGD_OGS_TOKEN` work as Lichess's pair does (
 
 ## Questions
 
+#### Can Bragd keep my OGS Games?
+
+Yes. Turn on the OGS Source under go's *Databases → Sources*, and it fetches the Games of the account you signed in to here as they end ([Your OGS Games](../knowledge/source-ogs.md)).
+
 #### Why does OGS's score differ from Bragd's count?
 
 OGS counts by the Game's own rules, which may be Japanese (territory) or Chinese (area). Bragd shows the score OGS sends.

@@ -69,4 +69,4 @@ Yes. *After import: Keep only what the Strip rule keeps* shrinks each download t
 A Library made before this version is compacted whole after a prune, which needs about as much free space as the Library for a while. Newer Libraries give the space back as they go.
 
 ---
-[← Previous: Your OGS Games](source-ogs.md) · [Next: Disk watch →](disk-watch.md)
+[← Previous: Your Lishogi Games](source-lishogi.md) · [Next: Disk watch →](disk-watch.md)

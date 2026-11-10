@@ -55,6 +55,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [PGN Mentor](knowledge/source-pgnmentor.md) | Games by player, opening and event |
 | [The KGS archive](knowledge/source-kgs.md) | Go Games of strong KGS players, a month at a time |
 | [Your OGS Games](knowledge/source-ogs.md) | Your own go Games from your OGS account, and any one Game by its address |
+| [Your Lishogi Games](knowledge/source-lishogi.md) | Your own shogi Games from your Lishogi account, and any one Game by its address |
 | [Strip rules](knowledge/strip-rules.md) | Which Games a Source keeps, preview and apply, after import |
 | [Disk watch](knowledge/disk-watch.md) | What Bragd keeps on disk, limits, warnings and what happens when one is crossed |
 | [Position store](knowledge/position-store.md) | Evaluations and Annotations kept by position, Export and Import |

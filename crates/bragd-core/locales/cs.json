@@ -2089,5 +2089,6 @@
  "source.busy": "{server} požádal Bragd, aby zpomalil. Další stahování naváže odtud.",
  "source.not_a_game": "{game} není adresa ani číslo partie na {server}.",
  "source.one_game": "Adresa nebo číslo partie",
- "source.fetch_game": "Stáhnout tuto partii"
+ "source.fetch_game": "Stáhnout tuto partii",
+ "source.not_shogi": "{game} je partie varianty, kterou Bragd nehraje."
 }

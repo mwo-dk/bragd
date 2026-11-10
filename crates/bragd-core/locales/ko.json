@@ -2063,5 +2063,6 @@
  "source.busy": "{server}가 Bragd에 속도를 늦춰 달라고 요청했습니다. 다음 가져오기는 여기서부터 이어집니다.",
  "source.not_a_game": "{game}은(는) {server} 대국의 주소나 번호가 아닙니다.",
  "source.one_game": "대국의 주소 또는 번호",
- "source.fetch_game": "이 대국 가져오기"
+ "source.fetch_game": "이 대국 가져오기",
+ "source.not_shogi": "{game}은(는) Bragd가 두지 않는 변형의 대국입니다."
 }

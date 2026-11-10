@@ -2089,5 +2089,6 @@
  "source.busy": "{server} ביקש מ-Bragd להאט. המשיכה הבאה תמשיך מכאן.",
  "source.not_a_game": "{game} אינו כתובת או מספר של משחק ב-{server}.",
  "source.one_game": "כתובתו או מספרו של משחק",
- "source.fetch_game": "משיכת המשחק הזה"
+ "source.fetch_game": "משיכת המשחק הזה",
+ "source.not_shogi": "{game} הוא משחק של וריאנט ש-Bragd אינו משחק."
 }

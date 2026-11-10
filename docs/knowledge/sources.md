@@ -27,6 +27,7 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `pgnmentor` | [PGN Mentor](source-pgnmentor.md) | chess | 200 MB the first time, then only new files | Monthly |
 | `kgs` | [The KGS archive](source-kgs.md) | go | 185 MB the first time, then only new zips | Monthly |
 | `ogs` | [Your OGS Games](source-ogs.md) | go | about 3 kB a Game: your Games the first time, then only those ended since | Daily |
+| `lishogi` | [Your Lishogi Games](source-lishogi.md) | shogi | about 2 kB a Game: your Games the first time, then only those since | Daily |
 | `custom:<name>` | A custom URL | any | unknown | Weekly |
 | `fide-ratings` | International Chess Federation (FIDE) | chess | 45 MB | Monthly |
 | `dsu-ratings` | Danish Chess Union (DSU) | chess | 0.5 MB | Monthly |
@@ -35,7 +36,7 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `sshl-ratings` | Finnish Chess Federation (SShL) | chess | 0.75 MB | Monthly |
 | `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly |
 
-Some well-known Sources are listed but not fetched by this version: LumbrasGigaBase, pychess and Lishogi. Sources shows each with its address and *This version of Bragd cannot fetch it yet*, and no box to tick. The install wizard names those of your Families in one line, *Coming later*.
+Some well-known Sources are listed but not fetched by this version: LumbrasGigaBase and pychess. Sources shows each with its address and *This version of Bragd cannot fetch it yet*, and no box to tick. The install wizard names those of your Families in one line, *Coming later*.
 
 **Parts and months.** The Lichess database, FICS and PGN Mentor have **What to fetch** in their Options: Variants, game types or sections. The Lichess database and FICS, a file a month, also have **First month**, the month their first fetch starts from. Each has a page of its own, linked in the table.
 
@@ -43,7 +44,7 @@ Some well-known Sources are listed but not fetched by this version: LumbrasGigaB
 
 **Rating lists.** FIDE, DSU, ECF, CFC, SShL and NZCF are rating lists, not Games. Each fetch downloads the whole list, and its players replace the list's players from before in `rating-lists.sqlite`, where the [Clubs](../clubs/clubs.md) page finds them by name or ID. They have no Routes and no *After import*. FIDE's list and your own federation's show first, found from Bragd's language and your system's region (Danish or Denmark: the DSU). The others are folded under **More lists** until you turn one on. Where each comes from and on what terms: [Rating lists](../reference/rating-lists.md).
 
-**Your own Games.** The OGS Source fetches the Games of the account you sign in to under Play online, never anyone else's. Its line says so, and has a box for one Game's address or number with **Fetch this Game**, which imports that Game through the Source's Routes. Fetching one Game does not change where the next fetch goes on from.
+**Your own Games.** The OGS and Lishogi Sources fetch the Games of the account you sign in to under Play online, never anyone else's. Each line says so, and has a box for one Game's address or number with **Fetch this Game**, which imports that Game through the Source's Routes. Fetching one Game does not change where the next fetch goes on from.
 
 **Custom URL.** The address must start with `http://` or `https://` and name a PGN, SGF, KIF, CSA or PDN file, or a zip of them. Each Family's page names only its own: SGF on Go's, KIF or CSA on Shogi's. The whole file is downloaded again on each fetch, since it may have grown.
 

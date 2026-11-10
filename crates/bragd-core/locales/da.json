@@ -2076,5 +2076,6 @@
  "source.busy": "{server} bad Bragd om at tage den lidt roligere. Den næste hentning fortsætter herfra.",
  "source.not_a_game": "{game} er ikke adressen eller nummeret på et parti på {server}.",
  "source.one_game": "Et partis adresse eller nummer",
- "source.fetch_game": "Hent dette parti"
+ "source.fetch_game": "Hent dette parti",
+ "source.not_shogi": "{game} er en partie i en variant, som Bragd ikke spiller."
 }

@@ -49,6 +49,10 @@ For testing, `BRAGD_LISHOGI_URL` and `BRAGD_LISHOGI_TOKEN` work as Lichess's pai
 
 ## Questions
 
+#### Can Bragd keep my Lishogi Games?
+
+Yes. Turn on the Lishogi Source under shogi's *Databases → Sources*, and it fetches the Games of the account you signed in to here every day ([Your Lishogi Games](../knowledge/source-lishogi.md)).
+
 #### Does Bragd see my Lishogi password?
 
 No. You sign in on Lishogi's own page in your browser. Lishogi hands Bragd a token for a year, which goes into your system's keychain. Bragd asks for three permissions only: playing Games through the Board API, and reading and making challenges.
