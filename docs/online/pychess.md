@@ -25,6 +25,10 @@ pychess.org adding a sign-in for apps and an API for a person's Games, as Liches
 
 Yes, on Bragd's own server: [Play with Friends](play-with-friends.md) plays every Family, xiangqi and shogi among them. To meet the players on pychess.org, play there in your browser.
 
+#### Can Bragd fetch my pychess Games?
+
+Not yet. pychess.org exports a player's Games only to that player, signed in in the browser, and Bragd cannot sign in there. Sources lists pychess without a box to tick until it can. To have them now, export them yourself ([Sources](../knowledge/sources.md#why-can-i-not-tick-pychess)).
+
 #### Can Bragd's Engines play on pychess.org as a bot?
 
 pychess.org's bot API would allow it for a new account made for the purpose, but that is not playing yourself, and Bragd does not offer it.

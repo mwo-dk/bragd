@@ -573,7 +573,8 @@ pub fn builtin() -> Vec<Box<dyn Source>> {
         later("lumbras", "LumbrasGigaBase", "chess", 4_000_000_000, Schedule::Monthly, "https://lumbrasgigabase.com/en/download-in-pgn-format-en/"),
         Box::new(ogs::Ogs),
         Box::new(kgs::Kgs),
-        later("pychess", "pychess exports", "chess", 500_000_000, Schedule::Monthly, "https://www.pychess.org/"),
+        // shortcut: pychess exports a player's Games only to its own signed-in web page, and Bragd cannot sign in to pychess yet (#211).
+        later("pychess", "pychess", "chess", 2_000_000, Schedule::Daily, "https://www.pychess.org/"),
         later("lishogi", "Lishogi exports", "shogi", 500_000_000, Schedule::Monthly, "https://lishogi.org/"),
     ]
     .into_iter()
