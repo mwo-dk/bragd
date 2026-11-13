@@ -19,7 +19,7 @@
     "axe-core": "^4.14.0",
     "svelte": "^5.57.2",
     "svelte-check": "^4.7.8",
-    "vite": "^8.3.4"
+    "vite": "^8.3.7"
   },
   "overrides": {
     "glob": "^14.0.3"
