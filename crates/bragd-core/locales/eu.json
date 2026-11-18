@@ -1504,6 +1504,7 @@
  "settings.area.peers": "Parekoak",
  "setting.peers_on": "Utzi nire beste makinei makina honekin parekatzea",
  "setting.peers_on.hint": "Lehenespenez itzalita. Piztuta dagoen bitartean, laguntzaileak etxeko sarean entzuten du eta leihorik irekita ez dagoenean ere martxan jarraitzen du.",
+ "peers.no_mdns": "Bilatu inguruan-ek mDNS behar du, eta Bragdek ezin du oraindik sistema honetan erabili. Idatzi horren ordez beste makinaren helbidea.",
  "peers.intro": "Parekoak zure makina propioak dira. Parekatu makina bat hau honekin 6 digituko kode batez, eta hortik aurrera elkarren gakoarekin bakarrik hitz egiten dute, zifratuta.",
  "setting.peers_interface": "Entzun honetan",
  "setting.peers_interface.hint": "Etxeko sareak helbide pribatuetan soilik entzuten du, Tailscale-renak barne. Aukeratu interfaze bat bere helbideetan soilik entzuteko.",

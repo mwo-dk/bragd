@@ -1506,6 +1506,7 @@
  "setting.peers_on.hint": "Off by default. While on, the Helper listens on the home network and stays running when no window is open.",
  "setting.peers_interface": "Listen on",
  "setting.peers_interface.hint": "The home network listens on private addresses only, Tailscale's included. Pick an interface to listen on its addresses alone.",
+ "peers.no_mdns": "Look around needs mDNS, which Bragd cannot use on this system yet. Type the other machine's address instead.",
  "peers.intro": "Peers are your own machines. Pair one with this machine by a 6-digit code, and from then on they talk only to each other's key, encrypted.",
  "peers.lan": "Home network",
  "peers.off": "Off. The Helper does not listen for other machines.",

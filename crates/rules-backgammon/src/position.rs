@@ -158,9 +158,9 @@ impl Position {
     /// nothing in the rules depends on it.
     pub fn pip_count(&self, side: Side) -> u32 {
         let mut pips = u32::from(self.bar(side)) * u32::from(BAR_POINT);
-        for index in 0..POINTS {
-            if self.points[index].held_by(side) {
-                pips += u32::from(number_at(side, index)) * u32::from(self.points[index].count());
+        for (index, point) in self.points.iter().enumerate() {
+            if point.held_by(side) {
+                pips += u32::from(number_at(side, index)) * u32::from(point.count());
             }
         }
         pips

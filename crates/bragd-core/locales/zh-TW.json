@@ -1496,6 +1496,7 @@
  "setting.peers_on.hint": "預設關閉。開啟後，輔助程式會在家庭網路上監聽，並且在沒有視窗開啟時繼續執行。",
  "setting.peers_interface": "監聽於",
  "setting.peers_interface.hint": "家庭網路只監聽私有位址，包括 Tailscale 的位址。選擇一個網路介面，即可只監聽它的位址。",
+ "peers.no_mdns": "搜尋需要 mDNS，但 Bragd 目前無法在此系統上使用它。請改為輸入另一台電腦的位址。",
  "peers.intro": "配對裝置是你自己的電腦。用 6 位數代碼與這台電腦配對，之後它們只透過彼此的金鑰加密通訊。",
  "peers.lan": "家庭網路",
  "peers.off": "已關閉。輔助程式不監聽其他電腦。",

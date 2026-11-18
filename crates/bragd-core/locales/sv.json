@@ -1506,6 +1506,7 @@
  "setting.peers_on.hint": "Av som standard. När den är på lyssnar hjälparen på hemnätet och fortsätter köra när inget fönster är öppet.",
  "setting.peers_interface": "Lyssna på",
  "setting.peers_interface.hint": "Hemnätet lyssnar bara på privata adresser, Tailscales också. Välj ett gränssnitt för att lyssna enbart på dess adresser.",
+ "peers.no_mdns": "Sök kräver mDNS, som Bragd ännu inte kan använda på det här systemet. Skriv i stället adressen till den andra datorn.",
  "peers.intro": "Kopplade datorer är dina egna datorer. Koppla en till den här med en 6-siffrig kod, och sedan pratar de bara med varandras nyckel, krypterat.",
  "peers.lan": "Hemnät",
  "peers.off": "Av. Hjälparen lyssnar inte på andra datorer.",

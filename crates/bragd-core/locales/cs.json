@@ -1516,6 +1516,7 @@
  "setting.peers_on.hint": "Ve výchozím stavu vypnuto. Když je zapnuto, Pomocník naslouchá v domácí síti a běží dál, i když není otevřené žádné okno.",
  "setting.peers_interface": "Naslouchat na",
  "setting.peers_interface.hint": "Domácí síť naslouchá jen na soukromých adresách, včetně těch od Tailscale. Vyberte rozhraní, na jehož adresách má naslouchat samostatně.",
+ "peers.no_mdns": "Hledání potřebuje mDNS, které Bragd na tomto systému zatím nemůže použít. Zadejte místo toho adresu druhého počítače.",
  "peers.intro": "Partneři jsou vaše vlastní počítače. Spárujte jeden s tímto šestimístným kódem; od té chvíle spolu komunikují jen přes klíč toho druhého, šifrovaně.",
  "peers.lan": "Domácí síť",
  "peers.off": "Vypnuto. Pomocník nenaslouchá jiným počítačům.",

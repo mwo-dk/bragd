@@ -6,8 +6,13 @@
 use std::net::{IpAddr, SocketAddr};
 use std::time::{Duration, Instant};
 
+#[cfg(not(target_os = "openbsd"))]
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 use serde::{Deserialize, Serialize};
+
+/// Whether this system finds and announces Helpers by mDNS. mdns-sd's socket crate
+/// (socket-pktinfo) does not build on OpenBSD; there a Peer is reached by its address.
+pub const MDNS: bool = !cfg!(target_os = "openbsd");
 
 const SERVICE: &str = "_bragd._tcp.local.";
 
@@ -59,15 +64,25 @@ pub fn listen_addrs(interface: &str, port: u16) -> Vec<SocketAddr> {
 }
 
 /// This Helper announced on the home network, until dropped.
+#[cfg(not(target_os = "openbsd"))]
 pub struct Advert(ServiceDaemon);
+#[cfg(target_os = "openbsd")]
+pub struct Advert;
 
+#[cfg(not(target_os = "openbsd"))]
 impl Drop for Advert {
     fn drop(&mut self) {
         let _ = self.0.shutdown();
     }
 }
 
+#[cfg(target_os = "openbsd")]
+pub fn advertise(_: &str, _: &str, _: &[SocketAddr]) -> Result<Advert, String> {
+    Err("no mDNS on this system".into())
+}
+
 /// Announces the Helper `name` with key `id` on `addrs`.
+#[cfg(not(target_os = "openbsd"))]
 pub fn advertise(name: &str, id: &str, addrs: &[SocketAddr]) -> Result<Advert, String> {
     let Some(port) = addrs.first().map(SocketAddr::port) else { return Err("no address".into()) };
     let ips: Vec<IpAddr> = addrs.iter().map(SocketAddr::ip).collect();
@@ -89,7 +104,13 @@ pub struct Found {
     pub addr: String,
 }
 
+#[cfg(target_os = "openbsd")]
+pub fn look(_: Duration, _: &str) -> Result<Vec<Found>, String> {
+    Err("no mDNS on this system".into())
+}
+
 /// The Helpers that answer within `wait`, not counting the one with key `me`.
+#[cfg(not(target_os = "openbsd"))]
 pub fn look(wait: Duration, me: &str) -> Result<Vec<Found>, String> {
     let d = ServiceDaemon::new().map_err(|e| e.to_string())?;
     let events = d.browse(SERVICE).map_err(|e| e.to_string())?;

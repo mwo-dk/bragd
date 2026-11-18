@@ -1516,6 +1516,7 @@
  "setting.peers_on.hint": "Pēc noklusējuma izslēgts. Kamēr ieslēgts, palīgs klausās mājas tīklā un darbojas arī tad, ja neviens logs nav atvērts.",
  "setting.peers_interface": "Klausīties",
  "setting.peers_interface.hint": "Mājas tīkls klausās tikai privātās adresēs, tostarp Tailscale. Izvēlieties saskarni, lai klausītos tikai tās adresēs.",
+ "peers.no_mdns": "Meklēšanai vajadzīgs mDNS, ko Bragd šajā sistēmā vēl nevar izmantot. Tā vietā ierakstiet otra datora adresi.",
  "peers.intro": "Līdzinieki ir jūsu paši datori. Savienojiet vienu ar šo datoru ar 6 ciparu kodu, un pēc tam tie runā tikai savā starpā, ar atslēgu, šifrēti.",
  "peers.lan": "Mājas tīkls",
  "peers.off": "Izslēgts. Palīgs neklausās citus datorus.",

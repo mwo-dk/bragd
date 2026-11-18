@@ -1514,6 +1514,7 @@
  "settings.area.peers": "Peer",
  "setting.peers_on": "Consenti alle mie altre macchine di abbinarsi a questa",
  "setting.peers_on.hint": "Disattivato per impostazione predefinita. Quando è attivo, l'assistente resta in ascolto sulla rete domestica e rimane in esecuzione anche senza finestre aperte.",
+ "peers.no_mdns": "Cerca in rete richiede mDNS, che Bragd non può ancora usare su questo sistema. Digita invece l'indirizzo dell'altra macchina.",
  "peers.intro": "I peer sono le tue macchine. Abbinane una a questa con un codice di 6 cifre; da quel momento si parlano solo tra loro, con la propria chiave, cifrate.",
  "setting.peers_interface": "Ascolta su",
  "setting.peers_interface.hint": "La rete domestica ascolta solo su indirizzi privati, anche quelli di Tailscale. Scegli un'interfaccia per ascoltare solo sui suoi indirizzi.",

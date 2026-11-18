@@ -603,9 +603,7 @@ mod tests {
     #[test]
     fn seven_home_wins_and_nothing_less_does() {
         let mut position = Position::starting_with(&FINKEL, Side::White);
-        for index in 0..PIECES as usize - 1 {
-            position.white[index] = Spot::Off;
-        }
+        position.white[..PIECES as usize - 1].fill(Spot::Off);
         assert_eq!(position.winner(), None, "six home is not a win");
         position.white[PIECES as usize - 1] = Spot::Off;
         assert_eq!(position.winner(), Some(Side::White));
@@ -769,9 +767,7 @@ mod tests {
         for rules in ALL {
             let mut position = Position::starting_with(rules, Side::White);
             assert_eq!(position.waiting(Side::White), rules.pieces);
-            for index in 0..rules.pieces as usize - 1 {
-                position.white[index] = Spot::Off;
-            }
+            position.white[..rules.pieces as usize - 1].fill(Spot::Off);
             assert_eq!(position.winner(), None, "{}", rules.name);
             position.white[rules.pieces as usize - 1] = Spot::Off;
             assert_eq!(position.winner(), Some(Side::White), "{}", rules.name);

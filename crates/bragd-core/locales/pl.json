@@ -1526,6 +1526,7 @@
  "setting.peers_on.hint": "Domyślnie wyłączone. Gdy włączone, Pomocnik nasłuchuje w sieci domowej i działa dalej, gdy żadne okno nie jest otwarte.",
  "setting.peers_interface": "Nasłuchuj na",
  "setting.peers_interface.hint": "Sieć domowa nasłuchuje tylko na adresach prywatnych, w tym na adresach Tailscale. Wybierz interfejs, aby nasłuchiwać wyłącznie na jego adresach.",
+ "peers.no_mdns": "Szukaj wymaga mDNS, którego Bragd nie może jeszcze użyć w tym systemie. Wpisz zamiast tego adres drugiego komputera.",
  "peers.intro": "Sparowane to twoje własne komputery. Sparuj jeden z tym komputerem kodem 6-cyfrowym; od tej pory rozmawiają ze sobą tylko przez swój klucz, szyfrowo.",
  "peers.lan": "Sieć domowa",
  "peers.off": "Wyłączone. Pomocnik nie nasłuchuje innych komputerów.",

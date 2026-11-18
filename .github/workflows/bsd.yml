@@ -103,6 +103,8 @@ jobs:
             sh packaging/pkg-retry.sh pkg_add rust webkitgtk41 librsvg
           run: |
             set -e
+            # rustc needs more than a login class's default data size for gtk's crate.
+            ulimit -d "$(ulimit -Hd)"
             cargo build --release --locked -p bragd-gui -p bragd-helper
             mkdir out && cp target/release/bragd-gui target/release/bragd-helper out/
             ./out/bragd-gui --version

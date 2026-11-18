@@ -51,6 +51,7 @@ What differs on the BSDs:
 | [Calls](../online/play-with-friends.md#calls) | Off while the system's WebKitGTK is built without WebRTC, as the three package it now. Bragd checks at start; a notice says so once, and Chat and Games with Friends work |
 | [Engine container images](../engines/container-images.md) | Not used: they are Linux images. Install an Engine from the system's packages, such as `stockfish`, and Bragd finds it on your `PATH` |
 | [The Helper](../knowledge/helper.md) | Runs as everywhere else |
+| [Peers](../peers/peers.md) | Work everywhere. On OpenBSD, Look around cannot use mDNS yet: pair by the other machine's address |
 | Rust | Each system's packaged Rust must build Bragd: FreeBSD's quarterly packages, NetBSD's pkgin and OpenBSD's `pkg_add` (`tools/msrv-check.py`) |
 
 ### Linux

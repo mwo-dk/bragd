@@ -1506,6 +1506,7 @@
  "setting.peers_on.hint": "Vaikimisi väljas. Kui on sees, kuulab abiline kohtvõrgus ja jookseb edasi, kui ükski aken pole lahti.",
  "setting.peers_interface": "Kuula liidest",
  "setting.peers_interface.hint": "Kodune võrk kuulab ainult privaataadresse, sealhulgas Tailscale'i omi. Vali liides, et kuulata ainult selle aadresse.",
+ "peers.no_mdns": "Otsing vajab mDNS-i, mida Bragd sellel süsteemil veel kasutada ei saa. Sisestage selle asemel teise masina aadress.",
  "peers.intro": "Partnerid on sinu enda masinad. Seo üks sellega 6-kohalise koodiga ja edaspidi räägivad nad ainult omavahel, krüpteeritult teise võtmega.",
  "peers.lan": "Kodune võrk",
  "peers.off": "Väljas. Abiline ei kuula teisi masinaid.",

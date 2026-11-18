@@ -1504,6 +1504,7 @@
  "settings.area.peers": "Vertaiset",
  "setting.peers_on": "Anna muiden koneideni yhdistää tähän",
  "setting.peers_on.hint": "Oletuksena pois päältä. Kun päällä, Apuri kuuntelee kotiverkkoa ja pysyy käynnissä, vaikka yhtään ikkunaa ei ole auki.",
+ "peers.no_mdns": "Etsi tarvitsee mDNS:n, jota Bragd ei vielä voi käyttää tällä järjestelmällä. Kirjoita sen sijaan toisen koneen osoite.",
  "peers.intro": "Vertaiset ovat omia koneitasi. Yhdistä yksi tähän koneeseen 6-numeroisella koodilla. Sen jälkeen ne puhuvat vain keskenään, salatulla avaimella.",
  "setting.peers_interface": "Kuuntele",
  "setting.peers_interface.hint": "Kotiverkko kuuntelee vain yksityisiä osoitteita, Tailscale mukaan lukien. Valitse liitäntä, jos haluat kuunnella vain sen osoitteita.",

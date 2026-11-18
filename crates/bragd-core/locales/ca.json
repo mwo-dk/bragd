@@ -1516,6 +1516,7 @@
  "setting.peers_on.hint": "Desactivat per defecte. Mentre és activat, l'ajudant escolta a la xarxa de casa i continua en marxa quan no hi ha cap finestra oberta.",
  "setting.peers_interface": "Escolta a",
  "setting.peers_interface.hint": "La xarxa de casa escolta només en adreces privades, incloses les de Tailscale. Tria una interfície per escoltar només en les seves adreces.",
+ "peers.no_mdns": "Cerca necessita mDNS, que Bragd encara no pot usar en aquest sistema. Escriu-hi l'adreça de l'altra màquina.",
  "peers.intro": "Els parells són les teves pròpies màquines. Aparella'n una amb aquesta amb un codi de 6 dígits, i a partir d'aleshores només es parlen entre elles, xifrat amb la clau de l'altra.",
  "peers.lan": "Xarxa de casa",
  "peers.off": "Desactivat. L'ajudant no escolta altres màquines.",

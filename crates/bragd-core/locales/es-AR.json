@@ -1513,6 +1513,7 @@
  "setting.peers_on.hint": "Desactivado por defecto. Mientras esté activado, el ayudante escucha en la red de casa y sigue funcionando cuando no hay ninguna ventana abierta.",
  "setting.peers_interface": "Escuchar en",
  "setting.peers_interface.hint": "La red de casa escucha solo en direcciones privadas, incluidas las de Tailscale. Elegí una interfaz para escuchar solo en sus direcciones.",
+ "peers.no_mdns": "Buscar necesita mDNS, que Bragd todavía no puede usar en este sistema. Escribí en cambio la dirección de la otra máquina.",
  "peers.intro": "Los pares son tus propias máquinas. Emparejalas con un código de 6 dígitos y, desde entonces, solo se hablan entre ellas, cifrado con la clave de la otra.",
  "peers.lan": "Red de casa",
  "peers.off": "Desactivado. El ayudante no escucha a otras máquinas.",

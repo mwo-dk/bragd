@@ -1516,6 +1516,7 @@
  "setting.peers_on.hint": "Pagal numatymą išjungta. Kol įjungta, Pagalbininkas klausosi namų tinklo ir veikia, net kai nėra atidaryto lango.",
  "setting.peers_interface": "Klausyti",
  "setting.peers_interface.hint": "Namų tinklas klausosi tik privačių adresų, įskaitant Tailscale. Pasirinkite sąsają, kad klausytų tik jos adresų.",
+ "peers.no_mdns": "Ieškoti reikia mDNS, o Bragd šioje sistemoje dar negali jo naudoti. Vietoj to įveskite kito kompiuterio adresą.",
  "peers.intro": "Lygiavertės yra jūsų pačių kompiuteriai. Susiekite vieną su šiuo kompiuteriu 6 skaitmenų kodu; nuo tada jie kalbasi tik tarpusavyje, pagal raktą, šifruotai.",
  "peers.lan": "Namų tinklas",
  "peers.off": "Išjungta. Pagalbininkas neklauso kitų kompiuterių.",

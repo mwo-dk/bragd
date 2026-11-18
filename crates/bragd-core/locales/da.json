@@ -1506,6 +1506,7 @@
  "setting.peers_on.hint": "Slået fra som standard. Mens den er slået til, lytter hjælperen på hjemmenetværket og kører videre, når intet vindue er åbent.",
  "setting.peers_interface": "Lyt på",
  "setting.peers_interface.hint": "Hjemmenetværket lytter kun på private adresser, også Tailscales. Vælg en netgrænseflade for kun at lytte på dens adresser.",
+ "peers.no_mdns": "Se efter kræver mDNS, som Bragd endnu ikke kan bruge på dette system. Skriv i stedet den anden maskines adresse.",
  "peers.intro": "Partnere er dine egne maskiner. Par en med denne maskine med en 6-cifret kode, og fra da af taler de kun med hinanden, krypteret med hinandens nøgle.",
  "peers.lan": "Hjemmenetværk",
  "peers.off": "Slået fra. Hjælperen lytter ikke efter andre maskiner.",
