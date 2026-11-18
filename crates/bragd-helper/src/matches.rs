@@ -10,7 +10,7 @@ use bragd_engines::syzygy::Tablebases;
 use bragd_engines::protocol::MATE_CP;
 use bragd_engines::{lichess, local};
 use bragd_games::State;
-use bragd_library::chess::polyglot;
+use bragd_library::chess::books;
 use bragd_library::library::NewGame;
 
 /// The Source a match's Games are kept under in their Library.
@@ -56,7 +56,7 @@ pub fn openings(setup: &Setup) -> Result<Box<dyn Fn(u32) -> Opening + Send + Syn
         }
         return Ok(Box::new(|_| Opening::default()));
     };
-    if polyglot::is_book(&book) {
+    if books::is_book(&book) {
         if variant != "chess" {
             return Err(format!("{}: a Polyglot book has chess openings only", book.display()));
         }
@@ -81,7 +81,7 @@ fn book_line(path: &Path, depth: u32, mut r: u64) -> Opening {
     let mut moves: Vec<String> = vec![];
     for _ in 0..depth {
         let Ok(state) = bragd_games::replay("chess", None, &moves) else { break };
-        let choices = polyglot::moves_at(path, &state.position);
+        let choices = books::moves_at(path, &state.position);
         let total: u64 = choices.iter().map(|m| m.weight as u64).sum();
         if total == 0 {
             break;

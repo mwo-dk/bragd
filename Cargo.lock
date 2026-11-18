@@ -436,6 +436,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "bragd-gamefiles"
+version = "0.1.0"
+dependencies = [
+ "encoding_rs",
+ "memchr",
+ "rules-chess",
+ "rules-draughts",
+ "rules-go",
+ "rules-shogi",
+ "rules-xiangqi",
+ "serde",
+]
+
+[[package]]
 name = "bragd-games"
 version = "0.1.0"
 dependencies = [
@@ -460,6 +474,7 @@ dependencies = [
  "bragd-clubs",
  "bragd-core",
  "bragd-engines",
+ "bragd-gamefiles",
  "bragd-games",
  "bragd-helper",
  "bragd-library",
@@ -486,6 +501,7 @@ dependencies = [
  "bragd-clubs",
  "bragd-core",
  "bragd-engines",
+ "bragd-gamefiles",
  "bragd-games",
  "bragd-library",
  "bragd-model",
@@ -507,6 +523,7 @@ name = "bragd-library"
 version = "0.1.0"
 dependencies = [
  "bragd-core",
+ "bragd-gamefiles",
  "bragd-games",
  "bzip2",
  "encoding_rs",

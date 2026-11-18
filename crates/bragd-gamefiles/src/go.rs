@@ -12,7 +12,6 @@ use crate::chess::lex::{Lexer, Sgf};
 use rules_go::record::Record;
 use serde::Serialize;
 use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom};
-use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -33,11 +32,6 @@ const MAX_FACT: usize = 512;
 /// The largest board SGF allows.
 pub const MAX_SIZE: u8 = 52;
 
-
-/// Whether the file is an SGF file, by its name.
-pub fn is_sgf(path: &Path) -> bool {
-    path.extension().is_some_and(|e| e.eq_ignore_ascii_case("sgf"))
-}
 
 /// A value as text: escapes undone, a soft line break (`\` before it) taken out, UTF-8 or the
 /// file's `CA` charset (else Windows-1252). `simple`: line breaks become spaces.
@@ -587,10 +581,14 @@ pub fn stars(w: u8, h: u8) -> Vec<(u8, u8)> {
     lines.iter().flat_map(|&x| lines.iter().map(move |&y| (x, y))).collect()
 }
 
+/// Opens the source a `Collection` reads, once for its list and again for each game opened:
+/// a file opened anew, or a cursor over bytes held in memory.
+pub type Open = dyn Fn() -> io::Result<Box<dyn crate::Source>> + Send + Sync;
+
 /// An SGF file's games: their list, read on a thread of its own and filling as it goes, each
 /// game read in full when it is opened.
 pub struct Collection {
-    pub path: PathBuf,
+    open: Arc<Open>,
     listed: Arc<Mutex<Listed>>,
     read: Arc<AtomicU64>,
     size: u64,
@@ -613,11 +611,12 @@ impl Drop for Collection {
 }
 
 impl Collection {
-    /// Starts listing the file's games.
-    pub fn open(path: &Path) -> io::Result<Collection> {
-        let size = std::fs::metadata(path)?.len();
+    /// Starts listing the games of the source `open` opens.
+    pub fn open(open: Arc<Open>) -> io::Result<Collection> {
+        let mut r = open()?;
+        let size = crate::len(&mut *r)?;
         let read = Arc::new(AtomicU64::new(0));
-        let r = crate::chess::games::reader(path, read.clone(), u64::MAX)?;
+        let r = crate::chess::scan::Counted { inner: r, read: read.clone() };
         let listed = Arc::new(Mutex::new(Listed::default()));
         let stop = Arc::new(AtomicBool::new(false));
         let (l, st) = (listed.clone(), stop.clone());
@@ -650,7 +649,7 @@ impl Collection {
                 Err(e) => l.error = Some(e.to_string()),
             }
         })?;
-        Ok(Collection { path: path.to_path_buf(), listed, read, size, stop })
+        Ok(Collection { open, listed, read, size, stop })
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Listed> {
@@ -658,9 +657,9 @@ impl Collection {
     }
 
     /// How far the list has come.
-    pub fn progress(&self) -> crate::chess::Progress {
+    pub fn progress(&self) -> crate::Progress {
         let l = self.lock();
-        crate::chess::Progress { games: l.games.len(), done: l.done, read: self.read.load(Ordering::Relaxed).min(self.size), size: self.size, capped: l.capped, error: l.error.clone() }
+        crate::Progress { games: l.games.len(), done: l.done, read: self.read.load(Ordering::Relaxed).min(self.size), size: self.size, capped: l.capped, error: l.error.clone() }
     }
 
     /// Up to `n` of the games listed so far, from the `from`th (from 0).
@@ -695,7 +694,7 @@ impl Collection {
     pub fn game(&self, i: usize) -> io::Result<Game> {
         self.wait(i + 1);
         let info = self.info(i).ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "no such game"))?;
-        let mut f = std::fs::File::open(&self.path)?;
+        let mut f = (self.open)()?;
         f.seek(SeekFrom::Start(info.offset))?;
         let mut b = vec![];
         f.take(info.len.min(MAX_GAME)).read_to_end(&mut b)?;
@@ -877,18 +876,16 @@ mod tests {
         assert!(start.elapsed() < crate::test_limit(std::time::Duration::from_secs(2)));
     }
 
+    /// A collection in memory (as a file inside an archive is read): listed, and each game
+    /// read from where it starts.
     #[test]
-    fn files() {
-        let d = std::env::temp_dir().join(format!("bragd-go-{}", std::process::id()));
-        std::fs::create_dir_all(&d).unwrap();
-        let p = d.join("two.sgf");
-        std::fs::write(&p, TWO).unwrap();
-        let c = Collection::open(&p).unwrap();
+    fn a_collection() {
+        let bytes: Arc<[u8]> = TWO.as_bytes().into();
+        let c = Collection::open(Arc::new(move || Ok(Box::new(io::Cursor::new(bytes.clone())) as Box<dyn crate::Source>))).unwrap();
         c.wait(usize::MAX);
-        assert_eq!(c.progress().games, 2);
+        assert_eq!((c.progress().games, c.progress().read, c.progress().size), (2, TWO.len() as u64, TWO.len() as u64));
         assert_eq!(c.game(1).unwrap().info.black, "Kim");
         assert_eq!(c.game(1).unwrap().info.n, 2);
         assert!(c.game(2).is_err());
-        std::fs::remove_dir_all(&d).unwrap();
     }
 }

@@ -29,15 +29,19 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       code: ${{ steps.files.outputs.code }}
+      gamefiles: ${{ steps.files.outputs.gamefiles }}
     steps:
       - id: files
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          if [ -z "$PR" ]; then printf 'code=true\n' >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ -z "$PR" ]; then printf 'code=true\ngamefiles=true\n' >> "$GITHUB_OUTPUT"; exit 0; fi
           files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate --jq '.[] | if .status != "modified" and (.filename | test("^docs/.*\\.md$")) then "page:" + .filename else .filename end')
           printf '%s\n' "$files"
+          if printf '%s\n' "$files" | grep -qE '^crates/(bragd-gamefiles|rules-[a-z]+)/'; then
+            echo gamefiles=true >> "$GITHUB_OUTPUT"
+          fi
           if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvP '^(docs/(?!changelog\.md$)|CLAUDE\.md$|GLOSSARY\.md$|LICENSE$|packaging/.*/SUBMIT\.md$)'; then
             echo code=false >> "$GITHUB_OUTPUT"
           else
@@ -200,6 +204,41 @@ jobs:
           path: ${{ runner.temp }}/ui-shots
           retention-days: 7
 
+  # bragd-gamefiles is published for coxswain, which ships on the BSDs, illumos and static musl
+  # too (docs/adr/0008): each is checked, not linked, so no system's own files are needed.
+  # OpenBSD's standard library is not shipped by rustup (tier 3): it is built from source.
+  systems:
+    name: Game files on ${{ matrix.target }}
+    needs: changes
+    if: needs.changes.outputs.gamefiles == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-unknown-freebsd, x86_64-unknown-netbsd, x86_64-unknown-openbsd, x86_64-unknown-illumos, x86_64-unknown-linux-musl]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Rust for the target
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          if [ "$TARGET" = x86_64-unknown-openbsd ]; then
+            rustup toolchain install nightly --profile minimal --component rust-src
+          else
+            rustup target add "$TARGET"
+          fi
+      - name: Check
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          if [ "$TARGET" = x86_64-unknown-openbsd ]; then
+            cargo +nightly check -p bragd-gamefiles --locked --target "$TARGET" -Zbuild-std=std,panic_abort
+          else
+            cargo check -p bragd-gamefiles --locked --target "$TARGET"
+          fi
+
   # Links, anchors, the reading order, the changelog rows and screenshot placeholders, and the
   # workflows' own shell scripts: on every pull request and push, docs-only ones too.
   docs:
@@ -210,7 +249,7 @@ jobs:
   # the docs are current.
   result:
     name: CI result
-    needs: [changes, test, ui, docs]
+    needs: [changes, test, ui, docs, systems]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -219,6 +258,7 @@ jobs:
           TEST: ${{ needs.test.result }}
           UI: ${{ needs.ui.result }}
           DOCS: ${{ needs.docs.result }}
+          SYSTEMS: ${{ needs.systems.result }}
         run: |
-          echo "changes: $CHANGES, test: $TEST, ui: $UI, docs: $DOCS"
-          [ "$CHANGES" = success ] && [ "$DOCS" = success ] && { [ "$TEST" = success ] || [ "$TEST" = skipped ]; } && { [ "$UI" = success ] || [ "$UI" = skipped ]; }
+          echo "changes: $CHANGES, test: $TEST, ui: $UI, docs: $DOCS, systems: $SYSTEMS"
+          [ "$CHANGES" = success ] && [ "$DOCS" = success ] && { [ "$TEST" = success ] || [ "$TEST" = skipped ]; } && { [ "$UI" = success ] || [ "$UI" = skipped ]; } && { [ "$SYSTEMS" = success ] || [ "$SYSTEMS" = skipped ]; }

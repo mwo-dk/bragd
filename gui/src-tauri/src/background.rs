@@ -262,7 +262,7 @@ pub fn store_prune(what: String, ctx: State<'_, Ctx>) -> Res<String> {
 mod tests {
     use super::*;
     use crate::databases::Step;
-    use bragd_library::chess::{pgn, polyglot};
+    use bragd_gamefiles::chess::{pgn, polyglot};
 
     fn replay(steps: &[&str]) -> Replay {
         Replay { title: "A – B".into(), family: "chess".into(), variant: "chess".into(), steps: steps.iter().map(|f| Step { fen: Some(f.to_string()), ..Default::default() }).collect(), ..Default::default() }

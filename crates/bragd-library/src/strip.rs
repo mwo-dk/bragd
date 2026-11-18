@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::chess::Format;
+use bragd_gamefiles::chess::Format;
 use crate::library::{NewGame, read_game};
 use crate::stream;
 

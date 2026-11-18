@@ -9,7 +9,7 @@ include!("chess-golden/digest.rs");
 fn chess_readers_give_what_they_gave() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut got = String::new();
-    for f in ["tests/chess-golden/edge.pgn", "src/chess/scid-test/hand.pgn", "src/chess/scid-test/test.si4", "src/chess/scid-test/test.si5", "src/chess/cbh-test/Games.cbh"] {
+    for f in ["tests/chess-golden/edge.pgn", "../bragd-gamefiles/src/chess/scid-test/hand.pgn", "../bragd-gamefiles/src/chess/scid-test/test.si4", "../bragd-gamefiles/src/chess/scid-test/test.si5", "../bragd-gamefiles/src/chess/cbh-test/Games.cbh"] {
         got.push_str(&digest_file(&root.join(f)));
     }
     let expected = root.join("tests/chess-golden/expected.txt");

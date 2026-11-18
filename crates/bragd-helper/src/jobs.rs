@@ -1309,7 +1309,7 @@ pub(crate) mod tests {
 
     pub(crate) fn analyse_job(engine: &str, keys: &[(u64, u32)], min: &str, low: bool) -> bragd_positions::queue::Job {
         use bragd_positions::queue::{Job, Per, Spot};
-        let spots = keys.iter().map(|&(key, count)| Spot { key, setup: bragd_library::chess::pgn::START.into(), moves: vec![], count }).collect();
+        let spots = keys.iter().map(|&(key, count)| Spot { key, setup: bragd_gamefiles::chess::pgn::START.into(), moves: vec![], count }).collect();
         Job::new("chess", "chess", engine, Some(min.into()), Per::Depth(20), spots, low, "test")
     }
 

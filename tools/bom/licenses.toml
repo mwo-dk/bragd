@@ -47,7 +47,7 @@ file = "assets/fonts/OFL.txt"
 
 [[bundled]]
 name = "lichess chess-openings"
-what = "crates/bragd-library/src/chess/openings.tsv: the ECO codes, names and moves of lichess-org/chess-openings, compiled into the app."
+what = "crates/bragd-gamefiles/src/chess/openings.tsv: the ECO codes, names and moves of lichess-org/chess-openings, compiled into the app."
 license = "CC0-1.0"
 source = "https://github.com/lichess-org/chess-openings"
 file = "tools/bom/licenses/CC0-1.0.txt"

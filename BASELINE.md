@@ -4,7 +4,7 @@ What is settled, and what is known to be broken. Read this before starting work.
 
 ## Do not re-litigate
 
-- Bragd and coxswain are separate apps. The code is copied, not shared ([ADR 0001](docs/adr/0001-copy-game-code-from-coxswain.md)).
+- Bragd and coxswain are separate apps. Game code is shared from Bragd as crates on crates.io, which coxswain pins; the rest was copied once ([ADR 0008](docs/adr/0008-one-game-file-crate-shared-from-bragd.md), which replaces ADR 0001).
 - Desktop only, with no web client.
 - Libraries are SQLite. Foreign databases are read in place. Parquet is used only for export ([ADR 0002](docs/adr/0002-sqlite-libraries-foreign-databases-in-place.md)).
 - The Helper is a separate process shared by every window ([ADR 0003](docs/adr/0003-helper-is-a-separate-shared-process.md)).
