@@ -61,3 +61,8 @@ jobs:
     needs: changed
     if: needs.changed.outputs.run == 'true'
     uses: ./.github/workflows/nix.yml
+  bsd:
+    name: BSD
+    needs: changed
+    if: needs.changed.outputs.run == 'true'
+    uses: ./.github/workflows/bsd.yml

@@ -141,6 +141,7 @@ fn missing(cfg: &Config, k: &Known, m: &Missing) -> String {
     match m {
         Missing::NotPulled { .. } => i18n::tr("engines.state.get", &[("size", &bragd_core::i18n::bytes(k.image_size))]),
         Missing::NoRuntime if !cfg.engines.containers => i18n::tr("engines.state.containers_off", &[]),
+        Missing::NoRuntime if !tools::images_run_on(std::env::consts::OS) => i18n::tr("engines.state.no_images_here", &[]),
         Missing::NoRuntime => i18n::tr("engines.state.no_runtime", &[]),
         Missing::NoNetwork => i18n::tr("engines.network.missing", &[("name", k.name)]),
         Missing::NoImage => format!("{} {}", i18n::tr("engines.state.no_image", &[]), install_hint(k)),

@@ -1,0 +1,122 @@
+name: BSD
+
+# The desktop app for FreeBSD, NetBSD and OpenBSD, each built in a virtual machine of that system
+# with the system's own Rust, WebKitGTK and GTK packages, started with --version there, and packed
+# as a release packs it (packaging/bsd/pack.sh). The binaries are this run's `bragd-bsd-<system>`
+# artifacts, which release.yml packs again with the release's tag and notices. Nightly when master
+# changed, and in every release; pull requests only when the BSD packaging changes. The Rust each
+# system packages is checked on every pull request by tools/msrv-check.py (ci.yml).
+# docs/getting-started/install.md#freebsd-netbsd-and-openbsd.
+on:
+  workflow_call: # from release.yml (a release or rehearsal) and nightly.yml
+  pull_request:
+    # Pull requests run these machines only when their packaging or this workflow changes; every
+    # other change is built on them nightly and in every Release run.
+    paths:
+      - "packaging/bsd/**"
+      - ".github/workflows/bsd.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to a pull request cancels its older run. Called from release.yml, the group is that
+# run's own (github.* is the caller's there), so nothing cancels it.
+concurrency:
+  group: bsd-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { sys: freebsd, name: "FreeBSD 14.5", target: x86_64-unknown-freebsd }
+          - { sys: netbsd, name: "NetBSD 10.1", target: x86_64-unknown-netbsd }
+          - { sys: openbsd, name: "OpenBSD 7.9", target: x86_64-unknown-openbsd }
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The frontend is built here: the BSDs' Node.js packages lag, and the Tauri crate only
+      # embeds gui/dist.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+      - name: Frontend
+        working-directory: gui
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          rm -rf node_modules
+      - uses: ./.github/actions/apt-install
+        timeout-minutes: 10
+        with:
+          packages: qemu-utils qemu-system-x86 ovmf # what each pinned vmactions action's install() asks for on x86_64
+          recommends: false
+      # The window and the Helper, with the system's packaged Rust (tools/msrv-check.py names
+      # its version). --version runs the window's binary without opening a window: every
+      # library it links is there.
+      - uses: vmactions/freebsd-vm@811efaaac0668df8bfb8308c3ec997b5ab50037b # v1.6.0
+        if: matrix.sys == 'freebsd'
+        with:
+          release: "14.5"
+          usesh: true
+          prepare: sh packaging/pkg-retry.sh pkg install -y rust pkgconf webkit2-gtk_41 gtk3 libsoup3 librsvg2-rust
+          run: |
+            set -e
+            cargo build --release --locked -p bragd-gui -p bragd-helper
+            mkdir out && cp target/release/bragd-gui target/release/bragd-helper out/
+            ./out/bragd-gui --version
+            rm -rf target
+      - uses: vmactions/netbsd-vm@5957cf330aef2e6ddc63c604364c99ce2e02b91d # v1.5.3
+        if: matrix.sys == 'netbsd'
+        with:
+          release: "10.1"
+          usesh: true
+          prepare: |
+            /usr/sbin/pkg_add pkgin || true
+            # The image has no X: the base system's X sets (libraries, headers and .pc files),
+            # checked against the release's SHA512, before pkgsrc's GTK and WebKitGTK, which link to them.
+            sh packaging/pkg-retry.sh sh -c 'u=https://archive.netbsd.org/pub/NetBSD-archive/NetBSD-$(uname -r)/amd64/binary/sets && cd /var/tmp && ftp -V -o SHA512 "$u/SHA512" && for s in xbase xcomp; do ftp -V -o $s.tar.xz "$u/$s.tar.xz" &&
+              grep -F "($s.tar.xz)" SHA512 > $s.sum && cksum -c $s.sum && tar -xJpf $s.tar.xz -C / && rm $s.* || exit 1; done' || exit 1
+            sh packaging/pkg-retry.sh pkgin -y install rust pkgconf webkit-gtk41 || { cat /var/db/pkgin/pkg_install-err.log; exit 1; }
+          run: |
+            set -e
+            cargo build --release --locked -p bragd-gui -p bragd-helper
+            mkdir out && cp target/release/bragd-gui target/release/bragd-helper out/
+            ./out/bragd-gui --version
+            rm -rf target
+      - uses: vmactions/openbsd-vm@f1ca8bc8ecc5b6ef7218e5b914836e067e1546d3 # v1.4.9
+        if: matrix.sys == 'openbsd'
+        with:
+          release: "7.9"
+          usesh: true
+          prepare: |
+            sh packaging/pkg-retry.sh pkg_add -u
+            sh packaging/pkg-retry.sh pkg_add rust webkitgtk41 librsvg
+          run: |
+            set -e
+            cargo build --release --locked -p bragd-gui -p bragd-helper
+            mkdir out && cp target/release/bragd-gui target/release/bragd-helper out/
+            ./out/bragd-gui --version
+            rm -rf target
+      # Packed as the release packs it, with this checkout's version: the archive's layout is
+      # tested on every run, not first in a release.
+      - name: Pack
+        run: |
+          v="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          sh packaging/bsd/pack.sh "v$v" "${{ matrix.target }}" out dist
+          tar tzf "dist/bragd-desktop-v$v-${{ matrix.target }}.tar.gz"
+          (cd dist && sha256sum -c ./*.sha256)
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bragd-bsd-${{ matrix.sys }}
+          path: out/
+          if-no-files-found: error

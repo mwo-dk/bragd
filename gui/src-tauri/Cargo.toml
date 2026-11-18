@@ -46,7 +46,7 @@ tauri-plugin-dialog = "2"
 
 # WebKitGTK's own settings for Calls: WebRTC and the camera and microphone, which the webview
 # leaves off, and the permission each asks for, granted only while Rust holds that channel open.
-[target.'cfg(target_os = "linux")'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies]
 webkit2gtk = { version = "2", features = ["v2_38"] }
 
 [features]

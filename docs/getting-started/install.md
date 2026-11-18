@@ -2,7 +2,7 @@
 
 # Installing Bragd
 
-Bragd is a desktop app for FreeBSD and the other BSDs, Linux, macOS and Windows. Each release puts the same version on every channel at once, or it does not go out. Every installer carries two programs: `bragd-gui`, the window, and `bragd-helper`, the [Helper](../knowledge/helper.md) that the window starts beside itself.
+Bragd is a desktop app for FreeBSD, NetBSD, OpenBSD, Linux, macOS and Windows. Each release puts the same version on every channel at once, or it does not go out. Every installer carries two programs: `bragd-gui`, the window, and `bragd-helper`, the [Helper](../knowledge/helper.md) that the window starts beside itself.
 
 Bragd has not had its first release yet. Until it has, the channels below are empty, and the install scripts under [Any system](#any-system) build it from source.
 
@@ -10,9 +10,48 @@ Bragd has not had its first release yet. Until it has, the channels below are em
 
 Pick your system, then the channel you already use for other software. The update check later names the command for that same channel ([Privacy](../reference/privacy.md)).
 
-### FreeBSD and the other BSDs
+### FreeBSD, NetBSD and OpenBSD
 
-Desktop tarballs for FreeBSD, NetBSD and OpenBSD are planned, but not yet available. The desktop app needs a WebKitGTK build per system, and on FreeBSD a fix in Tauri that is not released yet.
+| Channel | File | Systems |
+|---|---|---|
+| GitHub release | `bragd-desktop-vX.Y.Z-x86_64-unknown-freebsd.tar.gz` | FreeBSD 14.5 and newer, x64 |
+| GitHub release | `bragd-desktop-vX.Y.Z-x86_64-unknown-netbsd.tar.gz` | NetBSD 10, x64 |
+| GitHub release | `bragd-desktop-vX.Y.Z-x86_64-unknown-openbsd.tar.gz` | OpenBSD 7.9, x64 |
+
+Each archive holds `bragd-gui`, `bragd-helper`, a menu entry (`bragd.desktop`) with its icon (`bragd.png`), the licence and the notices. Each is built in a virtual machine of its system, against that system's own packages. Install the window's libraries first, then put the two programs side by side, as root:
+
+| System | Libraries |
+|---|---|
+| FreeBSD | `pkg install webkit2-gtk_41 gtk3 libsoup3 librsvg2-rust` |
+| NetBSD | `pkgin install webkit-gtk41`, on a system with the X sets |
+| OpenBSD | `pkg_add webkitgtk41 librsvg` |
+
+```sh
+tar xzf bragd-desktop-vX.Y.Z-x86_64-unknown-freebsd.tar.gz
+cd bragd-desktop-vX.Y.Z-x86_64-unknown-freebsd
+install -m 755 bragd-gui bragd-helper /usr/local/bin/
+install -m 644 bragd.desktop /usr/local/share/applications/
+install -m 644 bragd.png /usr/local/share/icons/hicolor/128x128/apps/
+```
+
+On NetBSD, `/usr/pkg` takes the place of `/usr/local`.
+
+| Channel | State |
+|---|---|
+| FreeBSD port `games/bragd` | Prepared in `packaging/freebsd/`, not yet in the ports tree |
+| pkgsrc `wip/bragd` (NetBSD and others) | Prepared in `packaging/pkgsrc/`, not yet in pkgsrc-wip |
+| OpenBSD port `games/bragd` | Prepared in `packaging/openbsd/`, not yet in openbsd-wip |
+
+The ports build from the release's source and `bragd-frontend-vX.Y.Z.tar.gz`, the built frontend, since npm cannot fetch during a ports build.
+
+What differs on the BSDs:
+
+| | |
+|---|---|
+| [Calls](../online/play-with-friends.md#calls) | Off while the system's WebKitGTK is built without WebRTC, as the three package it now. Bragd checks at start; a notice says so once, and Chat and Games with Friends work |
+| [Engine container images](../engines/container-images.md) | Not used: they are Linux images. Install an Engine from the system's packages, such as `stockfish`, and Bragd finds it on your `PATH` |
+| [The Helper](../knowledge/helper.md) | Runs as everywhere else |
+| Rust | Each system's packaged Rust must build Bragd: FreeBSD's quarterly packages, NetBSD's pkgin and OpenBSD's `pkg_add` (`tools/msrv-check.py`) |
 
 ### Linux
 
@@ -22,6 +61,7 @@ Desktop tarballs for FreeBSD, NetBSD and OpenBSD are planned, but not yet availa
 | Flatpak | `Bragd_X.Y.Z_x86_64.flatpak` from the release, then `flatpak install --user Bragd_X.Y.Z_x86_64.flatpak`. The app id is `io.github.mwo_dk.Bragd`. It is not on Flathub | x64 |
 | Nix | `nix run github:mwo-dk/bragd`, or add the flake to your profile | x64, arm64 |
 | Homebrew | `brew tap mwo-dk/bragd` then `brew install --cask bragd`: the cask takes the AppImage | x64 |
+| AUR | `bragd` (from source) and `bragd-bin` (the `.deb`), prepared in `packaging/aur/`; not on the AUR yet: `makepkg -si` in a clone's folder | x64, arm64 |
 
 ### Any system
 
@@ -51,20 +91,20 @@ The window starts the Helper from beside its own program, so the scripts put `br
 ## What it needs
 
 - A 64-bit machine, x64 or arm64.
-- On Linux, WebKitGTK 4.1, which draws the window. The packages bring it in.
+- On Linux and the BSDs, WebKitGTK 4.1, which draws the window. The Linux packages bring it in; on the BSDs install it from the system's packages.
 - On Windows, Windows 10 or 11 and nothing more. Both programs carry their Visual C++ runtime, so the Visual C++ Redistributable is not needed.
 - Room for what you keep: Libraries, downloads, tablebases and engine images. [Disk watch](../knowledge/disk-watch.md) shows how much each takes.
 - Podman or docker only if you want Bragd to run an Engine you have not installed ([Engine container images](../engines/container-images.md)).
 
 ## Checking the download
 
-Every installer on the release page has a `.sha256` file beside it, and `SHA256SUMS` lists them all. On Linux or macOS, in the folder you downloaded to:
+Every installer and archive on the release page has a `.sha256` file beside it, and `SHA256SUMS` lists them all. On Linux or macOS, in the folder you downloaded to:
 
 ```sh
 sha256sum -c SHA256SUMS --ignore-missing
 ```
 
-On macOS without GNU coreutils, use `shasum -a 256 -c SHA256SUMS --ignore-missing`.
+On macOS without GNU coreutils, use `shasum -a 256 -c SHA256SUMS --ignore-missing`. On the BSDs, `sha256 -q <file>` (FreeBSD) or `cksum -a sha256 <file>` (NetBSD, OpenBSD) prints the sum to compare with the `.sha256` file.
 
 ## Questions
 
@@ -83,6 +123,10 @@ Bragd's macOS app is not yet signed and notarised by Apple. macOS marks everythi
 #### Why are there two programs?
 
 `bragd-helper` fetches Sources, imports and finds Duplicates in the background, for every open window. The window starts the copy beside its own program when none runs ([The Helper](../knowledge/helper.md)).
+
+#### Why can I not call a Friend on FreeBSD?
+
+The WebKitGTK that FreeBSD, NetBSD and OpenBSD package is built without WebRTC, which carries a Call's sound and picture. Bragd checks for it at start, shows no Call buttons without it, and says so once. Should a system's WebKitGTK gain WebRTC, Calls work there with no change to Bragd. Chat and Games with Friends work as on any other system.
 
 #### Can I run Bragd without installing it?
 

@@ -1,0 +1,5 @@
+@comment $NetBSD$
+bin/bragd-gui
+bin/bragd-helper
+share/applications/bragd.desktop
+share/icons/hicolor/128x128/apps/bragd.png
