@@ -31,13 +31,14 @@ Without its secret a channel's job leaves a notice and does nothing.
 ## The release pull request
 
 `release-pr.py` makes it from the `changelog.d/` rows: minor when a row is marked
-`<!-- feature -->`, patch otherwise. It refuses, changing nothing:
+`<!-- feature -->`, patch otherwise; from a 0.x version it makes 1.0.0, since nothing is released
+before it. It refuses, changing nothing:
 
 | Exit | Why | Do |
 |---|---|---|
 | 2 | `changelog.d/` has no rows | nothing: no release this week |
 | 3 | the version in `Cargo.toml` has no published release (it does not hold before the first release) | finish that release: fix what failed, then `gh workflow run release.yml` on master; or `--unreleased-ok`, the owner's decision only |
-| 4 | the new version's milestone `X.Y.Z` has open issues (not those labelled `post-release` or titled "After the release…") | close them or move them on; or `--open-issues-ok`, the owner's decision only |
+| 4 | the new version's milestone `X.Y.Z` has open issues (not those labelled `post-release` or titled "After the release…"); a version with no milestone of its own is held by every open milestone above the current version up to the next minor | close them or move them on; or `--open-issues-ok`, the owner's decision only |
 | 5 | a feature row has no tour card | add the card to `crates/bragd-core/src/tour.rs` |
 
 ### Tour cards
