@@ -1,7 +1,7 @@
 //! ChessBase databases: a `.cbh` file and the files
 //! beside it under the same name, `.cbg` (the moves), `.cbp` (players) and `.cbt` (tournaments).
 //! Each game is read as the PGN it holds, so the table, the board and the search take it as they
-//! take a PGN file's games (`games`). Read only. A game's annotations (`.cba`: texts, symbols,
+//! take a PGN file's games (`scan`). Read only. A game's annotations (`.cba`: texts, symbols,
 //! coloured squares, arrows, evaluations, times) become its PGN comments and NAGs; Chess960
 //! games (encoding 10) start from their own position.
 //!
@@ -11,14 +11,14 @@
 //! 2026 cbvault Contributors"; `asdfjkl/cbh2pgn` is credited there for the table data).
 //!
 //! Every file is untrusted: sizes and ids are checked before they are used, a game record is
-//! read up to `games::MAX_GAME` bytes, and a game stops at `pgn::MAX_MOVES` moves and
+//! read up to `scan::MAX_GAME` bytes, and a game stops at `pgn::MAX_MOVES` moves and
 //! `pgn::MAX_DEPTH` levels of variations. A game whose moves cannot be read to the end shows the
 //! moves read and says so.
 
 use std::collections::HashMap;
-use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
-use std::path::{Path, PathBuf};
+
+use crate::{Files, Source};
 
 use rules_chess::{Color, Piece, Position, Role, Side, Square};
 
@@ -36,28 +36,6 @@ const MAX_ENTITY: u64 = 64 << 10;
 /// Names kept from the entity files while the games are listed.
 const MAX_CACHE: usize = 200_000;
 
-/// Whether `path` is a ChessBase database's header file, or an archive of one (`cbv`), by its
-/// name.
-pub fn is_cbh(path: &Path) -> bool {
-    path.extension().is_some_and(|e| e.eq_ignore_ascii_case("cbh")) || super::cbv::is_cbv(path)
-}
-
-/// The `.cbh` files to read for `path`: itself, or an archive's unpacked ones (one a database
-/// it holds). A game's record names its database in its high 32 bits (`scan`).
-fn headers(path: &Path) -> io::Result<Vec<PathBuf>> {
-    if super::cbv::is_cbv(path) { super::cbv::unpacked(path) } else { Ok(vec![path.to_path_buf()]) }
-}
-
-/// The file beside `cbh` with the ending `ext`: the same case first, else any case.
-fn sibling(cbh: &Path, ext: &str) -> PathBuf {
-    let exact = cbh.with_extension(ext);
-    if exact.exists() {
-        return exact;
-    }
-    let upper = cbh.with_extension(ext.to_ascii_uppercase());
-    if upper.exists() { upper } else { exact }
-}
-
 fn be(b: &[u8]) -> u32 {
     b.iter().fold(0, |n, &x| n << 8 | x as u32)
 }
@@ -69,13 +47,13 @@ fn le_i32(b: &[u8], at: usize) -> i32 {
 /// Text up to its first NUL: UTF-8, else Windows-1252.
 fn text(b: &[u8]) -> String {
     let end = b.iter().position(|&c| c == 0).unwrap_or(b.len());
-    super::games::text(&b[..end]).trim().to_string()
+    super::scan::text(&b[..end]).trim().to_string()
 }
 
 /// An entity file (`.cbp`, `.cbt`): a header, then records of the same size; an id is a
 /// record's place.
 struct Entities {
-    file: Option<File>,
+    file: Option<Box<dyn Source>>,
     header: u64,
     record: u64,
     count: u64,
@@ -83,11 +61,11 @@ struct Entities {
 }
 
 impl Entities {
-    fn open(path: &Path) -> Entities {
+    fn open(file: io::Result<Box<dyn Source>>) -> Entities {
         let none = Entities { file: None, header: 0, record: 1, count: 0, cache: HashMap::new() };
-        let Ok(mut f) = File::open(path) else { return none };
+        let Ok(mut f) = file else { return none };
         let mut h = [0u8; 28];
-        let len = f.metadata().map_or(0, |m| m.len());
+        let len = crate::len(&mut *f).unwrap_or(0);
         if f.read_exact(&mut h).is_err() {
             return none;
         }
@@ -144,9 +122,9 @@ impl Entities {
 }
 
 /// A game as the `.cbh` file lists it: its record, its tags, and its length in moves.
-pub(crate) struct Listed {
-    /// Its database (an archive's place among them, else 0) above, its `.cbh` record below.
-    pub record: u64,
+pub struct Listed {
+    /// Its record in the `.cbh` file.
+    pub record: u32,
     pub tags: Vec<(&'static str, String)>,
     pub moves: u32,
 }
@@ -158,8 +136,8 @@ struct Names {
 }
 
 impl Names {
-    fn open(cbh: &Path) -> Names {
-        Names { players: Entities::open(&sibling(cbh, "cbp")), tournaments: Entities::open(&sibling(cbh, "cbt")) }
+    fn open(files: &Files) -> Names {
+        Names { players: Entities::open(files("cbp")), tournaments: Entities::open(files("cbt")) }
     }
 }
 
@@ -221,9 +199,9 @@ fn tags(r: &[u8], names: &mut Names) -> Vec<(&'static str, String)> {
 }
 
 /// The `.cbh` file, its own record checked: its records are 46 bytes.
-fn open_cbh(path: &Path) -> io::Result<(File, u64)> {
-    let mut f = File::open(path)?;
-    let len = f.metadata()?.len();
+fn open_cbh(files: &Files) -> io::Result<(Box<dyn Source>, u64)> {
+    let mut f = files("cbh")?;
+    let len = crate::len(&mut *f)?;
     let mut h = [0u8; RECORD as usize];
     f.read_exact(&mut h).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "no ChessBase header"))?;
     if be(&h[3..5]) != RECORD as u32 {
@@ -232,14 +210,12 @@ fn open_cbh(path: &Path) -> io::Result<(File, u64)> {
     Ok((f, len / RECORD))
 }
 
-/// The games of the database at `path` (an archive's databases one after the other), in order,
-/// each handed to `each` until it says to stop; `read` is told the bytes of the `.cbh` files
-/// read so far.
-pub(crate) fn scan(path: &Path, stop: &dyn Fn() -> bool, read: &dyn Fn(u64), mut each: impl FnMut(&Listed) -> bool) -> io::Result<()> {
-    let mut base = 0u64;
-    for (db, path) in headers(path)?.iter().enumerate() {
-        let (f, records) = open_cbh(path)?;
-        let mut names = Names::open(path);
+/// The games of the database in `files`, in order, each handed to `each` until it says to
+/// stop; `read` is told the bytes of the `.cbh` file read so far.
+pub fn scan(files: &Files, stop: &dyn Fn() -> bool, read: &dyn Fn(u64), mut each: impl FnMut(&Listed) -> bool) -> io::Result<()> {
+    {
+        let (f, records) = open_cbh(files)?;
+        let mut names = Names::open(files);
         let mut r = io::BufReader::with_capacity(1 << 16, f);
         let mut rec = [0u8; RECORD as usize];
         for n in 1..records.min(u32::MAX as u64) {
@@ -248,28 +224,25 @@ pub(crate) fn scan(path: &Path, stop: &dyn Fn() -> bool, read: &dyn Fn(u64), mut
             }
             r.read_exact(&mut rec)?;
             if n % 4096 == 0 {
-                read(base + (n + 1) * RECORD);
+                read((n + 1) * RECORD);
             }
             if !is_game(&rec) {
                 continue;
             }
-            let listed = Listed { record: (db as u64) << 32 | n, tags: tags(&rec, &mut names), moves: rec[0x2d] as u32 };
+            let listed = Listed { record: n as u32, tags: tags(&rec, &mut names), moves: rec[0x2d] as u32 };
             if !each(&listed) {
                 return Ok(());
             }
         }
-        base += records * RECORD;
-        read(base);
+        read(records * RECORD);
     }
     Ok(())
 }
 
-/// Game `record` (as `scan` lists it) of the database at `path` as PGN: its tags, then its
+/// Game `record` (as `scan` lists it) of the database in `files` as PGN: its tags, then its
 /// moves and variations.
-pub fn pgn(path: &Path, record: u64) -> io::Result<String> {
-    let path = &headers(path)?.into_iter().nth((record >> 32) as usize).ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "no such game"))?;
-    let record = record as u32;
-    let (mut f, records) = open_cbh(path)?;
+pub fn pgn(files: &Files, record: u32) -> io::Result<String> {
+    let (mut f, records) = open_cbh(files)?;
     if record == 0 || record as u64 >= records {
         return Err(io::Error::new(io::ErrorKind::NotFound, "no such game"));
     }
@@ -279,19 +252,18 @@ pub fn pgn(path: &Path, record: u64) -> io::Result<String> {
     if !is_game(&rec) {
         return Err(io::Error::new(io::ErrorKind::NotFound, "no such game"));
     }
-    let mut tags = tags(&rec, &mut Names::open(path));
+    let mut tags = tags(&rec, &mut Names::open(files));
     let result = tags.iter().find(|t| t.0 == "Result").map_or("*".to_string(), |t| t.1.clone());
-    let (cbg, cba) = (sibling(path, "cbg"), sibling(path, "cba"));
     let short = (be(&rec[1..5]), be(&rec[5..9]));
-    let past_4gb = [&cbg, &cba].iter().any(|p| p.metadata().is_ok_and(|m| m.len() >> 32 != 0));
-    let (moves, notes) = if past_4gb { wide(path, record, short) } else { (short.0 as u64, short.1 as u64) };
-    let (mut game, cut) = match read_game(&cbg, moves) {
+    let past_4gb = ["cbg", "cba"].iter().any(|ext| files(ext).and_then(|mut f| crate::len(&mut *f)).is_ok_and(|n| n >> 32 != 0));
+    let (moves, notes) = if past_4gb { wide(files, record, short) } else { (short.0 as u64, short.1 as u64) };
+    let (mut game, cut) = match read_game(files, moves) {
         Ok(bytes) => decode(&bytes),
         Err(_) => (Tree::default(), true),
     };
     let notes = match notes {
         0 => vec![],
-        at => annotations(&cba, at, record),
+        at => annotations(files, at, record),
     };
     game.annotate(&notes);
     if game.chess960 {
@@ -326,9 +298,9 @@ pub fn pgn(path: &Path, record: u64) -> io::Result<String> {
 /// the count, little-endian), a record a game, the annotations' offset at 0x0c and the moves'
 /// at 0x1e (8 bytes each, big-endian). The `.cbh` file's own (`short`, their low 32 bits) when
 /// there is none or it disagrees with them.
-fn wide(cbh: &Path, id: u32, short: (u32, u32)) -> (u64, u64) {
+fn wide(files: &Files, id: u32, short: (u32, u32)) -> (u64, u64) {
     let read = || -> io::Result<(u64, u64)> {
-        let mut f = File::open(sibling(cbh, "cbj"))?;
+        let mut f = files("cbj")?;
         let mut h = [0u8; 32];
         f.read_exact(&mut h)?;
         let (size, count) = (le_i32(&h, 4), le_i32(&h, 8));
@@ -348,9 +320,9 @@ fn wide(cbh: &Path, id: u32, short: (u32, u32)) -> (u64, u64) {
 
 /// A game's record in the `.cbg` file: a flags byte, its size in 3 bytes (these 4 counted), the
 /// rest.
-fn read_game(cbg: &Path, at: u64) -> io::Result<Vec<u8>> {
-    let mut f = File::open(cbg)?;
-    let len = f.metadata()?.len();
+fn read_game(files: &Files, at: u64) -> io::Result<Vec<u8>> {
+    let mut f = files("cbg")?;
+    let len = crate::len(&mut *f)?;
     if at < 4 || at + 4 > len {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "game out of the file"));
     }
@@ -358,7 +330,7 @@ fn read_game(cbg: &Path, at: u64) -> io::Result<Vec<u8>> {
     let mut head = [0u8; 4];
     f.read_exact(&mut head)?;
     let size = be(&head[1..4]) as u64;
-    if size < 4 || at + size > len || size > super::games::MAX_GAME as u64 {
+    if size < 4 || at + size > len || size > super::scan::MAX_GAME as u64 {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "game size"));
     }
     let mut out = head.to_vec();
@@ -383,10 +355,10 @@ pub(crate) struct Note {
 /// each annotation with a 6-byte head (its move in 3 signed bytes, its type, its size in 2,
 /// the head counted). None at all when the head is not this game's; those before a damaged
 /// one when one is.
-fn annotations(cba: &Path, at: u64, id: u32) -> Vec<Note> {
+fn annotations(files: &Files, at: u64, id: u32) -> Vec<Note> {
     let read = || -> io::Result<Vec<u8>> {
-        let mut f = File::open(cba)?;
-        let len = f.metadata()?.len();
+        let mut f = files("cba")?;
+        let len = crate::len(&mut *f)?;
         f.seek(SeekFrom::Start(at))?;
         let mut head = [0u8; 14];
         f.read_exact(&mut head)?;
@@ -433,7 +405,7 @@ fn note_colour(c: u8) -> Option<char> {
 /// braces as brackets, line breaks and control characters as spaces.
 fn note_text(b: &[u8]) -> String {
     let end = b.iter().position(|&c| c == 0).unwrap_or(b.len());
-    let t = super::games::text(&b[..end]).replace('{', "(").replace('}', ")");
+    let t = super::scan::text(&b[..end]).replace('{', "(").replace('}', ")");
     t.split(|c: char| c.is_whitespace() || c.is_control()).filter(|w| !w.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
@@ -1164,8 +1136,9 @@ fn setup_fen(s: &[u8], named: Option<&[u8]>, add: u8) -> Option<String> {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use super::*;
+    use std::path::{Path, PathBuf};
 
     /// A move's bytes in mode 0: each byte that `decode` translates back, `plies` the moves
     /// before it.
@@ -1267,7 +1240,7 @@ pub(crate) mod tests {
         moves.push(255);
         let p = base(&d, "games", &moves);
         let mut listed = vec![];
-        scan(&p, &|| false, &|_| {}, |g| {
+        scan(&*crate::tests::beside(&p), &|| false, &|_| {}, |g| {
             listed.push((g.record, g.tags.clone(), g.moves));
             true
         })
@@ -1278,31 +1251,11 @@ pub(crate) mod tests {
         let tag = |k: &str| tags.iter().find(|t| t.0 == k).unwrap().1.as_str();
         assert_eq!((tag("White"), tag("Black"), tag("Event"), tag("Site")), ("Morphy, Paul", "Duke Karl", "Paris", "Paris Opera"));
         assert_eq!((tag("Date"), tag("Result"), tag("ECO"), tag("WhiteElo"), tag("Round")), ("1858.11.02", "1-0", "C44", "2690", "3"));
-        let text = pgn(&p, 1).unwrap();
+        let text = pgn(&*crate::tests::beside(&p), 1).unwrap();
         assert!(text.ends_with("1. e4 e5 2. Nf3 ( 2. f4 exf4 ) 2... Nc6 3. Bb5 1-0\n"), "{text}");
         let g = pgn::parse(&text);
         assert_eq!(g.main_line().len(), 5);
-        assert!(pgn(&p, 2).is_err(), "a deleted game");
-        std::fs::remove_dir_all(&d).unwrap();
-    }
-
-    #[test]
-    fn the_library_lists_and_opens_a_database() {
-        let d = dir("lib");
-        let mut moves = RUY.to_vec();
-        moves.push(255);
-        let p = base(&d, "Games", &moves);
-        let lib = crate::chess::Table::open(&p).unwrap();
-        while !lib.progress().done {
-            std::thread::sleep(std::time::Duration::from_millis(5));
-        }
-        let row = lib.row(0).unwrap();
-        assert_eq!((row.white.as_str(), row.moves, row.eco.as_str()), ("Morphy, Paul", 3, "C44"));
-        assert_eq!(lib.game(0).unwrap().main_line().len(), 5);
-        assert_eq!(row.black, "Duke Karl");
-        let mut keys = vec![];
-        crate::chess::games::positions(&p, &|| false, |n, k| keys.push((n, k.len()))).unwrap();
-        assert_eq!(keys, vec![(0, 5)]);
+        assert!(pgn(&*crate::tests::beside(&p), 2).is_err(), "a deleted game");
         std::fs::remove_dir_all(&d).unwrap();
     }
 
@@ -1311,7 +1264,7 @@ pub(crate) mod tests {
         let d = dir("cut");
         // The last line is never ended, and then a move no piece can make.
         let p = base(&d, "cut", &[128, 128, 30]);
-        let text = pgn(&p, 1).unwrap();
+        let text = pgn(&*crate::tests::beside(&p), 1).unwrap();
         assert!(text.contains("1. e4 e5"), "{text}");
         assert!(text.contains(CUT_NOTE), "{text}");
         std::fs::remove_dir_all(&d).unwrap();
@@ -1340,7 +1293,7 @@ pub(crate) mod tests {
         let p = d.join("bad.cbh");
         // Not 46-byte records; no files beside it.
         std::fs::write(&p, [0u8; 100]).unwrap();
-        assert!(scan(&p, &|| false, &|_| {}, |_| true).is_err());
+        assert!(scan(&*crate::tests::beside(&p), &|| false, &|_| {}, |_| true).is_err());
         let mut cbh = vec![0u8; 46];
         cbh[3..5].copy_from_slice(&46u16.to_be_bytes());
         let mut r = [0xffu8; 46];
@@ -1348,13 +1301,13 @@ pub(crate) mod tests {
         cbh.extend(r);
         std::fs::write(&p, &cbh).unwrap();
         let mut n = 0;
-        scan(&p, &|| false, &|_| {}, |_| {
+        scan(&*crate::tests::beside(&p), &|| false, &|_| {}, |_| {
             n += 1;
             true
         })
         .unwrap();
         assert_eq!(n, 1);
-        assert!(pgn(&p, 1).unwrap().contains(CUT_NOTE));
+        assert!(pgn(&*crate::tests::beside(&p), 1).unwrap().contains(CUT_NOTE));
         std::fs::remove_dir_all(&d).unwrap();
     }
 
@@ -1365,12 +1318,12 @@ pub(crate) mod tests {
     fn a_real_database_reads_whole() {
         let p = PathBuf::from(std::env::var("BRAGD_CBH").unwrap());
         if let Ok(n) = std::env::var("BRAGD_CBH_SHOW") {
-            eprintln!("{}", pgn(&p, n.parse().unwrap()).unwrap());
+            eprintln!("{}", pgn(&*crate::tests::beside(&p), n.parse().unwrap()).unwrap());
             return;
         }
         let (mut games, mut cut, mut moves) = (0, vec![], 0);
-        scan(&p, &|| false, &|_| {}, |g| {
-            let text = pgn(&p, g.record).unwrap();
+        scan(&*crate::tests::beside(&p), &|| false, &|_| {}, |g| {
+            let text = pgn(&*crate::tests::beside(&p), g.record).unwrap();
             games += 1;
             if text.contains(CUT_NOTE) {
                 cut.push(g.record);
@@ -1440,7 +1393,7 @@ pub(crate) mod tests {
         let mut cbh = std::fs::read(&out).unwrap();
         cbh[46 + 5..46 + 9].copy_from_slice(&26u32.to_be_bytes());
         std::fs::write(&out, cbh).unwrap();
-        eprintln!("{}", pgn(&out, 1).unwrap());
+        eprintln!("{}", pgn(&*crate::tests::beside(&out), 1).unwrap());
     }
 
     /// Castling both ways, a promotion, and a variation, in the two-byte form, read back as
@@ -1451,9 +1404,9 @@ pub(crate) mod tests {
         let p = d.join("two.cbh");
         let text = "[White \"Morphy, Paul\"]\n[Black \"Duke Karl\"]\n[Result \"1-0\"]\n\n1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 ( 15... Qxd7 16. Qb8+ Ke7 ) 16. Qb8+ Nxb8 17. Rd8# 1-0\n\n[White \"A\"]\n[Black \"B\"]\n[Result \"*\"]\n\n1. e4 d5 2. exd5 c6 3. dxc6 Nf6 4. cxb7 Nbd7 5. bxa8=N e6 6. Nf3 Bc5 7. Be2 O-O 8. O-O *\n";
         assert_eq!(write_base(text, &p), 2);
-        let opera = pgn(&p, 1).unwrap();
+        let opera = pgn(&*crate::tests::beside(&p), 1).unwrap();
         assert!(opera.contains("12. O-O-O Rd8") && opera.contains("( 15... Qxd7 16. Qb8+ Ke7 ) 16. Qb8+ Nxb8 17. Rd8# 1-0"), "{opera}");
-        let other = pgn(&p, 2).unwrap();
+        let other = pgn(&*crate::tests::beside(&p), 2).unwrap();
         assert!(other.contains("5. bxa8=N e6") && other.contains("7. Be2 O-O 8. O-O *"), "{other}");
         std::fs::remove_dir_all(&d).unwrap();
     }
@@ -1559,8 +1512,8 @@ pub(crate) mod tests {
         std::fs::write(out.with_extension("cbt"), entities(90, &ev)).unwrap();
         // It reads back as the PGN it came from: every game whole.
         let mut n = 0;
-        scan(out, &|| false, &|_| {}, |g| {
-            assert!(!pgn(out, g.record).unwrap().contains(CUT_NOTE));
+        scan(&*crate::tests::beside(out), &|| false, &|_| {}, |g| {
+            assert!(!pgn(&*crate::tests::beside(out), g.record).unwrap().contains(CUT_NOTE));
             n += 1;
             true
         })
@@ -1607,11 +1560,11 @@ pub(crate) mod tests {
             cbj.extend(r);
         }
         std::fs::write(p.with_extension("cbj"), cbj).unwrap();
-        assert_eq!(wide(&p, 1, (10, 26)), (5 << 32 | 10, 1 << 32 | 26));
+        assert_eq!(wide(&*crate::tests::beside(&p), 1, (10, 26)), (5 << 32 | 10, 1 << 32 | 26));
         // Disagreeing low bits, a game past its records, no file: the .cbh file's own.
-        assert_eq!(wide(&p, 2, (8, 0)), (8, 0));
-        assert_eq!(wide(&p, 3, (9, 1)), (9, 1));
-        assert_eq!(wide(&d.join("none.cbh"), 1, (10, 26)), (10, 26));
+        assert_eq!(wide(&*crate::tests::beside(&p), 2, (8, 0)), (8, 0));
+        assert_eq!(wide(&*crate::tests::beside(&p), 3, (9, 1)), (9, 1));
+        assert_eq!(wide(&*crate::tests::beside(&d.join("none.cbh")), 1, (10, 26)), (10, 26));
         std::fs::remove_dir_all(&d).unwrap();
     }
 
@@ -1649,7 +1602,7 @@ pub(crate) mod tests {
             (99, 0x02, text("The end")),
         ];
         let p = base_with(&d, "notes", 0, &bytes, Some(&notes));
-        let text = pgn(&p, 1).unwrap();
+        let text = pgn(&*crate::tests::beside(&p), 1).unwrap();
         assert!(text.contains("{A (famous) game} 1. e4 $1 {[%eval 0.35,20] [%csl Ge4] [%cal Rd2d4] Best by test} {Now} 1... e5 {[%emt 0:01:05]} 2. Nf3 {[%eval #-3]}"), "{text}");
         assert!(text.contains("3. Bb5 {The end} 1-0"), "{text}");
         let g = pgn::parse(&text);
@@ -1663,7 +1616,7 @@ pub(crate) mod tests {
         let mut b = std::fs::read(&cba).unwrap();
         b[28] = 7;
         std::fs::write(&cba, b).unwrap();
-        assert!(pgn(&p, 1).unwrap().contains("1. e4 e5 2. Nf3"));
+        assert!(pgn(&*crate::tests::beside(&p), 1).unwrap().contains("1. e4 e5 2. Nf3"));
         std::fs::remove_dir_all(&d).unwrap();
     }
 
@@ -1676,7 +1629,7 @@ pub(crate) mod tests {
         body.extend([40, 39, 48, 64, 64, 64, 0, 0]);
         body.extend([enc10(9, 0), enc10(111, 1), enc10(255, 2)]);
         let p = base_with(&d, "c960", 0x40 | 10, &body, None);
-        let text = pgn(&p, 1).unwrap();
+        let text = pgn(&*crate::tests::beside(&p), 1).unwrap();
         assert!(text.contains("[Variant \"Chess960\"]") && text.contains("[FEN \"4k3/p7/8/8/8/8/8/5KR1 w G - 0 1\"]"), "{text}");
         assert!(text.contains("1. O-O a6 1-0"), "{text}");
         let g = pgn::parse(&text);
@@ -1688,10 +1641,10 @@ pub(crate) mod tests {
         let w: u16 = 48 | 48 << 6;
         body.extend([enc10(235, 0), enc10((w >> 8) as u8, 0), enc10(w as u8, 0), enc10(111, 1), enc10(255, 2)]);
         let p = base_with(&d, "two", 0x40 | 10, &body, None);
-        assert!(pgn(&p, 1).unwrap().contains("1. O-O a6 1-0"));
+        assert!(pgn(&*crate::tests::beside(&p), 1).unwrap().contains("1. O-O a6 1-0"));
         // Encoding 11 is not known: the game says it was cut.
         let p = base_with(&d, "eleven", 0x40 | 11, &body, None);
-        assert!(pgn(&p, 1).unwrap().contains(CUT_NOTE));
+        assert!(pgn(&*crate::tests::beside(&p), 1).unwrap().contains(CUT_NOTE));
         std::fs::remove_dir_all(&d).unwrap();
     }
 
@@ -1701,12 +1654,12 @@ pub(crate) mod tests {
         // King e1 and rook h1, no rights stored; 1. O-O Ke7.
         let body = |pieces: &[(u8, char)]| [start(0, pieces), vec![enc(9, 0), enc(5, 1), enc(255, 2)]].concat();
         let p = base_with(&d, "rights", 0x40, &body(&[(4, 'K'), (7, 'R'), (60, 'k')]), None);
-        let text = pgn(&p, 1).unwrap();
+        let text = pgn(&*crate::tests::beside(&p), 1).unwrap();
         assert!(text.contains("[FEN \"4k3/8/8/8/8/8/8/4K2R w K - 0 1\"]") && text.contains("1. O-O Ke7 1-0"), "{text}");
         assert!(text.contains(CASTLING_NOTE) && !text.contains(CUT_NOTE), "{text}");
         // Without the rook the right cannot be: the game stops there and says so.
         let p = base_with(&d, "none", 0x40, &body(&[(4, 'K'), (60, 'k')]), None);
-        let text = pgn(&p, 1).unwrap();
+        let text = pgn(&*crate::tests::beside(&p), 1).unwrap();
         assert!(text.contains(CUT_NOTE) && !text.contains(CASTLING_NOTE), "{text}");
         std::fs::remove_dir_all(&d).unwrap();
     }

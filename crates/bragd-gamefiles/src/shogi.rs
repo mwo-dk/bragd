@@ -758,29 +758,27 @@ mod tests {
         assert!(start.elapsed() < crate::test_limit(std::time::Duration::from_secs(3)), "{:?}", start.elapsed());
     }
 
+    /// A KIF file in Shift_JIS, as Kifu for Windows writes them, and a CSA file of two games:
+    /// each game listed with its players and moves, and read from where it is.
     #[test]
-    fn files_in_the_table_and_found() {
-        let d = std::env::temp_dir().join(format!("bragd-shogi-{}", std::process::id()));
-        std::fs::create_dir_all(&d).unwrap();
-        // A KIF file in Shift_JIS, as Kifu for Windows writes them.
-        let kif = d.join("g.kif");
-        std::fs::write(&kif, encoding_rs::SHIFT_JIS.encode(KIF).0).unwrap();
-        let csa = d.join("g.csa");
-        std::fs::write(&csa, "N+Habu\nN-Sato\nPI\n+\n+7776FU\n%TORYO\n/\nN+Kato\nN-Oyama\nPI\n+\n+2726FU\n-8384FU\n").unwrap();
-        for (p, games, first) in [(&kif, 1, "羽生"), (&csa, 2, "Habu")] {
-            let lib = crate::chess::Table::open(p).unwrap();
-            while !lib.progress().done {
-                std::thread::sleep(std::time::Duration::from_millis(2));
+    fn files_listed() {
+        use crate::chess::scan::{scan, BLACK, WHITE};
+        let kif = encoding_rs::SHIFT_JIS.encode(KIF).0.into_owned();
+        let csa = b"N+Habu\nN-Sato\nPI\n+\n+7776FU\n%TORYO\n/\nN+Kato\nN-Oyama\nPI\n+\n+2726FU\n-8384FU\n".to_vec();
+        for (bytes, format, games, first) in [(&kif, Format::Kif, 1, "羽生"), (&csa, Format::Csa, 2, "Habu")] {
+            let mut heads = vec![];
+            scan(&bytes[..], &std::sync::atomic::AtomicBool::new(false), format, true, false, |h| {
+                heads.push((h.offset as usize, h.len as usize, h.tag(WHITE).to_string(), h.tag(BLACK).to_string(), h.plies));
+                true
+            })
+            .unwrap();
+            assert_eq!(heads.len(), games);
+            assert_eq!(heads[0].2, first);
+            let (at, len, ..) = heads[games - 1];
+            assert_eq!(parse(&decode(&bytes[at..at + len]), format).error, None);
+            if format == Format::Csa {
+                assert_eq!((heads[1].3.as_str(), heads[1].4), ("Oyama", 2));
             }
-            assert_eq!(lib.progress().games, games);
-            assert_eq!(lib.row(0).unwrap().white, first);
-            assert_eq!(lib.game(games as u32 - 1).unwrap().error, None);
         }
-        let lib = crate::chess::Table::open(&csa).unwrap();
-        while !lib.progress().done {
-            std::thread::sleep(std::time::Duration::from_millis(2));
-        }
-        assert_eq!((lib.row(1).unwrap().black.as_str(), lib.row(1).unwrap().moves), ("Oyama", 2));
-        std::fs::remove_dir_all(&d).unwrap();
     }
 }

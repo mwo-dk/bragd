@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use bragd_core::config::Config;
 use bragd_engines::fetch::Http;
 use bragd_engines::syzygy::{self, Plan, Set};
-use bragd_library::chess::polyglot;
+use bragd_library::chess::books;
 use serde::Serialize;
 
 use bragd_core::offline;
@@ -152,7 +152,7 @@ pub fn books(cfg: &Config) -> Vec<Book> {
     cfg.engines
         .books
         .iter()
-        .map(|p| match polyglot::summary(Path::new(p)) {
+        .map(|p| match books::summary(Path::new(p)) {
             Ok(s) => Book { path: p.clone(), entries: Some(s.entries), first: s.moves.iter().take(8).map(|m| m.san.clone()).collect(), error: None },
             Err(e) => Book { path: p.clone(), entries: None, first: vec![], error: Some(e.to_string()) },
         })
@@ -162,7 +162,7 @@ pub fn books(cfg: &Config) -> Vec<Book> {
 /// Adds the Polyglot book at `path`, once it reads as one.
 pub fn add_book(cfg: &Config, path: &str) -> Result<Config, String> {
     let path = path.trim();
-    if !polyglot::is_book(Path::new(path)) {
+    if !books::is_book(Path::new(path)) {
         return Err(tr("books.not_a_book", &[("path", path)]));
     }
     let mut all = cfg.engines.books.clone();

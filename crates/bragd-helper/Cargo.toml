@@ -12,6 +12,8 @@ path = "src/main.rs"
 
 [dependencies]
 bragd-core = { path = "../bragd-core" }
+# Game file readers: the start position.
+bragd-gamefiles = { path = "../bragd-gamefiles" }
 bragd-library = { path = "../bragd-library" }
 # Rating lists, fetched like Sources, go into the rating lists file.
 bragd-clubs = { path = "../bragd-clubs" }

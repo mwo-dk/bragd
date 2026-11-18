@@ -23,9 +23,10 @@ use std::path::{Path, PathBuf};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Map, Value};
 
-use crate::chess::{Format, Table, games::Limits, openings, pgn, polyglot};
+use crate::chess::{Table, games::Limits};
+use bragd_gamefiles::chess::{Format, openings, pgn, polyglot};
 use crate::strip::StripRule;
-use crate::go;
+use bragd_gamefiles::go;
 
 /// Sources whose headers win a conflict, first first. Sources not named rank after these.
 pub const DEFAULT_PRIORITY: [&str; 2] = ["twic", "lichess-db"];
@@ -458,7 +459,7 @@ enum Reader {
 impl Reader {
     /// The file at `path`, unpacked to at most `max_ratio` times its size (`Limits::ratio`).
     fn open(path: &Path, max_ratio: u64) -> io::Result<Reader> {
-        if go::is_sgf(path) { Ok(Reader::Go(go::Collection::open(path)?)) } else { Ok(Reader::Table(Table::open_with(path, Limits { ratio: max_ratio, ..Limits::default() })?)) }
+        if crate::chess::format(path) == Some(Format::Sgf) { Ok(Reader::Go(crate::chess::go_games(path)?)) } else { Ok(Reader::Table(Table::open_with(path, Limits { ratio: max_ratio, ..Limits::default() })?)) }
     }
 
     /// Game `i` (from 0), once the reader has listed it; `None` past the last.
@@ -522,7 +523,7 @@ pub fn chess_variant(tag: &str) -> String {
 pub(crate) fn from_parsed(format: Format, g: &pgn::Game) -> NewGame {
     match format {
         Format::Pdn => {
-            let v = crate::draughts::variant(g);
+            let v = bragd_gamefiles::draughts::variant(g);
             // PDN GameType numbers; one `bragd_games` does not have keeps its number.
             let name = match (v.kind, v.width) {
                 (20, 10) => "draughts".to_string(),
@@ -532,8 +533,8 @@ pub(crate) fn from_parsed(format: Format, g: &pgn::Game) -> NewGame {
             };
             NewGame::from_family(g, "draughts", &name, "")
         }
-        Format::Xiangqi => NewGame::from_family(g, "xiangqi", "xiangqi", crate::xiangqi::START),
-        Format::Kif | Format::Csa => NewGame::from_family(g, "shogi", "shogi", crate::shogi::START),
+        Format::Xiangqi => NewGame::from_family(g, "xiangqi", "xiangqi", bragd_gamefiles::xiangqi::START),
+        Format::Kif | Format::Csa => NewGame::from_family(g, "shogi", "shogi", bragd_gamefiles::shogi::START),
         _ => NewGame::from_chess(g),
     }
 }
@@ -541,10 +542,10 @@ pub(crate) fn from_parsed(format: Format, g: &pgn::Game) -> NewGame {
 /// One game's text as it streams by (`stream::games`), as it goes into a Library. A chess game
 /// without an opening's name gets one by its moves, as the table of a file names it.
 pub fn read_game(format: Format, text: &[u8]) -> NewGame {
-    let text = crate::chess::games::text(text);
+    let text = bragd_gamefiles::chess::scan::text(text);
     let g = match format {
-        Format::Pdn => crate::draughts::parse(&text),
-        Format::Xiangqi => crate::xiangqi::parse(&text),
+        Format::Pdn => bragd_gamefiles::draughts::parse(&text),
+        Format::Xiangqi => bragd_gamefiles::xiangqi::parse(&text),
         _ => pgn::parse(&text),
     };
     let mut new = from_parsed(format, &g);
@@ -1190,7 +1191,7 @@ pub(crate) mod tests {
         assert_eq!(s.notes, [note(0, "Gespielt in der Oper.", &[]), note(4, "Weiß hätte hier besser den Springer ziehen sollen.", &[6]), note(7, "Ein guter Zug.", &[])]);
         let sgf = NewGame::from_go(&go::parse(b"(;FF[4]GM[1]SZ[9]C[Start];B[df];W[cf]C[Gote])"));
         assert_eq!(sgf.notes, [note(0, "Start", &[]), note(2, "Gote", &[])]);
-        let kif = from_parsed(Format::Csa, &crate::shogi::parse("V2.2\nPI\n+\n+7776FU\n'** a comment\n-3334FU\n%TORYO\n", Format::Csa));
+        let kif = from_parsed(Format::Csa, &bragd_gamefiles::shogi::parse("V2.2\nPI\n+\n+7776FU\n'** a comment\n-3334FU\n%TORYO\n", Format::Csa));
         assert_eq!(kif.notes, [note(1, "a comment", &[])]);
         // Commands are not Comments: a Lichess move's clock and evaluation alone leave no Note.
         let lichess = NewGame::from_chess(&pgn::parse("1. e4 { [%eval 0.17] [%clk 0:03:00] } e5 { Sharp [%clk 0:02:58] reply. }"));
@@ -1267,8 +1268,8 @@ pub(crate) mod tests {
     fn a_position_has_one_key_however_it_was_reached() {
         let cases: [(&str, [&str; 4], [&str; 4], &[&str], String); 3] = [
             ("draughts", ["31-26", "20-25", "33-29", "17-21"], ["33-29", "17-21", "31-26", "20-25"], &[], rules_draughts::record::Board::start(rules_draughts::record::INTERNATIONAL).fen()),
-            ("xiangqi", ["h3e3", "h10g8", "h1g3", "b10c8"], ["h3e3", "b10c8", "h1g3", "h10g8"], &["h3h4", "h8h7", "h4h3", "h7h8"], crate::xiangqi::parse("1. Che3 *").start),
-            ("shogi", ["7g7f", "3c3d", "2g2f", "8c8d"], ["2g2f", "8c8d", "7g7f", "3c3d"], &["4i4h", "6a6b", "4h4i", "6b6a"], crate::shogi::START.to_string()),
+            ("xiangqi", ["h3e3", "h10g8", "h1g3", "b10c8"], ["h3e3", "b10c8", "h1g3", "h10g8"], &["h3h4", "h8h7", "h4h3", "h7h8"], bragd_gamefiles::xiangqi::parse("1. Che3 *").start),
+            ("shogi", ["7g7f", "3c3d", "2g2f", "8c8d"], ["2g2f", "8c8d", "7g7f", "3c3d"], &["4i4h", "6a6b", "4h4i", "6b6a"], bragd_gamefiles::shogi::START.to_string()),
         ];
         for (family, a, b, back, reader_start) in cases {
             let texts = |moves: &[&str]| (0..=moves.len()).map(|i| bragd_games::replay(family, None, &moves[..i]).unwrap().position).collect::<Vec<_>>();
@@ -1464,7 +1465,7 @@ pub(crate) mod tests {
     #[test]
     fn a_chessbase_database_imports() {
         let d = Dir::new("cbh");
-        let cbh = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/chess/cbh-test/Games.cbh");
+        let cbh = Path::new(env!("CARGO_MANIFEST_DIR")).join("../bragd-gamefiles/src/chess/cbh-test/Games.cbh");
         let mut lib = Library::open(&d.0.join("lib.bragd")).unwrap();
         let got = import(&mut lib, &cbh, "chessbase");
         assert!(got.added >= 1 && got.skipped == 0, "{got:?}");

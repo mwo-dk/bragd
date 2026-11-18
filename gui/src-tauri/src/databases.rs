@@ -12,8 +12,9 @@ use crate::lock;
 use bragd_core::config::Config;
 use bragd_core::t;
 use bragd_helper::disk;
-use bragd_library::chess::{self, Format, Query, Table, games::Limits, pgn};
-use bragd_library::go::Collection;
+use bragd_gamefiles::chess::{self as reader, Format, pgn};
+use bragd_gamefiles::go::Collection;
+use bragd_library::chess::{self, Query, Table, games::Limits};
 use bragd_library::library::comment_text;
 use bragd_library::library::{Library, NewGame, Stored, position_keys};
 use bragd_library::player::{self, PlayerSummary, Seen};
@@ -177,8 +178,8 @@ fn file_name(p: &Path) -> String {
 impl OpenFile {
     /// The file at `path`, unpacked no further than an import may (`knowledge.max_unpack_ratio`).
     pub fn open(path: &Path, cfg: &Config) -> Result<OpenFile, String> {
-        let reader = if bragd_library::go::is_sgf(path) {
-            Reader::Go(Collection::open(path).map_err(|e| e.to_string())?)
+        let reader = if chess::format(path) == Some(Format::Sgf) {
+            Reader::Go(chess::go_games(path).map_err(|e| e.to_string())?)
         } else {
             Reader::Table(Table::open_with(path, Limits { ratio: cfg.knowledge.max_unpack_ratio, ..Limits::default() }).map_err(|e| e.to_string())?)
         };
@@ -361,7 +362,7 @@ pub fn replay(g: &pgn::Game, family: &str) -> Replay {
     for (ply, &i) in line.iter().enumerate() {
         let n = &g.nodes[i as usize];
         let label = if n.white { format!("{}. {}", n.number, n.san) } else { format!("{}… {}", n.number, n.san) };
-        let nags = chess::nags(&n.nags).0;
+        let nags = reader::nags(&n.nags).0;
         steps.push(Step { label: format!("{label}{nags}"), fen: n.fen.clone(), comment: comment(&n.before, &n.after), evp_x: x_of(ply + 1), upto: None });
     }
     let variant = board_variant(family, g.tag("Variant"));
@@ -402,7 +403,7 @@ pub fn stored_replay(s: &Stored, keys: &[u64]) -> Replay {
     for n in &s.notes {
         if let Some(step) = r.steps.get_mut(n.ply) {
             step.comment = n.comment.clone();
-            step.label.push_str(&chess::nags(&n.nags).0);
+            step.label.push_str(&reader::nags(&n.nags).0);
         }
     }
     r
@@ -695,7 +696,7 @@ mod tests {
         let d = std::env::temp_dir().join(format!("bragd-every-{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap();
         let mut lib = Library::open(&d.join("e.bragd")).unwrap();
-        let go = NewGame::from_go(&bragd_library::go::parse(b"(;FF[4]GM[1]SZ[9];B[ee]C[Centre];W[gc];B[])"));
+        let go = NewGame::from_go(&bragd_gamefiles::go::parse(b"(;FF[4]GM[1]SZ[9];B[ee]C[Centre];W[gc];B[])"));
         let draughts = bragd_library::library::read_game(Format::Pdn, b"[GameType \"20\"]\n\n1. 32-28 19-23 2. 28x19 14x23 *");
         for g in [&go, &draughts] {
             lib.add(g, "test", &g.variant).unwrap();

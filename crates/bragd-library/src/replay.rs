@@ -289,7 +289,7 @@ impl crate::library::Library {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{Format, pgn};
+    use bragd_gamefiles::chess::{Format, pgn};
     use crate::library::tests::{CENTURY, Dir, pgn as pgn_text};
     use crate::library::{Added, Library, NewGame, from_parsed};
 
@@ -322,12 +322,12 @@ mod tests {
         let games = [
             NewGame::from_chess(&pgn::parse(&pgn_text(&[], CENTURY, "0-1"))),
             // Chinese notation.
-            from_parsed(Format::Xiangqi, &crate::xiangqi::parse("[Game \"Chinese Chess\"]\n\n1. 炮二平五 马８进７ 2. 马二进三 车９平８ 3. 车一平二 马２进３ *")),
+            from_parsed(Format::Xiangqi, &bragd_gamefiles::xiangqi::parse("[Game \"Chinese Chess\"]\n\n1. 炮二平五 马８进７ 2. 马二进三 车９平８ 3. 车一平二 马２进３ *")),
             // `△同　銀`: a move the Library keeps as two words.
-            from_parsed(Format::Csa, &crate::shogi::parse("V2.2\nPI\n+\n+7776FU\n-3334FU\n+8822UM\n-3122GI\n+0055KA\n%TORYO\n", Format::Csa)),
-            from_parsed(Format::Pdn, &crate::draughts::parse("[GameType \"20\"]\n\n1. 32-28 19-23 2. 28x19 14x23 3. 37-32 *")),
+            from_parsed(Format::Csa, &bragd_gamefiles::shogi::parse("V2.2\nPI\n+\n+7776FU\n-3334FU\n+8822UM\n-3122GI\n+0055KA\n%TORYO\n", Format::Csa)),
+            from_parsed(Format::Pdn, &bragd_gamefiles::draughts::parse("[GameType \"20\"]\n\n1. 32-28 19-23 2. 28x19 14x23 3. 37-32 *")),
             // Two handicap stones, then White first.
-            NewGame::from_go(&crate::go::parse(b"(;FF[4]GM[1]SZ[9]HA[2]AB[cc][gg];W[ee];B[ce];W[ge];B[])")),
+            NewGame::from_go(&bragd_gamefiles::go::parse(b"(;FF[4]GM[1]SZ[9]HA[2]AB[cc][gg];W[ee];B[ce];W[ge];B[])")),
             played("janggi", 6, |st| st.moves[st.moves.len() / 2].wire.clone()),
             played("backgammon", 9, |st| st.throws.first().cloned().unwrap_or_else(|| st.moves[0].wire.clone())),
             played("seirawan", 6, |st| st.moves[st.moves.len() / 3].wire.clone()),

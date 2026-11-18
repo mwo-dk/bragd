@@ -2,12 +2,13 @@
 //! position, with their weights. A book is a file of 16-byte entries sorted by the position's
 //! key (a Zobrist hash of the pieces, castling rights, en passant file and side to move, made
 //! with Polyglot's 781 numbers below): a position's moves are found by a binary search, a few
-//! reads of the file, so a book of any size costs no memory.
+//! reads of the source, so a book of any size costs no memory.
 
 use rules_chess::{CastlingNotation, Color, Move, Piece, Position, Role, Side, Square};
 use serde::Serialize;
-use std::io::{Read, Seek, SeekFrom};
-use std::path::{Path, PathBuf};
+use std::io::SeekFrom;
+
+use crate::Source;
 
 /// The most moves read for one position: a real book has a few dozen at most.
 const MAX_MOVES: usize = 256;
@@ -84,17 +85,39 @@ fn book_move(b: &Position, mv: u16) -> Option<Move> {
     b.legal_moves().into_iter().find(|m| m.from() == from && m.to() == to && m.promotion_role() == promotion)
 }
 
-/// A book file open for reading.
+/// A book open for reading: a file, or its bytes in memory.
 pub struct Book {
-    file: std::fs::File,
+    file: Box<dyn Source>,
+    len: u64,
     entries: u64,
 }
 
 impl Book {
-    pub fn open(path: &Path) -> std::io::Result<Book> {
-        let file = super::games::open_regular(path)?;
-        let entries = file.metadata()?.len() / 16;
-        Ok(Book { file, entries })
+    pub fn new(mut file: impl Source + 'static) -> std::io::Result<Book> {
+        let len = crate::len(&mut file)?;
+        Ok(Book { file: Box::new(file), len, entries: len / 16 })
+    }
+
+    /// Whether it is a Polyglot book: whole 16-byte entries whose first and last keys are in
+    /// order and whose moves are moves. Reads a few KB of it.
+    pub fn sane(&mut self) -> bool {
+        let n = self.entries;
+        if n == 0 || self.len % 16 != 0 {
+            return false;
+        }
+        let sample: Vec<u64> = (0..n.min(64)).chain(n.saturating_sub(64).max(64)..n).collect();
+        let mut last = None;
+        let mut keys = 0u64;
+        for i in sample {
+            let Some((key, mv, ..)) = self.read(i) else { return false };
+            let (from, to, promo) = ((mv >> 6) & 63, mv & 63, (mv >> 12) & 7);
+            if from == to || promo > 4 || mv >> 15 != 0 || last.is_some_and(|l| key < l) {
+                return false;
+            }
+            keys |= key;
+            last = Some(key);
+        }
+        keys != 0
     }
 
     /// How many entries it has.
@@ -155,78 +178,6 @@ impl Book {
             .collect();
         out.sort_by_key(|m| std::cmp::Reverse(m.weight));
         out
-    }
-}
-
-/// Whether the file is a Polyglot book: a `.bin` file of whole 16-byte entries whose first and
-/// last keys are in order and whose moves are moves. Reads a few KB of it.
-pub fn is_book(path: &Path) -> bool {
-    if !path.extension().is_some_and(|e| e.eq_ignore_ascii_case("bin")) {
-        return false;
-    }
-    let Ok(mut book) = Book::open(path) else { return false };
-    let n = book.entries;
-    if n == 0 || book.file.metadata().map_or(true, |m| m.len() % 16 != 0) {
-        return false;
-    }
-    let sample: Vec<u64> = (0..n.min(64)).chain(n.saturating_sub(64).max(64)..n).collect();
-    let mut last = None;
-    let mut keys = 0u64;
-    for i in sample {
-        let Some((key, mv, ..)) = book.read(i) else { return false };
-        let (from, to, promo) = ((mv >> 6) & 63, mv & 63, (mv >> 12) & 7);
-        if from == to || promo > 4 || mv >> 15 != 0 || last.is_some_and(|l| key < l) {
-            return false;
-        }
-        keys |= key;
-        last = Some(key);
-    }
-    keys != 0
-}
-
-/// The book for a game file: the file itself when it is a book, else the `configured` one
-/// (relative to the game file's folder) when it is one, else the first `.bin` book in the game file's folder, by
-/// name.
-pub fn find(game: &Path, configured: &str) -> Option<PathBuf> {
-    if is_book(game) {
-        return Some(game.to_path_buf());
-    }
-    let configured = configured.trim();
-    if !configured.is_empty() {
-        let p = game.parent().unwrap_or(Path::new("")).join(configured);
-        if is_book(&p) {
-            return Some(p);
-        }
-    }
-    let dir = game.parent()?;
-    let mut bins: Vec<PathBuf> = std::fs::read_dir(dir)
-        .ok()?
-        .flatten()
-        .map(|e| e.path())
-        .filter(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("bin")))
-        .take(1000)
-        .collect();
-    bins.sort();
-    bins.into_iter().find(|p| is_book(p))
-}
-
-/// A book in brief: its entries, and its moves from the start position.
-#[derive(Clone, Debug, Serialize)]
-pub struct Summary {
-    pub entries: u64,
-    pub moves: Vec<BookMove>,
-}
-
-pub fn summary(path: &Path) -> std::io::Result<Summary> {
-    let mut b = Book::open(path)?;
-    Ok(Summary { entries: b.entries, moves: b.moves(&Position::starting()) })
-}
-
-/// The book's moves for the position `fen`, from the book at `path`.
-pub fn moves_at(path: &Path, fen: &str) -> Vec<BookMove> {
-    match (Book::open(path), super::pgn::board(fen)) {
-        (Ok(mut book), Some(b)) => book.moves(&b),
-        _ => vec![],
     }
 }
 
@@ -433,7 +384,7 @@ const RANDOM: [u64; 781] = [
 ];
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use super::*;
 
     fn after(moves: &[&str]) -> Position {
@@ -468,7 +419,7 @@ pub(crate) mod tests {
 
     /// A book made here: three moves from the start, one from after 1.e4, and one that cannot
     /// be played (left out).
-    pub(crate) fn book(dir: &Path) -> PathBuf {
+    fn tiny() -> Vec<u8> {
         let mv = |from: &str, to: &str| -> u16 {
             let s = |t: &str| {
                 let b = t.as_bytes();
@@ -493,47 +444,41 @@ pub(crate) mod tests {
             bytes.extend(w.to_be_bytes());
             bytes.extend(l.to_be_bytes());
         }
-        let p = dir.join("tiny.bin");
-        std::fs::write(&p, bytes).unwrap();
-        p
+        bytes
+    }
+
+    fn book(bytes: &[u8]) -> Book {
+        Book::new(std::io::Cursor::new(bytes.to_vec())).unwrap()
     }
 
     #[test]
     fn a_book_read() {
-        let d = std::env::temp_dir().join(format!("bragd-polyglot-{}", std::process::id()));
-        std::fs::create_dir_all(&d).unwrap();
-        let p = book(&d);
-        assert!(is_book(&p));
-        let s = summary(&p).unwrap();
-        assert_eq!(s.entries, 5);
-        let moves: Vec<(&str, &str, u16, u32)> = s.moves.iter().map(|m| (m.san.as_str(), m.uci.as_str(), m.weight, m.learn)).collect();
+        let bytes = tiny();
+        // The book the callers' tests read is this one.
+        let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/chess/polyglot-test/tiny.bin");
+        assert_eq!(std::fs::read(fixture).unwrap(), bytes);
+        let mut b = book(&bytes);
+        assert!(b.sane());
+        assert_eq!(b.entries(), 5);
+        let start = b.moves(&Position::starting());
+        let moves: Vec<(&str, &str, u16, u32)> = start.iter().map(|m| (m.san.as_str(), m.uci.as_str(), m.weight, m.learn)).collect();
         assert_eq!(moves, vec![("e4", "e2e4", 60, 0), ("d4", "d2d4", 30, 0), ("Nf3", "g1f3", 10, 7)]);
-        assert!((s.moves[0].share - 60.0).abs() < 0.01);
-        assert_eq!(moves_at(&p, &s.moves[0].fen)[0].san, "c5");
-        assert!(moves_at(&p, "8/8/8/8/8/8/8/K6k w - - 0 1").is_empty());
-        assert_eq!(find(&d.join("games.pgn"), ""), Some(p.clone()));
-        assert_eq!(find(&d.join("games.pgn"), &p.to_string_lossy()), Some(p.clone()));
-        // Not books: a file of the wrong length, keys out of order, nothing, no .bin.
-        let other = d.join("other.bin");
-        std::fs::write(&other, [1u8; 17]).unwrap();
-        assert!(!is_book(&other));
-        let mut bytes = std::fs::read(&p).unwrap();
-        bytes.rotate_left(16);
-        std::fs::write(&other, &bytes).unwrap();
-        assert!(!is_book(&other));
-        std::fs::write(&other, [0u8; 32]).unwrap();
-        assert!(!is_book(&other));
-        assert!(!is_book(&d.join("missing.bin")));
-        let renamed = d.join("tiny.dat");
-        std::fs::copy(&p, &renamed).unwrap();
-        assert!(!is_book(&renamed));
+        assert!((start[0].share - 60.0).abs() < 0.01);
+        assert_eq!(b.moves(&super::super::pgn::board(&start[0].fen).unwrap())[0].san, "c5");
+        assert!(b.moves(&super::super::pgn::board("8/8/8/8/8/8/8/K6k w - - 0 1").unwrap()).is_empty());
+        // Not books: the wrong length, keys out of order, nothing but zeros, nothing at all.
+        assert!(!book(&[1u8; 17]).sane());
+        let mut rotated = bytes.clone();
+        rotated.rotate_left(16);
+        assert!(!book(&rotated).sane());
+        assert!(!book(&[0u8; 32]).sane());
+        assert!(!book(&[]).sane());
         // Any bytes at all: no panic.
         for n in [16usize, 160, 1600] {
             let junk: Vec<u8> = (0..n).map(|i| (i * 7919 % 251) as u8).collect();
-            std::fs::write(&other, &junk).unwrap();
-            let _ = is_book(&other);
-            let _ = summary(&other);
+            let mut b = book(&junk);
+            let _ = b.sane();
+            let _ = b.moves(&Position::starting());
         }
-        std::fs::remove_dir_all(&d).unwrap();
     }
 }

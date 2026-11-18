@@ -1,7 +1,7 @@
 //! Big downloads read as a stream, game by game: a PGN or PDN file, packed or not (`.gz`,
 //! `.zst`, `.bz2`), or the game files inside a zip, unpacked as they are read and never written
-//! out whole. The pass is `chess::games::scan`'s, so one game's text is held at a time (at most
-//! `games::MAX_GAME` bytes) and one line (`lex::MAX_LINE`), whatever the size of the download:
+//! out whole. The pass is `bragd_gamefiles::chess::scan`'s, so one game's text is held at a time (at most
+//! `scan::MAX_GAME` bytes) and one line (`lex::MAX_LINE`), whatever the size of the download:
 //! a month of the Lichess database or a year of FICS goes in straight from the packed file.
 //! A file that unpacks past `knowledge.max_unpack_ratio` times its size stops (`Cap`).
 
@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use crate::chess::{Format, games};
+use bragd_gamefiles::chess::{Format, scan};
 
 /// `r`, the bytes of a file named `name`, unpacked as they are read when the name says it is
 /// packed (`.gz`, `.zst`, `.bz2`).
@@ -166,13 +166,13 @@ fn games_in(name: &str, r: impl Read + Send, cap: Cap, before: u64, stop: &dyn F
     let mut buf = BufReader::with_capacity(1 << 16, Count { r: unpack(name, r)?, n: 0, before, cap, stop });
     let format = if unpacked_name(name).to_ascii_lowercase().ends_with(".pdn") {
         Format::Pdn
-    } else if crate::xiangqi::is_xiangqi(buf.fill_buf()?) {
+    } else if bragd_gamefiles::xiangqi::is_xiangqi(buf.fill_buf()?) {
         Format::Xiangqi
     } else {
         Format::Pgn
     };
     let mut stats = Stats::default();
-    games::scan(&mut buf, &AtomicBool::new(false), format, false, true, |h| {
+    scan::scan(&mut buf, &AtomicBool::new(false), format, false, true, |h| {
         stats.games += 1;
         stats.peak = stats.peak.max(h.text.len());
         each(format, &h.text)

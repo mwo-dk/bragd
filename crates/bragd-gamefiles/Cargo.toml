@@ -1,0 +1,28 @@
+[package]
+name = "bragd-gamefiles"
+# Its own version, apart from the workspace's: other programs pin it (docs/adr/0008).
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+description = "Readers for board-game files: PGN, SCID, ChessBase, Polyglot books, SGF, KIF and CSA, xiangqi DhtmlXQ, and PDN. Each reads from any Read + Seek source."
+keywords = ["chess", "pgn", "sgf", "shogi", "xiangqi"]
+categories = ["parser-implementations", "games"]
+publish = true
+
+[dependencies]
+encoding_rs = "0.8.42"
+memchr = "2"
+# Chess boards, moves and legality, for reading games (SAN, FEN, Polyglot keys).
+rules-chess = { path = "../rules-chess", version = "0.1.0" }
+# Draughts boards for reading games: PDN FEN, captures with a search budget, and moves played
+# as the file writes them.
+rules-draughts = { path = "../rules-draughts", version = "0.1.0" }
+# A Go game record's board, any size SGF allows, with stones played as written and captured.
+rules-go = { path = "../rules-go", version = "0.1.0" }
+# Shogi positions for reading games: SFEN, hands, and moves played as the file writes them.
+rules-shogi = { path = "../rules-shogi", version = "0.1.0" }
+# Xiangqi positions for reading games: FEN, and moves played as the file writes them.
+rules-xiangqi = { path = "../rules-xiangqi", version = "0.1.0" }
+serde = { version = "1", features = ["derive"] }

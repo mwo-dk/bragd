@@ -16,16 +16,13 @@ flate2 = "1.1.10"
 memchr = "2"
 # `.pgn.zst`, unpacked in pure Rust.
 ruzstd = "0.9.0"
-# Chess boards, moves and legality, for reading games (SAN, FEN, Polyglot keys).
+# The game file readers: PGN, SCID, ChessBase, Polyglot, SGF, KIF, CSA, DhtmlXQ, PDN.
+bragd-gamefiles = { path = "../bragd-gamefiles" }
+# Each Family's positions, for the keys a Library stores and a book's start position.
 rules-chess = { path = "../rules-chess" }
-# Draughts boards for reading games: PDN FEN, captures with a search budget, and moves played
-# as the file writes them.
 rules-draughts = { path = "../rules-draughts" }
-# A Go game record's board, any size SGF allows, with stones played as written and captured.
 rules-go = { path = "../rules-go" }
-# Shogi positions for reading games: SFEN, hands, and moves played as the file writes them.
 rules-shogi = { path = "../rules-shogi" }
-# Xiangqi positions for reading games: FEN, and moves played as the file writes them.
 rules-xiangqi = { path = "../rules-xiangqi" }
 rusqlite = { version = "0.41.1", features = ["bundled"] }
 # `.pgn.zst`, unpacked in pure Rust.

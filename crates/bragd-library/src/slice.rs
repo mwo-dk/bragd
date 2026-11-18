@@ -243,7 +243,7 @@ impl Library {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{pgn, polyglot};
+    use bragd_gamefiles::chess::{pgn, polyglot};
     use crate::library::NewGame;
     use crate::library::tests::{CENTURY, Dir, pgn as pgn_text};
 

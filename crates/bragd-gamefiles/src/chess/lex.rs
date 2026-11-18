@@ -1,4 +1,4 @@
-//! The one reader of game files' text, for every format: PGN, PDN and xiangqi (`games::scan`),
+//! The one reader of game files' text, for every format: PGN, PDN and xiangqi (`scan::scan`),
 //! KIF and CSA (`shogi`), PBN (`bridge`) by lines, SGF (`go`) by its pieces. It reads through a
 //! buffer, never the whole file, and knows the byte each line or piece starts at, so a pass
 //! over a collection of millions of games keeps one game's worth at most, and a game is read

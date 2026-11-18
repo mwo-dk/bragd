@@ -12,9 +12,9 @@
 //! the board, the moves and the position index need nothing of their own.
 //! Nothing is read whole but the names: the index streams by, a game is read where it is.
 
-use std::fs::File;
 use std::io::{self, BufReader, Read, Seek, SeekFrom};
-use std::path::{Path, PathBuf};
+
+use crate::Files;
 
 use rules_chess::{Color, Position, Role, Square};
 
@@ -29,16 +29,6 @@ pub const MAX_NAMES: u64 = 256 << 20;
 /// The most names, of all four kinds, a names file (SCID 4 or 5) may hold: far more than the
 /// largest databases have, and a few hundred megabytes at most in memory.
 const MAX_NAME_COUNT: u32 = 1 << 24;
-
-/// Whether `path` is a SCID index file by its name.
-pub fn is_scid(path: &Path) -> bool {
-    path.extension().is_some_and(|e| e.eq_ignore_ascii_case("si4") || e.eq_ignore_ascii_case("si5"))
-}
-
-/// Whether `path` is a SCID 5 index (`.si5`).
-fn is_scid5(path: &Path) -> bool {
-    path.extension().is_some_and(|e| e.eq_ignore_ascii_case("si5"))
-}
 
 /// A game's index entry: where its moves are and what the table shows.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -140,8 +130,7 @@ impl Entry {
 
 /// An open SCID database: its names, read at once, and where its index and games are.
 pub struct Base {
-    index: PathBuf,
-    games: PathBuf,
+    files: Box<Files>,
     /// How many games the index has (by its header, at most what its size holds).
     pub count: u32,
     /// Players, events, sites and rounds, by id.
@@ -160,15 +149,17 @@ fn bad(what: &str) -> io::Error {
 }
 
 impl Base {
-    /// The database whose index is at `path` (`x.si4`, beside `x.sg4` and `x.sn4`).
-    pub fn open(path: &Path) -> io::Result<Base> {
-        if is_scid5(path) {
-            let len = std::fs::metadata(path)?.len();
-            let names = read_names5(&path.with_extension("sn5"))?;
+    /// The database in `files`: SCID 4's `si4`, `sg4` and `sn4`, or with `v5` SCID 5's `si5`,
+    /// `sg5` and `sn5`.
+    pub fn open(files: Box<Files>, v5: bool) -> io::Result<Base> {
+        if v5 {
+            let len = crate::len(&mut *files("si5")?)?;
+            let names = read_names5(files("sn5")?)?;
             let count = (len / ENTRY5).min(u32::MAX as u64) as u32;
-            return Ok(Base { index: path.to_path_buf(), games: path.with_extension("sg5"), count, names, v5: true });
+            return Ok(Base { files, count, names, v5: true });
         }
-        let mut f = File::open(path)?;
+        let mut f = files("si4")?;
+        let len = crate::len(&mut *f)?;
         let mut head = [0u8; HEADER as usize];
         f.read_exact(&mut head).map_err(|_| bad("index too short"))?;
         if &head[..8] != MAGIC_INDEX {
@@ -179,9 +170,17 @@ impl Base {
             return Err(bad("index version"));
         }
         let stated = u32::from_be_bytes([0, head[14], head[15], head[16]]);
-        let fits = (f.metadata()?.len().saturating_sub(HEADER) / ENTRY) as u32;
-        let names = read_names(&path.with_extension("sn4"))?;
-        Ok(Base { index: path.to_path_buf(), games: path.with_extension("sg4"), count: stated.min(fits), names, v5: false })
+        let fits = (len.saturating_sub(HEADER) / ENTRY) as u32;
+        let names = read_names(files("sn4")?)?;
+        Ok(Base { files, count: stated.min(fits), names, v5: false })
+    }
+
+    /// The index file, or the games file.
+    fn index(&self) -> io::Result<Box<dyn crate::Source>> {
+        (self.files)(if self.v5 { "si5" } else { "si4" })
+    }
+    fn games(&self) -> io::Result<Box<dyn crate::Source>> {
+        (self.files)(if self.v5 { "sg5" } else { "sg4" })
     }
 
     fn name(&self, kind: usize, id: u32) -> &str {
@@ -209,7 +208,7 @@ impl Base {
     /// The games' entries in order, each handed to `each` (with its number, from 0) until it
     /// says to stop. The index is read as it streams by.
     pub fn entries(&self, mut each: impl FnMut(u32, &Entry) -> bool) -> io::Result<()> {
-        let mut r = BufReader::with_capacity(1 << 16, File::open(&self.index)?);
+        let mut r = BufReader::with_capacity(1 << 16, self.index()?);
         r.seek(SeekFrom::Start(if self.v5 { 0 } else { HEADER }))?;
         for n in 0..self.count {
             let Ok(e) = self.read_entry(&mut r) else { break };
@@ -236,7 +235,7 @@ impl Base {
         if n >= self.count {
             return Err(io::Error::new(io::ErrorKind::NotFound, "no such game"));
         }
-        let mut f = File::open(&self.index)?;
+        let mut f = self.index()?;
         f.seek(SeekFrom::Start(if self.v5 { n as u64 * ENTRY5 } else { HEADER + n as u64 * ENTRY }))?;
         self.read_entry(&mut f)
     }
@@ -245,7 +244,7 @@ impl Base {
     /// annotation glyphs. Moves the reader cannot play end the game there.
     pub fn pgn(&self, n: u32) -> io::Result<String> {
         let e = self.entry(n)?;
-        let mut f = File::open(&self.games)?;
+        let mut f = self.games()?;
         f.seek(SeekFrom::Start(e.offset))?;
         let mut bytes = Vec::with_capacity(e.len as usize);
         f.take(e.len as u64).read_to_end(&mut bytes)?;
@@ -300,9 +299,9 @@ impl Base {
 /// The names file: four lists (players, events, sites, rounds), each sorted and front-coded:
 /// a name's id, its count (1, 2 or 3 bytes by the largest), its length, the bytes it shares
 /// with the name before (not for the first), and the rest of it.
-fn read_names(path: &Path) -> io::Result<[Vec<Box<str>>; 4]> {
+fn read_names(r: impl Read) -> io::Result<[Vec<Box<str>>; 4]> {
     let mut bytes = vec![];
-    File::open(path)?.take(MAX_NAMES).read_to_end(&mut bytes)?;
+    r.take(MAX_NAMES).read_to_end(&mut bytes)?;
     if bytes.len() < NAMES_HEADER || &bytes[..8] != MAGIC_NAMES {
         return Err(bad("names"));
     }
@@ -334,7 +333,7 @@ fn read_names(path: &Path) -> io::Result<[Vec<Box<str>>; 4]> {
             last.truncate(shared);
             last.extend_from_slice(rest);
             if let Some(slot) = list.get_mut(id) {
-                *slot = super::games::text(&last).trim().into();
+                *slot = super::scan::text(&last).trim().into();
             }
         }
     }
@@ -345,9 +344,9 @@ fn read_names(path: &Path) -> io::Result<[Vec<Box<str>>; 4]> {
 /// (low first, the top bit set while more follow): its length times 8 plus its kind (0 player,
 /// 1 event, 2 site, 3 round; 4 the base's own facts, such as its description, skipped). A
 /// name's id is its place among those of its kind.
-fn read_names5(path: &Path) -> io::Result<[Vec<Box<str>>; 4]> {
+fn read_names5(r: impl Read) -> io::Result<[Vec<Box<str>>; 4]> {
     let mut bytes = vec![];
-    File::open(path)?.take(MAX_NAMES).read_to_end(&mut bytes)?;
+    r.take(MAX_NAMES).read_to_end(&mut bytes)?;
     let mut out: [Vec<Box<str>>; 4] = Default::default();
     let (mut at, mut names) = (0, 0u32);
     while at < bytes.len() {
@@ -371,7 +370,7 @@ fn read_names5(path: &Path) -> io::Result<[Vec<Box<str>>; 4]> {
         }
         // Kind 4 is the base's own facts, such as its description: skipped.
         if let Some(list) = out.get_mut(kind) {
-            list.push(super::games::text(name).trim().into());
+            list.push(super::scan::text(name).trim().into());
         }
         at += len;
     }
@@ -561,14 +560,14 @@ fn decode(bytes: &[u8]) -> Decoded {
         }
         let name = if l <= 240 {
             let n: Vec<u8> = it.by_ref().take(l as usize).collect();
-            super::games::text(&n).into_owned()
+            super::scan::text(&n).into_owned()
         } else {
             COMMON.get(l as usize - 241).map_or(String::new(), |s| s.to_string())
         };
         let Some(vl) = it.next() else { return out };
         let v: Vec<u8> = it.by_ref().take(vl as usize).collect();
         if !name.is_empty() && out.tags.len() < 64 {
-            out.tags.push((name, super::games::text(&v).into_owned()));
+            out.tags.push((name, super::scan::text(&v).into_owned()));
         }
     }
     let Some(flags) = it.next() else { return out };
@@ -636,7 +635,7 @@ fn decode(bytes: &[u8]) -> Decoded {
             Some(w) => text.push_str(&w),
             None if ended => {
                 let c: Vec<u8> = it.by_ref().take_while(|&b| b != 0).collect();
-                let c = super::games::text(&c).replace('}', ")");
+                let c = super::scan::text(&c).replace('}', ")");
                 if c.trim().is_empty() {
                     continue;
                 }
@@ -655,6 +654,12 @@ fn decode(bytes: &[u8]) -> Decoded {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::{Path, PathBuf};
+
+    /// The base whose index is at `path`.
+    fn open(path: &Path) -> io::Result<Base> {
+        Base::open(crate::tests::beside(path), path.extension().is_some_and(|e| e == "si5"))
+    }
 
     fn dir() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("src/chess/scid-test")
@@ -677,7 +682,7 @@ mod tests {
     }
 
     fn reads_as_scid_writes(name: &str) {
-        let base = Base::open(&dir().join(name)).unwrap();
+        let base = open(&dir().join(name)).unwrap();
         // A Windows checkout may give it CRLF line ends.
         let reference = std::fs::read_to_string(dir().join("ref.txt")).unwrap().replace("\r\n", "\n");
         let games: Vec<&str> = reference.split("=== ").skip(1).collect();
@@ -727,7 +732,7 @@ mod tests {
         b[2 * 56 + 28] |= 0x08;
         b[3 * 56 + 28] |= 0x10;
         std::fs::write(&si5, b).unwrap();
-        let base = Base::open(&si5).unwrap();
+        let base = open(&si5).unwrap();
         let mut seen = vec![];
         base.entries(|n, _| {
             seen.push(n);
@@ -736,40 +741,18 @@ mod tests {
         .unwrap();
         assert_eq!(seen.len(), 29);
         assert!(!seen.contains(&2) && seen.contains(&3));
-        let lib = super::super::Table::open(&si5).unwrap();
-        while !lib.progress().done {
-            std::thread::sleep(std::time::Duration::from_millis(5));
-        }
-        assert_eq!(lib.progress().games, 29);
-        // The deleted game's entry counts as read: the bar is full.
-        assert_eq!(lib.progress().read, lib.progress().size);
-        assert_eq!(lib.row(2).unwrap().event, base.event(&base.entry(3).unwrap()));
-        // Positions number games by their rows too: row 2 is SCID's game 3, and the
-        // deleted game's positions are not there.
-        let mut found = vec![];
-        super::super::games::positions(&si5, &|| false, |n, keys| found.push((n, keys.to_vec()))).unwrap();
-        assert_eq!(found.iter().map(|f| f.0).collect::<Vec<_>>(), (0..29).collect::<Vec<_>>());
-        let keys_of = |n: u32| {
-            let g = super::super::pgn::parse(&base.pgn(n).unwrap());
-            let mut k: Vec<u64> = g.main_line().iter().map_while(|&i| g.nodes[i as usize].fen.as_deref().and_then(super::super::pgn::board)).map(|b| super::super::polyglot::key(&b)).collect();
-            k.sort_unstable();
-            k.dedup();
-            k
-        };
-        assert_eq!(found[2].1, keys_of(3));
-        assert_ne!(keys_of(2), keys_of(3));
         std::fs::remove_dir_all(&d).unwrap();
         // Names cut off, kinds past the four, a length past the end: what was read, no panic.
         let p = std::env::temp_dir().join(format!("bragd-scid5-{}.sn5", std::process::id()));
         for bytes in [&[0x29, b'P'][..], &[0xff, 0xff, 0xff, 0xff, 0xff, 0xff], &[0x0f, b'x'], &[0x80]] {
             std::fs::write(&p, bytes).unwrap();
-            assert!(read_names5(&p).unwrap().iter().all(|l| l.is_empty()));
+            assert!(read_names5(std::fs::File::open(&p).unwrap()).unwrap().iter().all(|l| l.is_empty()));
         }
         // A file of empty names, a byte each: refused once past the most names, not gigabytes asked for.
         std::fs::write(&p, vec![0u8; MAX_NAME_COUNT as usize + 1]).unwrap();
-        assert!(read_names5(&p).is_err());
+        assert!(read_names5(std::fs::File::open(&p).unwrap()).is_err());
         std::fs::write(&p, vec![0u8; 1000]).unwrap();
-        assert_eq!(read_names5(&p).unwrap()[0].len(), 1000);
+        assert_eq!(read_names5(std::fs::File::open(&p).unwrap()).unwrap()[0].len(), 1000);
         // The base's description (kind 4), as `sc_base extra … description` writes it between
         // names: skipped, and the players after it still read. Every name here is under 16
         // bytes, so its length and kind fit one byte.
@@ -779,14 +762,14 @@ mod tests {
             sn5.extend_from_slice(name.as_bytes());
         }
         std::fs::write(&p, &sn5).unwrap();
-        let names = read_names5(&p).unwrap();
+        let names = read_names5(std::fs::File::open(&p).unwrap()).unwrap();
         assert_eq!((names[0].iter().map(|n| &**n).collect::<Vec<_>>(), &*names[1][0]), (vec!["Anand", "Carlsen"], "Wijk"));
         // SCID 4: a header that claims 16M names of each kind is refused; the real file reads.
         let mut sn4 = std::fs::read(dir().join("test.sn4")).unwrap();
         sn4[12..24].fill(0xff);
         std::fs::write(&p, &sn4).unwrap();
-        assert!(read_names(&p).is_err());
-        assert!(read_names(&dir().join("test.sn4")).is_ok());
+        assert!(read_names(std::fs::File::open(&p).unwrap()).is_err());
+        assert!(read_names(std::fs::File::open(dir().join("test.sn4")).unwrap()).is_ok());
         let _ = std::fs::remove_file(&p);
     }
 
@@ -806,7 +789,7 @@ mod tests {
     /// Bytes that are no SCID game, or a game cut short, give what can be read, never a panic.
     #[test]
     fn hostile_bytes_are_read_without_a_panic() {
-        let base = Base::open(&dir().join("test.si4")).unwrap();
+        let base = open(&dir().join("test.si4")).unwrap();
         let e = base.entry(0).unwrap();
         let mut bytes = std::fs::read(dir().join("test.sg4")).unwrap();
         bytes.truncate((e.offset + e.len as u64) as usize);
@@ -832,32 +815,7 @@ mod tests {
         // Not a SCID file at all.
         let p = std::env::temp_dir().join(format!("bragd-scid-{}.si4", std::process::id()));
         std::fs::write(&p, b"Scid.si\0junk").unwrap();
-        assert!(Base::open(&p).is_err());
+        assert!(open(&p).is_err());
         let _ = std::fs::remove_file(&p);
-    }
-
-    /// The table and the positions read a base as they read a PGN file.
-    #[test]
-    fn the_table_reads_a_base() {
-        table_reads("test.si4");
-        table_reads("test.si5");
-    }
-
-    fn table_reads(name: &str) {
-        use super::super::games;
-        let p = dir().join(name);
-        let lib = super::super::Table::open(&p).unwrap();
-        while !lib.progress().done {
-            std::thread::sleep(std::time::Duration::from_millis(5));
-        }
-        assert_eq!((lib.progress().games, lib.progress().error.clone()), (30, None));
-        let r = lib.row(0).unwrap();
-        assert_eq!((r.white.as_str(), r.black.as_str(), r.eco.as_str(), r.date.as_str(), r.result.as_str()), ("Morphy, Paul", "Duke Karl / Count Isouard", "C41", "1858.11.02", "1-0"));
-        assert_eq!((r.white_elo, r.moves, r.event.as_str()), (Some(2690), 17, "Paris"));
-        assert_eq!(lib.game(0).unwrap().main_line().len(), 33);
-        let mut seen = vec![];
-        games::positions(&p, &|| false, |n, keys| seen.push((n, keys.len()))).unwrap();
-        assert_eq!(seen.len(), 30);
-        assert!(seen[0].1 > 30);
     }
 }

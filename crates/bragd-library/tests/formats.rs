@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use bragd_core::format;
-use bragd_library::chess::pgn;
+use bragd_gamefiles::chess::pgn;
 use bragd_library::library::{FORMAT, Library, NewGame, Note};
 use bragd_library::slice::Query;
 

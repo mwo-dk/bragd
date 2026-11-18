@@ -5,256 +5,16 @@
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom};
+use std::io::{self, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 
-use super::openings;
-use super::pgn::{self, Word};
-
-/// The tags the table reads, by their place in `Head::tags`.
-const WANTED: [&str; 11] =
-    ["White", "Black", "WhiteElo", "BlackElo", "Result", "Date", "Event", "Site", "ECO", "Opening", "Variation"];
-const WHITE: usize = 0;
-const BLACK: usize = 1;
-const WHITE_ELO: usize = 2;
-const BLACK_ELO: usize = 3;
-const RESULT: usize = 4;
-const DATE: usize = 5;
-const EVENT: usize = 6;
-const SITE: usize = 7;
-const ECO: usize = 8;
-const OPENING: usize = 9;
-const VARIATION: usize = 10;
-/// The first moves kept to name the opening.
-const FIRST_MOVES: usize = 24;
-
-/// A game as the pass sees it: where it is, the headers wanted, its length in half-moves and
-/// its first moves.
-pub(crate) struct Head {
-    pub offset: u64,
-    pub len: u64,
-    pub tags: [String; WANTED.len()],
-    pub plies: u32,
-    pub sans: Vec<String>,
-    /// The game's bytes, up to `MAX_GAME` of them, when `scan` is asked to keep them.
-    pub text: Vec<u8>,
-    /// A chess game (`Pgn`), else draughts (`Pdn`) or xiangqi, which have no openings by name.
-    pub format: super::Format,
-}
-
-impl Head {
-    fn tag(&self, i: usize) -> &str {
-        self.tags[i].trim()
-    }
-
-    /// ECO code and opening name: the file's own, else by the moves, else by the code.
-    pub(crate) fn opening(&self) -> (String, String) {
-        if self.format != super::Format::Pgn {
-            return Default::default();
-        }
-        let eco = self.tag(ECO).to_string();
-        let mut name = self.tag(OPENING).to_string();
-        if !name.is_empty() && !self.tag(VARIATION).is_empty() {
-            name = format!("{name}: {}", self.tag(VARIATION));
-        }
-        if name.is_empty() {
-            match openings::by_moves(self.sans.iter().map(String::as_str)) {
-                Some((code, n)) if eco.is_empty() || eco == code => return (code.to_string(), n.to_string()),
-                _ => name = openings::by_eco(&eco).unwrap_or_default().to_string(),
-            }
-        }
-        (eco, name)
-    }
-
-}
-
-/// Bytes as text: UTF-8, else Windows-1252 (old PGN files are Latin-1).
-pub(crate) fn text(b: &[u8]) -> std::borrow::Cow<'_, str> {
-    match std::str::from_utf8(b) {
-        Ok(s) => s.into(),
-        Err(_) => encoding_rs::WINDOWS_1252.decode_without_bom_handling(b).0,
-    }
-}
-
-pub use super::lex::MAX_LINE;
-use super::lex::{Lexer, Movetext, Tok};
-/// The most of one game read to show it.
-pub const MAX_GAME: u32 = 16 << 20;
-
-/// The games of `r`, in order, each handed to `each` until it says to stop. Never fails on
-/// what it reads: lines that are no PGN are taken for moves, and skipped there.
-/// `format`: whose moves they are, chess's (`Pgn`), draughts' or xiangqi's. `full`: the moves
-/// counted to the end of each game (`Head::plies`); else past its first moves only where its
-/// comments start and end is looked at, to know where the next game starts. `keep`: each game's
-/// bytes kept in `Head::text` (PGN, PDN and xiangqi), its moves not looked at.
-pub(crate) fn scan(r: impl BufRead, stop: &AtomicBool, format: super::Format, full: bool, keep: bool, mut each: impl FnMut(&Head) -> bool) -> io::Result<()> {
-    let mut r = Lexer::new(r);
-    if matches!(format, super::Format::Kif | super::Format::Csa) {
-        return scan_shogi(&mut r, stop, format, each);
-    }
-    let mut head = Head { offset: 0, len: 0, tags: Default::default(), plies: 0, sans: vec![], text: vec![], format };
-    let mut line = Vec::new();
-    let (mut has_tags, mut has_moves, mut in_brace, mut depth) = (false, false, false, 0u32);
-    loop {
-        let mut at = r.at;
-        let n = r.line(&mut line)?;
-        // A byte order mark before the first tag is no part of the game.
-        if at == 0 && line.starts_with(b"\xEF\xBB\xBF") {
-            line.drain(..3);
-            at = 3;
-        }
-        // An unclosed `{` ends at the next game's first tag, at the start of a line.
-        if in_brace && line.starts_with(b"[Event \"") {
-            in_brace = false;
-        }
-        let starts = |head: &mut Head| {
-            for t in &mut head.tags {
-                t.clear();
-            }
-            head.offset = at;
-            head.plies = 0;
-            head.sans.clear();
-            head.text.clear();
-        };
-        let trimmed = line.trim_ascii_start();
-        let is_tag = n > 0 && !in_brace && trimmed.first() == Some(&b'[');
-        // A new game: tags after moves, an Event tag a second time, or the end.
-        let new = n == 0 || (is_tag && (has_moves || (trimmed.starts_with(b"[Event ") && !head.tags[EVENT].is_empty())));
-        if new && (has_tags || has_moves) {
-            head.len = at - head.offset;
-            if !each(&head) || stop.load(Ordering::Relaxed) {
-                return Ok(());
-            }
-            (has_tags, has_moves, in_brace, depth) = (false, false, false, 0);
-        }
-        if n == 0 {
-            return Ok(());
-        }
-        if new || (!has_tags && !has_moves) {
-            starts(&mut head);
-        }
-        if keep && head.text.len() + line.len() <= MAX_GAME as usize {
-            head.text.extend_from_slice(&line);
-        }
-        if is_tag {
-            if let Some((k, v)) = pgn::tag_pair(&text(&line))
-                // Xiangqi names its first player Red.
-                && let Some(i) = WANTED.iter().position(|w| w.eq_ignore_ascii_case(&k)).or_else(|| k.eq_ignore_ascii_case("Red").then_some(WHITE))
-            {
-                head.tags[i] = v;
-            }
-            has_tags = true;
-        } else if !trimmed.is_empty() && (trimmed[0] != b'%' || in_brace) {
-            has_moves = true;
-            moves(&text(&line), &mut head, &mut in_brace, &mut depth, full, keep);
-        }
-    }
-}
-
-/// The games of a KIF or CSA file (`crate::shogi`), read as they stream by: a CSA file's games
-/// end at a line of `/`, a KIF file is one game. Each game is read in full for its tags and
-/// moves, up to `MAX_GAME` bytes of it.
-fn scan_shogi(r: &mut Lexer<impl BufRead>, stop: &AtomicBool, format: super::Format, mut each: impl FnMut(&Head) -> bool) -> io::Result<()> {
-    let (mut game, mut line) = (Vec::new(), Vec::new());
-    let mut start = 0u64;
-    let mut emit = |game: &mut Vec<u8>, start: u64, end: u64| -> bool {
-        let keep = game.iter().any(|c| !c.is_ascii_whitespace());
-        let g = crate::shogi::parse(&crate::shogi::decode(game), format);
-        game.clear();
-        if !keep {
-            return true;
-        }
-        let mut head = Head { offset: start, len: end - start, tags: Default::default(), plies: g.main_line().len() as u32, sans: vec![], text: vec![], format };
-        for (k, v) in &g.tags {
-            if let Some(i) = WANTED.iter().position(|w| w.eq_ignore_ascii_case(k)) {
-                head.tags[i] = v.clone();
-            }
-        }
-        head.tags[RESULT] = g.result.clone();
-        each(&head)
-    };
-    loop {
-        let at = r.at;
-        if r.line(&mut line)? == 0 {
-            emit(&mut game, start, at);
-            return Ok(());
-        }
-        if format == super::Format::Csa && line.trim_ascii() == b"/" {
-            if !emit(&mut game, start, at) || stop.load(Ordering::Relaxed) {
-                return Ok(());
-            }
-            start = r.at;
-            continue;
-        }
-        if game.len() + line.len() <= MAX_GAME as usize {
-            game.extend_from_slice(&line);
-        }
-    }
-}
-
-/// A line of movetext: counts the main line's moves and keeps the first few. Not `full`, once
-/// the first few are kept, only where comments start and end is looked at; `skim`, only that.
-fn moves(line: &str, head: &mut Head, in_brace: &mut bool, depth: &mut u32, full: bool, skim: bool) {
-    let mut toks = Movetext::new(line, *in_brace);
-    while !skim && (full || head.sans.len() < FIRST_MOVES) {
-        let Some(tok) = toks.next() else {
-            *in_brace = toks.in_brace;
-            return;
-        };
-        match tok {
-            Tok::Open => *depth = depth.saturating_add(1),
-            Tok::Close => *depth = depth.saturating_sub(1),
-            Tok::Word(w) if *depth == 0 => {
-                let mv = match head.format {
-                    super::Format::Pdn if crate::draughts::is_move(w) => Word::Move(w, None),
-                    super::Format::Xiangqi if crate::xiangqi::is_move(w) => Word::Move(w, None),
-                    super::Format::Pdn | super::Format::Xiangqi => Word::Other,
-                    _ => pgn::word(w),
-                };
-                if let Word::Move(san, _) = mv {
-                    head.plies = head.plies.saturating_add(1);
-                    if head.sans.len() < FIRST_MOVES {
-                        head.sans.push(san.to_string());
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-    // Past the first moves, not `full`: only where comments start and end.
-    let (mut s, mut open) = (toks.rest(), toks.in_brace);
-    loop {
-        let b = s.as_bytes();
-        if open {
-            let Some(e) = memchr::memchr(b'}', b) else { break };
-            (s, open) = (&s[e + 1..], false);
-        } else {
-            match memchr::memchr2(b'{', b';', b) {
-                Some(i) if b[i] == b'{' => (s, open) = (&s[i + 1..], true),
-                _ => break,
-            }
-        }
-    }
-    *in_brace = open;
-}
-
-/// Counts the bytes read through it, for the progress.
-struct Counted<R> {
-    inner: R,
-    read: Arc<AtomicU64>,
-}
-
-impl<R: Read> Read for Counted<R> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let n = self.inner.read(buf)?;
-        self.read.fetch_add(n as u64, Ordering::Relaxed);
-        Ok(n)
-    }
-}
+use bragd_gamefiles::chess::scan::{self, BLACK, BLACK_ELO, DATE, EVENT, Counted, Head, MAX_GAME, RESULT, WHITE, WHITE_ELO, scan, text};
+use bragd_gamefiles::chess::{Format, pgn};
+use bragd_gamefiles::Progress;
 
 /// How the file is packed, by its name; a DhtmlXQ game by its first bytes, read as the PGN it
 /// is turned into (`xiangqi::dhtml_to_pgn`).
@@ -318,7 +78,7 @@ pub(crate) fn is_dhtml(path: &Path) -> bool {
         return false;
     }
     let mut head = [0u8; 64];
-    open_regular(path).and_then(|mut f| read_full(&mut f, &mut head)).is_ok_and(|n| crate::xiangqi::is_dhtml(&head[..n]))
+    open_regular(path).and_then(|mut f| read_full(&mut f, &mut head)).is_ok_and(|n| bragd_gamefiles::xiangqi::is_dhtml(&head[..n]))
 }
 
 /// What one file may cost: a file of endless tiny games, or a small packed file that unpacks
@@ -349,8 +109,8 @@ pub(crate) fn reader(path: &Path, read: Arc<AtomicU64>, unpacked: u64) -> io::Re
         Pack::Gz | Pack::Zst | Pack::Bz2 => Box::new(crate::stream::unpack(&path.to_string_lossy(), f)?.take(unpacked)),
         Pack::Dhtml => {
             let mut text = vec![];
-            f.take(crate::xiangqi::DHTML_MAX).read_to_end(&mut text)?;
-            let pgn = crate::xiangqi::dhtml_to_pgn(&String::from_utf8_lossy(&text));
+            f.take(bragd_gamefiles::xiangqi::DHTML_MAX).read_to_end(&mut text)?;
+            let pgn = bragd_gamefiles::xiangqi::dhtml_to_pgn(&String::from_utf8_lossy(&text));
             Box::new(io::Cursor::new(pgn.into_bytes()).take(unpacked))
         }
     })
@@ -363,39 +123,10 @@ fn is_pgn(p: &Path) -> bool {
 /// The PGN file a ChessBase archive (`.cbv`) of a PGN database unpacks to (`cbv::unpacked`,
 /// once per archive as it is); None for any other file.
 fn archived_pgn(path: &Path) -> Option<PathBuf> {
-    if !super::cbv::is_cbv(path) {
+    if !super::bases::is_cbv(path) {
         return None;
     }
-    super::cbv::unpacked(path).ok()?.into_iter().next().filter(|p| is_pgn(p))
-}
-
-/// The games of a SCID database (`scid`), from its index as it streams by: a game's place in
-/// the index is its `offset`. `read` counts the index bytes read, for the progress.
-fn scan_scid(base: &super::scid::Base, stop: &AtomicBool, read: &AtomicU64, mut each: impl FnMut(&Head) -> bool) -> io::Result<()> {
-    let mut last = 0u32;
-    let res = base.entries(|n, e| {
-        let mut head = Head { offset: n as u64, len: 0, tags: Default::default(), plies: e.plies, sans: vec![], text: vec![], format: super::Format::Pgn };
-        head.tags[WHITE] = base.white(e).to_string();
-        head.tags[BLACK] = base.black(e).to_string();
-        head.tags[EVENT] = base.event(e).to_string();
-        head.tags[SITE] = base.site(e).to_string();
-        head.tags[DATE] = e.date.clone();
-        head.tags[ECO] = e.eco.clone();
-        head.tags[RESULT] = ["*", "1-0", "0-1", "1/2-1/2"][e.result as usize & 3].to_string();
-        for (i, elo) in [(WHITE_ELO, e.white_elo), (BLACK_ELO, e.black_elo)] {
-            if elo > 0 {
-                head.tags[i] = elo.to_string();
-            }
-        }
-        // Deleted games, skipped, count as read too.
-        last = n + 1;
-        read.store(last as u64 * base.entry_len(), Ordering::Relaxed);
-        each(&head) && !stop.load(Ordering::Relaxed)
-    });
-    if !stop.load(Ordering::Relaxed) && last > 0 {
-        read.store(base.count as u64 * base.entry_len(), Ordering::Relaxed);
-    }
-    res
+    super::bases::unpacked(path).ok()?.into_iter().next().filter(|p| is_pgn(p))
 }
 
 /// The games of a ChessBase database (`cbh`), as the pass over a PGN file sees them: a game's
@@ -404,16 +135,16 @@ fn scan_scid(base: &super::scid::Base, stop: &AtomicBool, read: &AtomicU64, mut 
 /// too), the second its `.cbh` file read.
 /// `full` as `scan` takes it, for an archive of a PGN database (`archived_pgn`).
 fn scan_cbh(path: &Path, stop: &AtomicBool, read: &AtomicU64, size: u64, full: bool, mut each: impl FnMut(&Head) -> bool) -> io::Result<()> {
-    let mut head = Head { offset: 0, len: 0, tags: Default::default(), plies: 0, sans: vec![], text: vec![], format: super::Format::Pgn };
+    let mut head = Head { offset: 0, len: 0, tags: Default::default(), plies: 0, sans: vec![], text: vec![], format: Format::Pgn };
     let share = |n: u64, of: u64, base: u64| read.store(base + (n.min(of) as u128 * (size / 2) as u128 / of.max(1) as u128) as u64, Ordering::Relaxed);
-    let cbh_len = if super::cbv::is_cbv(path) {
+    let cbh_len = if super::bases::is_cbv(path) {
         let mut len = 0;
-        let unpacked = super::cbv::unpacked_with(path, &|| stop.load(Ordering::Relaxed), &|n, of| share(n, of, 0))?;
+        let unpacked = super::bases::unpacked_with(path, &|| stop.load(Ordering::Relaxed), &|n, of| share(n, of, 0))?;
         if let Some(pgn) = unpacked.first().filter(|p| is_pgn(p)) {
             let of = std::fs::metadata(pgn)?.len();
             let counted = Arc::new(AtomicU64::new(0));
             let r = BufReader::with_capacity(1 << 16, Counted { inner: File::open(pgn)?, read: counted.clone() });
-            return scan(r, stop, super::Format::Pgn, full, false, |h| {
+            return scan(r, stop, Format::Pgn, full, false, |h| {
                 share(counted.load(Ordering::Relaxed), of, size / 2);
                 each(h)
             });
@@ -429,16 +160,16 @@ fn scan_cbh(path: &Path, stop: &AtomicBool, read: &AtomicU64, size: u64, full: b
         Some(len) => share(n, len, size / 2),
         None => read.store(n, Ordering::Relaxed),
     };
-    super::cbh::scan(path, &|| stop.load(Ordering::Relaxed), &progress, |g| {
+    super::bases::cbh_scan(path, &|| stop.load(Ordering::Relaxed), &progress, |record, g| {
         for t in &mut head.tags {
             t.clear();
         }
         for (k, v) in &g.tags {
-            if let Some(i) = WANTED.iter().position(|w| w == k) {
+            if let Some(i) = scan::WANTED.iter().position(|w| w == k) {
                 head.tags[i].clone_from(v);
             }
         }
-        head.offset = g.record;
+        head.offset = record;
         head.plies = g.moves * 2;
         each(&head)
     })
@@ -446,21 +177,21 @@ fn scan_cbh(path: &Path, stop: &AtomicBool, read: &AtomicU64, size: u64, full: b
 
 /// Whose games a PGN-family file holds: draughts for `.pdn`, xiangqi when the first tags of a
 /// PGN file say so (`xiangqi::is_xiangqi`), else chess.
-pub fn kind(path: &Path) -> super::Format {
-    if super::scid::is_scid(path) {
-        return super::Format::Pgn;
+pub fn kind(path: &Path) -> Format {
+    if super::bases::is_scid(path) {
+        return Format::Pgn;
     }
-    if let Some(f @ (super::Format::Pdn | super::Format::Kif | super::Format::Csa)) = super::format(path) {
+    if let Some(f @ (Format::Pdn | Format::Kif | Format::Csa)) = super::format(path) {
         return f;
     }
-    if super::cbh::is_cbh(path) {
-        return super::Format::Pgn;
+    if super::bases::is_cbh(path) {
+        return Format::Pgn;
     }
     let mut head = vec![];
-    let xiangqi = reader(path, Arc::default(), crate::xiangqi::SNIFF as u64)
-        .and_then(|r| r.take(crate::xiangqi::SNIFF as u64).read_to_end(&mut head))
-        .is_ok_and(|_| crate::xiangqi::is_xiangqi(&head));
-    if xiangqi { super::Format::Xiangqi } else { super::Format::Pgn }
+    let xiangqi = reader(path, Arc::default(), bragd_gamefiles::xiangqi::SNIFF as u64)
+        .and_then(|r| r.take(bragd_gamefiles::xiangqi::SNIFF as u64).read_to_end(&mut head))
+        .is_ok_and(|_| bragd_gamefiles::xiangqi::is_xiangqi(&head));
+    if xiangqi { Format::Xiangqi } else { Format::Pgn }
 }
 
 /// One game in the table: 48 bytes, so a million games take 48 MB.
@@ -582,19 +313,6 @@ fn read_full(r: &mut impl Read, buf: &mut [u8]) -> io::Result<usize> {
     Ok(n)
 }
 
-/// How far the table has come.
-#[derive(Clone, Debug, Default, Serialize)]
-pub struct Progress {
-    pub games: usize,
-    pub done: bool,
-    /// Bytes of the file read, of its size.
-    pub read: u64,
-    pub size: u64,
-    /// Stopped at a limit (`Limits`): only the first `games` games are in the table.
-    pub capped: bool,
-    pub error: Option<String>,
-}
-
 /// What the table shows: which games, in what order.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -668,16 +386,16 @@ pub struct Row {
 pub struct Table {
     pub path: PathBuf,
     /// `Pgn`, or `Pdn` for draughts.
-    pub format: super::Format,
+    pub format: Format,
     shared: Arc<Mutex<Shared>>,
     read: Arc<AtomicU64>,
     size: u64,
     stop: Arc<AtomicBool>,
     source: Mutex<Source>,
     /// A SCID database's names and files, when the file is one (`scid`).
-    scid: Option<Arc<super::scid::Base>>,
+    scid: Option<Arc<bragd_gamefiles::chess::scid::Base>>,
     /// A ChessBase archive's unpacked files, kept while this reads them (`cbv::hold`).
-    _held: Option<super::cbv::Held>,
+    _held: Option<super::bases::Held>,
 }
 
 impl Drop for Table {
@@ -703,23 +421,23 @@ impl Table {
         let read = Arc::new(AtomicU64::new(0));
         let shared = Arc::new(Mutex::new(Shared::default()));
         let source = Mutex::new(Source { path: path.to_path_buf(), open: None });
-        if super::scid::is_scid(path) {
-            let base = Arc::new(super::scid::Base::open(path)?);
+        if super::bases::is_scid(path) {
+            let base = Arc::new(super::bases::scid(path)?);
             let (sh, st, b, rd) = (shared.clone(), stop.clone(), base.clone(), read.clone());
             std::thread::Builder::new()
                 .name("chess-games".into())
-                .spawn(move || index(|each| scan_scid(&b, &st, &rd, each), &sh, super::Format::Pgn, limits))?;
-            return Ok(Table { path: path.to_path_buf(), format: super::Format::Pgn, shared, read, size, stop, source, scid: Some(base), _held: None });
+                .spawn(move || index(|each| scan::scid_heads(&b, &st, &rd, each), &sh, Format::Pgn, limits))?;
+            return Ok(Table { path: path.to_path_buf(), format: Format::Pgn, shared, read, size, stop, source, scid: Some(base), _held: None });
         }
-        if super::cbh::is_cbh(path) {
+        if super::bases::is_cbh(path) {
             // An archive is unpacked first, then read: its bar has both (`scan_cbh`).
-            let size = if super::cbv::is_cbv(path) { size.saturating_mul(2) } else { size };
+            let size = if super::bases::is_cbv(path) { size.saturating_mul(2) } else { size };
             let (sh, st, rd, p) = (shared.clone(), stop.clone(), read.clone(), path.to_path_buf());
             std::thread::Builder::new()
                 .name("chess-games".into())
-                .spawn(move || index(|each| scan_cbh(&p, &st, &rd, size, true, each), &sh, super::Format::Pgn, limits))?;
-            let _held = super::cbv::is_cbv(path).then(|| super::cbv::hold(path));
-            return Ok(Table { path: path.to_path_buf(), format: super::Format::Pgn, shared, read, size, stop, source, scid: None, _held });
+                .spawn(move || index(|each| scan_cbh(&p, &st, &rd, size, true, each), &sh, Format::Pgn, limits))?;
+            let _held = super::bases::is_cbv(path).then(|| super::bases::hold(path));
+            return Ok(Table { path: path.to_path_buf(), format: Format::Pgn, shared, read, size, stop, source, scid: None, _held });
         }
         let r = reader(path, read.clone(), u64::MAX)?;
         let (sh, st, rd) = (shared.clone(), stop.clone(), read.clone());
@@ -823,13 +541,13 @@ impl Table {
             black: name(r.black),
             white_elo: (r.white_elo > 0).then_some(r.white_elo),
             black_elo: (r.black_elo > 0).then_some(r.black_elo),
-            result: if self.format == super::Format::Pgn || r.result_name == u32::MAX { result_text(r.result).into() } else { name(r.result_name) },
+            result: if self.format == Format::Pgn || r.result_name == u32::MAX { result_text(r.result).into() } else { name(r.result_name) },
             date: date_text(r.date),
             event: name(r.event),
             eco: eco_text(r.eco),
             opening: name(r.opening),
             // Shogi counts every move; chess, draughts and xiangqi a move of each side as one.
-            moves: if matches!(self.format, super::Format::Kif | super::Format::Csa) { r.plies as u32 } else { (r.plies as u32).div_ceil(2) },
+            moves: if matches!(self.format, Format::Kif | Format::Csa) { r.plies as u32 } else { (r.plies as u32).div_ceil(2) },
         })
     }
 
@@ -846,13 +564,13 @@ impl Table {
         if let Some(pgn) = archived_pgn(&self.path) {
             return Ok(text(&Source { path: pgn, open: None }.read(offset, len)?).into_owned());
         }
-        if super::cbh::is_cbh(&self.path) {
-            return super::cbh::pgn(&self.path, offset);
+        if super::bases::is_cbh(&self.path) {
+            return super::bases::cbh_pgn(&self.path, offset);
         }
         let bytes = self.source.lock().unwrap_or_else(|e| e.into_inner()).read(offset, len)?;
         // KIF and CSA files are often in Shift_JIS.
         Ok(match self.format {
-            super::Format::Kif | super::Format::Csa => crate::shogi::decode(&bytes),
+            Format::Kif | Format::Csa => bragd_gamefiles::shogi::decode(&bytes),
             _ => text(&bytes).into_owned(),
         })
     }
@@ -861,17 +579,17 @@ impl Table {
     pub fn game(&self, i: u32) -> io::Result<pgn::Game> {
         let text = self.text(i)?;
         Ok(match self.format {
-            super::Format::Pdn => crate::draughts::parse(&text),
-            super::Format::Xiangqi => crate::xiangqi::parse(&text),
-            super::Format::Kif | super::Format::Csa => crate::shogi::parse(&text, self.format),
+            Format::Pdn => bragd_gamefiles::draughts::parse(&text),
+            Format::Xiangqi => bragd_gamefiles::xiangqi::parse(&text),
+            Format::Kif | Format::Csa => bragd_gamefiles::shogi::parse(&text, self.format),
             _ => pgn::parse(&text),
         })
     }
 }
 
 /// The pass over the games: their records, handed over in batches so the table fills.
-fn index(feed: impl FnOnce(&mut dyn FnMut(&Head) -> bool) -> io::Result<()>, shared: &Mutex<Shared>, format: super::Format, limits: Limits) {
-    let chess = format == super::Format::Pgn;
+fn index(feed: impl FnOnce(&mut dyn FnMut(&Head) -> bool) -> io::Result<()>, shared: &Mutex<Shared>, format: Format, limits: Limits) {
+    let chess = format == Format::Pgn;
     // What the names cost so far: their bytes, twice (the list and the lookup), and the rest.
     let mut names = 0usize;
     let (mut games, mut capped) = (0usize, false);
@@ -944,7 +662,7 @@ fn main_line_keys(g: &pgn::Game) -> Vec<u64> {
         .main_line()
         .iter()
         .map_while(|&i| g.nodes[i as usize].fen.as_deref().and_then(pgn::board))
-        .map(|b| super::polyglot::key(&b))
+        .map(|b| bragd_gamefiles::chess::polyglot::key(&b))
         .collect();
     keys.sort_unstable();
     keys.dedup();
@@ -961,10 +679,10 @@ pub const POSITION_ROWS: usize = 2_000_000;
 /// never has more than one game in memory. Up to `POSITION_GAMES` games and `POSITION_ROWS`
 /// positions; `stop` is asked between games, and true ends it there.
 pub fn positions(path: &Path, stop: &dyn Fn() -> bool, mut each: impl FnMut(u32, &[u64])) -> io::Result<()> {
-    if super::scid::is_scid(path) {
+    if super::bases::is_scid(path) {
         // The games as the table lists them (`scan_scid`: deleted ones left out), so a game's
         // index here is its row's, not its place in the SCID index.
-        let base = super::scid::Base::open(path)?;
+        let base = super::bases::scid(path)?;
         let mut games = vec![];
         base.entries(|n, _| {
             games.push(n);
@@ -975,7 +693,7 @@ pub fn positions(path: &Path, stop: &dyn Fn() -> bool, mut each: impl FnMut(u32,
             if rows >= POSITION_ROWS || stop() {
                 break;
             }
-            let mut keys = main_line_keys(&super::pgn::parse(&base.pgn(n)?));
+            let mut keys = main_line_keys(&pgn::parse(&base.pgn(n)?));
             keys.truncate(POSITION_ROWS - rows);
             rows += keys.len();
             each(row, &keys);
@@ -984,7 +702,7 @@ pub fn positions(path: &Path, stop: &dyn Fn() -> bool, mut each: impl FnMut(u32,
     }
     let (mut n, mut rows) = (0u32, 0usize);
     let mut flush = |game: &str, n: &mut u32, rows: &mut usize| {
-        let mut keys = main_line_keys(&super::pgn::parse(game));
+        let mut keys = main_line_keys(&pgn::parse(game));
         keys.truncate(POSITION_ROWS.saturating_sub(*rows));
         *rows += keys.len();
         each(*n, &keys);
@@ -993,24 +711,24 @@ pub fn positions(path: &Path, stop: &dyn Fn() -> bool, mut each: impl FnMut(u32,
     if let Some(pgn) = archived_pgn(path) {
         return positions(&pgn, stop, each);
     }
-    if super::cbh::is_cbh(path) {
+    if super::bases::is_cbh(path) {
         // The records first, then each game read as PGN: the game's index is its place in the list.
         let mut records = vec![];
-        super::cbh::scan(path, stop, &|_| {}, |g| {
-            records.push(g.record);
+        super::bases::cbh_scan(path, stop, &|_| {}, |record, _| {
+            records.push(record);
             records.len() < POSITION_GAMES as usize
         })?;
         for r in records {
             if rows >= POSITION_ROWS || stop() {
                 break;
             }
-            flush(&super::cbh::pgn(path, r).unwrap_or_else(|_| "*\n".into()), &mut n, &mut rows);
+            flush(&super::bases::cbh_pgn(path, r).unwrap_or_else(|_| "*\n".into()), &mut n, &mut rows);
         }
         return Ok(());
     }
     // The games as the table cuts them (`scan`), so a game's index here is its row's.
     let r = BufReader::with_capacity(1 << 16, reader(path, Arc::default(), 1 << 30)?);
-    scan(r, &AtomicBool::new(false), super::Format::Pgn, false, true, |h| {
+    scan(r, &AtomicBool::new(false), Format::Pgn, false, true, |h| {
         if n >= POSITION_GAMES || rows >= POSITION_ROWS || stop() {
             return false;
         }
@@ -1039,10 +757,10 @@ mod tests {
         assert_eq!(none, 0);
         assert_eq!(seen.len(), 2);
         // Both start 1.e4 e5: the position after it is in both, the start position in neither.
-        let after = |fen: &str| crate::chess::polyglot::key(&crate::chess::pgn::board(fen).unwrap());
+        let after = |fen: &str| bragd_gamefiles::chess::polyglot::key(&pgn::board(fen).unwrap());
         let e4e5 = after("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2");
         assert!(seen.iter().all(|(_, k)| k.contains(&e4e5)));
-        assert!(seen.iter().all(|(_, k)| !k.contains(&after(crate::chess::pgn::START))));
+        assert!(seen.iter().all(|(_, k)| !k.contains(&after(pgn::START))));
         // The first game's 4.dxe5 is in it alone; the comment with a [ line does not split a game.
         assert_eq!((seen[0].1.len(), seen[1].1.len()), (7, 5));
     }
@@ -1093,7 +811,7 @@ mod tests {
     fn a_byte_order_mark_is_no_game() {
         let text = format!("\u{feff}{TWO}");
         let mut events = vec![];
-        scan(text.as_bytes(), &AtomicBool::new(false), super::super::Format::Pgn, true, false, |h| {
+        scan(text.as_bytes(), &AtomicBool::new(false), Format::Pgn, true, false, |h| {
             events.push((h.offset, h.tags[EVENT].clone()));
             true
         })
@@ -1280,5 +998,62 @@ mod tests {
             let g = l.game(i).unwrap();
             println!("game {i}: {} moves, {} nodes, error {:?}, in {:?}", g.main_line().len(), g.nodes.len(), g.error, t.elapsed());
         }
+    }
+
+    /// A DhtmlXQ game as the community databases keep it, in brief: a byte order mark, tags on
+    /// lines of their own, the pieces from the usual start.
+    const DHTML: &str = "\u{feff}[DhtmlXQ]\n[DhtmlXQ_ver]www_vietcotuong_com[/DhtmlXQ_ver]\n[DhtmlXQ_red]布局圣手[/DhtmlXQ_red]\n[DhtmlXQ_black]兰帝[/DhtmlXQ_black]\n[DhtmlXQ_result]红胜[/DhtmlXQ_result]\n[DhtmlXQ_binit]0919293949596979891777062646668600102030405060708012720323436383[/DhtmlXQ_binit]\n[DhtmlXQ_movelist]262563641927[/DhtmlXQ_movelist]\n";
+
+    #[test]
+    fn a_dhtml_file_in_the_table() {
+        let d = std::env::temp_dir().join(format!("bragd-xqd-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("0001-对兵互进右马局");
+        std::fs::write(&p, DHTML).unwrap();
+        assert_eq!(super::super::sniff(&p), Some(Format::Pgn));
+        assert_eq!(kind(&p), Format::Xiangqi);
+        let lib = Table::open(&p).unwrap();
+        while !lib.progress().done {
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+        let r = lib.row(0).unwrap();
+        assert_eq!((r.white.as_str(), r.black.as_str(), r.moves), ("布局圣手", "兰帝", 2));
+        assert_eq!(lib.game(0).unwrap().error, None);
+        // A name with a dot that is no file type's ending is sniffed too; a real ending is not.
+        for name in ["001-1.古谱的启示", "002.Opening game", "003.a-b", "game.abc", "004.xq2009"] {
+            let q = d.join(name);
+            std::fs::write(&q, DHTML).unwrap();
+            assert_eq!(super::super::sniff(&q), Some(Format::Pgn), "{name}");
+        }
+        for name in ["game.rs", "game.PNG", "game.json"] {
+            let q = d.join(name);
+            std::fs::write(&q, DHTML).unwrap();
+            assert_eq!(super::super::sniff(&q), None, "{name}");
+        }
+        assert!(dhtml_name(".hidden") && dhtml_name("G.CHE") && !dhtml_name("x.json"));
+        // Any other file with no ending is no game, and a PGN file stays one.
+        let other = d.join("README");
+        std::fs::write(&other, "[DhtmX").unwrap();
+        assert_eq!(super::super::sniff(&other), None);
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// A draughts file's rows keep its own results (`2-0`), which the search finds as chess's.
+    #[test]
+    fn a_draughts_file_in_the_table() {
+        let d = std::env::temp_dir().join(format!("bragd-pdn-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("games.pdn");
+        std::fs::write(&p, "[Event \"Club\"]\n[White \"Anna\"]\n[Black \"Bram\"]\n[Result \"2-0\"]\n\n1. 32-28 19-23 2. 28x19 14x23 2-0\n\n[GameType \"21\"]\n[White \"Carl\"]\n[Black \"Dora\"]\n[Result \"0-1\"]\n\n1. 11-15 23-19 0-1\n").unwrap();
+        let lib = Table::open(&p).unwrap();
+        while !lib.progress().done {
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+        assert_eq!((lib.format, lib.progress().games), (Format::Pdn, 2));
+        let r = lib.row(0).unwrap();
+        assert_eq!((r.white.as_str(), r.result.as_str(), r.moves, r.eco.as_str(), r.opening.as_str()), ("Anna", "2-0", 2, "", ""));
+        assert_eq!(lib.query(&Query { result: "1-0".into(), ..Default::default() }), vec![0]);
+        assert_eq!(lib.game(1).unwrap().error, None);
+        std::fs::remove_dir_all(&d).unwrap();
     }
 }

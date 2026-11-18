@@ -558,21 +558,20 @@ mod tests {
     }
 
     #[test]
-    fn a_file_in_the_table() {
-        let d = std::env::temp_dir().join(format!("bragd-xq-{}", std::process::id()));
-        std::fs::create_dir_all(&d).unwrap();
-        let p = d.join("games.pgn");
-        std::fs::write(&p, "[Game \"Chinese Chess\"]\n[Event \"Club\"]\n[Red \"Hu\"]\n[Black \"Lin\"]\n[Result \"1-0\"]\n\n1. h2e2 h9g7 2. h0g2 1-0\n\n[Game \"Chinese Chess\"]\n[Red \"Wang\"]\n[Black \"Zhao\"]\n\n1. 炮二平五 *\n").unwrap();
-        assert_eq!(crate::chess::games::kind(&p), crate::chess::Format::Xiangqi);
-        let lib = crate::chess::Table::open(&p).unwrap();
-        while !lib.progress().done {
-            std::thread::sleep(std::time::Duration::from_millis(2));
-        }
-        assert_eq!(lib.format, crate::chess::Format::Xiangqi);
-        let r = lib.row(0).unwrap();
-        assert_eq!((r.white.as_str(), r.black.as_str(), r.moves, r.opening.as_str()), ("Hu", "Lin", 2, ""));
-        assert_eq!(lib.game(1).unwrap().error, None);
-        std::fs::remove_dir_all(&d).unwrap();
+    fn a_file_listed() {
+        use crate::chess::scan::{scan, BLACK, WHITE};
+        let text = "[Game \"Chinese Chess\"]\n[Event \"Club\"]\n[Red \"Hu\"]\n[Black \"Lin\"]\n[Result \"1-0\"]\n\n1. h2e2 h9g7 2. h0g2 1-0\n\n[Game \"Chinese Chess\"]\n[Red \"Wang\"]\n[Black \"Zhao\"]\n\n1. 炮二平五 *\n";
+        assert!(is_xiangqi(text.as_bytes()));
+        let mut heads = vec![];
+        scan(text.as_bytes(), &std::sync::atomic::AtomicBool::new(false), crate::chess::Format::Xiangqi, true, false, |h| {
+            heads.push((h.offset as usize, h.len as usize, h.tag(WHITE).to_string(), h.tag(BLACK).to_string(), h.plies, h.opening()));
+            true
+        })
+        .unwrap();
+        assert_eq!(heads.len(), 2);
+        assert_eq!((heads[0].2.as_str(), heads[0].3.as_str(), heads[0].4, heads[0].5.clone()), ("Hu", "Lin", 3, Default::default()));
+        let (at, len, ..) = heads[1];
+        assert_eq!(parse(&text[at..at + len]).error, None);
     }
 
     /// A DhtmlXQ game as the community databases keep it: a byte order mark, tags on lines of
@@ -632,37 +631,5 @@ mod tests {
         assert_eq!(pgn.matches('(').count(), pgn.matches(')').count());
     }
 
-    #[test]
-    fn a_dhtml_file_in_the_table() {
-        let d = std::env::temp_dir().join(format!("bragd-xqd-{}", std::process::id()));
-        std::fs::create_dir_all(&d).unwrap();
-        let p = d.join("0001-对兵互进右马局");
-        std::fs::write(&p, DHTML).unwrap();
-        assert_eq!(crate::chess::sniff(&p), Some(crate::chess::Format::Pgn));
-        assert_eq!(crate::chess::games::kind(&p), crate::chess::Format::Xiangqi);
-        let lib = crate::chess::Table::open(&p).unwrap();
-        while !lib.progress().done {
-            std::thread::sleep(std::time::Duration::from_millis(2));
-        }
-        let r = lib.row(0).unwrap();
-        assert_eq!((r.white.as_str(), r.black.as_str(), r.moves), ("布局圣手", "兰帝", 2));
-        assert_eq!(lib.game(0).unwrap().error, None);
-        // A name with a dot that is no file type's ending is sniffed too; a real ending is not.
-        for name in ["001-1.古谱的启示", "002.Opening game", "003.a-b", "game.abc", "004.xq2009"] {
-            let q = d.join(name);
-            std::fs::write(&q, DHTML).unwrap();
-            assert_eq!(crate::chess::sniff(&q), Some(crate::chess::Format::Pgn), "{name}");
-        }
-        for name in ["game.rs", "game.PNG", "game.json"] {
-            let q = d.join(name);
-            std::fs::write(&q, DHTML).unwrap();
-            assert_eq!(crate::chess::sniff(&q), None, "{name}");
-        }
-        assert!(crate::chess::games::dhtml_name(".hidden") && crate::chess::games::dhtml_name("G.CHE") && !crate::chess::games::dhtml_name("x.json"));
-        // Any other file with no ending is no game, and a PGN file stays one.
-        let other = d.join("README");
-        std::fs::write(&other, "[DhtmX").unwrap();
-        assert_eq!(crate::chess::sniff(&other), None);
-        std::fs::remove_dir_all(&d).unwrap();
-    }
+
 }

@@ -386,23 +386,20 @@ mod tests {
     }
 
     #[test]
-    fn a_file_in_the_table() {
-        let d = std::env::temp_dir().join(format!("bragd-pdn-{}", std::process::id()));
-        std::fs::create_dir_all(&d).unwrap();
-        let p = d.join("games.pdn");
-        std::fs::write(&p, "[Event \"Club\"]\n[White \"Anna\"]\n[Black \"Bram\"]\n[Result \"2-0\"]\n\n1. 32-28 19-23 2. 28x19 14x23 2-0\n\n[GameType \"21\"]\n[White \"Carl\"]\n[Black \"Dora\"]\n[Result \"0-1\"]\n\n1. 11-15 23-19 0-1\n").unwrap();
-        let lib = crate::chess::Table::open(&p).unwrap();
-        while !lib.progress().done {
-            std::thread::sleep(std::time::Duration::from_millis(2));
-        }
-        assert_eq!(lib.progress().games, 2);
-        let r = lib.row(0).unwrap();
-        assert_eq!((r.white.as_str(), r.result.as_str(), r.moves, r.eco.as_str(), r.opening.as_str()), ("Anna", "2-0", 2, "", ""));
-        let q = crate::chess::Query { result: "1-0".into(), ..Default::default() };
-        assert_eq!(lib.query(&q), vec![0]);
-        let g = lib.game(1).unwrap();
+    fn a_file_listed() {
+        use crate::chess::scan::{scan, RESULT, WHITE};
+        let text = "[Event \"Club\"]\n[White \"Anna\"]\n[Black \"Bram\"]\n[Result \"2-0\"]\n\n1. 32-28 19-23 2. 28x19 14x23 2-0\n\n[GameType \"21\"]\n[White \"Carl\"]\n[Black \"Dora\"]\n[Result \"0-1\"]\n\n1. 11-15 23-19 0-1\n";
+        let mut heads = vec![];
+        scan(text.as_bytes(), &std::sync::atomic::AtomicBool::new(false), crate::chess::Format::Pdn, true, false, |h| {
+            heads.push((h.offset as usize, h.len as usize, h.tag(WHITE).to_string(), h.tag(RESULT).to_string(), h.plies, h.opening()));
+            true
+        })
+        .unwrap();
+        assert_eq!(heads.len(), 2);
+        assert_eq!((heads[0].2.as_str(), heads[0].3.as_str(), heads[0].4, heads[0].5.clone()), ("Anna", "2-0", 4, Default::default()));
+        let (at, len, ..) = heads[1];
+        let g = parse(&text[at..at + len]);
         assert_eq!((g.error.clone(), variant(&g)), (None, ENGLISH));
-        std::fs::remove_dir_all(&d).unwrap();
     }
 
     /// A game made up to cost: thousands of variations, each a capture by a flying king among

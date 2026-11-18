@@ -297,7 +297,7 @@ const NAMES_AGAIN: &str = "BEGIN;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::pgn;
+    use bragd_gamefiles::chess::pgn;
     use crate::library::NewGame;
     use crate::library::tests::{Dir, pgn as pgn_text};
     use rusqlite::StatementStatus;

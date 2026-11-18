@@ -1,7 +1,8 @@
 // Shared by `chess_golden.rs`: one line per thing a chess reader decides, so that any change
 // in moves, positions, keys or start FENs shows as a changed line.
 
-use bragd_library::chess::{games, pgn, polyglot, Table};
+use bragd_gamefiles::chess::{pgn, polyglot};
+use bragd_library::chess::{games, Table};
 use bragd_library::library::NewGame;
 use std::fmt::Write;
 use std::path::Path;

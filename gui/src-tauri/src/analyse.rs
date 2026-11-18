@@ -17,7 +17,8 @@ use bragd_engines::seam::{self, Notation};
 use bragd_engines::session::{Session, think};
 use bragd_engines::syzygy::{Tablebases, material};
 use bragd_games::{State, Variant};
-use bragd_library::chess::{openings, polyglot};
+use bragd_gamefiles::chess::openings;
+use bragd_library::chess::books;
 use bragd_positions::{Annotation, Evaluation, Mark, Second, Store};
 use serde::Serialize;
 
@@ -529,7 +530,7 @@ pub fn known(cfg: &Config, variant: &str, initial: Option<&str>, entries: &[Stri
     let mut book = vec![];
     for path in &cfg.engines.books {
         let name = Path::new(path).file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
-        for m in polyglot::moves_at(Path::new(path), &state.position) {
+        for m in books::moves_at(Path::new(path), &state.position) {
             if let Some(l) = seam::entry(&state, Notation::Wire, &m.uci) {
                 book.push(BookView { entry: l.wire.clone(), notation: l.notation.clone(), share: m.share, book: name.clone() });
             }
