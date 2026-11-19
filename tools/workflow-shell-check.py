@@ -12,7 +12,7 @@ A step with `shell: pwsh` is skipped; every other step is bash.
 And no token that can write in a job that builds: a job running cargo, npm, npx, tauri, nix,
 flatpak-builder, a container image (docker, podman, buildah) or a BSD virtual machine (also inside a packaging/ or tools/ script it runs) runs
 every dependency's build scripts, macros and install scripts, on a machine all its steps share, so
-it must have no `write` permission (none given counts as write) and no `secrets.*TOKEN*`; an image build holds no secret, no github.token and no registry login at
+it must have no `write` permission (none given counts as write) and no `secrets.*` but the read-only GITHUB_TOKEN (a signing certificate is as bad as a token); an image build holds no secret, no github.token and no registry login at
 all. Builds hand their files on as artifacts to a job that builds nothing. Checked against the fixtures in
 tools/fixtures/workflows/ first, so the check can fail.
 
@@ -181,7 +181,7 @@ IMAGE = re.compile(r"""
   | \bbuildah\s+(?:bud|build|from|run)\b | \buses:\s*(?:docker/build-push-action|docker/bake-action|redhat-actions/buildah-build)""", re.X)
 # An image build may not even hold a read-only token: no secret, no github.token, no registry login.
 REACH = re.compile(r"\bsecrets\.\w+|\bgithub\.token\b|\b(?:docker|podman|buildah|skopeo|helm|oras|crane)\s+login\b|\buses:\s*docker/login-action")
-TOKEN = re.compile(r"\bsecrets\.(?!GITHUB_TOKEN\b)\w*TOKEN\w*")
+SECRET = re.compile(r"\bsecrets\.(?!GITHUB_TOKEN\b)\w+")
 SCRIPT = re.compile(r"\b(?:packaging|tools)/[\w./-]+\.(?:sh|py)\b")
 
 
@@ -236,7 +236,7 @@ def token_faults(path: Path) -> list[str]:
             faults.append(f"{path}:{i + 1}: job {name} builds ({what}) with no permissions given, so possibly write")
         elif re.search(r"\bwrite", perms):
             faults.append(f"{path}:{i + 1}: job {name} builds ({what}) with a token that can write: build without it, upload from a job that builds nothing")
-        if (m := TOKEN.search(uncommented(top + job))):
+        if (m := SECRET.search(uncommented(top + job))):
             faults.append(f"{path}:{i + 1}: job {name} builds ({what}) with {m.group(0)} in reach")
         elif IMAGE.search(what) and (m := REACH.search(uncommented(top + job))):
             faults.append(f"{path}:{i + 1}: job {name} builds an image ({what}) with {m.group(0).strip()} in reach: push from a job that builds nothing")
@@ -251,9 +251,9 @@ def main() -> int:
     # The token check can fail: each bad fixture job is named, the good fixture passes.
     fixtures = Path(__file__).resolve().parent / "fixtures" / "workflows"
     bad = token_faults(fixtures / "token-bad.yml")
-    for job in ("writes", "secret", "script", "unset", "action", "image", "imagetoken"):
+    for job in ("writes", "secret", "script", "unset", "action", "image", "imagetoken", "signing"):
         assert sum(f" job {job} builds " in x for x in bad) == 1, (job, bad)
-    assert len(bad) == 7, bad
+    assert len(bad) == 8, bad
     assert token_faults(fixtures / "token-good.yml") == [], token_faults(fixtures / "token-good.yml")
     faults, count = [], 0
     for f in files:
