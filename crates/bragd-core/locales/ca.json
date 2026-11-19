@@ -896,6 +896,8 @@
  "rating_list.cfc-ratings": "Federació Canadenca d'Escacs (CFC)",
  "rating_list.sshl-ratings": "Federació Finlandesa d'Escacs (SShL)",
  "rating_list.nzcf-ratings": "Federació Neozelandesa d'Escacs (NZCF)",
+ "rating_list.ssf-ratings": "Federació Sueca d'Escacs (SSF)",
+ "rating_list.lok-ratings": "Federació Txeca d'Escacs (ŠSČR)",
  "clubs.list_have": "{n} jugadors, descarregats {when}",
  "clubs.list_none": "no descarregada",
  "clubs.none_open": "No hi ha cap Club obert.",

@@ -893,6 +893,8 @@
  "rating_list.cfc-ratings": "Kanadan shakkiliitto (CFC)",
  "rating_list.sshl-ratings": "Suomen Shakkiliitto (SShL)",
  "rating_list.nzcf-ratings": "Uuden-Seelannin shakkiliitto (NZCF)",
+ "rating_list.ssf-ratings": "Ruotsin shakkiliitto (SSF)",
+ "rating_list.lok-ratings": "Tšekin shakkiliitto (ŠSČR)",
  "clubs.list_have": "{n} pelaajaa, haettu {when}",
  "clubs.list_none": "ei haettu",
  "clubs.none_open": "Yhtään klubia ei ole auki.",

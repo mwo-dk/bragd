@@ -890,6 +890,8 @@
  "rating_list.cfc-ratings": "캐나다 체스 연맹 (CFC)",
  "rating_list.sshl-ratings": "핀란드 체스 연맹 (SShL)",
  "rating_list.nzcf-ratings": "뉴질랜드 체스 연맹 (NZCF)",
+ "rating_list.ssf-ratings": "스웨덴 체스 연맹 (SSF)",
+ "rating_list.lok-ratings": "체코 체스 연맹 (ŠSČR)",
  "clubs.list_have": "선수 {n}명, {when} 가져옴",
  "clubs.list_none": "가져오지 않음",
  "clubs.none_open": "열린 클럽이 없습니다.",

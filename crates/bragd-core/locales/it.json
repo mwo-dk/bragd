@@ -896,6 +896,8 @@
  "rating_list.cfc-ratings": "Federazione Scacchistica Canadese (CFC)",
  "rating_list.sshl-ratings": "Federazione Scacchistica Finlandese (SShL)",
  "rating_list.nzcf-ratings": "Federazione Scacchistica della Nuova Zelanda (NZCF)",
+ "rating_list.ssf-ratings": "Federazione Scacchistica Svedese (SSF)",
+ "rating_list.lok-ratings": "Federazione Scacchistica Ceca (ŠSČR)",
  "clubs.list_have": "{n} giocatori, scaricati {when}",
  "clubs.list_none": "non scaricata",
  "clubs.none_open": "Nessun Club è aperto.",

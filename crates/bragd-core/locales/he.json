@@ -896,6 +896,8 @@
  "rating_list.cfc-ratings": "איגוד השחמט הקנדי (CFC)",
  "rating_list.sshl-ratings": "איגוד השחמט הפיני (SShL)",
  "rating_list.nzcf-ratings": "איגוד השחמט של ניו זילנד (NZCF)",
+ "rating_list.ssf-ratings": "איגוד השחמט השוודי (SSF)",
+ "rating_list.lok-ratings": "איגוד השחמט הצ'כי (ŠSČR)",
  "clubs.list_have": "{n} שחקנים, נטען {when}",
  "clubs.list_none": "לא נטען",
  "clubs.none_open": "אין מועדון פתוח.",

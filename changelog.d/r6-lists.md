@@ -1,0 +1,1 @@
+| **Rating lists from Sweden and Czechia.** The SSF and ŠSČR lists join the others as Sources under chess's Databases, off until you turn them on, so Find in rating lists finds Swedish and Czech players too. | [Rating lists](reference/rating-lists.md#the-lists-bragd-fetches) |

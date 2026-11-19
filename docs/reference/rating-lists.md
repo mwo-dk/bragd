@@ -12,6 +12,8 @@ Bragd can download rating lists so you can find players by name or ID at check-i
 - [Canada (CFC)](#canada-cfc)
 - [Finland (SShL)](#finland-sshl)
 - [New Zealand (NZCF)](#new-zealand-nzcf)
+- [Sweden (SSF)](#sweden-ssf)
+- [Czechia (ŠSČR)](#czechia-šsčr)
 - [Lists Bragd does not fetch](#lists-bragd-does-not-fetch)
 - [Other federations](#other-federations)
 - [Questions](#questions)
@@ -28,6 +30,8 @@ Each is a Source of its own on the Sources page (chess's Databases item), off un
 | CFC | `cfc-ratings.csv` | 5.4 MB | CFC ID, name, standard and rapid ratings, FIDE ID |
 | SShL | `selolista.csv` | 0.75 MB | SShL ID, name, nationality, club, title, national standard and rapid ratings, birth year, FIDE ID |
 | NZCF | `nz_ratings.json` | 0.9 MB | NZCF ID, name, federation, club, title, NZCF standard and rapid ratings, birth year, FIDE ID |
+| SSF | the API's list for today's date | 1 MB | SSF ID, name, club, title, standard, rapid and blitz ratings, birth year, FIDE ID |
+| ŠSČR | `lok_sm_cz.xls` | 4.8 MB | ŠSČR ID, name, federation, club, title, national standard rating, birth year, FIDE ID |
 
 The others are not fetched, each for the reason in [Lists Bragd does not fetch](#lists-bragd-does-not-fetch).
 
@@ -170,18 +174,43 @@ The header is `id;fide_id;titteli;sukunimi;etunimi;seura;selo;selopelejä;selovu
 
 The file is an array of objects whose values are all strings: `surname`, `name`, `fed`, `year`, `title`, `fide`, `nzcf`, `club`, `nzcf_standard`, `nzcf_rapid`, `fide_standard`, `fide_rapid`. An empty value or `0` means none. The CSV and JSON buttons on the page make their file in the browser from this one. The address names a 2024 upload folder: if the NZCF moves the file, the fetch fails and the Sources page says so.
 
+## Sweden (SSF)
+
+| Item | Value |
+|---|---|
+| URL | `https://member.schack.se/public/api/v1/ratinglist/federation/date/{date}/ratingtype/1/category/0`, from the [documented public API](https://member.schack.se/swagger-ui/index.html). Bragd puts today's date in place of `{date}` |
+| Verified | 2026-11-19, 200 |
+| Size | 950 KB, 3,345 players, all with a FIDE ID |
+| Encoding | UTF-8 JSON |
+| Updated | Monthly. Any date gives the list in force on that date: 2026-11-19 gives the list of 1 Nov 2026 |
+| Licence | The [terms](https://halvarsson.no-ip.com/wordpressssf/publikt-api/anvandarvillkor/) allow use in other products, commercial use included, if the source is named. Bragd names the Swedish Chess Federation on the Sources page |
+
+The file is an array of players: `id`, `firstName`, `lastName`, `birthdate` (a year), `fideid`, `club`, and `elo`, holding `rating`, `rapidRating`, `blitzRating` and `title`. A rating of 0 means none. Rating type 1 is standard play; types 6 (rapid) and 7 (blitz) list the players with a rating of that kind, and the standard list already carries those ratings.
+
+## Czechia (ŠSČR)
+
+| Item | Value |
+|---|---|
+| URL | [`https://elo.miramal.com/download/lok_sm_cz.xls`](https://elo.miramal.com/download/lok_sm_cz.xls), the national list (LOK) for Swiss Manager, linked from [chess.cz](https://www.chess.cz/sachovy-svaz-cr/elo/) |
+| Verified | 2026-11-19, 200 |
+| Size | 4.8 MB, 26,488 players; 14,648 with a national rating |
+| Encoding | Old binary Excel (BIFF), code page 1250, one sheet |
+| Updated | Monthly; the file is overwritten in place. Dated copies such as `20261101_lok_sm_cz.zip` sit beside it |
+| Licence | None stated |
+
+The header is `ID_no`, `Name`, `ClubName`, `BirthDay` (`00.00.YYYY`), `Sex`, `Rtg_nat`, `Rtg_int`, `Title`, `FIDE_no`, `Fed`, `ClubNo`, `Status`, then three empty columns. `Rtg_nat` is the national rating and `Rtg_int` FIDE's. Names are written `Surname Given`, without a comma.
+
 ## Lists Bragd does not fetch
 
-Checked again on 2026-11-01.
+Checked again on 2026-11-19.
 
 - **Germany (DSB):** the README in the zip says publishing the data needs prior agreement with the DWZ referee. Bragd waits for the DSB's agreement.
 - **Australia (ACF):** the terms forbid importing the files into any other database or program.
 - **Catalonia (FCE):** the legal notice allows private download but forbids transforming the content, which an import does.
-- **Sweden (SSF):** the API's terms allow it, but the date is part of the address and a wrong date gives an empty list. Bragd needs to learn the list dates first.
-- **Czechia:** the stable file is an old binary Excel file, which Bragd cannot read.
 - **Austria, Colombia, Japan:** the file name carries the period, and Austria's and Japan's are Excel and PDF.
 - **Armenia:** the download is a form post, with no address to fetch.
-- **Switzerland, Netherlands, Belgium, Norway, Poland, Estonia, Israel, Greece, Georgia, Latvia:** a search page or a JavaScript app only, with no file or documented API.
+- **Netherlands (KNSB):** the viewer `ratingviewer.nl` draws from JSON files (`rating-lists/index.json`, then paged player lists), but they are not documented and no terms are stated. Bragd waits for the KNSB's agreement.
+- **Switzerland, Belgium, Norway, Poland, Estonia, Israel, Greece, Georgia, Latvia:** a search page or a JavaScript app only, with no file or documented API.
 - **Lithuania, Chile, Peru, Mexico, South Korea, Iran:** no list found, or the federation's site was not found.
 
 ## Other federations
@@ -195,7 +224,7 @@ Checked again on 2026-11-01.
 | Australia | ACF | [rating-lists page](https://auschess.org.au/rating-lists/) with [sepmst26.txt](https://auschess.org.au/wp-content/uploads/2026/09/sepmst26.txt) (master file, 2.4 MB), [sep26act.txt](https://auschess.org.au/wp-content/uploads/2026/09/sep26act.txt) (active, 226 KB), `sep26quick.txt`, and Vega and Swiss Perfect zips ([vegamast.zip](https://auschess.org.au/wp-content/uploads/2026/09/vegamast.zip) 0.9 MB, [acfmast.zip](https://auschess.org.au/wp-content/uploads/2026/09/acfmast.zip) 1.4 MB) | Fixed-width TXT, CR LF: rating (with reliability mark), games, rank and points columns, state, name. Master file starts `ACF Master File for September 2026`; the first column is the ACF ID | Copyright ACF. The page says that by downloading you agree not to modify, extract or reverse engineer the data, or import it into other systems. Bragd must not import it | Per rating period; the page says "Updated September 5th, 2026". File names carry the month, so the URL changes | 200 (page); files 206 on a range request. A plain HEAD request returned 404 |
 | Canada | CFC | Fetched: see [Canada (CFC)](#canada-cfc). Also [cfcmembers.mde](https://storage.googleapis.com/cfc-public/data/cfcmembers.mde) (9.2 MB, Microsoft Access) and [tdlist.txt](https://storage.googleapis.com/cfc-public/data/tdlist.txt) (5.3 MB), linked from the [organisers page](https://www.chess.ca/en/organizers/) | CSV | None stated | See its section | 200 |
 | New Zealand | NZCF | Fetched: see [New Zealand (NZCF)](#new-zealand-nzcf). The XLSX files on the [ratings page](https://compete.newzealandchess.co.nz/new-zealand-ratings-list/) carry the period in their names | JSON | None stated | Four times a year | 200 |
-| Czechia | Šachový svaz ČR (LOK) | [lok_sm_cz.xls](https://elo.miramal.com/download/lok_sm_cz.xls) (4.7 MB), overwritten each period; dated zips such as [20261001_lok_sm_cz.zip](https://elo.miramal.com/download/20261001_lok_sm_cz.zip) beside it. [chess.cz](https://www.chess.cz/sachovy-svaz-cr/elo/) links only here and to FIDE | Old binary Excel (BIFF, code page 1250), made for Swiss Manager. Columns: ID_no, Name, ClubName, BirthDay (`00.00.YYYY`), Sex, Rtg_nat, Rtg_int, Title, FIDE_no, Fed, ClubNo, Status | None stated | Classical list each 1 February, rapid each 1 November; the list shown is dated 1 Oct 2026 | 200 |
+| Czechia | Šachový svaz ČR (LOK) | Fetched: see [Czechia (ŠSČR)](#czechia-šsčr). [lok_sm_cz.xls](https://elo.miramal.com/download/lok_sm_cz.xls) (4.7 MB), overwritten each period; dated zips such as [20261001_lok_sm_cz.zip](https://elo.miramal.com/download/20261001_lok_sm_cz.zip) beside it. [chess.cz](https://www.chess.cz/sachovy-svaz-cr/elo/) links only here and to FIDE | Old binary Excel (BIFF, code page 1250), made for Swiss Manager. Columns: ID_no, Name, ClubName, BirthDay (`00.00.YYYY`), Sex, Rtg_nat, Rtg_int, Title, FIDE_no, Fed, ClubNo, Status | None stated | Classical list each 1 February, rapid each 1 November; the list shown is dated 1 Oct 2026 | 200 |
 | Finland | Suomen Shakkiliitto (SShL) | Fetched: see [Finland (SShL)](#finland-sshl). The older [selolist.txt](http://www.shakki.net/tasaselo/selolist.txt) is fixed-width with no FIDE ID | CSV | None stated | See its section | 200 |
 | Spain | FEDA | [Lista Elo FEDA Diciembre 2023](https://feda.org/feda2k16/wp-content/uploads/2023_12_FEDA.xlsx), 3.4 MB; index page [elo-feda](https://feda.org/feda2k16/elo-feda/) | XLSX, one per month. Older months are zips (`2022-04.zip`, 2.8 MB, with a lookup program) | None stated | Monthly until December 2023. The page has no newer list, and the 2024 and 2026 file names I tried returned 404 | 200 (December 2023 file); 404 for later months |
 | Spain | FCE (Catalonia) | [EloActualStd.xls](https://escacs.cat/arxielo/EloActualStd.xls) and [EloActualRpd.xls](https://escacs.cat/arxielo/EloActualRpd.xls) (580 KB each), linked from [the Elo page](https://escacs.cat/index.php/component/fce?op=25) | Tab-separated text despite the name, Latin 1: FCE code, name, sex, K, Elo, title, category, club. No FIDE ID | The [legal notice](https://escacs.cat/index.php/avis-legal) allows download "pel seu us privat i sense cap finalitat comercial" and forbids "transformació, distribució ... qualsevol altre forma d'explotació" | Monthly (last changed 31 Oct 2026) | 200 |
@@ -207,7 +236,7 @@ Checked again on 2026-11-01.
 | France | FFE | FIDE list only | The home page links only to Elo Rapide and to chess-results pages. No download found | | | home page 200 |
 | Belgium | FRBE / KBSB | no public list found | The site is a JavaScript app; no file link found | | | home page 200 |
 | Netherlands | KNSB | no public list found | The KNSB rules say the rating commissioner compiles a full list "at least four times a year". The viewer site `ratingviewer.nl` is a JavaScript app; no file or API found | | | 200 (viewer home page) |
-| Sweden | SSF | Public API, [documented](https://member.schack.se/swagger-ui/index.html): `https://member.schack.se/public/api/v1/ratinglist/federation/date/{YYYY-MM-DD}/ratingtype/{1,6,7}/category/0` | JSON, UTF-8: SSF ID, names, birth year, FIDE ID, club, standard, rapid and blitz ratings | The [terms](https://halvarsson.no-ip.com/wordpressssf/publikt-api/anvandarvillkor/) allow use in other products, commercial use included, if the source is named. The date is part of the address; `2026-11-01` answered with 3,319 players, a date with no list answers `[]` | Monthly | 200 |
+| Sweden | SSF | Fetched: see [Sweden (SSF)](#sweden-ssf). Public API, [documented](https://member.schack.se/swagger-ui/index.html): `https://member.schack.se/public/api/v1/ratinglist/federation/date/{YYYY-MM-DD}/ratingtype/{1,6,7}/category/0` | JSON, UTF-8: SSF ID, names, birth year, FIDE ID, club, standard, rapid and blitz ratings | The [terms](https://halvarsson.no-ip.com/wordpressssf/publikt-api/anvandarvillkor/) allow use in other products, commercial use included, if the source is named. The date is part of the address; `2026-11-01` answered with 3,319 players, a date with no list answers `[]` | Monthly | 200 |
 | Norway | NSF | no public list found | No rating page found on the home page | | | home page 200 |
 | Poland | PZSzach | no public list found | The member and club registers are web pages; no ranking file | | | home page 200 |
 | Estonia | Eesti Maleliit | no public list found | The site is a JavaScript app; no file link found | | | home page 200 |
@@ -242,7 +271,7 @@ No. It stays in `rating-lists.sqlite` on your machine. Searching it at check-in 
 
 #### How big are the downloads?
 
-The FIDE combined list is 45 MB zipped and 320 MB unzipped, about 1.9 million lines. The standard-only list is 13 MB. The Danish list is 0.5 MB, the Finnish 0.75 MB, the New Zealand 0.9 MB, the English 4.5 MB and the Canadian 5.4 MB. The wizard and the Sources page show each list's size before anything is downloaded.
+The FIDE combined list is 45 MB zipped and 320 MB unzipped, about 1.9 million lines. The standard-only list is 13 MB. The Danish list is 0.5 MB, the Finnish 0.75 MB, the New Zealand 0.9 MB, the Swedish 1 MB, the English 4.5 MB, the Czech 4.8 MB and the Canadian 5.4 MB. The wizard and the Sources page show each list's size before anything is downloaded.
 
 #### How much disk does a list take, and how fast is a search?
 
@@ -254,7 +283,7 @@ Once a month, once you tick the list in the wizard or turn it on under Sources. 
 
 #### Can I use a list Bragd does not know?
 
-Not yet. Bragd reads only the six lists above. Members a list does not have can be added to a Club by hand, with their IDs ([Clubs](../clubs/clubs.md)).
+Not yet. Bragd reads only the eight lists above. Members a list does not have can be added to a Club by hand, with their IDs ([Clubs](../clubs/clubs.md)).
 
 ---
 [← Previous: Privacy](privacy.md) · [Next: Swiss pairing →](swiss-pairing.md)

@@ -526,10 +526,17 @@ impl Source for Later {
 /// A rating list (`bragd_clubs::lists::LISTS`): one file, fetched whole each month.
 pub struct RatingList(pub &'static bragd_clubs::lists::List);
 
+impl RatingList {
+    /// Its address today: a list fetched by date (SSF's) asks for the list in force today.
+    fn url(&self) -> String {
+        self.0.url.replace("{date}", &crate::utc(bragd_core::fs::now())[..10])
+    }
+}
+
 impl Source for RatingList {
     fn about(&self) -> About {
         let l = self.0;
-        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: l.url.into(), fetchable: true, kind: Kind::RatingList, parts: vec![], months: false, first_only: false, account: String::new() }
+        About { id: l.id.into(), name: l.name.into(), family: "chess".into(), size: l.size, schedule: Schedule::Monthly, url: self.url(), fetchable: true, kind: Kind::RatingList, parts: vec![], months: false, first_only: false, account: String::new() }
     }
 
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>> {
@@ -537,8 +544,9 @@ impl Source for RatingList {
         // Fetched whole each time: last month's list is replaced, never resumed into.
         let _ = std::fs::remove_file(&to);
         let _ = std::fs::remove_file(net::part_of(&to));
-        if !net::download(cx.net, self.0.url, &to, cx.cap, cx.stop, cx.progress)? {
-            return Err(io::Error::other(format!("{} is not there", self.0.url)));
+        let url = self.url();
+        if !net::download(cx.net, &url, &to, cx.cap, cx.stop, cx.progress)? {
+            return Err(io::Error::other(format!("{url} is not there")));
         }
         Ok(vec![to])
     }
@@ -712,7 +720,7 @@ pub(crate) mod tests {
     #[test]
     fn the_registry_lists_every_source_and_fetches_only_some() {
         let ids: Vec<String> = builtin().iter().map(|s| s.about().id).collect();
-        assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings"]);
+        assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings", "ssf-ratings", "lok-ratings"]);
         let fetched: Vec<String> = builtin().iter().map(|s| s.about()).filter(|a| a.kind == Kind::Games && a.fetchable).map(|a| a.id).collect();
         assert_eq!(fetched, ["twic", "lichess-db", "fics", "pgnmentor", "ogs", "kgs", "lishogi"]);
         assert!(builtin().iter().all(|s| s.about().size > 0));

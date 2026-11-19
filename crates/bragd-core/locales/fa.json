@@ -893,6 +893,8 @@
  "rating_list.cfc-ratings": "فدراسیون شطرنج کانادا (CFC)",
  "rating_list.sshl-ratings": "فدراسیون شطرنج فنلاند (SShL)",
  "rating_list.nzcf-ratings": "فدراسیون شطرنج نیوزیلند (NZCF)",
+ "rating_list.ssf-ratings": "فدراسیون شطرنج سوئد (SSF)",
+ "rating_list.lok-ratings": "فدراسیون شطرنج چک (ŠSČR)",
  "clubs.list_have": "{n} بازیکن، دریافت‌شده در {when}",
  "clubs.list_none": "دریافت نشده",
  "clubs.none_open": "هیچ باشگاهی باز نیست.",

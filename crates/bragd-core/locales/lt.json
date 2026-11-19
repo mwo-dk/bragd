@@ -896,6 +896,8 @@
  "rating_list.cfc-ratings": "Kanados šachmatų federacija (CFC)",
  "rating_list.sshl-ratings": "Suomijos šachmatų federacija (SShL)",
  "rating_list.nzcf-ratings": "Naujosios Zelandijos šachmatų federacija (NZCF)",
+ "rating_list.ssf-ratings": "Švedijos šachmatų federacija (SSF)",
+ "rating_list.lok-ratings": "Čekijos šachmatų federacija (ŠSČR)",
  "clubs.list_have": "{n} žaidėjų, atsisiųsta {when}",
  "clubs.list_none": "neatsisiųsta",
  "clubs.none_open": "Joks klubas neatidarytas.",

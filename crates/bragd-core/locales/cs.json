@@ -896,6 +896,8 @@
  "rating_list.cfc-ratings": "Kanadský šachový svaz (CFC)",
  "rating_list.sshl-ratings": "Finský šachový svaz (SShL)",
  "rating_list.nzcf-ratings": "Novozélandský šachový svaz (NZCF)",
+ "rating_list.ssf-ratings": "Švédský šachový svaz (SSF)",
+ "rating_list.lok-ratings": "Český šachový svaz (ŠSČR)",
  "clubs.list_have": "{n} hráčů, staženo {when}",
  "clubs.list_none": "nestaženo",
  "clubs.none_open": "Žádný klub není otevřen.",
