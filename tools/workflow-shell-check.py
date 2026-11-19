@@ -10,10 +10,10 @@ expansions ($VER, $(…), ${…}, `…`) a plain word. `${{ … }}` expressions 
 A step with `shell: pwsh` is skipped; every other step is bash.
 
 And no token that can write in a job that builds: a job running cargo, npm, npx, tauri, nix,
-flatpak-builder or a BSD virtual machine (also inside a packaging/ or tools/ script it runs) runs
+flatpak-builder, a container image (docker, podman, buildah) or a BSD virtual machine (also inside a packaging/ or tools/ script it runs) runs
 every dependency's build scripts, macros and install scripts, on a machine all its steps share, so
-it must have no `write` permission (none given counts as write) and no `secrets.*TOKEN*`. Builds
-hand their files on as artifacts to a job that builds nothing. Checked against the fixtures in
+it must have no `write` permission (none given counts as write) and no `secrets.*TOKEN*`; an image build holds no secret, no github.token and no registry login at
+all. Builds hand their files on as artifacts to a job that builds nothing. Checked against the fixtures in
 tools/fixtures/workflows/ first, so the check can fail.
 
 Prints `file:line: …` for each fault, exits 1 on any.
@@ -176,6 +176,11 @@ BUILD = re.compile(r"""
   | \bnpm\s+(?:ci|install|i|run|test|exec|rebuild)\b | \bnpx\s | \btauri\s+build\b
   | \bnix\s+(?:build|develop|run|flake\s+check)\b | \bflatpak-builder\b
   | \buses:\s*(?:tauri-apps/tauri-action|vmactions/)""", re.X)
+IMAGE = re.compile(r"""
+    \b(?:docker|podman)\s+(?:buildx\s+)?(?:build|bake)\b | \b(?:docker|podman)[\s-]compose\s+build\b
+  | \bbuildah\s+(?:bud|build|from|run)\b | \buses:\s*(?:docker/build-push-action|docker/bake-action|redhat-actions/buildah-build)""", re.X)
+# An image build may not even hold a read-only token: no secret, no github.token, no registry login.
+REACH = re.compile(r"\bsecrets\.\w+|\bgithub\.token\b|\b(?:docker|podman|buildah|skopeo|helm|oras|crane)\s+login\b|\buses:\s*docker/login-action")
 TOKEN = re.compile(r"\bsecrets\.(?!GITHUB_TOKEN\b)\w*TOKEN\w*")
 SCRIPT = re.compile(r"\b(?:packaging|tools)/[\w./-]+\.(?:sh|py)\b")
 
@@ -186,12 +191,13 @@ def uncommented(lines: list[str]) -> str:
 
 def builds(text: str) -> str:
     """What in a job's text builds, directly or in a repository script it runs, or ''."""
-    if (m := BUILD.search(text)):
-        return m.group(0).strip()
-    for path in SCRIPT.findall(text):
-        f = Path(path)
-        if f.is_file() and (m := BUILD.search(uncommented(f.read_text(encoding="utf-8").split("\n")))):
-            return f"{path}: {m.group(0).strip()}"
+    for rx in (BUILD, IMAGE):
+        if (m := rx.search(text)):
+            return m.group(0).strip()
+        for path in SCRIPT.findall(text):
+            f = Path(path)
+            if f.is_file() and (m := rx.search(uncommented(f.read_text(encoding="utf-8").split("\n")))):
+                return f"{path}: {m.group(0).strip()}"
     return ""
 
 
@@ -232,6 +238,8 @@ def token_faults(path: Path) -> list[str]:
             faults.append(f"{path}:{i + 1}: job {name} builds ({what}) with a token that can write: build without it, upload from a job that builds nothing")
         if (m := TOKEN.search(uncommented(top + job))):
             faults.append(f"{path}:{i + 1}: job {name} builds ({what}) with {m.group(0)} in reach")
+        elif IMAGE.search(what) and (m := REACH.search(uncommented(top + job))):
+            faults.append(f"{path}:{i + 1}: job {name} builds an image ({what}) with {m.group(0).strip()} in reach: push from a job that builds nothing")
     return faults
 
 
@@ -243,9 +251,9 @@ def main() -> int:
     # The token check can fail: each bad fixture job is named, the good fixture passes.
     fixtures = Path(__file__).resolve().parent / "fixtures" / "workflows"
     bad = token_faults(fixtures / "token-bad.yml")
-    for job in ("writes", "secret", "script", "unset", "action"):
+    for job in ("writes", "secret", "script", "unset", "action", "image", "imagetoken"):
         assert sum(f" job {job} builds " in x for x in bad) == 1, (job, bad)
-    assert len(bad) == 5, bad
+    assert len(bad) == 7, bad
     assert token_faults(fixtures / "token-good.yml") == [], token_faults(fixtures / "token-good.yml")
     faults, count = [], 0
     for f in files:
