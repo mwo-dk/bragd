@@ -1,9 +1,9 @@
 # Engine images
 
 Each folder here, `packaging/images/<engine>`, is one of Bragd's sealed engine images.
-`.github/workflows/images.yml` builds it for amd64 and arm64 and pushes it to
-`ghcr.io/mwo-dk/bragd-<engine>`, tagged `latest` and its version, from master, and again every
-Saturday. `python3 tools/images-pin.py` then sets Bragd's pins (`PIN_*` in
+`.github/workflows/images.yml` builds it for amd64 and arm64, with no token that can write, and a
+separate job that builds nothing pushes it to `ghcr.io/mwo-dk/bragd-<engine>`, tagged `latest`
+and its version, from master, and again every Saturday. `python3 tools/images-pin.py` then sets Bragd's pins (`PIN_*` in
 `crates/bragd-engines/src/known.rs`) and download sizes to what the version tags hold.
 
 A folder holds:

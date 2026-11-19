@@ -33,3 +33,19 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: tauri-apps/tauri-action@v1
+  image:
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-24.04
+    steps:
+      - run: docker buildx build packaging/images/stockfish --output type=oci,dest=image.tar
+  imagetoken:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "$TOKEN" | podman login ghcr.io -u "$ACTOR" --password-stdin
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: podman build -t img packaging/images/stockfish

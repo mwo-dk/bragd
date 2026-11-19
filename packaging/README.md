@@ -87,7 +87,10 @@ No job that builds holds a token that can write: a dependency's build script or 
 runs on the same machine as every later step of its job. `boms` and `desktop` build read-only and
 hand their files on as artifacts; `upload`, which builds nothing, is the one job that writes them
 to the draft. `tools/workflow-shell-check.py` fails any workflow job that builds with a write
-permission or a `*TOKEN*` secret.
+permission or a `*TOKEN*` secret. A job that builds a container image (docker, podman, buildah)
+may not even reach a read-only token: no secret, no `github.token` and no registry login. The
+engine images (`images.yml`) build into an OCI archive, and a `push` job copies it to ghcr.io with
+skopeo.
 
 A job that failed on GitHub's side (a runner lost, an upload refused) is run again with
 `gh run rerun <run id> --failed`. `discard` deleted the run's draft, and `upload` makes it again

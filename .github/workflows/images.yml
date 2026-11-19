@@ -4,7 +4,8 @@ name: Engine images
 # amd64 and arm64 and pushed to ghcr.io/mwo-dk/bragd-<engine>, tagged latest and its version.
 # Built again every week, so a new base image's fixes arrive; the same source gives the same
 # image (timestamps at 1970, no attestations), so an unchanged week pushes an unchanged digest.
-# Pull requests build without pushing. packaging/images/README.md says what a folder holds.
+# The build job holds no token that can write; a separate push job, which builds nothing, pushes
+# the archive it hands on. Pull requests build without pushing. packaging/images/README.md says what a folder holds.
 on:
   push:
     branches: [master]
@@ -40,6 +41,9 @@ jobs:
           engines=$(find packaging/images -mindepth 2 -maxdepth 2 -name Dockerfile -printf '%h\n' 2>/dev/null | xargs -rn1 basename | sort | jq -Rsc 'split("\n") | map(select(. != ""))')
           echo "engines=${engines:-[]}" | tee -a "$GITHUB_OUTPUT"
 
+  # The build holds no token that can write and no secret: a Dockerfile runs build tools and
+  # downloads, and must not be able to push over a published image. It hands the image on as an
+  # OCI archive to the push job, which builds nothing (tools/workflow-shell-check.py checks both).
   build:
     name: ${{ matrix.engine }}
     needs: list
@@ -52,11 +56,8 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: read
-      packages: write
     env:
       ENGINE: ${{ matrix.engine }}
-      IMAGE: ghcr.io/mwo-dk/bragd-${{ matrix.engine }}
-      PUSH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,12 +66,6 @@ jobs:
         with:
           platforms: arm64
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Log in to ghcr.io
-        if: env.PUSH == 'true'
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ACTOR: ${{ github.actor }}
-        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
       # Held as Bragd holds it: no network, read-only, no capabilities. The folder's check.sh,
       # when it has one, talks the engine's protocol to it; and no image has a shell.
       - name: It answers, held as Bragd holds it
@@ -82,23 +77,66 @@ jobs:
           if docker run --rm --entrypoint sh "bragd-$ENGINE:test" -c true 2>/dev/null; then
             echo "::error::the image has a shell"; exit 1
           fi
-      # Tagged `latest` and its engine's version, from the Dockerfile's version label: the tag
-      # Bragd's pin names (crates/bragd-engines/src/known.rs; a test there checks they agree).
-      - name: Build, and push from master
+      # Both platforms in one OCI archive, which skopeo must read as the push job will.
+      - name: Build both platforms
         run: |
           export SOURCE_DATE_EPOCH=0
+          docker buildx build "packaging/images/$ENGINE" \
+            --platform linux/amd64,linux/arm64 --pull --no-cache \
+            --provenance=false --sbom=false \
+            --output "type=oci,dest=image.tar,rewrite-timestamp=true"
+          skopeo inspect --raw oci-archive:image.tar | jq -e '.manifests | length == 2' > /dev/null
+      - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-${{ matrix.engine }}
+          path: image.tar
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  # Tagged `latest` and its engine's version, from the Dockerfile's version label: the tag
+  # Bragd's pin names (crates/bragd-engines/src/known.rs; a test there checks they agree).
+  # skopeo copies the archive as it is (--preserve-digests), so the same source still pushes the
+  # same digest.
+  push:
+    name: Push ${{ matrix.engine }}
+    needs: [list, build]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && needs.list.outputs.engines != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: ${{ fromJSON(needs.list.outputs.engines) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ENGINE: ${{ matrix.engine }}
+      IMAGE: ghcr.io/mwo-dk/bragd-${{ matrix.engine }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: packaging/images
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: image-${{ matrix.engine }}
+      - name: Push
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
           version=$(sed -n 's/.*org\.opencontainers\.image\.version="\([^"]*\)".*/\1/p' "packaging/images/$ENGINE/Dockerfile")
           if [ -z "$version" ]; then
             echo "::error::packaging/images/$ENGINE/Dockerfile has no org.opencontainers.image.version label"; exit 1
           fi
-          docker buildx build "packaging/images/$ENGINE" \
-            --platform linux/amd64,linux/arm64 --pull --no-cache \
-            --provenance=false --sbom=false \
-            --output "type=image,\"name=$IMAGE:latest,$IMAGE:$version\",push=$PUSH,rewrite-timestamp=true" \
-            --metadata-file meta.json
-          if [ "$PUSH" = true ]; then
-            echo "::notice title=Pushed::$IMAGE:$version@$(jq -r '."containerimage.digest"' meta.json)"
-          fi
+          echo "$TOKEN" | skopeo login ghcr.io -u "$ACTOR" --password-stdin
+          for tag in "$version" latest; do
+            skopeo copy --all --preserve-digests --retry-times 3 --digestfile digest oci-archive:image.tar "docker://$IMAGE:$tag"
+          done
+          echo "::notice title=Pushed::$IMAGE:$version@$(cat digest)"
 
   # After a master build, old untagged versions on ghcr.io are deleted. Kept: every tagged
   # version, every digest pinned in known.rs here and in the newest 3 release tags, the newest 5
@@ -107,7 +145,7 @@ jobs:
   # tools/ghcr-prune.py prints what it keeps and why, and what it deletes, before deleting.
   prune:
     name: Prune old image versions
-    needs: [list, build]
+    needs: [list, push]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && needs.list.outputs.engines != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
