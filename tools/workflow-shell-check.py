@@ -7,7 +7,16 @@ does every script inside a `bash -c '…'` / `sh -c '…'` in them: an apostroph
 once broke a job only after a long container start. A double-quoted `bash -c "…"` is
 checked as the inner shell gets it: the outer shell's escapes (\$ \" \\ \`) undone and its own
 expansions ($VER, $(…), ${…}, `…`) a plain word. `${{ … }}` expressions stand in as a plain word.
-A step with `shell: pwsh` is skipped; every other step is bash. Prints `file:line: …` for each fault, exits 1 on any.
+A step with `shell: pwsh` is skipped; every other step is bash.
+
+And no token that can write in a job that builds: a job running cargo, npm, npx, tauri, nix,
+flatpak-builder or a BSD virtual machine (also inside a packaging/ or tools/ script it runs) runs
+every dependency's build scripts, macros and install scripts, on a machine all its steps share, so
+it must have no `write` permission (none given counts as write) and no `secrets.*TOKEN*`. Builds
+hand their files on as artifacts to a job that builds nothing. Checked against the fixtures in
+tools/fixtures/workflows/ first, so the check can fail.
+
+Prints `file:line: …` for each fault, exits 1 on any.
 
     python3 tools/workflow-shell-check.py [workflow.yml …]
         (default: .github/workflows/*.yml and .github/actions/*/action.yml)
@@ -162,13 +171,85 @@ def check(where: str, script: str, dialect: str) -> list[str]:
     return faults
 
 
+BUILD = re.compile(r"""
+    \bcargo\s+(?:\+\S+\s+)?(?:build|test|clippy|check|run|install|publish|doc|bench|nextest|llvm-cov|tauri)\b
+  | \bnpm\s+(?:ci|install|i|run|test|exec|rebuild)\b | \bnpx\s | \btauri\s+build\b
+  | \bnix\s+(?:build|develop|run|flake\s+check)\b | \bflatpak-builder\b
+  | \buses:\s*(?:tauri-apps/tauri-action|vmactions/)""", re.X)
+TOKEN = re.compile(r"\bsecrets\.(?!GITHUB_TOKEN\b)\w*TOKEN\w*")
+SCRIPT = re.compile(r"\b(?:packaging|tools)/[\w./-]+\.(?:sh|py)\b")
+
+
+def uncommented(lines: list[str]) -> str:
+    return "\n".join(re.sub(r"(^|\s)#.*$", "", x) for x in lines)
+
+
+def builds(text: str) -> str:
+    """What in a job's text builds, directly or in a repository script it runs, or ''."""
+    if (m := BUILD.search(text)):
+        return m.group(0).strip()
+    for path in SCRIPT.findall(text):
+        f = Path(path)
+        if f.is_file() and (m := BUILD.search(uncommented(f.read_text(encoding="utf-8").split("\n")))):
+            return f"{path}: {m.group(0).strip()}"
+    return ""
+
+
+def permissions(lines: list[str], indent: int) -> str | None:
+    """The `permissions:` key at `indent` among `lines` (its value and block), or None."""
+    for i, line in enumerate(lines):
+        if (m := re.match(rf"^ {{{indent}}}permissions:(.*)$", line)):
+            body = [m.group(1)]
+            for x in lines[i + 1:]:
+                if x.strip() and len(x) - len(x.lstrip()) <= indent:
+                    break
+                body.append(x)
+            return uncommented(body)
+    return None
+
+
+def token_faults(path: Path) -> list[str]:
+    """`file:line: …` for each job that builds while it holds a token that can write."""
+    lines = path.read_text(encoding="utf-8").split("\n")
+    if "jobs:" not in lines:
+        return []
+    at = lines.index("jobs:")
+    top = lines[:at]
+    workflow = permissions(top, 0)
+    starts = [i for i in range(at + 1, len(lines)) if re.match(r"^  [\w-]+:\s*$", lines[i])]
+    faults = []
+    for n, i in enumerate(starts):
+        job = lines[i:starts[n + 1] if n + 1 < len(starts) else len(lines)]
+        what = builds(uncommented(job))
+        if not what:
+            continue
+        perms = permissions(job, 4)
+        perms = workflow if perms is None else perms
+        name = job[0].strip().rstrip(":")
+        if perms is None:
+            faults.append(f"{path}:{i + 1}: job {name} builds ({what}) with no permissions given, so possibly write")
+        elif re.search(r"\bwrite", perms):
+            faults.append(f"{path}:{i + 1}: job {name} builds ({what}) with a token that can write: build without it, upload from a job that builds nothing")
+        if (m := TOKEN.search(uncommented(top + job))):
+            faults.append(f"{path}:{i + 1}: job {name} builds ({what}) with {m.group(0)} in reach")
+    return faults
+
+
 def main() -> int:
     # The double-quoted case: what a `bash -c "…"` inside a container step gets.
     assert outer_expanded('[ \\"\\$i\\" = 4 ] && v=$VER $(a "b") `c` ${D}\\\nx" tail') == '[ "$i" = 4 ] && v=OUTER OUTER OUTER OUTERx'
     files = [Path(a) for a in sys.argv[1:]] or sorted(Path(".github/workflows").glob("*.yml")) + sorted(Path(".github/actions").glob("*/action.yml"))
     assert sys.argv[1:] or Path(".github/actions/apt-install/action.yml") in files, "composite actions are checked"
+    # The token check can fail: each bad fixture job is named, the good fixture passes.
+    fixtures = Path(__file__).resolve().parent / "fixtures" / "workflows"
+    bad = token_faults(fixtures / "token-bad.yml")
+    for job in ("writes", "secret", "script", "unset", "action"):
+        assert sum(f" job {job} builds " in x for x in bad) == 1, (job, bad)
+    assert len(bad) == 5, bad
+    assert token_faults(fixtures / "token-good.yml") == [], token_faults(fixtures / "token-good.yml")
     faults, count = [], 0
     for f in files:
+        faults += token_faults(f)
         for line, script in blocks(f):
             count += 1
             faults += check(f"{f}:{line}", script, "bash")

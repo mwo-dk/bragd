@@ -1,0 +1,28 @@
+# tools/workflow-shell-check.py: the build holds no token that can write, and the job that
+# writes builds nothing (a comment saying cargo build or npm ci does not count).
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: cargo build --release # read-only token: fine
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app
+          path: target/release/app
+  upload:
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: app
+      - run: packaging/retry.sh gh release upload v1 app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -20,13 +20,15 @@ name: Release
 # same version meanwhile (a patch made by hand) stops the rehearsal and goes ahead.
 #
 #   version ─┬─ test-ci, test-flatpak, test-nix, test-bsd  (the systems' own workflows, in parallel)
-#            └─ draft ── boms ── desktop, flatpak, bsd ── verify ── publish ── taps
-#                                                       │
-#                                  (rehearsal) rehearse ─┤
-#                (anything failed, or a rehearsal: discard) ──┘
+#            └─ draft ── boms ── desktop ── upload ── verify ── publish ── taps
+#                                                         │
+#                                    (rehearsal) rehearse ─┤
+#                  (anything failed, or a rehearsal: discard) ──┘
 #
 # Never a partial release: every system and every file, or nothing. A failed test stops the run
-# before the draft; a missing file stops it before publishing, and the draft is deleted. A
+# before the draft; a missing file stops it before publishing, and the draft is deleted. A job
+# that failed on GitHub's side is run again with `gh run rerun <id> --failed`: `upload` makes the
+# draft again (packaging/release-draft.sh). A
 # channel that still fails after its retries turns the run red, named. release-check.yml then
 # installs the release and checks every channel.
 # Nothing is released before 1.0.0 (CLAUDE.md), so it runs only by hand until then.
@@ -213,7 +215,9 @@ jobs:
           persist-credentials: false
           ref: ${{ needs.version.outputs.sha }}
       # A rehearsal builds what tomorrow's release pull request makes: its changes, committed on
-      # rehearsal/vX.Y.Z (deleted again by `discard`). GITHUB_TOKEN's push starts no workflow.
+      # rehearsal/vX.Y.Z (deleted again by `discard` when it passed, by `publish` when the version
+      # is released; a failed one's stays for a rerun, and replaced here). GITHUB_TOKEN's push
+      # starts no workflow.
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         if: needs.version.outputs.rehearsal == 'true'
         with:
@@ -229,7 +233,7 @@ jobs:
           python3 tools/docs-check.py --base "$(git rev-parse HEAD)" || { echo "::error::the docs check fails on $TAG's release changes"; exit 1; }
           python3 tools/msrv-check.py || { echo "::error::the MSRV check fails on $TAG's release changes"; exit 1; }
           git -c user.name="Bragd rehearsal" -c user.email="rehearsal@invalid" commit -qam "Rehearsal of $TAG"
-          git push -q "https://x-access-token:$GH_TOKEN@github.com/$REPO.git" "HEAD:refs/heads/rehearsal/$TAG"
+          git push -q "https://x-access-token:$GH_TOKEN@github.com/$REPO.git" "+HEAD:refs/heads/rehearsal/$TAG"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - id: create
         env:
@@ -264,19 +268,19 @@ jobs:
           elif ! grep -q "release not found" err; then
             cat err >&2; exit 1
           fi
-          { cat .github/release-notes.md; printf '\n<!-- release run %s -->\n' "$GITHUB_RUN_ID"
-            [ "$REHEARSAL" != true ] || echo '<!-- rehearsal -->'; } > notes.md
-          packaging/retry.sh gh release create "$TAG" --draft --target "$SHA" --title "Bragd $TAG" --notes-file notes.md
-          echo "id=$(gh release view "$TAG" --json databaseId -q .databaseId)" >> "$GITHUB_OUTPUT"
+          echo "id=$(packaging/release-draft.sh "$TAG" "$SHA" "$REHEARSAL")" >> "$GITHUB_OUTPUT"
 
-  # The SBOM, the CBOM and the third-party notices (tools/bom/README.md), uploaded to the draft.
-  # The installers take the notices from there. Beside them the built frontend (gui/dist), which
-  # the BSD ports and pkgsrc build from: npm cannot fetch during their builds.
+  # The SBOM, the CBOM and the third-party notices (tools/bom/README.md), for the draft. The
+  # installers take the notices from here. Beside them the built frontend (gui/dist), which the
+  # BSD ports and pkgsrc build from: npm cannot fetch during their builds.
+  # No job that builds holds a token that can write: every dependency's build script, macro and
+  # npm install script runs in it, on a machine its later steps share. They hand their files to
+  # `upload`, which builds nothing (tools/workflow-shell-check.py checks it).
   boms:
     needs: draft
     if: needs.draft.outputs.id != ''
     permissions:
-      contents: write
+      contents: read
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -309,18 +313,19 @@ jobs:
           f="bragd-frontend-$TAG.tar.gz"
           tar czf "dist-bom/$f" -C gui dist
           (cd dist-bom && sha256sum "$f" > "$f.sha256")
-      - name: Upload
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.draft.outputs.tag }}
-        run: packaging/retry.sh gh release upload --clobber "$TAG" dist-bom/*
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: boms
+          path: dist-bom/*
+          if-no-files-found: error
+          overwrite: true # a rerun of this job
 
-  # The installers, by tauri-action. A new entry here needs its line in packaging/release-assets.sh.
+  # The installers, by `tauri build`. A new entry here needs its line in packaging/release-assets.sh.
   desktop:
     needs: [draft, boms]
     if: needs.draft.outputs.id != ''
     permissions:
-      contents: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -365,12 +370,13 @@ jobs:
         working-directory: gui
       # The licences of everything inside, installed with the app. Only release builds bundle it,
       # through --config below, so other builds need no such file.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: boms
+          path: boms
       - name: Third-party notices
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.draft.outputs.tag }}
-        run: bash packaging/retry.sh gh release download "$TAG" --repo "$GITHUB_REPOSITORY" -p THIRD-PARTY-NOTICES.md -D gui/src-tauri --clobber
+        run: cp boms/THIRD-PARTY-NOTICES.md gui/src-tauri/
       # Developer ID signing and notarisation, when the Apple secrets are set. Without them the
       # app is ad-hoc signed and not notarised.
       - name: Apple signing
@@ -406,79 +412,93 @@ jobs:
       - name: Helper
         shell: bash
         run: bash packaging/helper-sidecar.sh ${{ matrix.args }}
-      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      - name: Build
+        shell: bash
+        working-directory: gui
+        run: npm run tauri -- build ${{ matrix.args }} --config '{"bundle":{"resources":["THIRD-PARTY-NOTICES.md"],"externalBin":["binaries/bragd-helper"]}}'
+      # Each installer under the name it has in the release; the macOS .app packed beside its
+      # .dmg, named as the .dmg is.
+      - name: The installers
+        shell: bash
+        run: |
+          shopt -s nullglob
+          mkdir out
+          for b in target/release/bundle target/*/release/bundle; do
+            for f in "$b"/*/*.deb "$b"/*/*.rpm "$b"/*/*.AppImage "$b"/*/*.dmg "$b"/*/*.msi "$b"/*/*-setup.exe; do
+              cp "$f" out/
+            done
+            for dmg in "$b"/dmg/*.dmg; do
+              d="$(basename "$dmg")"
+              tar czf "out/${d%.dmg}.app.tar.gz" -C "$b/macos" Bragd.app
+            done
+          done
+          ls -l out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          projectPath: gui
-          releaseId: ${{ needs.draft.outputs.id }}
-          # GitHub's upload API answers a 500 now and then: try an upload again.
-          retryAttempts: 3
-          args: ${{ matrix.args }} --config '{"bundle":{"resources":["THIRD-PARTY-NOTICES.md"],"externalBin":["binaries/bragd-helper"]}}'
+          name: desktop-${{ strategy.job-index }}
+          path: out/*
+          if-no-files-found: error
+          overwrite: true # a rerun of this job
 
-  # The Flatpak bundle the Flatpak workflow built and started in this run, as a release file.
-  flatpak:
-    needs: [draft, boms]
+  # The one job that writes the draft's files, and it builds nothing: what boms and desktop built,
+  # the Flatpak bundle the Flatpak workflow built and started in this run, and the BSD binaries
+  # the BSD workflow built and started in its virtual machines, packed with the tag and notices
+  # (packaging/bsd/pack.sh). It finds this run's draft, or makes it again when `discard` deleted it
+  # after a failed attempt: `gh run rerun <id> --failed` then finishes the release.
+  upload:
+    needs: [version, draft, boms, desktop]
     if: needs.draft.outputs.id != ''
     permissions:
       contents: write
     runs-on: ubuntu-24.04
+    outputs:
+      id: ${{ steps.up.outputs.id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: ${{ needs.draft.outputs.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: boms
+          path: boms
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: desktop
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: bragd-flatpak
-      - env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.draft.outputs.tag }}
-        run: |
-          f="Bragd_${TAG#v}_x86_64.flatpak"
-          mv bragd.flatpak "$f"
-          # Its .sha256 is made by `verify`, as every installer's is.
-          packaging/retry.sh gh release upload --clobber "$TAG" "$f"
-
-  # FreeBSD, NetBSD and OpenBSD: the binaries the BSD workflow built and started in its virtual
-  # machines in this run, packed with the release's tag and notices (packaging/bsd/pack.sh). Each
-  # system's archive is a release file: one missing stops the release at `verify`.
-  bsd:
-    needs: [draft, boms]
-    if: needs.draft.outputs.id != ''
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { sys: freebsd, target: x86_64-unknown-freebsd }
-          - { sys: netbsd, target: x86_64-unknown-netbsd }
-          - { sys: openbsd, target: x86_64-unknown-openbsd }
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          ref: ${{ needs.draft.outputs.sha }}
+          path: flatpak
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: bragd-bsd-${{ matrix.sys }}
-          path: out
-      - env:
+          pattern: bragd-bsd-*
+          path: bsd
+      - id: up
+        env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.draft.outputs.tag }}
+          SHA: ${{ needs.draft.outputs.sha }}
+          REHEARSAL: ${{ needs.version.outputs.rehearsal }}
         run: |
-          chmod +x out/*
-          packaging/retry.sh gh release download "$TAG" --repo "$GITHUB_REPOSITORY" -p THIRD-PARTY-NOTICES.md --clobber
-          sh packaging/bsd/pack.sh "$TAG" "${{ matrix.target }}" out dist
-          packaging/retry.sh gh release upload --clobber "$TAG" dist/*
+          echo "id=$(packaging/release-draft.sh "$TAG" "$SHA" "$REHEARSAL")" >> "$GITHUB_OUTPUT"
+          mkdir files
+          cp boms/* desktop/* files/
+          # Its .sha256 is made by `verify`, as every installer's is.
+          cp flatpak/bragd.flatpak "files/Bragd_${TAG#v}_x86_64.flatpak"
+          cp boms/THIRD-PARTY-NOTICES.md .
+          for sys in freebsd netbsd openbsd; do
+            chmod +x "bsd/bragd-bsd-$sys"/*
+            sh packaging/bsd/pack.sh "$TAG" "x86_64-unknown-$sys" "bsd/bragd-bsd-$sys" files
+          done
+          packaging/retry.sh gh release upload --clobber "$TAG" files/*
 
   # Every file the jobs above make (packaging/release-assets.sh), each installer's .sha256 and
   # one SHA256SUMS over all of them, or no release: on any gap this fails, says what is missing,
   # and `discard` deletes the draft.
   verify:
-    needs: [version, draft, boms, desktop, flatpak, bsd]
+    needs: [version, draft, upload]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -487,7 +507,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ needs.draft.outputs.tag }}
-      ID: ${{ needs.draft.outputs.id }}
+      ID: ${{ needs.upload.outputs.id }}
       REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -502,7 +522,7 @@ jobs:
       - name: Every file, and its checksums
         run: |
           packaging/retry.sh gh release download "$TAG" --repo "$REPO" -D assets --clobber
-          # tauri-action uploads the installers without a .sha256: each gets its own here, from
+          # `upload` uploads the installers without a .sha256: each gets its own here, from
           # the file in the draft.
           made=()
           for f in assets/Bragd[_-]*; do
@@ -553,6 +573,8 @@ jobs:
           latest="$(gh release view --repo "$REPO" --json tagName -q .tagName 2>/dev/null || echo v0.0.0)"
           newest="$(printf '%s\n' "$latest" "$TAG" | sort -V | tail -1)"
           packaging/retry.sh gh release edit "$TAG" --repo "$REPO" --draft=false --latest="$([ "$newest" = "$TAG" ] && echo true || echo false)"
+          # A failed rehearsal of this version left its branch.
+          gh api -X DELETE "repos/$REPO/git/refs/heads/rehearsal/$TAG" 2>/dev/null || true
 
   # The rehearsal's channels, as far as they can go without publishing: the Homebrew cask
   # written from the draft's SHA256SUMS and audited.
@@ -584,10 +606,11 @@ jobs:
           brew audit --cask rehearsal/check/bragd
 
   # Anything between the draft and publishing failed, or the run was cancelled: the draft this
-  # run made goes, so no half-made release is left behind. A run by hand starts again cleanly.
-  # A rehearsal's draft and branch always go.
+  # run made goes, so no half-made release is left behind. A run by hand starts again cleanly; a
+  # rerun of the failed jobs makes the draft again in `upload`. A rehearsal's draft always goes,
+  # its branch when it passed: a failed one's jobs build from it when they are run again.
   discard:
-    needs: [version, draft, boms, desktop, flatpak, bsd, verify, rehearse, publish]
+    needs: [version, draft, boms, desktop, upload, verify, rehearse, publish]
     if: always() && (needs.version.outputs.rehearsal == 'true' || (needs.draft.outputs.id != '' && needs.publish.result != 'success'))
     runs-on: ubuntu-24.04
     permissions:
@@ -603,14 +626,14 @@ jobs:
           if [ "$REHEARSAL" = true ]; then
             failed=$(jq -r 'to_entries[] | select(.key != "publish" and .value.result != "success") | "\(.key) (\(.value.result))"' <<<"$NEEDS" | xargs)
             if [ -n "$failed" ]; then
-              echo "::error title=Rehearsal failed::$TAG would not be released: $failed."
+              echo "::error title=Rehearsal failed::$TAG would not be released: $failed. A fault on GitHub's side: gh run rerun $GITHUB_RUN_ID --failed."
             else
               echo "::notice title=Rehearsal passed::$TAG: every file built and checked, the cask ready. Nothing was published."
+              gh api -X DELETE "repos/$REPO/git/refs/heads/rehearsal/$TAG" 2>/dev/null || true
             fi
-            gh api -X DELETE "repos/$REPO/git/refs/heads/rehearsal/$TAG" 2>/dev/null || true
           else
             failed=$(jq -r 'to_entries[] | select(.value.result != "success") | "\(.key) (\(.value.result))"' <<<"$NEEDS" | xargs)
-            echo "::error title=No release::$TAG is not released: $failed. Its draft is deleted."
+            echo "::error title=No release::$TAG is not released: $failed. Its draft is deleted. A fault on GitHub's side: gh run rerun $GITHUB_RUN_ID --failed."
           fi
           info="$(gh release view "$TAG" --repo "$REPO" --json isDraft,body)" || exit 0
           if [ "$(jq -r .isDraft <<<"$info")" = true ] &&

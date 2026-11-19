@@ -30,6 +30,8 @@ jobs:
       - run: python3 tools/workflow-shell-check.py
       # The release tooling's own test: release-pr.py in a throwaway repository.
       - run: python3 packaging/test_release_pr.py
+      # release-draft.sh against a fake gh: a rerun of failed release jobs finds or remakes its draft.
+      - run: packaging/test_release_draft.sh
       # The server backup script's 30-day pruning, on throwaway files.
       - run: packaging/server/backup.sh --check
       # The engine image pruning's plan, against fixtures: what it keeps and what it deletes.
