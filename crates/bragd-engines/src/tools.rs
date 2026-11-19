@@ -82,12 +82,7 @@ pub struct Runtime {
     pub path: PathBuf,
 }
 
-/// Whether the system `os` (`std::env::consts::OS`) runs the Linux container images Bragd's
-/// Engines come in. podman on FreeBSD runs FreeBSD containers only; NetBSD and OpenBSD have
-/// neither podman nor docker. There an Engine comes from the system's packages.
-pub fn images_run_on(os: &str) -> bool {
-    !matches!(os, "freebsd" | "netbsd" | "openbsd")
-}
+pub use bragd_core::settings::images_run_on;
 
 /// podman or docker, as the setting `choice` allows: `auto` (podman first), `podman`,
 /// `docker` or `off`. None where the images cannot run ([`images_run_on`]).

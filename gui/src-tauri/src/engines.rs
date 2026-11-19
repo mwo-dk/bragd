@@ -181,7 +181,7 @@ pub fn page(cfg: &Config, held: &Held, family: Family) -> Page {
             let hint = match (&state, k) {
                 // Running from a checkout with images allowed: the image can be built here.
                 (Availability::NoImage, Some(k)) if k.dev_image(known::dev_images()).is_some() => i18n::tr("engines.build_here", &[("command", &format!("tools/dev/images.sh {}", k.key))]),
-                (Availability::NoImage | Availability::NoRuntime | Availability::ContainersOff | Availability::Pull { .. }, Some(k)) => i18n::tr("engines.install_hint_package", &[("program", k.programs[0])]), // its download page is a button
+                (Availability::NoImage | Availability::NoRuntime | Availability::ContainersOff | Availability::NoImagesHere | Availability::Pull { .. }, Some(k)) => i18n::tr("engines.install_hint_package", &[("program", k.programs[0])]), // its download page is a button
                 (Availability::Gone { .. }, _) => i18n::tr("engines.gone", &[("name", &key)]),
                 _ => String::new(),
             };

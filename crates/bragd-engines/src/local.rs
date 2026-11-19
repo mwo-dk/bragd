@@ -69,6 +69,8 @@ pub enum Availability {
     NoRuntime,
     /// Not installed, and running images is turned off in Settings.
     ContainersOff,
+    /// Not installed, and this system cannot run its Linux image ([`tools::images_run_on`]).
+    NoImagesHere,
     /// Added by a path that is no longer there.
     Gone { path: String },
 }
@@ -105,6 +107,9 @@ pub fn availability(cfg: &Config, key: &str) -> Availability {
     if local.is_none() && pinned.is_none() {
         return Availability::NoImage;
     }
+    if !tools::images_run_on(std::env::consts::OS) {
+        return Availability::NoImagesHere;
+    }
     if !cfg.engines.containers {
         return Availability::ContainersOff;
     }
@@ -140,8 +145,8 @@ pub fn containers(cfg: &Config) -> Vec<String> {
 fn missing(cfg: &Config, k: &Known, m: &Missing) -> String {
     match m {
         Missing::NotPulled { .. } => i18n::tr("engines.state.get", &[("size", &bragd_core::i18n::bytes(k.image_size))]),
-        Missing::NoRuntime if !cfg.engines.containers => i18n::tr("engines.state.containers_off", &[]),
         Missing::NoRuntime if !tools::images_run_on(std::env::consts::OS) => i18n::tr("engines.state.no_images_here", &[]),
+        Missing::NoRuntime if !cfg.engines.containers => i18n::tr("engines.state.containers_off", &[]),
         Missing::NoRuntime => i18n::tr("engines.state.no_runtime", &[]),
         Missing::NoNetwork => i18n::tr("engines.network.missing", &[("name", k.name)]),
         Missing::NoImage => format!("{} {}", i18n::tr("engines.state.no_image", &[]), install_hint(k)),

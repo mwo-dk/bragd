@@ -9,6 +9,13 @@ use crate::config::Config;
 use bragd_games::Family;
 use std::sync::LazyLock;
 
+/// Whether the system `os` (`std::env::consts::OS`) runs the Linux container images Bragd's
+/// Engines come in. podman on FreeBSD runs FreeBSD containers only; NetBSD and OpenBSD have
+/// neither podman nor docker. There an Engine comes from the system's packages.
+pub fn images_run_on(os: &str) -> bool {
+    !matches!(os, "freebsd" | "netbsd" | "openbsd")
+}
+
 /// An area of Settings, by what users come for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -115,9 +122,16 @@ impl Opt {
     /// What Play with Friends asks (Chat, voice, camera, the filter) waits for a Bragd server
     /// address; the address itself is always there to fill in.
     pub fn listed_for(&self, cfg: &Config) -> bool {
+        self.listed_on(cfg, std::env::consts::OS)
+    }
+
+    /// [`Opt::listed_for`] on the system `os`: the Engine container image settings only where
+    /// the images run ([`images_run_on`]).
+    pub fn listed_on(&self, cfg: &Config, os: &str) -> bool {
         let f = self.families();
         let waits = self.name.starts_with("bragd_") && self.name != "bragd_server" && cfg.bragd_server().is_empty();
-        self.listed() && !waits && (f.is_empty() || f.iter().any(|f| cfg.family_shown(f)))
+        let no_images = matches!(self.name, "engines_containers" | "engines_runtime") && !images_run_on(os);
+        self.listed() && !waits && !no_images && (f.is_empty() || f.iter().any(|f| cfg.family_shown(f)))
     }
 
     /// Its explanation, or empty.
@@ -515,6 +529,23 @@ mod tests {
         for name in ["bragd_chat", "bragd_filter", "bragd_voice", "bragd_camera"] {
             let o = find(name).unwrap();
             assert!(!o.listed_for(&none) && o.listed_for(&set), "{name}");
+        }
+    }
+
+    /// The BSDs cannot run the Engines' Linux images, so Settings → Engines offers neither the
+    /// image switch nor the runtime there; the analysis settings stay.
+    #[test]
+    fn the_bsds_are_not_offered_engine_container_images() {
+        let cfg = Config::default();
+        let offered = |os: &str| options().filter(|o| o.area == Area::Engines && o.listed_on(&cfg, os)).map(|o| o.name).collect::<Vec<_>>();
+        for os in ["freebsd", "netbsd", "openbsd"] {
+            let names = offered(os);
+            assert!(!names.contains(&"engines_containers") && !names.contains(&"engines_runtime"), "{os}: {names:?}");
+            assert!(names.contains(&"analysis_depth"), "{os}");
+        }
+        for os in ["linux", "macos", "windows"] {
+            let names = offered(os);
+            assert!(names.contains(&"engines_containers") && names.contains(&"engines_runtime"), "{os}");
         }
     }
 

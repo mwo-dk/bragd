@@ -15,7 +15,7 @@ Each Game family with an Engine has an Engines page. It lists the Engines Bragd 
 | Where | What to do |
 |---|---|
 | Sidebar | A Family → **Engines** (chess, xiangqi, shogi, go, draughts and backgammon) |
-| Settings | *Settings → Engines* holds the container settings ([Engine container images](container-images.md)) |
+| Settings | *Settings → Engines* holds the container settings ([Engine container images](container-images.md)), except on FreeBSD, NetBSD and OpenBSD |
 | Keys | **Tab** moves through the page; **F1** shows the `engines` entry |
 
 The page has four parts:
@@ -32,6 +32,7 @@ The page has four parts:
    | *Bragd has no container image of it.* | An Engine Bragd builds no image of, such as Igel or YaneuraOu: install the program with your package manager, or **Download page** |
    | *Its container image needs podman or docker* | Install podman or docker, or the Engine itself. **Settings → Engines** opens the container settings |
    | *Container images are turned off in Settings.* | **Settings → Engines** turns them back on |
+   | *Its container image is a Linux image, which this system cannot run* | On FreeBSD, NetBSD and OpenBSD: install the Engine from your system's packages, or **Download page** |
 
 3. **Options.** *Options* on a ready Engine starts it and lists the options it offers: switches, lists, numbers and text. ↺ puts one back to the Engine's default, and *Reset all* puts them all back.
 4. **Add an engine.** Type the path to a program and press *Add*.

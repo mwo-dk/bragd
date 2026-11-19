@@ -142,7 +142,7 @@ fn engines(cfg: &Config) -> Vec<FamilyEngines> {
                 // The engines' own Variant keys differ from the catalogue's (S5): the Family decides.
                 .filter(|_| f.has_engine())
                 .filter(|k| k.variants.iter().any(|v| known::family(v).and_then(|kf| serde_json::to_value(kf).ok()).is_some_and(|kf| kf == f.key())))
-                .map(|k| EngineView { name: k.name, installed: crate::engines::installed(cfg, k.key, Some(k)).map(|p| p.display().to_string()), image: k.image().is_some() })
+                .map(|k| EngineView { name: k.name, installed: crate::engines::installed(cfg, k.key, Some(k)).map(|p| p.display().to_string()), image: k.image().is_some() && bragd_engines::tools::images_run_on(std::env::consts::OS) })
                 .collect(),
         })
         .collect()
