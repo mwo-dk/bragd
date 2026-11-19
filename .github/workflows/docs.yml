@@ -36,3 +36,5 @@ jobs:
       - run: packaging/server/backup.sh --check
       # The engine image pruning's plan, against fixtures: what it keeps and what it deletes.
       - run: python3 tools/ghcr-prune.py --self-test
+      # images-pin.py reads its arguments: --help prints help, a typo is refused, no pin rewritten.
+      - run: python3 tools/test_images_pin.py
