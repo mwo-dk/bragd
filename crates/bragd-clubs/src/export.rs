@@ -11,9 +11,10 @@ use std::path::Path;
 
 use bragd_core::t;
 use pairing::Colour;
-use pairing::trf::{self, Trf, TrfGame, TrfPlayer};
+use pairing::trf::{self, Trf, TrfGame, TrfNational, TrfPlayer};
 
 use crate::club::{Error, Result};
+use crate::lists::National;
 use crate::tournament::{Outcome, Slot, Tournament, half_text};
 
 /// A bundle's extension.
@@ -38,8 +39,9 @@ fn numbers(t: &Tournament) -> Vec<u32> {
     n
 }
 
-/// The Tournament as a FIDE Tournament Report File.
-pub fn trf(t: &Tournament) -> String {
+/// The Tournament as a FIDE Tournament Report File, with TRF-2026's national rating records
+/// when `national` (from [`crate::lists::national`], one entry per player) finds any.
+pub fn trf(t: &Tournament, national: Option<&National>) -> String {
     let n = numbers(t);
     let standings = t.standings();
     let rank = |p: usize| standings.iter().find(|s| s.player == p).map_or(0, |s| s.rank);
@@ -75,6 +77,16 @@ pub fn trf(t: &Tournament) -> String {
         })
         .collect();
     players.sort_by_key(|p| p.start_rank);
+    // A number longer than TRF's 11 columns cannot be written whole, so it is left out.
+    let mut nrs = vec![];
+    if let Some(nat) = national {
+        for (p, found) in nat.players.iter().enumerate() {
+            if let (Some((number, rating)), Some(&start_rank)) = (found.as_ref().filter(|(number, _)| number.len() <= 11), n.get(p)) {
+                nrs.push(TrfNational { federation: nat.federation.into(), start_rank, rating: *rating, number: number.clone() });
+            }
+        }
+    }
+    nrs.sort_by_key(|r| r.start_rank);
     let report = Trf {
         name: t.name.clone(),
         city: t.place.clone(),
@@ -82,11 +94,15 @@ pub fn trf(t: &Tournament) -> String {
         start: t.date.replace('-', "/"),
         end: String::new(),
         arbiter: t.arbiter.clone(),
+        // Bragd seeds by the rating each player was registered with, which is neither
+        // necessarily FIDE's nor the national one.
+        rank_method: if nrs.is_empty() { String::new() } else { format!("{} OTHER", nrs[0].federation) },
         kind: t.system.trf().into(),
         tiebreaks: t.tiebreaks.iter().map(|tb| tb.code().replace('-', "/")).collect::<Vec<_>>().join(","),
         rounds: Some(t.rounds),
         initial_colour: Some(if t.white_first { Colour::White } else { Colour::Black }),
         players,
+        national: nrs,
     };
     trf::write(&report)
 }
@@ -307,15 +323,15 @@ pub fn pairings_html(t: &Tournament, round: usize) -> String {
 pub const FORMAT: bragd_core::format::Json = bragd_core::format::Json { file: "tournament.json", migrations: &[] };
 
 /// Writes the bundle: `tournament.json` (what reads back), `tournament.trf`, `games.pgn` and
-/// `standings.html`.
-pub fn bundle(t: &Tournament, path: &Path) -> Result<()> {
+/// `standings.html`. `national` is as for [`trf`].
+pub fn bundle(t: &Tournament, national: Option<&National>, path: &Path) -> Result<()> {
     let mut v = serde_json::to_value(t).map_err(|e| Error::Io(e.to_string()))?;
     FORMAT.stamp(&mut v);
     let json = serde_json::to_vec_pretty(&v).map_err(|e| Error::Io(e.to_string()))?;
     bragd_core::fs::replace_with(path, false, |f| {
         let mut z = zip::ZipWriter::new(f);
         let opts = zip::write::SimpleFileOptions::default();
-        for (name, bytes) in [("tournament.json", json.as_slice()), ("tournament.trf", trf(t).as_bytes()), ("games.pgn", pgn(t).as_bytes()), ("standings.html", standings_html(t).as_bytes())] {
+        for (name, bytes) in [("tournament.json", json.as_slice()), ("tournament.trf", trf(t, national).as_bytes()), ("games.pgn", pgn(t).as_bytes()), ("standings.html", standings_html(t).as_bytes())] {
             z.start_file(name, opts).map_err(std::io::Error::other)?;
             z.write_all(bytes)?;
         }
@@ -364,7 +380,7 @@ mod tests {
     #[test]
     fn the_trf_reads_back_with_scores_ranks_and_byes() {
         let t = played();
-        let back = trf::parse(&trf(&t)).unwrap();
+        let back = trf::parse(&trf(&t, None)).unwrap();
         assert_eq!((back.name.as_str(), back.start.as_str(), back.city.as_str(), back.rounds), ("Club <Championship>", "2026/11/05", "Aarhus", Some(3)));
         assert_eq!(back.tiebreaks, "BH/C2,BH/C1,BH");
         let anna = &back.players[0];
@@ -374,6 +390,22 @@ mod tests {
         assert_eq!((back.players[2].name.as_str(), back.players[2].rounds[0].result), ("Bo", 'U'));
         let total: u32 = back.players.iter().map(|p| p.points).sum();
         assert_eq!(total, (0..3).map(|p| t.points(p)).sum::<u32>());
+    }
+
+    #[test]
+    fn the_trf_holds_the_national_ratings_found_by_start_number() {
+        let t = played();
+        // Players in registration order: Anna (2100, start 1), Bo (1900, start 3), Carl (2000, start 2).
+        let nat = National { federation: "DEN", players: vec![Some(("41027".into(), 2215)), None, Some(("107733".into(), 0))] };
+        let text = trf(&t, Some(&nat));
+        let back = trf::parse(&text).unwrap();
+        assert_eq!(back.rank_method, "DEN OTHER");
+        let got: Vec<_> = back.national.iter().map(|r| (r.start_rank, r.rating, r.number.as_str())).collect();
+        assert_eq!(got, [(1, 2215, "41027"), (2, 0, "107733")]);
+        // No national ratings found: neither record 172 nor any national line.
+        let none = trf(&t, Some(&National { federation: "DEN", players: vec![None, None, None] }));
+        assert!(!none.contains("172 ") && !none.contains("\nDEN "), "{none}");
+        assert_eq!(none, trf(&t, None));
     }
 
     #[test]
@@ -428,7 +460,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("t.bragd-tournament");
         let t = played();
-        bundle(&t, &path).unwrap();
+        bundle(&t, None, &path).unwrap();
         assert_eq!(read_bundle(&path).unwrap(), t);
         // A game naming a player who is not there.
         let mut bad = t.clone();

@@ -166,11 +166,13 @@ In a Swiss, Monrad, Nordic Swiss or Drop-in, rounds a player did not play count 
 | Export | What it holds |
 |---|---|
 | **Standings and crosstable (HTML)** | One page with the standings and every tiebreak, the crosstable and every Round's pairings and results. It needs no Bragd to read |
-| **FIDE report (TRF)** | FIDE's Tournament Report File (TRF-2026), with the tiebreaks in its `202` line and the system in its `192` line. Pairing programs and FIDE rating reports read it |
+| **FIDE report (TRF)** | FIDE's Tournament Report File (TRF-2026), with the tiebreaks in its `202` line, the system in its `192` line and the players' national ratings. Pairing programs and FIDE rating reports read it |
 | **Games (PGN)** | Every game played over the board, with the players, ratings, FIDE IDs, Round, board and result, but no moves |
 | **Bragd Tournament bundle** | The whole Tournament with its log, plus the three files above, in one `.bragd-tournament` file. **Open a bundle…** reads it into a Club |
 
 The `192` line uses FIDE's code table: `FIDE_DUTCH` or `FIDE_DUTCH_BAKU`, `FIDE_ROUNDROBIN` or `FIDE_DOUBLEROUNDROBIN`, and for the systems FIDE does not define `CUSTOM_SWISS` (Monrad, Nordic Swiss, Drop-in), `CUSTOM_KNOCKOUT` and `CUSTOM_SCHEVENINGEN`. FIDE has not yet fixed a Scheveningen schedule, so Bragd's own is a custom one.
+
+The TRF also holds TRF-2026's national rating records when the players are on a federation's rating list Bragd has fetched (see [Rating lists](../reference/rating-lists.md)). Bragd looks each player up by their national ID, from the Club file or from the list they were found in, or else by their FIDE ID. The federation list that finds the most players is used: each player found gets a line with the federation's code, the start number, the national rating and the national number, and the `172` line names that federation with the method `OTHER`, since Bragd seeds by the rating each player was registered with. Players on no list get no national line. With no federation list fetched, the TRF has no national records.
 
 The Danish Chess Union publishes no file format for rating reports. Results are typed into its web system, turnering.skak.dk, which takes the games as PGN, so there is no DSU export beyond the PGN. Which file each federation takes, and where to send it, is in [Reporting results to your federation](reporting-results.md).
 

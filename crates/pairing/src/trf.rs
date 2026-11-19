@@ -21,6 +21,9 @@ pub struct Trf {
     pub end: String,
     /// Line `102`.
     pub arbiter: String,
+    /// Line `172`, how players are ranked when there are national rating records: the
+    /// federation, then a method such as `OTHER` (`DEN OTHER`).
+    pub rank_method: String,
     /// Line `192`, TRF-2026's tournament type code, such as `FIDE_DUTCH_2025`.
     pub kind: String,
     /// Line `202`, TRF-2026's tiebreak codes, comma-separated: `BH/C1,BH,SB`.
@@ -31,6 +34,22 @@ pub struct Trf {
     pub initial_colour: Option<Colour>,
     /// Lines `001`, in file order.
     pub players: Vec<TrfPlayer>,
+    /// TRF-2026's national rating records: the lines starting with the federation `172` names.
+    pub national: Vec<TrfNational>,
+}
+
+/// One national rating record. Its optional columns (sex, classification, name, origin, birth
+/// date) are left blank: they default to the `001` line's.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TrfNational {
+    /// Columns 1-3.
+    pub federation: String,
+    /// Columns 5-8: the `001` line this belongs to.
+    pub start_rank: u32,
+    /// Columns 49-52; 0 when blank.
+    pub rating: u32,
+    /// Columns 58-68, the federation's own number for the player.
+    pub number: String,
 }
 
 /// One `001` line.
@@ -99,6 +118,7 @@ pub fn write(t: &Trf) -> String {
         ("042", &t.start),
         ("052", &t.end),
         ("102", &t.arbiter),
+        ("172", &t.rank_method),
         ("192", &t.kind),
         ("202", &t.tiebreaks),
     ] {
@@ -140,6 +160,11 @@ pub fn write(t: &Trf) -> String {
         out.push_str(line.trim_end());
         out.push('\n');
     }
+    for n in &t.national {
+        let line = format!("{:<3} {:>4} {:<38} {:>4} {:<3} {:>11}", n.federation, n.start_rank, "", blank(n.rating), "", n.number);
+        out.push_str(line.trim_end());
+        out.push('\n');
+    }
     out
 }
 
@@ -152,11 +177,13 @@ pub fn parse(text: &str) -> Result<Trf, TrfError> {
         start: String::new(),
         end: String::new(),
         arbiter: String::new(),
+        rank_method: String::new(),
         kind: String::new(),
         tiebreaks: String::new(),
         rounds: None,
         initial_colour: None,
         players: Vec::new(),
+        national: Vec::new(),
     };
     for (k, raw) in text.lines().enumerate() {
         let line = raw.strip_suffix('\r').unwrap_or(raw);
@@ -171,6 +198,7 @@ pub fn parse(text: &str) -> Result<Trf, TrfError> {
             ("042 ", &mut t.start),
             ("052 ", &mut t.end),
             ("102 ", &mut t.arbiter),
+            ("172 ", &mut t.rank_method),
             ("192 ", &mut t.kind),
             ("202 ", &mut t.tiebreaks),
         ];
@@ -190,6 +218,14 @@ pub fn parse(text: &str) -> Result<Trf, TrfError> {
             };
         } else if line.starts_with("001") {
             t.players.push(player(line).map_err(err)?);
+        } else if let Some(fed) = t.rank_method.get(..3).filter(|f| line.starts_with(&format!("{f} "))) {
+            let rank = cols(line, 5, 8);
+            t.national.push(TrfNational {
+                federation: fed.to_string(),
+                start_rank: rank.trim().parse().map_err(|_| err(format!("bad start rank {:?}", rank.trim())))?,
+                rating: number(line, 49, 52, "rating").map_err(err)?,
+                number: cols(line, 58, 68).trim().to_string(),
+            });
         }
     }
     Ok(t)

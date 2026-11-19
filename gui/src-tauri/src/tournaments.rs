@@ -301,12 +301,16 @@ pub fn tournament_export(id: i64, kind: String, app: AppHandle, held: State<'_, 
     };
     let ask = files::Ask { title: label.clone(), save: Some(file_name(&t, ext)), filters: vec![(label, vec![ext.into()])], ..Default::default() };
     let Some(path) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
+    // The national ratings, from the federation lists imported; a list that cannot be read
+    // leaves them out rather than the export.
+    let ids: Vec<(&str, &str)> = t.players.iter().map(|p| (p.national_id.as_str(), p.fide_id.as_str())).collect();
+    let national = bragd_clubs::lists::path().and_then(|db| bragd_clubs::lists::national(&db, &ids).ok().flatten());
     let text = match kind.as_str() {
-        "trf" => export::trf(&t),
+        "trf" => export::trf(&t, national.as_ref()),
         "pgn" => export::pgn(&t),
         "html" => export::standings_html(&t),
         _ => {
-            export::bundle(&t, &path).map_err(|e| e.to_string())?;
+            export::bundle(&t, national.as_ref(), &path).map_err(|e| e.to_string())?;
             return Ok(Some(path));
         }
     };
