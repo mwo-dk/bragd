@@ -377,36 +377,6 @@ jobs:
       - name: Third-party notices
         shell: bash
         run: cp boms/THIRD-PARTY-NOTICES.md gui/src-tauri/
-      # Developer ID signing and notarisation, when the Apple secrets are set. Without them the
-      # app is ad-hoc signed and not notarised.
-      - name: Apple signing
-        if: runner.os == 'macOS'
-        shell: bash
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          if [ -z "$APPLE_CERTIFICATE" ] || [ -z "$APPLE_CERTIFICATE_PASSWORD" ]; then
-            echo "::notice title=macOS signing::No APPLE_CERTIFICATE secret: the app is ad-hoc signed and not notarised."
-            exit 0
-          fi
-          {
-            echo "APPLE_SIGNING_IDENTITY=Developer ID Application"
-            for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD; do
-              printf '%s<<APPLE_EOF\n%s\nAPPLE_EOF\n' "$name" "${!name}"
-            done
-            if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
-              for name in APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
-                printf '%s<<APPLE_EOF\n%s\nAPPLE_EOF\n' "$name" "${!name}"
-              done
-            fi
-          } >> "$GITHUB_ENV"
-          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
-            echo "::notice title=macOS signing::Signed with the Developer ID, but not notarised: APPLE_ID, APPLE_PASSWORD or APPLE_TEAM_ID is missing."
-          fi
       # The Helper ships beside the app as a sidecar (externalBin in --config below), built for
       # the same target.
       - name: Helper
@@ -435,7 +405,85 @@ jobs:
           ls -l out
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: desktop-${{ strategy.job-index }}
+          # The macOS files go to sign-macos first, which hands them on as desktop-macos.
+          name: ${{ runner.os == 'macOS' && 'macos-unsigned' || 'desktop' }}-${{ strategy.job-index }}
+          path: out/*
+          if-no-files-found: error
+          overwrite: true # a rerun of this job
+
+  # Developer ID signing and notarisation of the macOS app, in a job that compiles nothing: the
+  # Apple secrets never reach `desktop`, where every dependency's build script and macro runs.
+  # Without APPLE_CERTIFICATE the files go through as `desktop` made them: ad-hoc signed, not
+  # notarised. With it, the .dmg is made again around the signed app.
+  sign-macos:
+    needs: [draft, desktop]
+    if: needs.draft.outputs.id != ''
+    permissions:
+      contents: read
+    runs-on: macos-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: macos-unsigned-*
+          merge-multiple: true
+          path: in
+      - name: Sign and notarise
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          shopt -s nullglob
+          mkdir out
+          if [ -z "$APPLE_CERTIFICATE" ] || [ -z "$APPLE_CERTIFICATE_PASSWORD" ]; then
+            echo "::notice title=macOS signing::No APPLE_CERTIFICATE secret: the app is ad-hoc signed and not notarised."
+            cp in/* out/
+            ls -l out
+            exit 0
+          fi
+          notarise=true
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+            notarise=false
+            echo "::notice title=macOS signing::Signed with the Developer ID, but not notarised: APPLE_ID, APPLE_PASSWORD or APPLE_TEAM_ID is missing."
+          fi
+          kc="$RUNNER_TEMP/sign.keychain-db"
+          kp="$(uuidgen)"
+          security create-keychain -p "$kp" "$kc"
+          security set-keychain-settings -lut 21600 "$kc"
+          security unlock-keychain -p "$kp" "$kc"
+          base64 --decode <<<"$APPLE_CERTIFICATE" > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$kc" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$kp" "$kc" >/dev/null
+          sign=(codesign --force --timestamp --keychain "$kc" --sign "Developer ID Application")
+          for dmg in in/*.dmg; do
+            name="$(basename "$dmg" .dmg)"
+            root="$RUNNER_TEMP/$name"
+            mkdir -p "$root"
+            tar xzf "in/$name.app.tar.gz" -C "$root"
+            # The Helper sidecar and the app itself, under the hardened runtime notarisation needs.
+            for f in "$root"/Bragd.app/Contents/MacOS/*; do
+              "${sign[@]}" --options runtime "$f"
+            done
+            "${sign[@]}" --options runtime "$root/Bragd.app"
+            ln -s /Applications "$root/Applications"
+            hdiutil create -volname Bragd -srcfolder "$root" -format UDZO "out/$name.dmg"
+            "${sign[@]}" "out/$name.dmg"
+            if [ "$notarise" = true ]; then
+              xcrun notarytool submit "out/$name.dmg" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+              xcrun stapler staple "out/$name.dmg"
+              xcrun stapler staple "$root/Bragd.app"
+            fi
+            tar czf "out/$name.app.tar.gz" -C "$root" Bragd.app
+          done
+          security delete-keychain "$kc"
+          ls -l out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-macos
           path: out/*
           if-no-files-found: error
           overwrite: true # a rerun of this job
@@ -446,7 +494,7 @@ jobs:
   # (packaging/bsd/pack.sh). It finds this run's draft, or makes it again when `discard` deleted it
   # after a failed attempt: `gh run rerun <id> --failed` then finishes the release.
   upload:
-    needs: [version, draft, boms, desktop]
+    needs: [version, draft, boms, desktop, sign-macos]
     if: needs.draft.outputs.id != ''
     permissions:
       contents: write
@@ -610,7 +658,7 @@ jobs:
   # rerun of the failed jobs makes the draft again in `upload`. A rehearsal's draft always goes,
   # its branch when it passed: a failed one's jobs build from it when they are run again.
   discard:
-    needs: [version, draft, boms, desktop, upload, verify, rehearse, publish]
+    needs: [version, draft, boms, desktop, sign-macos, upload, verify, rehearse, publish]
     if: always() && (needs.version.outputs.rehearsal == 'true' || (needs.draft.outputs.id != '' && needs.publish.result != 'success'))
     runs-on: ubuntu-24.04
     permissions:

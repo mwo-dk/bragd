@@ -87,7 +87,7 @@ No job that builds holds a token that can write: a dependency's build script or 
 runs on the same machine as every later step of its job. `boms` and `desktop` build read-only and
 hand their files on as artifacts; `upload`, which builds nothing, is the one job that writes them
 to the draft. `tools/workflow-shell-check.py` fails any workflow job that builds with a write
-permission or a `*TOKEN*` secret. A job that builds a container image (docker, podman, buildah)
+permission or any secret but the read-only `GITHUB_TOKEN`. A job that builds a container image (docker, podman, buildah)
 may not even reach a read-only token: no secret, no `github.token` and no registry login. The
 engine images (`images.yml`) build into an OCI archive, and a `push` job copies it to ghcr.io with
 skopeo.
@@ -115,8 +115,9 @@ write: `gh secret set TAP_TOKEN -R mwo-dk/bragd`.
 `mwo-dk/winget-pkgs`: `gh secret set WINGET_TOKEN -R mwo-dk/bragd`.
 
 **APPLE_CERTIFICATE**, **APPLE_CERTIFICATE_PASSWORD**, **APPLE_ID**, **APPLE_PASSWORD**,
-**APPLE_TEAM_ID** (optional): Developer ID signing and notarisation of the `.dmg`. Without them
-the app is ad-hoc signed.
+**APPLE_TEAM_ID** (optional): Developer ID signing and notarisation of the `.dmg`, in the `sign-macos` job,
+which builds nothing: `desktop` builds unsigned and never sees them. Without them the app is
+ad-hoc signed.
 
 ## Not yet
 

@@ -49,3 +49,11 @@ jobs:
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: podman build -t img packaging/images/stockfish
+  signing:
+    permissions:
+      contents: read
+    runs-on: macos-latest
+    steps:
+      - run: npm run tauri -- build
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
