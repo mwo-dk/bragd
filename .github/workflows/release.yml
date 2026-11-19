@@ -39,6 +39,10 @@ on:
         description: Rehearse the next release instead (publishes nothing)
         type: boolean
         default: false
+      open-issues-ok:
+        description: A rehearsal goes on although the new version's milestone has open issues (the owner's decision only)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -81,6 +85,7 @@ jobs:
           REPO: ${{ github.repository }}
           EVENT: ${{ github.event_name }}
           REHEARSAL: ${{ github.event_name == 'schedule' || inputs.rehearsal == true }}
+          GATE: ${{ inputs.open-issues-ok == true && '--open-issues-ok' || '' }}
         run: |
           version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::bad version '$version' in Cargo.toml"; exit 1; }
@@ -92,7 +97,7 @@ jobs:
             # The version tomorrow's release pull request makes; exit 2: no rows, nothing to rehearse.
             # Exit 3: the current version has no published release. Exit 4: open milestone
             # issues hold the new version (listed). Exit 5: a feature row has no tour card.
-            rc=0; next=$(python3 packaging/release-pr.py --next) || rc=$?
+            rc=0; next=$(python3 packaging/release-pr.py --next $GATE) || rc=$?
             if [ "$rc" = 2 ]; then
               echo "::notice title=No rehearsal::changelog.d/ has no rows: nothing to release tomorrow."
               { echo release=false; echo none=true; } >> "$GITHUB_OUTPUT"; exit 0
@@ -226,8 +231,9 @@ jobs:
         if: needs.version.outputs.rehearsal == 'true'
         env:
           REPO: ${{ github.repository }}
+          GATE: ${{ inputs.open-issues-ok == true && '--open-issues-ok' || '' }}
         run: |
-          [ "$(python3 packaging/release-pr.py)" = "${TAG#v}" ] || { echo "::error::release-pr.py did not make $TAG"; exit 1; }
+          [ "$(python3 packaging/release-pr.py $GATE)" = "${TAG#v}" ] || { echo "::error::release-pr.py did not make $TAG"; exit 1; }
           # The test jobs ran on master's commit: what release-pr.py wrote is checked here, against
           # that commit (still HEAD), so a fault shows today and not on tomorrow's pull request.
           python3 tools/docs-check.py --base "$(git rev-parse HEAD)" || { echo "::error::the docs check fails on $TAG's release changes"; exit 1; }
