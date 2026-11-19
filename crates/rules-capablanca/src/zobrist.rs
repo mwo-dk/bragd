@@ -167,17 +167,13 @@ mod tests {
         // A table with a repeat in it silently makes two different positions
         // equal, which shows up as a draw claim nobody can explain.
         let mut all = Vec::new();
-        for color in 0..2 {
-            for role in 0..Role::COUNT {
-                for square in 0..SQUARES {
-                    all.push(TABLES.pieces[color][role][square]);
-                }
+        for color in &TABLES.pieces {
+            for role in color {
+                all.extend(role);
             }
         }
-        for color in 0..2 {
-            for side in 0..2 {
-                all.push(TABLES.castling[color][side]);
-            }
+        for color in &TABLES.castling {
+            all.extend(color);
         }
         all.extend(TABLES.en_passant);
         all.push(TABLES.black_to_move);

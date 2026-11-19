@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Bragd
+GenericName=Board games
+Comment=Play, study and keep board games
+Exec=bragd-gui %F
+StartupWMClass=bragd-gui
+Icon=bragd
+Terminal=false
+Categories=Game;BoardGame;

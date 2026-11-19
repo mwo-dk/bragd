@@ -27,8 +27,13 @@ expected() {
   with_sum "Bragd_${v}_arm64-setup.exe" "Bragd_${v}_arm64_en-US.msi"                         # windows-11-arm
   # flatpak: the bundle the Flatpak workflow built in the same run
   with_sum "Bragd_${v}_x86_64.flatpak"
-  # boms
+  # bsd: packaging/bsd/pack.sh, one archive per system, each with its .sha256
+  for t in x86_64-unknown-freebsd x86_64-unknown-netbsd x86_64-unknown-openbsd; do
+    with_sum "bragd-desktop-$tag-$t.tar.gz"
+  done
+  # boms: the bills of materials, the notices, and the built frontend the ports build from
   echo "bragd-$v.sbom.cdx.json" "bragd-$v.cbom.cdx.json" THIRD-PARTY-NOTICES.md
+  with_sum "bragd-frontend-$tag.tar.gz"
 }
 list() { expected | tr ' ' '\n' | sort; }
 

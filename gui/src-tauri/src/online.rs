@@ -190,12 +190,14 @@ pub fn online_view(server: String, ctx: tauri::State<'_, Ctx>) -> Res<Page> {
     // Its error is in the view.
     let _ = s.open();
     let _ = s.set_chat(ctx.cfg().online.chat);
-    // A request to Chat on the Bragd server is refused unseen when the user's default is Off.
-    if server == "bragd" {
+    // Where the webview has no WebRTC, no Call is set up and its buttons do not show
+    // (`notices::calls_off` says so once).
+    if server == "bragd" && crate::friends::calls() {
         let cfg = ctx.cfg();
         let default = |v: &str| if v == "off" { bragd_online::talk::Default::Off } else { bragd_online::talk::Default::Ask };
         crate::friends::server().call_tick(default(&cfg.online.bragd_voice), default(&cfg.online.bragd_camera));
     }
+    // A request to Chat on the Bragd server is refused unseen when the user's default is Off.
     if server == "bragd" && ctx.cfg().online.bragd_chat == "off" && crate::friends::server().chat_view(false).is_some_and(|c| c.asked) {
         let _ = crate::friends::server().chat(false);
     }

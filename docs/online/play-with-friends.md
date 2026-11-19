@@ -183,8 +183,9 @@ You can make a new account afterwards with the same email; it starts empty.
 - An account on the Bragd server, and your system's keychain for the sign-in, under the service `bragd-online` with the server's address as the account.
 - For a provider's sign-in, a browser.
 - For Calls on Linux, GStreamer's WebRTC plugins (`webrtcbin` from plugins-bad, and libnice's `nice`). The Flatpak's runtime has them, the `.deb` and `.rpm` depend on them, and the AppImage carries them. Built from source, install `gstreamer1.0-plugins-bad` and `gstreamer1.0-nice` (Debian, Ubuntu) or `gstreamer1-plugins-bad-free` and `libnice-gstreamer1` (Fedora). On Flatpak, Bragd may use the camera and PulseAudio for Calls.
+- A webview with WebRTC. WebKitGTK as FreeBSD, NetBSD, OpenBSD and some Linux distributions (Arch among them) package it is built without WebRTC: Bragd then shows no Call buttons, and a notice says so once. Chat and Games with Friends work as usual.
 
-The Bragd server is Supabase, hosted in the EU, plus Bragd's own game service ([Privacy](../reference/privacy.md)). For testing, `BRAGD_FRIENDS_URL` names another address and `BRAGD_FRIENDS_TOKEN` stands in for the keychain, for a server on this machine only (`cargo run -p bragd-online --features fake --example fake-online -- bragd`).
+The Bragd server is Supabase, hosted in the EU, plus Bragd's own game service ([Privacy](../reference/privacy.md)). For testing, `BRAGD_FRIENDS_URL` names another address, and shows the Call's buttons even without WebRTC, and `BRAGD_FRIENDS_TOKEN` stands in for the keychain, for a server on this machine only (`cargo run -p bragd-online --features fake --example fake-online -- bragd`).
 
 ## Questions
 

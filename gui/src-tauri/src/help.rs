@@ -28,6 +28,7 @@ pub fn notice_list(start: bool, ctx: tauri::State<'_, Ctx>) -> Vec<Notice> {
 fn list(cfg: &Config, start: bool) -> Vec<Notice> {
     let mut st = AppState::load();
     let mut out = notices::all(cfg, &st);
+    out.extend(notices::calls_off(crate::friends::shown(cfg), crate::friends::calls(), &st));
     if start {
         out.extend(hint(cfg, &mut st, None));
     }

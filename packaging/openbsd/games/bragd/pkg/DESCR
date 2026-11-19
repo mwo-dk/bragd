@@ -1,0 +1,6 @@
+Bragd is a desktop app for playing, studying and keeping board games:
+chess and its variants, xiangqi and janggi, shogi, go, draughts, tafl,
+backgammon, ur and senet. It plays against engines installed on the
+system, analyses positions, keeps games in SQLite libraries, and plays
+online. Calls with friends are off on OpenBSD: its WebKitGTK has no
+WebRTC.

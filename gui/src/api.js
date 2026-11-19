@@ -311,6 +311,8 @@ export const onlineSay = (/** @type {string} */ server, /** @type {string} */ te
 // the Bragd server, Friends and Clubs. Its Games are Play online's, on the server `bragd`.
 /** @returns {Promise<any>} */
 export const friendsView = () => invoke("friends_view");
+/** Whether the webview has WebRTC, for Calls (Rust decides what follows). @returns {Promise<void>} */
+export const webviewWebrtc = (/** @type {boolean} */ has) => invoke("webview_webrtc", { has });
 export const friendsSignIn = (/** @type {string} */ email, /** @type {string} */ password) => invoke("friends_sign_in", { email, password });
 export const friendsSignUp = (/** @type {string} */ email, /** @type {string} */ password) => invoke("friends_sign_up", { email, password });
 export const friendsSignInWith = (/** @type {string} */ provider) => invoke("friends_sign_in_with", { provider });
