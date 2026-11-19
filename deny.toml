@@ -9,6 +9,7 @@ ignore = [
   "RUSTSEC-2026-0370", # zvariant: unmaintained (merged into zbus 6); pulled by zbus 5 via tauri-plugin-opener. Drop when opener uses zbus 6.
   "RUSTSEC-2026-0371", # zbus_names: unmaintained (merged into zbus 6); pulled by zbus 5 via tauri-plugin-opener. Drop when opener uses zbus 6.
   "RUSTSEC-2026-0372", # zvariant_derive: unmaintained (merged into zbus 6); pulled by zbus 5 via tauri-plugin-opener. Drop when opener uses zbus 6.
+  "RUSTSEC-2026-0543", # chrono: unmaintained, no successor named; pulled by parquet (Parquet export in bragd-library, bragd-positions). Drop when parquet drops chrono.
 ]
 
 [licenses]
