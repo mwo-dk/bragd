@@ -896,6 +896,8 @@
  "rating_list.cfc-ratings": "Kanādas šaha federācija (CFC)",
  "rating_list.sshl-ratings": "Somijas šaha federācija (SShL)",
  "rating_list.nzcf-ratings": "Jaunzēlandes šaha federācija (NZCF)",
+ "rating_list.ssf-ratings": "Zviedrijas šaha federācija (SSF)",
+ "rating_list.lok-ratings": "Čehijas šaha federācija (ŠSČR)",
  "clubs.list_have": "{n} spēlētāji, ielādēts {when}",
  "clubs.list_none": "nav ielādēts",
  "clubs.none_open": "Neviens klubs nav atvērts.",

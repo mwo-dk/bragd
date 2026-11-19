@@ -893,6 +893,8 @@
  "rating_list.cfc-ratings": "Καναδική Ομοσπονδία Σκακιού (CFC)",
  "rating_list.sshl-ratings": "Φινλανδική Ομοσπονδία Σκακιού (SShL)",
  "rating_list.nzcf-ratings": "Ομοσπονδία Σκακιού Νέας Ζηλανδίας (NZCF)",
+ "rating_list.ssf-ratings": "Σουηδική Ομοσπονδία Σκακιού (SSF)",
+ "rating_list.lok-ratings": "Τσεχική Ομοσπονδία Σκακιού (ŠSČR)",
  "clubs.list_have": "{n} παίκτες, ληφθέντες {when}",
  "clubs.list_none": "δεν ελήφθη",
  "clubs.none_open": "Δεν είναι ανοιχτή καμία λέσχη.",

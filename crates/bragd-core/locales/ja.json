@@ -890,6 +890,8 @@
  "rating_list.cfc-ratings": "カナダ・チェス連盟 (CFC)",
  "rating_list.sshl-ratings": "フィンランド・チェス連盟 (SShL)",
  "rating_list.nzcf-ratings": "ニュージーランド・チェス連盟 (NZCF)",
+ "rating_list.ssf-ratings": "スウェーデン・チェス連盟 (SSF)",
+ "rating_list.lok-ratings": "チェコ・チェス連盟 (ŠSČR)",
  "clubs.list_have": "{n} 人の選手、{when} に取得",
  "clubs.list_none": "未取得",
  "clubs.none_open": "クラブは開かれていません。",

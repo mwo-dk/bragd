@@ -893,6 +893,8 @@
  "rating_list.cfc-ratings": "Կանադայի շախմատի ֆեդերացիա (CFC)",
  "rating_list.sshl-ratings": "Ֆինլանդիայի շախմատի ֆեդերացիա (SShL)",
  "rating_list.nzcf-ratings": "Նոր Զելանդիայի շախմատի ֆեդերացիա (NZCF)",
+ "rating_list.ssf-ratings": "Շվեդիայի շախմատի ֆեդերացիա (SSF)",
+ "rating_list.lok-ratings": "Չեխիայի շախմատի ֆեդերացիա (ŠSČR)",
  "clubs.list_have": "{n} խաղացող, բեռնվել է {when}",
  "clubs.list_none": "չի բեռնվել",
  "clubs.none_open": "Ոչ մի ակումբ բաց չէ։",

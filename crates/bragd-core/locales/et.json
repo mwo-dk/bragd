@@ -893,6 +893,8 @@
  "rating_list.cfc-ratings": "Kanada Male Föderatsioon (CFC)",
  "rating_list.sshl-ratings": "Soome Male Föderatsioon (SShL)",
  "rating_list.nzcf-ratings": "Uus-Meremaa Male Föderatsioon (NZCF)",
+ "rating_list.ssf-ratings": "Rootsi Male Föderatsioon (SSF)",
+ "rating_list.lok-ratings": "Tšehhi Male Föderatsioon (ŠSČR)",
  "clubs.list_have": "{n} mängijat, laaditud {when}",
  "clubs.list_none": "laadimata",
  "clubs.none_open": "Ükski klubi pole avatud.",

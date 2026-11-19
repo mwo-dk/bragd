@@ -893,6 +893,8 @@
  "rating_list.cfc-ratings": "Canadas sjakkforbund (CFC)",
  "rating_list.sshl-ratings": "Finlands sjakkforbund (SShL)",
  "rating_list.nzcf-ratings": "New Zealands sjakkforbund (NZCF)",
+ "rating_list.ssf-ratings": "Det svenske sjakkforbundet (SSF)",
+ "rating_list.lok-ratings": "Det tsjekkiske sjakkforbundet (ŠSČR)",
  "clubs.list_have": "{n} spillere, hentet {when}",
  "clubs.list_none": "ikke hentet",
  "clubs.none_open": "Ingen klubb er åpen.",

@@ -899,6 +899,8 @@
  "rating_list.cfc-ratings": "Канадська шахова федерація (CFC)",
  "rating_list.sshl-ratings": "Фінська шахова федерація (SShL)",
  "rating_list.nzcf-ratings": "Новозеландська шахова федерація (NZCF)",
+ "rating_list.ssf-ratings": "Шведська шахова федерація (SSF)",
+ "rating_list.lok-ratings": "Чеська шахова федерація (ŠSČR)",
  "clubs.list_have": "{n} гравців, завантажено {when}",
  "clubs.list_none": "не завантажено",
  "clubs.none_open": "Жоден клуб не відкрито.",

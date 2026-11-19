@@ -890,6 +890,8 @@
  "rating_list.cfc-ratings": "加拿大国际象棋联合会 (CFC)",
  "rating_list.sshl-ratings": "芬兰国际象棋协会 (SShL)",
  "rating_list.nzcf-ratings": "新西兰国际象棋协会 (NZCF)",
+ "rating_list.ssf-ratings": "瑞典国际象棋协会 (SSF)",
+ "rating_list.lok-ratings": "捷克国际象棋协会 (ŠSČR)",
  "clubs.list_have": "{n} 名棋手，获取于 {when}",
  "clubs.list_none": "未获取",
  "clubs.none_open": "没有打开的俱乐部。",

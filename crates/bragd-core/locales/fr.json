@@ -896,6 +896,8 @@
  "rating_list.cfc-ratings": "Fédération canadienne des échecs (CFC)",
  "rating_list.sshl-ratings": "Fédération finlandaise des échecs (SShL)",
  "rating_list.nzcf-ratings": "Fédération néo-zélandaise des échecs (NZCF)",
+ "rating_list.ssf-ratings": "Fédération suédoise des échecs (SSF)",
+ "rating_list.lok-ratings": "Fédération tchèque des échecs (ŠSČR)",
  "clubs.list_have": "{n} joueurs, récupérés {when}",
  "clubs.list_none": "non récupérée",
  "clubs.none_open": "Aucun Club n’est ouvert.",

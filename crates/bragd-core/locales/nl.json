@@ -893,6 +893,8 @@
  "rating_list.cfc-ratings": "Canadese Schaakfederatie (CFC)",
  "rating_list.sshl-ratings": "Finse Schaakfederatie (SShL)",
  "rating_list.nzcf-ratings": "Nieuw-Zeelandse Schaakfederatie (NZCF)",
+ "rating_list.ssf-ratings": "Zweedse Schaakfederatie (SSF)",
+ "rating_list.lok-ratings": "Tsjechische Schaakfederatie (ŠSČR)",
  "clubs.list_have": "{n} spelers, opgehaald {when}",
  "clubs.list_none": "niet opgehaald",
  "clubs.none_open": "Er is geen club open.",

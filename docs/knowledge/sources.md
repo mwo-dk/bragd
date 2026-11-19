@@ -7,6 +7,16 @@ A Source is where Games come from, such as The Week in Chess. When a Source is o
 ![The Sources tab for chess: The Week in Chess, the Lichess database, the FICS games database and PGN Mentor, each with its size, last fetch, Options and Fetch now, then LumbrasGigaBase and pychess with no box to tick and a line saying this version cannot fetch them yet, the rating lists with More lists folded, and Add a custom URL at the bottom](../screenshots/databases-sources-1100.png)
 *Databases → Sources.*
 
+## Contents
+
+- [How to reach it](#how-to-reach-it)
+- [The Sources](#the-sources)
+- [Options](#options)
+- [Routes](#routes)
+- [What it needs](#what-it-needs)
+- [Settings and config.toml](#settings-and-configtoml)
+- [Questions](#questions)
+
 ## How to reach it
 
 1. In the sidebar, open a Family and choose **Databases**, then **Sources**. The tab lists that Family's Sources and every custom URL one.
@@ -35,6 +45,8 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `cfc-ratings` | Chess Federation of Canada (CFC) | chess | 5.4 MB | Monthly |
 | `sshl-ratings` | Finnish Chess Federation (SShL) | chess | 0.75 MB | Monthly |
 | `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly |
+| `ssf-ratings` | Swedish Chess Federation (SSF) | chess | 1 MB | Monthly |
+| `lok-ratings` | Czech Chess Federation (ŠSČR) | chess | 4.8 MB | Monthly |
 
 Some well-known Sources are listed but not fetched by this version: LumbrasGigaBase and pychess. Sources shows each with its address and *This version of Bragd cannot fetch it yet*, and no box to tick. The install wizard names those of your Families in one line, *Coming later*.
 
@@ -42,7 +54,7 @@ Some well-known Sources are listed but not fetched by this version: LumbrasGigaB
 
 **TWIC.** The first fetch takes only the newest issue. Each later fetch takes the new issues in order, at most 26 at a time. The zips are imported as they are, without unpacking.
 
-**Rating lists.** FIDE, DSU, ECF, CFC, SShL and NZCF are rating lists, not Games. Each fetch downloads the whole list, and its players replace the list's players from before in `rating-lists.sqlite`, where the [Clubs](../clubs/clubs.md) page finds them by name or ID. They have no Routes and no *After import*. FIDE's list and your own federation's show first, found from Bragd's language and your system's region (Danish or Denmark: the DSU). The others are folded under **More lists** until you turn one on. Where each comes from and on what terms: [Rating lists](../reference/rating-lists.md).
+**Rating lists.** FIDE, DSU, ECF, CFC, SShL, NZCF, SSF and ŠSČR are rating lists, not Games. Each fetch downloads the whole list, and its players replace the list's players from before in `rating-lists.sqlite`, where the [Clubs](../clubs/clubs.md) page finds them by name or ID. They have no Routes and no *After import*. FIDE's list and your own federation's show first, found from Bragd's language and your system's region (Danish or Denmark: the DSU). The others are folded under **More lists** until you turn one on. Where each comes from and on what terms: [Rating lists](../reference/rating-lists.md).
 
 **Your own Games.** The OGS and Lishogi Sources fetch the Games of the account you sign in to under Play online, never anyone else's. Each line says so, and has a box for one Game's address or number with **Fetch this Game**, which imports that Game through the Source's Routes. Fetching one Game does not change where the next fetch goes on from.
 

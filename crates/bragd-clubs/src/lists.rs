@@ -63,6 +63,10 @@ pub enum Format {
     FinCsv,
     /// The New Zealand Chess Federation's: a JSON array of objects whose values are all strings.
     NzJson,
+    /// The Swedish Chess Federation's API: a JSON array of players, each with an `elo` object.
+    SsfJson,
+    /// The Czech Chess Federation's: an old binary Excel file (BIFF) with a header row.
+    LokXls,
 }
 
 /// A rating list Bragd can fetch: its id (the Source's), its short name, where it is, the file it
@@ -110,6 +114,10 @@ pub const LISTS: &[List] = &[
     List { id: "cfc-ratings", name: "CFC", url: "https://files.chess.ca/data/cfc-ratings.csv", file: "cfc-ratings.csv", size: 5_400_000, format: Format::CfcCsv, region: "ca", language: "" },
     List { id: "sshl-ratings", name: "SShL", url: "https://www.shakki.net/selo/selolista.csv", file: "sshl-ratings.csv", size: 750_000, format: Format::FinCsv, region: "fi", language: "fi" },
     List { id: "nzcf-ratings", name: "NZCF", url: "https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json", file: "nzcf-ratings.json", size: 900_000, format: Format::NzJson, region: "nz", language: "" },
+    // The list in force on a date: `{date}` is today's, YYYY-MM-DD. By region only: Swedish is
+    // also Finland's.
+    List { id: "ssf-ratings", name: "SSF", url: "https://member.schack.se/public/api/v1/ratinglist/federation/date/{date}/ratingtype/1/category/0", file: "ssf-ratings.json", size: 1_000_000, format: Format::SsfJson, region: "se", language: "" },
+    List { id: "lok-ratings", name: "ŠSČR", url: "https://elo.miramal.com/download/lok_sm_cz.xls", file: "lok-ratings.xls", size: 4_800_000, format: Format::LokXls, region: "cz", language: "cs" },
 ];
 
 /// What a parser hands each player to.
@@ -218,6 +226,56 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
             }
             Ok(())
         }
+        Format::SsfJson => {
+            let rows: Vec<serde_json::Value> = serde_json::from_reader(r).map_err(io::Error::other)?;
+            for f in rows {
+                let text = |v: &serde_json::Value| match v {
+                    serde_json::Value::String(s) => s.trim().to_string(),
+                    serde_json::Value::Number(n) => n.to_string(),
+                    _ => String::new(),
+                };
+                let elo = |k: &str| number(&text(&f["elo"][k]));
+                each(Player {
+                    id: text(&f["id"]),
+                    name: format!("{}, {}", text(&f["lastName"]), text(&f["firstName"])),
+                    federation: "SWE".into(),
+                    club: text(&f["club"]),
+                    title: text(&f["elo"]["title"]),
+                    rating: elo("rating"),
+                    rapid: elo("rapidRating"),
+                    blitz: elo("blitzRating"),
+                    born: number(&text(&f["birthdate"])),
+                    fide_id: id(&text(&f["fideid"])),
+                })?;
+            }
+            Ok(())
+        }
+        Format::LokXls => {
+            use calamine::Reader;
+            let mut bytes = vec![];
+            r.read_to_end(&mut bytes)?;
+            let mut book = calamine::Xls::new(io::Cursor::new(bytes)).map_err(io::Error::other)?;
+            let sheet = book.worksheet_range_at(0).ok_or_else(|| io::Error::other("the Excel file has no sheet"))?.map_err(io::Error::other)?;
+            let mut rows = sheet.rows();
+            let head: Vec<String> = rows.next().map(|h| h.iter().map(|c| c.to_string()).collect()).unwrap_or_default();
+            for row in rows {
+                let at = |name: &str| head.iter().position(|h| h == name).and_then(|i| row.get(i)).map_or(String::new(), |c| c.to_string().trim().to_string());
+                each(Player {
+                    id: at("ID_no"),
+                    name: at("Name"),
+                    federation: at("Fed"),
+                    club: at("ClubName"),
+                    title: at("Title"),
+                    // `Rtg_nat` is the national rating, `Rtg_int` FIDE's.
+                    rating: number(&at("Rtg_nat")),
+                    // The birth day is written `00.00.YYYY`.
+                    born: number(at("BirthDay").rsplit('.').next().unwrap_or("")),
+                    fide_id: id(&at("FIDE_no")),
+                    ..Player::default()
+                })?;
+            }
+            Ok(())
+        }
         Format::DsuCsv | Format::EcfCsv | Format::CfcCsv | Format::FinCsv => {
             let sep = if matches!(format, Format::DsuCsv | Format::FinCsv) { ';' } else { ',' };
             let mut head: Vec<String> = vec![];
@@ -270,7 +328,7 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
                         born: number(at("Født", false)),
                         fide_id: at("Nr", true).into(),
                     },
-                    Format::EcfCsv | Format::FideTxt | Format::NzJson => Player {
+                    Format::EcfCsv | Format::FideTxt | Format::NzJson | Format::SsfJson | Format::LokXls => Player {
                         id: at("ECF_code", false).into(),
                         name: at("full_name", false).into(),
                         federation: at("nation", false).into(),
@@ -554,6 +612,8 @@ mod tests {
         assert_eq!(first(&["sv_FI.UTF-8"]), ["FIDE", "SShL"], "a Finland-Swede by the region");
         assert_eq!(first(&["fi"]), ["FIDE", "SShL"]);
         assert_eq!(first(&["en-NZ"]), ["FIDE", "NZCF"]);
+        assert_eq!(first(&["sv_SE.UTF-8"]), ["FIDE", "SSF"]);
+        assert_eq!(first(&["cs"]), ["FIDE", "ŠSČR"]);
         assert_eq!(first(&["de-DE", "en-US"]), ["FIDE"], "no federation of Germany's or the USA's yet");
         assert!(LISTS.iter().all(|l| l.title().contains(l.name)), "every full name carries its short one");
     }
@@ -626,6 +686,27 @@ mod tests {
         assert_eq!((p.id.as_str(), p.name.as_str(), p.federation.as_str(), p.fide_id.as_str()), ("20069", "Abbott, Isaac", "NZL", "4326350"));
         assert_eq!((p.rating, p.rapid, p.born), (Some(1544), Some(1410), Some(2007)));
         assert_eq!((ps[1].rating, ps[1].club.as_str(), ps[1].fide_id.as_str()), (None, "NS", ""));
+    }
+
+    #[test]
+    fn the_swedish_list_is_read_from_its_json() {
+        let json = r#"[{"id": 565903, "firstName": "Mattias", "lastName": "Aalbers", "birthdate": "1991", "sex": 0, "fideid": 1767607, "country": "Sverige", "club": "Överhärde SK", "clubId": 38369, "elo": {"rating": 1566, "title": "", "date": "2026-11-01", "k": 40, "rapidRating": 0, "rapidk": 0, "blitzRating": 1490, "blitzK": 0}, "lask": null}, {"id": 7, "firstName": "Anna", "lastName": "Berg", "birthdate": null, "sex": 1, "fideid": null, "country": "Sverige", "club": null, "clubId": null, "elo": null, "lask": null}]"#;
+        let ps = parsed(Format::SsfJson, json.as_bytes());
+        assert_eq!(ps.len(), 2);
+        let p = &ps[0];
+        assert_eq!((p.id.as_str(), p.name.as_str(), p.federation.as_str(), p.club.as_str(), p.fide_id.as_str()), ("565903", "Aalbers, Mattias", "SWE", "Överhärde SK", "1767607"));
+        assert_eq!((p.rating, p.rapid, p.blitz, p.born), (Some(1566), None, Some(1490), Some(1991)));
+        assert_eq!((ps[1].name.as_str(), ps[1].rating, ps[1].fide_id.as_str(), ps[1].born), ("Berg, Anna", None, "", None));
+    }
+
+    #[test]
+    fn the_czech_list_is_read_from_its_excel_file() {
+        let ps = parsed(Format::LokXls, include_bytes!("../tests/fixtures/lok_sm_cz.xls"));
+        assert_eq!(ps.len(), 2);
+        let p = &ps[0];
+        assert_eq!((p.id.as_str(), p.name.as_str(), p.federation.as_str(), p.club.as_str(), p.fide_id.as_str()), ("56977", "Abbasov Parvin", "CZE", "Šachový klub Praha 4", "23760486"));
+        assert_eq!((p.rating, p.born), (Some(1567), Some(1988)));
+        assert_eq!((ps[1].rating, ps[1].title.as_str(), ps[1].fide_id.as_str()), (None, "FM", ""));
     }
 
     #[test]
