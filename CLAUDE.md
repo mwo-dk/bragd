@@ -7,7 +7,7 @@ These rules apply to every contributor and every Claude session in this reposito
 - **Svelte renders; Rust decides.** Game rules, legal moves, notation, databases, engines, containers, settings, texts and the Helper all live in Rust crates. Svelte and TS only draw what Rust hands them and pass input back through Tauri commands. A rule, a move check or a parser written in TS fails review.
 - **Rules crates have no dependencies** (`crates/rules/*`). They are pure Rust, so a wasm build stays possible. Each Game family owns its rules, its pieces and the look of its board. Families share nothing (`GLOSSARY.md`).
 - **One artwork lineage.** All piece art comes from the set in `assets/pieces/`: Cburnett for chess, plus our own fairy, shogi, xiangqi, janggi, draughts, tafl and go pieces. Glyphs are drawn as paths, never as `<text>`, so no piece depends on installed fonts. Sprite symbol ids carry the Family name. New art matches the set, and its licence goes into `docs/CREDITS.md`.
-- **Desktop only.** No web client and no wasm pipeline until the owner asks for one.
+- **Desktop only, for now.** Android (#418, 1.2.0) and iPhone and iPad (#419, 1.3.0) are planned but not decided: no mobile code until the owner decides. No web client and no wasm pipeline until the owner asks for one; LG and Samsung TVs would need one, so they are not planned.
 - **No names from other projects in code.** Code copied from elsewhere is renamed completely: crates, identifiers, environment variables, paths, strings and comments. Only the provenance docs (`docs/coxswain-sync.md`, `docs/adr/`) name a source project.
 
 ## Shipping
