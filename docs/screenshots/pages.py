@@ -841,7 +841,8 @@ def background():
 def peers():
     """peers-390.png and peers-1100.png: Settings → Peers on, a code shown, and one paired
     machine that is not reachable now (at 192.0.2.10, an address kept for documentation). The
-    sandbox's Helper listens only on the sandbox's own network, under the name demo."""
+    sandbox shares this machine's network (`host_net`): its own has no home network address to
+    listen on. The Helper is named demo, and the address shown is replaced by an example one."""
     home = Path(_env()["DEMO_HOME"])
     folder = home / ".local/share/bragd/helper/peers"
     folder.mkdir(parents=True, exist_ok=True)
@@ -859,7 +860,7 @@ def peers():
             # The address shown is an example one, as on a home network.
             js(d, "const s = document.querySelector('main .peers .state'); if (s) s.textContent = s.textContent.replace(/listening on .*$/, 'listening on 192.168.1.20:47247.');")
 
-        widths("peers", page)
+        widths("peers", page, host_net=True)
     finally:
         config("")
         (folder / "peers.json").unlink(missing_ok=True)
@@ -899,9 +900,11 @@ def engines():
 def sharing():
     """peers-sharing-390.png and peers-sharing-1100.png: Settings → Peers with a real paired
     machine sharing: its sync and what it works on, and the shared queue. SHARING_FROM names a
-    home whose Helper was paired with another machine that is running now (the two-machine test
-    in `docs/peers/sharing.md`'s PR): its key, its Peers, its Position store and its jobs are
-    copied into the demo home, so the sandbox's Helper is that machine, and removed afterwards."""
+    home on this machine whose Helper was paired with another machine that is running now and
+    asking for work: its key, its Peers, its Position store and its jobs are copied into the
+    demo home, so the sandbox's Helper is that machine, and removed afterwards. Unlike every
+    other picture, the sandbox shares this machine's network (`host_net`), so the two Helpers
+    reach each other; the addresses shown are replaced by made-up ones."""
     home = Path(_env()["DEMO_HOME"])
     src = Path(os.environ["SHARING_FROM"]) / ".local/share/bragd"
     data = home / ".local/share/bragd"
@@ -927,7 +930,7 @@ def sharing():
             js(d, "const h = [...document.querySelectorAll('main h3')].find(h => h.textContent.trim() === 'Paired machines'); h && h.scrollIntoView()")
             d.wait(0.5)
 
-        widths("peers-sharing", page)
+        widths("peers-sharing", page, host_net=True)
     finally:
         config("")
         shutil.rmtree(copied[0], ignore_errors=True)
