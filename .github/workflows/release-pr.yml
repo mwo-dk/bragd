@@ -53,7 +53,7 @@ jobs:
             0) ;;
             2) echo "::notice title=Nothing to release::changelog.d/ has no rows this week."; exit 0 ;;
             3) echo "::error title=Current version not released::release-pr.py refuses to bump past a version with no published release (see above). Finish that release first: fix, then start Release by hand on master."; exit 3 ;;
-            4) echo "::error title=Milestone not done::the new version's milestone has open issues (listed above). Close them or move them on, then run Release PR by hand; or the owner runs packaging/release-pr.py --open-issues-ok."; exit 4 ;;
+            4) echo "::error title=Milestone not done::open issues of its milestone, or with no milestone of its own the next minor's, hold the new version (listed above). Close them or move them on, then run Release PR by hand; or the owner runs packaging/release-pr.py --open-issues-ok."; exit 4 ;;
             5) echo "::error title=Tour card missing::a feature row has no tour card (listed above). Add the card to crates/bragd-core/src/tour.rs, then run Release PR by hand."; exit 5 ;;
             *) exit "$rc" ;;
           esac

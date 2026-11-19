@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 
-SYSTEMS = ["flatpak", "nix"]
+SYSTEMS = ["flatpak", "nix", "bsd"]
 
 
 def glob(pattern: str) -> re.Pattern:

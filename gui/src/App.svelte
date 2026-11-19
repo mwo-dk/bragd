@@ -65,7 +65,8 @@
     // The wizard on a first start, the tour cards after an upgrade; then notices and hints,
     // and the update check (which may take a few seconds).
     api.guideDue().then((d) => ([guide.wizard, guide.first, guide.cards] = [d.wizard, d.wizard, d.cards]));
-    api.noticeList(true).then((n) => {
+    // The webview's WebRTC first: without it Calls are off, and a notice says so.
+    api.webviewWebrtc(typeof RTCPeerConnection === "function").then(() => api.noticeList(true)).then((n) => {
       guide.notices = n;
       started = true;
       api.updateCheck().then((all) => (guide.notices = [...all, ...guide.notices.filter((x) => x.turn_on || /^(hint|local):/.test(x.id))]));

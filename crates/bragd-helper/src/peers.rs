@@ -210,6 +210,9 @@ pub fn unpair(id: &str) -> Result<View, String> {
 
 /// Other Helpers announcing themselves on the home network, and Peers found at a new address.
 pub fn look() -> Result<Vec<Found>, String> {
+    if !find::MDNS {
+        return Err(bragd_core::t!("peers.no_mdns"));
+    }
     let n = node(&mut live())?;
     let found = find::look(LOOK, &n.id())?;
     for f in &found {

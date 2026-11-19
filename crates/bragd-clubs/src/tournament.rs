@@ -996,12 +996,12 @@ impl Tournament {
         if self.system != System::Knockout || r >= self.played.len() {
             return vec![];
         }
-        let on_board = |k: usize, p: usize| self.played[k].games.iter().any(|g| g.white == p || g.black == p);
+        let on_board = |round: &Round, p: usize| round.games.iter().any(|g| g.white == p || g.black == p);
         let mut alive: Vec<usize> = self.seeds.clone();
-        for k in 0..r {
-            alive.retain(|&p| !on_board(k, p) || self.played[k].games.iter().any(|g| g.winner() == Some(p)));
+        for round in &self.played[..r] {
+            alive.retain(|&p| !on_board(round, p) || round.games.iter().any(|g| g.winner() == Some(p)));
         }
-        alive.retain(|&p| !on_board(r, p));
+        alive.retain(|&p| !on_board(&self.played[r], p));
         alive
     }
 

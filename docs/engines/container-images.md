@@ -20,6 +20,7 @@ Every Engine in the table below has an image. Its card on the Engines page shows
 
 - podman or docker on the machine. *Automatic* tries podman first, then docker.
 - The image, pulled once. It shows its size before it downloads.
+- Linux, macOS or Windows. The images are Linux images, which FreeBSD, NetBSD and OpenBSD cannot run (podman on FreeBSD runs FreeBSD containers only). There an Engine's row says to install it from the system's packages, such as `stockfish`.
 
 ## The images
 
@@ -115,7 +116,7 @@ No. Bragd removes only its own copies, by their id or old pin. It never runs `im
 
 #### What happens when a pull fails?
 
-A passing fault, such as a dropped connection or a busy registry, does not give up. Bragd tries again after 5 s, 30 s and 2 min, then after 5 min, 15 min and every hour after that. When the network comes back, Bragd does not wait for the time to be up: on Linux, macOS and Windows the system says when an address or route is added, and a pull that failed for no network goes again within seconds. On FreeBSD, the other BSDs and illumos it waits out its time. Meanwhile the card says why in plain words, for example "Stockfish couldn't be downloaded: no network. Trying again at 15:10.", with **Retry now** to try at once and the runtime's own words under *Details*. A lasting fault, such as an image that is gone or a full disk, is not tried again: the card says why.
+A passing fault, such as a dropped connection or a busy registry, does not give up. Bragd tries again after 5 s, 30 s and 2 min, then after 5 min, 15 min and every hour after that. When the network comes back, Bragd does not wait for the time to be up: on Linux, macOS and Windows the system says when an address or route is added, and a pull that failed for no network goes again within seconds. On illumos it waits out its time. Meanwhile the card says why in plain words, for example "Stockfish couldn't be downloaded: no network. Trying again at 15:10.", with **Retry now** to try at once and the runtime's own words under *Details*. A lasting fault, such as an image that is gone or a full disk, is not tried again: the card says why.
 
 #### Why does my card say neither podman nor docker is there?
 

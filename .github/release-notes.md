@@ -16,6 +16,7 @@ Every file comes from this release's **Assets** list below.
 | Mac with Intel | `Bragd_…_x64.dmg` |
 | Windows 10/11 | `Bragd_…_x64-setup.exe` (or the `.msi`) |
 | Windows 10/11 on ARM | `Bragd_…_arm64-setup.exe` (or the `.msi`) |
+| FreeBSD, NetBSD or OpenBSD (x64) | `bragd-desktop-…-x86_64-unknown-freebsd.tar.gz`, `…-netbsd.tar.gz` or `…-openbsd.tar.gz`: install WebKitGTK from the system's packages first |
 
 Or from a package manager: `brew install --cask mwo-dk/bragd/bragd` (macOS, Linux), `winget install mwo-dk.Bragd` (Windows), `nix run github:mwo-dk/bragd` (Linux).
 

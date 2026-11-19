@@ -1,0 +1,30 @@
+# Maintainer: Michael W. Olesen <michael.w.olesen@gmail.com>
+# Kept in https://github.com/mwo-dk/bragd/tree/master/packaging/aur. In a clone, pkgver is the
+# version of the clone's Cargo.toml, so `makepkg -si` here fetches that release.
+pkgname=bragd-bin
+pkgver=$(sed -n '/^version = /{s/^version = "\(.*\)"$/\1/p;q;}' "${startdir:-.}/../../../Cargo.toml")
+pkgrel=1
+pkgdesc='Play, study and keep board games: chess, go, shogi, xiangqi and more (prebuilt)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/mwo-dk/bragd'
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'libsoup3' 'librsvg' 'gcc-libs' 'glibc')
+optdepends=('podman: Engines from sealed container images')
+# The release's binaries as they are: no -debug package of them.
+options=('!debug')
+provides=('bragd')
+conflicts=('bragd')
+_rel="$url/releases/download/v$pkgver"
+source=("LICENSE-$pkgver::https://raw.githubusercontent.com/mwo-dk/bragd/v$pkgver/LICENSE")
+source_x86_64=("bragd-$pkgver-x86_64.deb::$_rel/Bragd_${pkgver}_amd64.deb")
+source_aarch64=("bragd-$pkgver-aarch64.deb::$_rel/Bragd_${pkgver}_arm64.deb")
+noextract=("bragd-$pkgver-x86_64.deb" "bragd-$pkgver-aarch64.deb")
+sha256sums=('SKIP')
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+  # The window, the Helper, the menu entry and the icons, as the release's .deb lays them out.
+  bsdtar -xOf "bragd-$pkgver-$CARCH.deb" 'data.tar.*' | bsdtar -xf - -C "$pkgdir"
+  install -Dm644 "LICENSE-$pkgver" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

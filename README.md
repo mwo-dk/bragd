@@ -28,7 +28,7 @@ Bragd has had no release yet, so the channels below are empty until the first on
 
 | System | Channel | How |
 |---|---|---|
-| FreeBSD and other BSDs | Desktop tarballs | Planned, not yet available |
+| FreeBSD, NetBSD, OpenBSD | GitHub release | `bragd-desktop-…tar.gz`, for x64 |
 | Linux | GitHub release | `.deb`, `.rpm` or AppImage, for x64 and arm64 |
 | Linux | Flatpak | `flatpak install --user Bragd_X.Y.Z_x86_64.flatpak` (the bundle from the release) |
 | Linux | Nix | `nix run github:mwo-dk/bragd` |

@@ -32,6 +32,8 @@ Both machines now list each other under *Paired machines*. The code is used up.
 
 On the same home network, **Look around** finds every Helper that has Peers on: they announce themselves by mDNS as `_bragd._tcp`. A paired machine found at a new address is remembered there.
 
+On OpenBSD, Bragd cannot use mDNS yet: Look around says so, and the Helper does not announce itself there. Pair by address instead.
+
 Away from home, or on a network that blocks mDNS, type the other machine's address. A name works, such as its Tailscale name (`laptop.tailnet.ts.net`), as does an IP address. Bragd uses port 47247. Add `:port` only if the other machine is reached on another port, for example through a forwarded port.
 
 ## Unpairing

@@ -3,6 +3,7 @@
 //! ([`crate::online`]). Shown only once a Bragd server address is set and one of its Families is on.
 
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use bragd_online::bragd_server::{self, BragdServer, FriendsView};
 use serde_json::Value;
@@ -17,11 +18,29 @@ pub fn server() -> &'static BragdServer {
     S.get_or_init(BragdServer::new)
 }
 
-/// Lets the webview's WebRTC carry a Call: on Linux WebKitGTK has it off, and asks before the
+/// Whether the webview has WebRTC, as the page found at start ([`webview_webrtc`]). WebKitGTK
+/// built without it, as FreeBSD, NetBSD, OpenBSD and some Linux distributions package it, can
+/// carry no Call: none is set up, and a notice says so once (`notices::calls_off`).
+static WEBRTC: AtomicBool = AtomicBool::new(false);
+
+/// Whether a Call can be set up. A Bragd server on this machine for testing
+/// (`BRAGD_FRIENDS_URL`) shows the Call's buttons whatever the webview, so its screenshots can be
+/// taken on any system.
+pub fn calls() -> bool {
+    WEBRTC.load(Ordering::Relaxed) || std::env::var_os(bragd_core::config::BRAGD_SERVER_VAR).is_some()
+}
+
+/// The page says whether `RTCPeerConnection` is there, before it asks for the notices.
+#[tauri::command]
+pub fn webview_webrtc(has: bool) {
+    WEBRTC.store(has, Ordering::Relaxed);
+}
+
+/// Lets the webview's WebRTC carry a Call: on Linux and the BSDs WebKitGTK has it off, and asks before the
 /// camera or the microphone opens. Each is granted only while that channel is open for both
 /// players ([`BragdServer::call_permits`]). WebView2 and WKWebView ask the user themselves.
 pub fn media(window: &tauri::WebviewWindow) {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
     let _ = window.with_webview(|wv| {
         use webkit2gtk::glib::object::Cast;
         use webkit2gtk::{PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, UserMediaPermissionRequestExt, WebViewExt};
@@ -40,7 +59,7 @@ pub fn media(window: &tauri::WebviewWindow) {
             true
         });
     });
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd")))]
     let _ = window;
 }
 
