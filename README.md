@@ -34,6 +34,7 @@ Bragd has had no release yet, so the channels below are empty until the first on
 | Linux | Nix | `nix run github:mwo-dk/bragd` |
 | Linux | Homebrew | `brew install --cask mwo-dk/bragd/bragd` |
 | Any | Script | `./install/install.sh` (Linux, macOS) or `install\install.ps1` (Windows), from a clone |
+| Any | Try it from a clone | `tools/dev/run.sh --start`: builds and starts Bragd with a throwaway home, so your own settings are never touched (`--keep DIR` keeps that home) |
 | macOS | GitHub release | `.dmg` for Apple Silicon or Intel |
 | macOS | Homebrew | `brew install --cask mwo-dk/bragd/bragd` |
 | Windows | GitHub release | NSIS `.exe` or `.msi`, for x64 and arm64 |
