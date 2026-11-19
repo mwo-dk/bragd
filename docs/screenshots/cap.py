@@ -165,11 +165,13 @@ def _dpi():
 
 
 class Desktop:
-    def __init__(self, args=(), lang="en_GB.UTF-8", size=(1440, 900), state=None, env=None, reach=()):
+    def __init__(self, args=(), lang="en_GB.UTF-8", size=(1440, 900), state=None, env=None, reach=(), host_net=False):
         """`env`: more variables for the app, such as `BRAGD_LICHESS_URL` for the fake Lichess.
         `reach`: ports of stand-in servers on this machine's 127.0.0.1 that the app may reach, at
-        the same port in the sandbox; no other port of this machine is reachable."""
-        self.args, self.lang, self.size, self.state, self.env, self.reach = list(args), lang, size, state, dict(env or {}), list(reach)
+        the same port in the sandbox; no other port of this machine is reachable. `host_net`: the
+        sandbox shares this machine's network instead, for a picture of a real Peer on the home
+        network (pages.py, sharing); nothing is joined then."""
+        self.args, self.lang, self.size, self.state, self.env, self.reach, self.host_net = list(args), lang, size, state, dict(env or {}), list(reach), host_net
         self.procs, self.n, self.ws, self.wk, self.target, self.profile, self.logs, self.bridges = [], 0, None, None, None, None, [], []
 
     def __enter__(self):
@@ -194,6 +196,8 @@ class Desktop:
         if busy:
             raise RuntimeError(f"something already answers on 127.0.0.1:{busy}: not starting, so no key or picture goes to its app")
         env = _env()
+        if self.host_net:
+            env["SANDBOX_ARGS"] += " --share-net"
         _dpi()
         st = Path(env["DEMO_HOME"]) / ".local/share/bragd/state.json"
         if self.state is not None or not st.exists():
@@ -213,13 +217,13 @@ class Desktop:
         # unix sockets in the runtime folder, and only the `reach` ports in.
         shutil.copy(HERE / "netbridge.py", RUNTIME / "netbridge.py")
         sock = lambda kind, p: str(RUNTIME / f"{kind}-{self.port}-{p}.sock")
-        out, into = [self.port, self.inspector], self.reach
+        out, into = ([], []) if self.host_net else ([self.port, self.inspector], self.reach)
         for kind, p in [("out", p) for p in out] + [("in", p) for p in into]:
             Path(sock(kind, p)).unlink(missing_ok=True)
         for p in into:
             self.bridges.append((bridge(sock("in", p), p), sock("in", p)))
         inside = [a for p in out for a in (sock("out", p), str(p))] + [a for p in into for a in (str(p), sock("in", p))]
-        run = (f"python3 {RUNTIME}/netbridge.py {' '.join(inside)} & "
+        run = ((f"python3 {RUNTIME}/netbridge.py {' '.join(inside)} & " if inside else "") +
                f"broadwayd --address 127.0.0.1 --port {self.port} {self.display} >/dev/null 2>&1 & until [ -e /home/demo/{go.name} ]; do sleep 0.2; done; rm /home/demo/{go.name}; "
                f"exec env LD_PRELOAD={RUNTIME}/dpi96.so GDK_BACKEND=broadway BROADWAY_DISPLAY={self.display} WEBKIT_DISABLE_DMABUF_RENDERER=1 "
                f'GIO_USE_PROXY_RESOLVER=dummy WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:{self.inspector} BRAGD_WINDOW_SIZE={w}x{h} BRAGD_OFFLINE=1 LANG={self.lang} {extra}bragd-gui "$@"')
@@ -388,12 +392,12 @@ class Desktop:
         return frames
 
 
-def widths(name, setup=lambda d: None, args=(), out=HERE, state=None, env=None, reach=()):
+def widths(name, setup=lambda d: None, args=(), out=HERE, state=None, env=None, reach=(), host_net=False):
     """`<name>-390.png` and `<name>-1100.png`: the app started at each width, `setup(d)` run to
     reach the screen, then captured. Look at both before calling a UI change done."""
     made = []
     for w, h in WIDTHS.items():
-        with Desktop(args=args, size=(w, h), state=state, env=env, reach=reach) as d:
+        with Desktop(args=args, size=(w, h), state=state, env=env, reach=reach, host_net=host_net) as d:
             setup(d)
             d.wait(1)
             path = Path(out) / f"{name}-{w}.png"
