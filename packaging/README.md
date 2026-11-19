@@ -59,7 +59,7 @@ is not there, stops the release pull request with exit 5 and names the file.
 `bsd.yml` builds the window and the Helper for FreeBSD 14.5, NetBSD 10.1 and OpenBSD 7.9, each in
 a virtual machine of that system (vmactions), with the system's own Rust, WebKitGTK and GTK
 packages, starts `bragd-gui --version` there, and packs the result with `bsd/pack.sh`. In a
-release, the `bsd` job packs those binaries again with the release's tag and notices as
+release, the `upload` job packs those binaries again with the release's tag and notices as
 `bragd-desktop-vX.Y.Z-x86_64-unknown-<system>.tar.gz`, each with its `.sha256`. Pull requests
 run `bsd.yml` only when `bsd/` or the workflow changes; every pull request runs
 `tools/msrv-check.py`, which fails when a locked dependency needs a newer Rust than one of the
@@ -82,6 +82,18 @@ exactly. When a Release run ends, `release-check.yml` checks the published relea
 against the list and `SHA256SUMS`, the `.deb` installed with apt and started on x64 and arm64, the
 `.dmg` mounted on both Macs, the NSIS installer run silently on both Windows machines, the
 cask's version, and the WinGet pull request within its week.
+
+No job that builds holds a token that can write: a dependency's build script or install script
+runs on the same machine as every later step of its job. `boms` and `desktop` build read-only and
+hand their files on as artifacts; `upload`, which builds nothing, is the one job that writes them
+to the draft. `tools/workflow-shell-check.py` fails any workflow job that builds with a write
+permission or a `*TOKEN*` secret.
+
+A job that failed on GitHub's side (a runner lost, an upload refused) is run again with
+`gh run rerun <run id> --failed`. `discard` deleted the run's draft, and `upload` makes it again
+(`release-draft.sh`, which leaves another run's draft alone). A failed rehearsal keeps its
+`rehearsal/vX.Y.Z` branch for the same reason; the next rehearsal replaces it, and publishing that
+version deletes it.
 
 `retry.sh` runs a command again on a passing fault on the far side (an HTTP 5xx or 429, a reset
 connection): five tries, a longer wait each time. `pkg-retry.sh` does the same for Flathub's

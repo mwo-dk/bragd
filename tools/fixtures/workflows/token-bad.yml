@@ -1,0 +1,35 @@
+# tools/workflow-shell-check.py: every job here builds within reach of a token that can write,
+# and each must be named once. No workflow-wide permissions, so `unset` gets GitHub's default.
+on: workflow_dispatch
+jobs:
+  writes:
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - run: cargo build --release
+      - run: gh release upload v1 target/release/app
+  secret:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - run: npm ci
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
+  script:
+    permissions: write-all
+    runs-on: ubuntu-24.04
+    steps:
+      - run: bash packaging/helper-sidecar.sh
+  unset:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: cd gui && npm run build
+  action:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: tauri-apps/tauri-action@v1

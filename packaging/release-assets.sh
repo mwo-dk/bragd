@@ -16,7 +16,7 @@ tag="$1" v="${1#v}"
 with_sum() { for f in "$@"; do echo "$f" "$f.sha256"; done; }
 
 expected() {
-  # desktop: tauri-action, one line per matrix entry, each installer with its .sha256 (verify
+  # desktop: `tauri build`, one line per matrix entry, each installer with its .sha256 (verify
   # writes those). The .msi carries WiX culture en-US: Tauri's
   # WiX bundler knows no en-GB. Bragd itself still speaks British English.
   with_sum "Bragd_${v}_amd64.deb" "Bragd_${v}_amd64.AppImage" "Bragd-${v}-1.x86_64.rpm"      # ubuntu-22.04
