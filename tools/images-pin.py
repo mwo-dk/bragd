@@ -15,6 +15,7 @@ the sizes Bragd shows before a download, and run the tests on the new pins.
     python3 tools/images-pin.py --check    # print only, change nothing
 """
 
+import argparse
 import glob
 import json
 import re
@@ -113,7 +114,11 @@ def own_pins(known):
 
 
 def main():
-    check = "--check" in sys.argv
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--check", action="store_true", help="print the table only, change nothing")
+    args = parser.parse_args()
+
+    check = args.check
     texts = {f: open(f, encoding="utf-8").read() for f in FILES}
     texts = {f: t for f, t in texts.items() if PINNED.search(t)}
     found = sorted({m.groups() for t in texts.values() for m in PINNED.finditer(t)})
