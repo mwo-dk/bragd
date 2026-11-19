@@ -172,7 +172,7 @@ In a Swiss, Monrad, Nordic Swiss or Drop-in, rounds a player did not play count 
 
 The `192` line uses FIDE's code table: `FIDE_DUTCH` or `FIDE_DUTCH_BAKU`, `FIDE_ROUNDROBIN` or `FIDE_DOUBLEROUNDROBIN`, and for the systems FIDE does not define `CUSTOM_SWISS` (Monrad, Nordic Swiss, Drop-in), `CUSTOM_KNOCKOUT` and `CUSTOM_SCHEVENINGEN`. FIDE has not yet fixed a Scheveningen schedule, so Bragd's own is a custom one.
 
-The Danish Chess Union publishes no file format for rating reports. Results are typed into its web system, turnering.skak.dk, which takes the games as PGN, so there is no DSU export beyond the PGN.
+The Danish Chess Union publishes no file format for rating reports. Results are typed into its web system, turnering.skak.dk, which takes the games as PGN, so there is no DSU export beyond the PGN. Which file each federation takes, and where to send it, is in [Reporting results to your federation](reporting-results.md).
 
 ## Club ratings
 

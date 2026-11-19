@@ -1,0 +1,1 @@
+| **Chess: how to report results to your federation.** A new page says, for FIDE and for each country Bragd speaks, where a director sends a Tournament's results, which Bragd export to send, and the deadline. | [Reporting results to your federation](clubs/reporting-results.md) |
