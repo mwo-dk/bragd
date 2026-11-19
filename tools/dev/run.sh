@@ -28,7 +28,7 @@ done
 
 # Every step shows its own progress: a first build takes minutes, and nothing should look hung.
 echo "[1/2] Building the interface (gui/dist)…"
-(cd gui && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build)
+(cd gui && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run --silent build)
 echo
 echo "[2/2] Building bragd-gui and bragd-helper (release; a first build takes a few minutes)…"
 cargo build --release -p bragd-gui -p bragd-helper
