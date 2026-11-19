@@ -13,13 +13,13 @@
     "@tauri-apps/api": "^2.12.4"
   },
   "devDependencies": {
-    "@cyclonedx/cyclonedx-npm": "6.0.1",
+    "@cyclonedx/cyclonedx-npm": "7.0.0",
     "@sveltejs/vite-plugin-svelte": "^7",
     "@tauri-apps/cli": "^2.12.3",
     "axe-core": "^4.14.0",
     "svelte": "^5.57.2",
     "svelte-check": "^4.7.8",
-    "vite": "^8.3.4"
+    "vite": "^8.3.8"
   },
   "overrides": {
     "glob": "^14.0.3"

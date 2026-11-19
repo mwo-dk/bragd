@@ -29,7 +29,7 @@ toml = "1"
 ureq = { version = "3", features = ["platform-verifier"] }
 # Pikafish's evaluation network: the release archive (7z) it comes in is unpacked, and both are
 # checked by their SHA-256. Decoding only (LZMA2), no encryption.
-sevenz-rust2 = { version = "0.24", default-features = false }
+sevenz-rust2 = { version = "0.25", default-features = false }
 sha2 = "0.11"
 # Tablebase files are checked against the BLAKE3 sums that come with Bragd.
 blake3 = "1.8"
