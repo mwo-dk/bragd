@@ -14,6 +14,7 @@ Bragd can download rating lists so you can find players by name or ID at check-i
 - [New Zealand (NZCF)](#new-zealand-nzcf)
 - [Sweden (SSF)](#sweden-ssf)
 - [Czechia (ŠSČR)](#czechia-šsčr)
+- [Colombia (FCA)](#colombia-fca)
 - [Lists Bragd does not fetch](#lists-bragd-does-not-fetch)
 - [Other federations](#other-federations)
 - [Questions](#questions)
@@ -32,6 +33,7 @@ Each is a Source of its own on the Sources page (chess's Databases item), off un
 | NZCF | `nz_ratings.json` | 0.9 MB | NZCF ID, name, federation, club, title, NZCF standard and rapid ratings, birth year, FIDE ID |
 | SSF | the API's list for today's date | 1 MB | SSF ID, name, club, title, standard, rapid and blitz ratings, birth year, FIDE ID |
 | ŠSČR | `lok_sm_cz.xls` | 4.8 MB | ŠSČR ID, name, federation, club, title, national standard rating, birth year, FIDE ID |
+| FCA | the CSV its Elo page links to | 2.1 MB | FCA ID, name, league, title, national rating, FIDE rapid and blitz ratings, birth year, FIDE ID |
 
 The others are not fetched, each for the reason in [Lists Bragd does not fetch](#lists-bragd-does-not-fetch).
 
@@ -200,14 +202,28 @@ The file is an array of players: `id`, `firstName`, `lastName`, `birthdate` (a y
 
 The header is `ID_no`, `Name`, `ClubName`, `BirthDay` (`00.00.YYYY`), `Sex`, `Rtg_nat`, `Rtg_int`, `Title`, `FIDE_no`, `Fed`, `ClubNo`, `Status`, then three empty columns. `Rtg_nat` is the national rating and `Rtg_int` FIDE's. Names are written `Surname Given`, without a comma.
 
+## Colombia (FCA)
+
+| Item | Value |
+|---|---|
+| URL | The [Elo page](https://federacioncolombianadeajedrez.com/elo-2/) links to the month's CSV, such as `https://federacioncolombianadeajedrez.com/wp-content/uploads/documentos-fca/ELO/EloNov.csv`. The name changes each month (`ELOOct.csv`, `EloNov.csv`), so Bragd reads the page and takes the first `.csv` link under `/ELO/` |
+| Verified | 2026-11-19, 200 (page and file) |
+| Size | 2.1 MB, 27,098 players |
+| Encoding | Comma-separated, a header, CR LF; Latin-1 where a name has accents |
+| Updated | Monthly |
+| Licence | None stated. The site's `robots.txt` shuts out only its admin pages |
+
+The header is `ID`, `FIDE`, `NOMBRE` (`Surname Surname, Given`), `LIGA` (the regional league), `NACIONAL`, `TITULO`, `STD`, `RAP`, `BLTZ`, `AI`, `Birthday` (`dd/mm/yyyy`), `Sex`. `NACIONAL` is the national rating; `STD`, `RAP` and `BLTZ` are FIDE's. Players with no FIDE ID have their own ID and an empty `FIDE`.
+
 ## Lists Bragd does not fetch
 
-Checked again on 2026-11-19.
+Checked again on 2026-11-19. Colombia's list is now fetched.
 
 - **Germany (DSB):** the README in the zip says publishing the data needs prior agreement with the DWZ referee. Bragd waits for the DSB's agreement.
 - **Australia (ACF):** the terms forbid importing the files into any other database or program.
 - **Catalonia (FCE):** the legal notice allows private download but forbids transforming the content, which an import does.
-- **Austria, Colombia, Japan:** the file name carries the period, and Austria's and Japan's are Excel and PDF.
+- **Austria (ÖSB):** the [ÖSB page on chess-results.com](https://chess-results.com/OesbEloSuche.aspx) links to the current zip (`Eloliste_20261001.zip`, an old binary Excel file inside), so the address could be found each month. But the site's [Impressum](https://chess-results.com/Impressum.aspx?lan=1) says: "Eine Vervielfältigung oder Verwendung in anderen elektronischen oder gedruckten Publikationen ist ohne meine ausdrückliche Zustimmung nicht gestattet." (Copying or use in other electronic or printed publications needs express consent.) Bragd waits for that consent.
+- **Japan (JCA):** the list is an XLSX and a PDF linked from a post for each month, and the page listing those posts has the year in its address (`rating-lists-2026-2`). There is no address that stays the same.
 - **Armenia:** the download is a form post, with no address to fetch.
 - **Netherlands (KNSB):** the viewer `ratingviewer.nl` draws from JSON files (`rating-lists/index.json`, then paged player lists), but they are not documented and no terms are stated. Bragd waits for the KNSB's agreement.
 - **Switzerland, Belgium, Norway, Poland, Estonia, Israel, Greece, Georgia, Latvia:** a search page or a JavaScript app only, with no file or documented API.
@@ -247,17 +263,17 @@ Checked again on 2026-11-19.
 | Taiwan | Chinese Taipei Chess Association | FIDE list only | Not checked beyond the home page | | | home page 200 |
 | Iran | Iran Chess Federation | no public list found | [fcf.ir](https://fcf.ir/fa) has no rating page; `chess.org.ir` does not resolve | | | 200 |
 | Argentina | FADA | FIDE list only | The address `fada.org.ar` I tried belongs to another sport; not confirmed | | | 200, wrong site |
-| Japan | JCA | Monthly PDF, e.g. [2026-11-01.pdf](https://japanchess.org/wp-content/uploads/2026/10/2026-11-01.pdf) | PDF; the address carries the month | | Monthly | 200 |
+| Japan | JCA | Monthly XLSX and PDF, e.g. [2026-11-01.xlsx](https://japanchess.org/wp-content/uploads/2026/10/2026-11-01.xlsx) (93 KB, 1,284 players), linked from a post per month | XLSX (ID, name, kanji, standard and rapid ratings) and PDF; the address carries the month | None stated | Monthly | 200 |
 | South Korea | Korea Chess Federation | no public list found | [kcf.or.kr](https://kcf.or.kr/) has no rating page | | | 200 |
 | Georgia | Georgian Chess Federation | no public list found | [geochess.ge](https://geochess.ge/) has rating pages but no download | | | 200 |
 | Lithuania | LŠF | FIDE list only | `lsf.lt` belongs to another sport; `sachmatai.lt` is "under reconstruction" | | | wrong site |
 | Latvia | LŠF | no public list found | [sahafederacija.lv](https://www.sahafederacija.lv/) is a JavaScript app | | | 200 |
 | Mexico | FEMEXA | FIDE list only | Not reachable by the address tried | | | not reachable |
-| Colombia | Federación Colombiana de Ajedrez | [elo-2](https://federacioncolombianadeajedrez.com/elo-2/) lists monthly files, e.g. `ELOOct.csv` (15.3 MB) and `Elo_Nac_COL_octubre_2026.xlsx` | CSV and XLSX; the month is in each name | None stated | Monthly | 200 |
+| Colombia | Federación Colombiana de Ajedrez | Fetched: see [Colombia (FCA)](#colombia-fca). The [Elo page](https://federacioncolombianadeajedrez.com/elo-2/) also links an XLSX (`Elo_Nac_COL_noviembre_2026.xlsx`) and a Swiss Manager file | CSV | None stated | Monthly | 200 |
 | Chile, Peru | national federations | FIDE list only | Not reachable: `ajedrezchile.cl` now leads to an unrelated site; the Peruvian addresses tried do not resolve | | | not reachable |
 | Bolivia, Costa Rica, Cuba, Dominican Republic, Ecuador, Guatemala, Honduras, Nicaragua, Panama, Puerto Rico, El Salvador, Uruguay, Venezuela | national federations | FIDE list only | Not searched; no national list known | | | not checked |
 
-Data from the German, English, Canadian, Finnish, New Zealand, Australian and Danish rows has names and birth years or member numbers of private people. Bragd keeps any list it downloads on the machine and does not upload it.
+Data from the German, English, Canadian, Finnish, New Zealand, Australian, Danish and Colombian rows has names and birth years or member numbers of private people. Bragd keeps any list it downloads on the machine and does not upload it.
 
 ## Questions
 

@@ -67,6 +67,9 @@ pub enum Format {
     SsfJson,
     /// The Czech Chess Federation's: an old binary Excel file (BIFF) with a header row.
     LokXls,
+    /// The Colombian Chess Federation's: comma-separated, a header, Latin-1 where a name has
+    /// accents.
+    FcaCsv,
 }
 
 /// A rating list Bragd can fetch: its id (the Source's), its short name, where it is, the file it
@@ -86,6 +89,9 @@ pub struct List {
     /// The FIDE code of the federation whose national rating this is, for a TRF's national
     /// rating records; empty for FIDE's own list.
     pub federation: &'static str,
+    /// When not empty, `url` is a page and the list is the first file it links to whose address
+    /// holds `link` and ends in `file`'s extension: for a list whose name changes each month.
+    pub link: &'static str,
 }
 
 impl List {
@@ -111,17 +117,31 @@ impl List {
 /// Every rating list Bragd can fetch, in the order the Sources page lists them. Where each comes
 /// from, its terms and why others are missing: `docs/reference/rating-lists.md`.
 pub const LISTS: &[List] = &[
-    List { id: "fide-ratings", name: "FIDE", url: "https://ratings.fide.com/download/players_list.zip", file: "players_list.zip", size: 45_000_000, format: Format::FideTxt, region: "", language: "", federation: "" },
-    List { id: "dsu-ratings", name: "DSU", url: "https://turnering.skak.dk/ClubAndMembers/AllMemberReport?memType=ActiveMembersAjax&format=csv", file: "dsu-members.csv", size: 550_000, format: Format::DsuCsv, region: "dk", language: "da", federation: "DEN" },
-    List { id: "ecf-ratings", name: "ECF", url: "https://rating.englishchess.org.uk/api/rating-list/csv", file: "ecf-ratings.csv", size: 4_500_000, format: Format::EcfCsv, region: "gb", language: "", federation: "ENG" },
-    List { id: "cfc-ratings", name: "CFC", url: "https://files.chess.ca/data/cfc-ratings.csv", file: "cfc-ratings.csv", size: 5_400_000, format: Format::CfcCsv, region: "ca", language: "", federation: "CAN" },
-    List { id: "sshl-ratings", name: "SShL", url: "https://www.shakki.net/selo/selolista.csv", file: "sshl-ratings.csv", size: 750_000, format: Format::FinCsv, region: "fi", language: "fi", federation: "FIN" },
-    List { id: "nzcf-ratings", name: "NZCF", url: "https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json", file: "nzcf-ratings.json", size: 900_000, format: Format::NzJson, region: "nz", language: "", federation: "NZL" },
+    List { id: "fide-ratings", name: "FIDE", url: "https://ratings.fide.com/download/players_list.zip", file: "players_list.zip", size: 45_000_000, format: Format::FideTxt, region: "", language: "", federation: "", link: "" },
+    List { id: "dsu-ratings", name: "DSU", url: "https://turnering.skak.dk/ClubAndMembers/AllMemberReport?memType=ActiveMembersAjax&format=csv", file: "dsu-members.csv", size: 550_000, format: Format::DsuCsv, region: "dk", language: "da", federation: "DEN", link: "" },
+    List { id: "ecf-ratings", name: "ECF", url: "https://rating.englishchess.org.uk/api/rating-list/csv", file: "ecf-ratings.csv", size: 4_500_000, format: Format::EcfCsv, region: "gb", language: "", federation: "ENG", link: "" },
+    List { id: "cfc-ratings", name: "CFC", url: "https://files.chess.ca/data/cfc-ratings.csv", file: "cfc-ratings.csv", size: 5_400_000, format: Format::CfcCsv, region: "ca", language: "", federation: "CAN", link: "" },
+    List { id: "sshl-ratings", name: "SShL", url: "https://www.shakki.net/selo/selolista.csv", file: "sshl-ratings.csv", size: 750_000, format: Format::FinCsv, region: "fi", language: "fi", federation: "FIN", link: "" },
+    List { id: "nzcf-ratings", name: "NZCF", url: "https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json", file: "nzcf-ratings.json", size: 900_000, format: Format::NzJson, region: "nz", language: "", federation: "NZL", link: "" },
     // The list in force on a date: `{date}` is today's, YYYY-MM-DD. By region only: Swedish is
     // also Finland's.
-    List { id: "ssf-ratings", name: "SSF", url: "https://member.schack.se/public/api/v1/ratinglist/federation/date/{date}/ratingtype/1/category/0", file: "ssf-ratings.json", size: 1_000_000, format: Format::SsfJson, region: "se", language: "", federation: "SWE" },
-    List { id: "lok-ratings", name: "ŠSČR", url: "https://elo.miramal.com/download/lok_sm_cz.xls", file: "lok-ratings.xls", size: 4_800_000, format: Format::LokXls, region: "cz", language: "cs", federation: "CZE" },
+    List { id: "ssf-ratings", name: "SSF", url: "https://member.schack.se/public/api/v1/ratinglist/federation/date/{date}/ratingtype/1/category/0", file: "ssf-ratings.json", size: 1_000_000, format: Format::SsfJson, region: "se", language: "", federation: "SWE", link: "" },
+    List { id: "lok-ratings", name: "ŠSČR", url: "https://elo.miramal.com/download/lok_sm_cz.xls", file: "lok-ratings.xls", size: 4_800_000, format: Format::LokXls, region: "cz", language: "cs", federation: "CZE", link: "" },
+    // A new file name each month (`EloNov.csv`), linked from the federation's Elo page.
+    List { id: "fca-ratings", name: "FCA", url: "https://federacioncolombianadeajedrez.com/elo-2/", file: "fca-ratings.csv", size: 2_100_000, format: Format::FcaCsv, region: "co", language: "", federation: "COL", link: "/ELO/" },
 ];
+
+/// The address of the first file `html` links to whose address holds `link` and ends in
+/// `ext` (`.csv`), ignoring case. shortcut: only absolute `http(s)` links; upgrade when a list's
+/// page links relatively.
+pub fn file_link(html: &str, link: &str, ext: &str) -> Option<String> {
+    html.split("href=").skip(1).find_map(|rest| {
+        let quote = rest.chars().next().filter(|c| matches!(c, '"' | '\''))?;
+        let url = rest[1..].split(quote).next()?;
+        let lower = url.to_ascii_lowercase();
+        (lower.starts_with("http") && url.contains(link) && lower.ends_with(&ext.to_ascii_lowercase())).then(|| url.replace("&amp;", "&"))
+    })
+}
 
 /// What a parser hands each player to.
 pub type Each<'a> = &'a mut dyn FnMut(Player) -> io::Result<()>;
@@ -279,7 +299,7 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
             }
             Ok(())
         }
-        Format::DsuCsv | Format::EcfCsv | Format::CfcCsv | Format::FinCsv => {
+        Format::DsuCsv | Format::EcfCsv | Format::CfcCsv | Format::FinCsv | Format::FcaCsv => {
             let sep = if matches!(format, Format::DsuCsv | Format::FinCsv) { ';' } else { ',' };
             let mut head: Vec<String> = vec![];
             lines(r, |line| {
@@ -317,6 +337,20 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
                         blitz: None,
                         born: number(at("syntvuosi", false)),
                         fide_id: id(at("fide_id", false)),
+                    },
+                    // `NACIONAL` is the national rating, `STD` FIDE's; `RAP` and `BLTZ` are FIDE's
+                    // too. The birthday is written `dd/mm/yyyy`.
+                    Format::FcaCsv => Player {
+                        id: at("ID", false).into(),
+                        name: at("NOMBRE", false).into(),
+                        federation: "COL".into(),
+                        club: at("LIGA", false).into(),
+                        title: at("TITULO", false).into(),
+                        rating: number(at("NACIONAL", false)),
+                        rapid: number(at("RAP", false)),
+                        blitz: number(at("BLTZ", false)),
+                        born: number(at("Birthday", false).rsplit('/').next().unwrap_or("")),
+                        fide_id: id(at("FIDE", false)),
                     },
                     // `Nr` twice: the DSU member number first, the FIDE ID last.
                     Format::DsuCsv => Player {
@@ -744,6 +778,26 @@ mod tests {
         assert_eq!((p.id.as_str(), p.name.as_str(), p.club.as_str(), p.title.as_str(), p.federation.as_str(), p.fide_id.as_str()), ("1", "Aakio, Seppo", "LauttSSK", "ME", "FIN", "504599"));
         assert_eq!((p.rating, p.rapid, p.born), (Some(2004), Some(2099), Some(1954)));
         assert_eq!((ps[1].name.as_str(), ps[1].rapid, ps[1].born), ("Äkrö, Erica", None, None));
+    }
+
+    #[test]
+    fn the_colombian_list_reads_its_national_rating_and_latin_1_names() {
+        let ps = parsed(Format::FcaCsv, include_bytes!("../tests/fixtures/fca-elo.csv"));
+        assert_eq!(ps.len(), 3);
+        let p = &ps[0];
+        assert_eq!((p.id.as_str(), p.name.as_str(), p.club.as_str(), p.title.as_str(), p.federation.as_str(), p.fide_id.as_str()), ("4430000", "Pérez Gómez, Juan Carlos", "VAL", "GM", "COL", "4430000"));
+        assert_eq!((p.rating, p.rapid, p.blitz, p.born), (Some(2504), Some(2423), Some(2474), Some(2004)));
+        // No FIDE ID, and one written after a no-break space.
+        assert_eq!((ps[1].fide_id.as_str(), ps[1].rating, ps[1].rapid, ps[1].born), ("", Some(1453), None, Some(2004)));
+        assert_eq!((ps[2].fide_id.as_str(), ps[2].born), ("144455000", None));
+    }
+
+    #[test]
+    fn a_monthly_file_is_found_by_its_link_on_the_page() {
+        let html = r#"<a href="https://x.co/ELO/Elo_Nac_COL_noviembre_2026.xlsx">xlsx</a> <a href='/ELO/rel.csv'>rel</a> <a href="https://x.co/wp-content/uploads/documentos-fca/ELO/EloNov.CSV">csv</a> <a href="https://x.co/ELO/EloOct.csv">old</a>"#;
+        assert_eq!(file_link(html, "/ELO/", ".csv").as_deref(), Some("https://x.co/wp-content/uploads/documentos-fca/ELO/EloNov.CSV"));
+        assert_eq!(file_link(html, "/NONE/", ".csv"), None);
+        assert_eq!(file_link("<p>no links</p>", "/ELO/", ".csv"), None);
     }
 
     #[test]

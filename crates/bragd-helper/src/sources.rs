@@ -544,7 +544,13 @@ impl Source for RatingList {
         // Fetched whole each time: last month's list is replaced, never resumed into.
         let _ = std::fs::remove_file(&to);
         let _ = std::fs::remove_file(net::part_of(&to));
-        let url = self.url();
+        let mut url = self.url();
+        if !self.0.link.is_empty() {
+            // The page names this month's file.
+            let html = page(cx.net, &url)?.ok_or_else(|| io::Error::other(format!("{url} is not there")))?;
+            let ext = Path::new(self.0.file).extension().map_or(String::new(), |e| format!(".{}", e.to_string_lossy()));
+            url = bragd_clubs::lists::file_link(&html, self.0.link, &ext).ok_or_else(|| io::Error::other(format!("{url} links to no {ext} file")))?;
+        }
         if !net::download(cx.net, &url, &to, cx.cap, cx.stop, cx.progress)? {
             return Err(io::Error::other(format!("{url} is not there")));
         }
@@ -720,7 +726,7 @@ pub(crate) mod tests {
     #[test]
     fn the_registry_lists_every_source_and_fetches_only_some() {
         let ids: Vec<String> = builtin().iter().map(|s| s.about().id).collect();
-        assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings", "ssf-ratings", "lok-ratings"]);
+        assert_eq!(ids, ["twic", "lichess-db", "fics", "pgnmentor", "lumbras", "ogs", "kgs", "pychess", "lishogi", "fide-ratings", "dsu-ratings", "ecf-ratings", "cfc-ratings", "sshl-ratings", "nzcf-ratings", "ssf-ratings", "lok-ratings", "fca-ratings"]);
         let fetched: Vec<String> = builtin().iter().map(|s| s.about()).filter(|a| a.kind == Kind::Games && a.fetchable).map(|a| a.id).collect();
         assert_eq!(fetched, ["twic", "lichess-db", "fics", "pgnmentor", "ogs", "kgs", "lishogi"]);
         assert!(builtin().iter().all(|s| s.about().size > 0));
@@ -732,6 +738,22 @@ pub(crate) mod tests {
         assert!(net.asked.lock().unwrap().is_empty(), "nothing is asked of the network");
         assert!(find("custom:club", "https://example.org/a.pgn").unwrap().about().fetchable);
         assert!(find("nope", "").is_none());
+    }
+
+    #[test]
+    fn a_monthly_list_is_fetched_from_the_file_its_page_links_to() {
+        let d = crate::tests::Dir::new("fca");
+        let list = bragd_clubs::lists::LISTS.iter().find(|l| l.id == "fca-ratings").unwrap();
+        let file = "https://federacioncolombianadeajedrez.com/wp-content/uploads/documentos-fca/ELO/EloNov.csv";
+        let page = format!(r#"<a href="https://federacioncolombianadeajedrez.com/ELO/Elo_Nac_COL_noviembre_2026.xlsx">x</a><a href="{file}">csv</a>"#);
+        let net = Recorded { files: [(list.url.to_string(), page.into_bytes()), (file.to_string(), b"ID,FIDE\r\n".to_vec())].into(), ..Default::default() };
+        let o = Twic.about().defaults();
+        let got = RatingList(list).fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap();
+        assert_eq!(got, [d.0.join("fca-ratings.csv")]);
+        assert_eq!(std::fs::read(&got[0]).unwrap(), b"ID,FIDE\r\n");
+        // A page that links to no list file is an error, not an empty list.
+        let net = Recorded { files: [(list.url.to_string(), b"<p>soon</p>".to_vec())].into(), ..Default::default() };
+        assert!(RatingList(list).fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).is_err());
     }
 
     #[test]
