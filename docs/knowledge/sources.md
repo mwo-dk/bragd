@@ -47,6 +47,7 @@ The install wizard's Knowledge step offers TWIC too, ticked ([The install wizard
 | `nzcf-ratings` | New Zealand Chess Federation (NZCF) | chess | 0.9 MB | Monthly |
 | `ssf-ratings` | Swedish Chess Federation (SSF) | chess | 1 MB | Monthly |
 | `lok-ratings` | Czech Chess Federation (ŠSČR) | chess | 4.8 MB | Monthly |
+| `fca-ratings` | Colombian Chess Federation (FCA) | chess | 2.1 MB | Monthly |
 
 Some well-known Sources are listed but not fetched by this version: LumbrasGigaBase and pychess. Sources shows each with its address and *This version of Bragd cannot fetch it yet*, and no box to tick. The install wizard names those of your Families in one line, *Coming later*.
 
@@ -54,7 +55,7 @@ Some well-known Sources are listed but not fetched by this version: LumbrasGigaB
 
 **TWIC.** The first fetch takes only the newest issue. Each later fetch takes the new issues in order, at most 26 at a time. The zips are imported as they are, without unpacking.
 
-**Rating lists.** FIDE, DSU, ECF, CFC, SShL, NZCF, SSF and ŠSČR are rating lists, not Games. Each fetch downloads the whole list, and its players replace the list's players from before in `rating-lists.sqlite`, where the [Clubs](../clubs/clubs.md) page finds them by name or ID. They have no Routes and no *After import*. FIDE's list and your own federation's show first, found from Bragd's language and your system's region (Danish or Denmark: the DSU). The others are folded under **More lists** until you turn one on. Where each comes from and on what terms: [Rating lists](../reference/rating-lists.md).
+**Rating lists.** FIDE, DSU, ECF, CFC, SShL, NZCF, SSF, ŠSČR and FCA are rating lists, not Games. Each fetch downloads the whole list, and its players replace the list's players from before in `rating-lists.sqlite`, where the [Clubs](../clubs/clubs.md) page finds them by name or ID. They have no Routes and no *After import*. FIDE's list and your own federation's show first, found from Bragd's language and your system's region (Danish or Denmark: the DSU). The others are folded under **More lists** until you turn one on. Where each comes from and on what terms: [Rating lists](../reference/rating-lists.md).
 
 **Your own Games.** The OGS and Lishogi Sources fetch the Games of the account you sign in to under Play online, never anyone else's. Each line says so, and has a box for one Game's address or number with **Fetch this Game**, which imports that Game through the Source's Routes. Fetching one Game does not change where the next fetch goes on from.
 

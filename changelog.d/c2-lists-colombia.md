@@ -1,0 +1,1 @@
+| **Chess clubs in Colombia can turn on the FCA's rating list under Sources.** Bragd fetches the Colombian Chess Federation's monthly list from the file its Elo page links to, so check-in finds Colombian players by name or ID, with their national rating. | [Rating lists](reference/rating-lists.md#colombia-fca) |
