@@ -1,0 +1,1 @@
+| **The runes in the sidebar are text.** The wordmark ᛒᚱᛅᚴᚦ is set in the bundled Noto Sans Runic instead of drawn as a picture. | [The sidebar](getting-started/sidebar.md#why-do-the-runes-look-the-same-on-every-machine) |

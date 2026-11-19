@@ -58,9 +58,9 @@ Tafl and Senet have no outside Engine to run, so they have Play, Databases and R
 
 It is lit while the Helper answers, shows when jobs are running, and warns when Disk watch has a notice. The line asks the Helper every 5 seconds, and every 1.5 seconds while a job runs.
 
-#### Why is the wordmark a picture and not text?
+#### Why do the runes look the same on every machine?
 
-WebKitGTK, which draws Bragd's window on Linux, draws runes in text with no width, whatever the font. The wordmark is therefore the outline of each rune, taken from the bundled Noto Sans Runic. Screen readers call it *Bragd*.
+The wordmark is text set in Noto Sans Runic, which comes with Bragd, so it needs no font installed. Screen readers call it *Bragd*.
 
 #### Can I change the order of the Families?
 

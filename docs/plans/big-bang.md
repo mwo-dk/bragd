@@ -127,7 +127,7 @@ Each one is listed here, so the owner can overturn it in the morning.
 - The outcome banner shows the winner and the rules crate's result text; the reason (checkmate, …) is not shown yet, and backgammon's "N points" is English from Rust.
 - New texts are English in every locale and listed in `UNTRANSLATED.md`.
 - `looks.css` is adapted from the source project's, renamed, without its DOS look.
-- The sidebar's wordmark is the rune outlines of `assets/brand/wordmark-runes.svg`, recoloured, because runes set in the bundled font draw nothing in WebKitGTK (`BASELINE.md`). The font is still bundled and declared in `app.css`.
+- The sidebar's wordmark is text in the bundled Noto Sans Runic, set with `text-rendering: optimizeSpeed`: WebKitGTK shapes Runic with no direction and gives it no width otherwise (#2).
 - `cap.py` sets the page larger than the window (Emulation.setDeviceMetricsOverride), because Broadway places the window off the page's corner and pictures lost their bottom and right edges.
 - Screenshots in `docs/screenshots/`: `sidebar-*`, `settings-families-*`, `play-<family>-*` at 390 and 1100 px, and `play-<variant>-1100.png` for Seirawan, Capablanca, shatranj, janggi, Go 19×19, international draughts, checkers and brandubh.
 

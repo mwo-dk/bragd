@@ -4,11 +4,6 @@
   // and What's new.
   import { t } from "./i18n.svelte.js";
   import HelperStatus from "./HelperStatus.svelte";
-  // The rune wordmark: outlines from Noto Sans Runic, drawn in the sidebar's gold. Outlines, not
-  // text, because WebKitGTK draws Runic text with no width (BASELINE.md). The brand block is named
-  // "Bragd" for screen readers, so the picture's own name (the five runes) is dropped.
-  import wordmark from "../../assets/brand/wordmark-runes.svg?raw";
-  const runes = wordmark.replaceAll("#004225", "currentColor").replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
 
   /** @type {{ snap: any, page: any, collapsed: boolean, go: (page: any) => void, toggle: () => void, slices: Record<string, any[]> }} */
   let { snap, page, collapsed, go, toggle, slices } = $props();
@@ -28,7 +23,7 @@
 
 <nav class="sidebar" class:collapsed aria-label="Bragd">
   <div class="brand" role="img" aria-label="Bragd">
-    <span class="runes">{@html runes}</span>
+    <span class="runes">ᛒᚱᛅᚴᚦ</span>
     {#if !collapsed}<span class="word">Bragd</span>{/if}
   </div>
   {#if !collapsed}
@@ -103,13 +98,22 @@
     background: var(--brand);
     color: #d8b74a;
   }
-  .runes :global(svg) {
-    display: block;
-    width: 8rem;
-    height: auto;
+  /* The rune wordmark, set in Noto Sans Runic as the brand art sets it (tools/brand/build-brand.py):
+     tracking 0.12 em, strokes thickened by 0.02 em. optimizeSpeed: WebKitGTK shapes Runic with no
+     direction, so every glyph gets no width (#2); without kerning and shaping it takes the font's
+     own advances instead. */
+  .runes {
+    font-family: "Noto Sans Runic";
+    text-rendering: optimizeSpeed;
+    font-kerning: none;
+    font-size: 2.15rem;
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    margin-right: -0.12em;
+    -webkit-text-stroke: 0.02em currentColor;
   }
-  .collapsed .runes :global(svg) {
-    width: 2.6rem;
+  .collapsed .runes {
+    font-size: 0.7rem;
   }
   .word {
     color: var(--brand-pale);
