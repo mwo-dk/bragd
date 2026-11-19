@@ -39,6 +39,7 @@
       noImage: t("engines.state.no_image"),
       noRuntime: t("engines.state.no_runtime"),
       containersOff: t("engines.state.containers_off"),
+      noImagesHere: t("engines.state.no_images_here"),
       gone: t("engines.state.gone", { path: s.path }),
     })[/** @type {string} */ (s.kind)];
   const ready = (/** @type {any} */ e) => ["installed", "pulled", "built"].includes(e.state.kind);

@@ -14,13 +14,13 @@ Every Engine in the table below has an image. Its card on the Engines page shows
 | Where | What to do |
 |---|---|
 | Sidebar | A Family → **Engines**. **Get it (…)** shows on a card when an image can be pulled, with its size |
-| Settings | *Settings → Engines*: *Pull an Engine that is not installed* and *Container runtime* |
+| Settings | *Settings → Engines*: *Pull an Engine that is not installed* and *Container runtime*. Not on FreeBSD, NetBSD and OpenBSD, where the images cannot run |
 
 ## What it needs
 
 - podman or docker on the machine. *Automatic* tries podman first, then docker.
 - The image, pulled once. It shows its size before it downloads.
-- Linux, macOS or Windows. The images are Linux images, which FreeBSD, NetBSD and OpenBSD cannot run (podman on FreeBSD runs FreeBSD containers only). There an Engine's row says to install it from the system's packages, such as `stockfish`.
+- Linux, macOS or Windows. The images are Linux images, which FreeBSD, NetBSD and OpenBSD cannot run (podman on FreeBSD runs FreeBSD containers only). There an Engine's row says to install it from the system's packages, such as `stockfish`, and Settings → Engines leaves out the image switch and the runtime. The setup wizard counts those Engines among the ones to install yourself.
 
 ## The images
 
@@ -121,6 +121,10 @@ A passing fault, such as a dropped connection or a busy registry, does not give 
 #### Why does my card say neither podman nor docker is there?
 
 The image is published but no runtime was found on your `PATH`. Install podman or docker, or install the Engine itself.
+
+#### Why are the container settings missing on my BSD?
+
+The images are Linux images, which FreeBSD, NetBSD and OpenBSD cannot run, so the switch and the runtime would do nothing there. Install each Engine from the system's packages, such as `pkg install stockfish` on FreeBSD. The values in `config.toml` stay as they are and count again when the same file is used on Linux, macOS or Windows.
 
 #### Why does Bragd not run my image built with `tools/dev/images.sh`?
 
