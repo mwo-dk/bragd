@@ -4,7 +4,7 @@
 # ///
 """The UI check: every main screen of Bragd, at 390 and 1100 px wide, fails on
 
-  - text that does not fit: a button, label, list item, cell or heading whose text is wider
+  - text that does not fit: text laid out with no width, a button, label, list item, cell or heading whose text is wider
     than its box, or any element that cuts its text off (overflow hidden, an ellipsis), and a
     page wider than the window;
   - a scrolling box that keyboard focus cannot reach, whatever the data in the home, and a focusable
@@ -50,8 +50,16 @@ OVERFLOW = r"""(() => {
     || (e.getAttribute('aria-labelledby') || '').split(/\s+/).some((id) => (document.getElementById(id)?.textContent || '').trim());
   const scrolls = (s) => /(auto|scroll)/.test(s.overflowX);
   for (const e of document.querySelectorAll('body *')) {
-    if (!seen(e) || e.closest('svg') || e.closest('.splash')) continue;
+    if (e.closest('svg') || e.closest('.splash')) continue;
     const s = getComputedStyle(e);
+    // Text that takes no room draws nothing readable: WebKitGTK lays out shaped Runic text with no width (#2).
+    if (s.visibility !== 'hidden' && e.getClientRects().length)
+      for (const n of e.childNodes) {
+        if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+        const r = document.createRange(); r.selectNodeContents(n);
+        if (r.getBoundingClientRect().width < 1) { out.push('text with no width: ' + name(e)); break; }
+      }
+    if (!seen(e)) continue;
     // Whatever the data, a box that can scroll is a stop for the keyboard: it is focusable or holds something that is.
     // A stop in the focus order that is a region, group or aside is announced by its name: it needs one.
     if (e.tabIndex >= 0 && (/^(region|group)$/.test(e.getAttribute('role')) || e.tagName === 'ASIDE') && !named(e))
@@ -204,7 +212,8 @@ PLANTED = r"""(() => {
     + '<p style="color:#bbb;background:#ccc">Grey on grey</p><button></button>'
     + '<div style="overflow-x:auto"><table><tr><td>planted scroll box</td></tr></table></div>'
     + '<div tabindex="0" role="region" style="overflow-x:auto">planted unnamed region</div>'
-    + '<div tabindex="0" role="region" aria-labelledby="ui-check-gone">planted dangling region</div>';
+    + '<div tabindex="0" role="region" aria-labelledby="ui-check-gone">planted dangling region</div>'
+    + '<span style="font-size:0">planted text with no width</span>';
   document.querySelector('main.page').prepend(box);
   return 0;
 })()"""
@@ -223,7 +232,8 @@ def self_test():
                                      ("the nameless button", any(x.startswith("button-name") and "planted" in x for x in found)),
                                      ("the scrolling box", any("keyboard cannot reach" in x for x in over)),
                                      ("the unnamed region", any("no accessible name" in x and "unnamed region" in x for x in over)),
-                                     ("the dangling label", any("no accessible name" in x and "dangling region" in x for x in over))] if not hit]
+                                     ("the dangling label", any("no accessible name" in x and "dangling region" in x for x in over)),
+                                     ("the text with no width", any("text with no width" in x and "planted text" in x for x in over))] if not hit]
     for m in misses:
         print("SELF-TEST MISSED", m)
     if misses:

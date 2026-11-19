@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds the brand art: the rune wordmark, the icon, the splash, their PNGs
+"""Builds the brand art: the icon, the splash, their PNGs
 and the Tauri icon set.
 
     python3 tools/brand/build-brand.py
@@ -85,10 +85,6 @@ def icon() -> dict[str, str]:
     return {"icon": svg(512, 512, plain, "Bragd")}
 
 
-def wordmark() -> str:
-    return svg(560, 160, line(RUNES, 150, 280, 132, RACING, tracking=0.12, bold=20), "ᛒᚱᛅᚴᚦ")
-
-
 def splash() -> str:
     body = (
         '<defs><radialGradient id="splash-glow" cx="0.5" cy="0.42" r="0.75">'
@@ -112,7 +108,7 @@ def render(svg_path: pathlib.Path, size: int) -> bytes:
 def main() -> None:
     if not shutil.which("rsvg-convert"):
         raise SystemExit("needs rsvg-convert (librsvg)")
-    art = {**icon(), "wordmark-runes": wordmark(), "splash": splash()}
+    art = {**icon(), "splash": splash()}
     (BRAND / "png").mkdir(parents=True, exist_ok=True)
     for name, text in art.items():
         path = BRAND / f"{name}.svg"
