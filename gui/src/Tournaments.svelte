@@ -28,7 +28,7 @@
   });
   const family = $derived(variants.find((v) => v.key === fresh.variant)?.family);
   /** The guest being added: typed in, or found in a rating list. */
-  let guest = $state({ name: "", rating: "", fide_id: "", federation: "", title: "" });
+  let guest = $state({ name: "", rating: "", fide_id: "", national_id: "", federation: "", title: "" });
   let member = $state(/** @type {number|null} */ (null));
   let here = $state(true);
   let query = $state("");
@@ -138,10 +138,10 @@
   }
   async function addGuest(/** @type {SubmitEvent} */ e) {
     e.preventDefault();
-    const player = { name: guest.name, rating: Number(guest.rating) || 0, fide_id: guest.fide_id, federation: guest.federation, title: guest.title };
+    const player = { name: guest.name, rating: Number(guest.rating) || 0, fide_id: guest.fide_id, national_id: guest.national_id, federation: guest.federation, title: guest.title };
     const v = await change(() => api.tournamentRegister(by, tv.id, player, here));
     if (v) {
-      guest = { name: "", rating: "", fide_id: "", federation: "", title: "" };
+      guest = { name: "", rating: "", fide_id: "", national_id: "", federation: "", title: "" };
       // The next guest is typed straight in: Enter adds, and Name has the focus again.
       guestName?.focus();
     }
@@ -157,7 +157,8 @@
   /** A player found in a rating list fills the guest form. */
   function use(/** @type {any} */ p) {
     const fide = p.fide;
-    guest = { name: p.name, rating: p.rating ?? "", fide_id: fide ? p.id : p.fide_id || "", federation: fide ? p.federation : "", title: p.title || "" };
+    // A federation's list keeps its own ID, for the national rating records of the TRF.
+    guest = { name: p.name, rating: p.rating ?? "", fide_id: fide ? p.id : p.fide_id || "", national_id: fide ? "" : p.id, federation: fide ? p.federation : "", title: p.title || "" };
     found = null;
   }
 

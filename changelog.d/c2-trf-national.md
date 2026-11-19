@@ -1,0 +1,1 @@
+| **The FIDE report (TRF) holds your players' national ratings.** When the players are on a federation rating list Bragd has fetched, the TRF gets TRF-2026's national rating records: each player's national rating and number, and the `172` line naming the federation. | [Tournaments](clubs/tournaments.md#publishing-and-exports) |

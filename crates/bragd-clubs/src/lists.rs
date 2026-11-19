@@ -6,7 +6,7 @@
 use std::io::{self, BufRead, BufReader, Read, Seek};
 use std::path::{Path, PathBuf};
 
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::Serialize;
 
 /// A player as a rating list has them.
@@ -83,6 +83,9 @@ pub struct List {
     pub format: Format,
     pub region: &'static str,
     pub language: &'static str,
+    /// The FIDE code of the federation whose national rating this is, for a TRF's national
+    /// rating records; empty for FIDE's own list.
+    pub federation: &'static str,
 }
 
 impl List {
@@ -108,16 +111,16 @@ impl List {
 /// Every rating list Bragd can fetch, in the order the Sources page lists them. Where each comes
 /// from, its terms and why others are missing: `docs/reference/rating-lists.md`.
 pub const LISTS: &[List] = &[
-    List { id: "fide-ratings", name: "FIDE", url: "https://ratings.fide.com/download/players_list.zip", file: "players_list.zip", size: 45_000_000, format: Format::FideTxt, region: "", language: "" },
-    List { id: "dsu-ratings", name: "DSU", url: "https://turnering.skak.dk/ClubAndMembers/AllMemberReport?memType=ActiveMembersAjax&format=csv", file: "dsu-members.csv", size: 550_000, format: Format::DsuCsv, region: "dk", language: "da" },
-    List { id: "ecf-ratings", name: "ECF", url: "https://rating.englishchess.org.uk/api/rating-list/csv", file: "ecf-ratings.csv", size: 4_500_000, format: Format::EcfCsv, region: "gb", language: "" },
-    List { id: "cfc-ratings", name: "CFC", url: "https://files.chess.ca/data/cfc-ratings.csv", file: "cfc-ratings.csv", size: 5_400_000, format: Format::CfcCsv, region: "ca", language: "" },
-    List { id: "sshl-ratings", name: "SShL", url: "https://www.shakki.net/selo/selolista.csv", file: "sshl-ratings.csv", size: 750_000, format: Format::FinCsv, region: "fi", language: "fi" },
-    List { id: "nzcf-ratings", name: "NZCF", url: "https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json", file: "nzcf-ratings.json", size: 900_000, format: Format::NzJson, region: "nz", language: "" },
+    List { id: "fide-ratings", name: "FIDE", url: "https://ratings.fide.com/download/players_list.zip", file: "players_list.zip", size: 45_000_000, format: Format::FideTxt, region: "", language: "", federation: "" },
+    List { id: "dsu-ratings", name: "DSU", url: "https://turnering.skak.dk/ClubAndMembers/AllMemberReport?memType=ActiveMembersAjax&format=csv", file: "dsu-members.csv", size: 550_000, format: Format::DsuCsv, region: "dk", language: "da", federation: "DEN" },
+    List { id: "ecf-ratings", name: "ECF", url: "https://rating.englishchess.org.uk/api/rating-list/csv", file: "ecf-ratings.csv", size: 4_500_000, format: Format::EcfCsv, region: "gb", language: "", federation: "ENG" },
+    List { id: "cfc-ratings", name: "CFC", url: "https://files.chess.ca/data/cfc-ratings.csv", file: "cfc-ratings.csv", size: 5_400_000, format: Format::CfcCsv, region: "ca", language: "", federation: "CAN" },
+    List { id: "sshl-ratings", name: "SShL", url: "https://www.shakki.net/selo/selolista.csv", file: "sshl-ratings.csv", size: 750_000, format: Format::FinCsv, region: "fi", language: "fi", federation: "FIN" },
+    List { id: "nzcf-ratings", name: "NZCF", url: "https://compete.newzealandchess.co.nz/wp-content/uploads/2024/10/nz_ratings.json", file: "nzcf-ratings.json", size: 900_000, format: Format::NzJson, region: "nz", language: "", federation: "NZL" },
     // The list in force on a date: `{date}` is today's, YYYY-MM-DD. By region only: Swedish is
     // also Finland's.
-    List { id: "ssf-ratings", name: "SSF", url: "https://member.schack.se/public/api/v1/ratinglist/federation/date/{date}/ratingtype/1/category/0", file: "ssf-ratings.json", size: 1_000_000, format: Format::SsfJson, region: "se", language: "" },
-    List { id: "lok-ratings", name: "ŠSČR", url: "https://elo.miramal.com/download/lok_sm_cz.xls", file: "lok-ratings.xls", size: 4_800_000, format: Format::LokXls, region: "cz", language: "cs" },
+    List { id: "ssf-ratings", name: "SSF", url: "https://member.schack.se/public/api/v1/ratinglist/federation/date/{date}/ratingtype/1/category/0", file: "ssf-ratings.json", size: 1_000_000, format: Format::SsfJson, region: "se", language: "", federation: "SWE" },
+    List { id: "lok-ratings", name: "ŠSČR", url: "https://elo.miramal.com/download/lok_sm_cz.xls", file: "lok-ratings.xls", size: 4_800_000, format: Format::LokXls, region: "cz", language: "cs", federation: "CZE" },
 ];
 
 /// What a parser hands each player to.
@@ -519,6 +522,52 @@ fn search_on(db: &Connection, q: &str) -> rusqlite::Result<Vec<Found>> {
     s.query_map([words.join(" ")], row)?.collect()
 }
 
+/// The national ratings for a Tournament's players: the federation list most of them are on,
+/// with each player's number and rating there.
+#[derive(Clone, Debug, PartialEq)]
+pub struct National {
+    /// FIDE's code for the list's federation: `DEN`.
+    pub federation: &'static str,
+    /// One entry per player asked about, in the same order: their number on the list and their
+    /// rating there (0 when unrated), or none when they are not on it.
+    pub players: Vec<Option<(String, u32)>>,
+}
+
+/// Looks each player up, by `(national ID, FIDE ID)`, on every federation list in [`LISTS`]
+/// imported into `path`: by the national ID as the list's own ID first, else by the FIDE ID the
+/// list gives. The list that finds the most players wins, ties going to the one first in
+/// [`LISTS`]. None when no federation list finds anyone, or no file exists.
+pub fn national(path: &Path, players: &[(&str, &str)]) -> rusqlite::Result<Option<National>> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let db = open(path)?;
+    let mut by_id = db.prepare("SELECT id, rating FROM players WHERE list = ?1 AND id = ?2")?;
+    let mut by_fide = db.prepare("SELECT id, rating FROM players WHERE list = ?1 AND fide_id = ?2 LIMIT 1")?;
+    let mut best: Option<National> = None;
+    let mut best_count = 0;
+    for list in LISTS.iter().filter(|l| !l.federation.is_empty()) {
+        let row = |r: &rusqlite::Row| Ok((r.get::<_, String>(0)?, r.get::<_, Option<u32>>(1)?.unwrap_or(0)));
+        let mut found = Vec::with_capacity(players.len());
+        for &(national_id, fide_id) in players {
+            let mut hit = None;
+            if !national_id.is_empty() {
+                hit = by_id.query_row(params![list.id, national_id], row).optional()?;
+            }
+            if hit.is_none() && !fide_id.is_empty() {
+                hit = by_fide.query_row(params![list.id, fide_id], row).optional()?;
+            }
+            found.push(hit);
+        }
+        let count = found.iter().flatten().count();
+        if count > best_count {
+            best_count = count;
+            best = Some(National { federation: list.federation, players: found });
+        }
+    }
+    Ok(best)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -556,6 +605,26 @@ mod tests {
         assert_eq!(names("moller"), ["dsu:Søren Møller"]);
         let l = lists(&db).unwrap();
         assert_eq!(l.iter().map(|i| (i.list.as_str(), i.players)).collect::<Vec<_>>(), [("dsu", 1), ("fide", 1)]);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_tournament_takes_the_national_list_most_of_its_players_are_on() {
+        let d = std::env::temp_dir().join(format!("bragd-lists-national-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let db = d.join("rating-lists.sqlite");
+        assert_eq!(national(&db, &[("12345", "")]).unwrap(), None, "no file: no national ratings");
+        import(&db, "fide-ratings", [p("1401234", "Møller, Søren", Some(1900)), p("12345", "Someone, Else", Some(2000))]).unwrap();
+        import(&db, "dsu-ratings", [Player { fide_id: "1401234".into(), ..p("12345", "Søren Møller", Some(1950)) }, p("777", "Bo Hansen", None), p("888", "Ib Holm", Some(1600))]).unwrap();
+        import(&db, "ecf-ratings", [p("777", "Bo English", Some(1700))]).unwrap();
+        // Søren by his FIDE ID, Bo and Ib by theirs; the guest is on no list.
+        let players = [("", "1401234"), ("777", ""), ("888", ""), ("", "")];
+        let n = national(&db, &players).unwrap().unwrap();
+        assert_eq!(n.federation, "DEN", "three on DSU's list beat one on ECF's; FIDE's own list never counts");
+        assert_eq!(n.players, [Some(("12345".into(), 1950)), Some(("777".into(), 0)), Some(("888".into(), 1600)), None]);
+        // A tie goes to the list first in LISTS.
+        assert_eq!(national(&db, &[("777", "")]).unwrap().unwrap().federation, "DEN");
+        assert_eq!(national(&db, &[("", ""), ("999", "")]).unwrap(), None, "nobody found: no national ratings");
         let _ = std::fs::remove_dir_all(&d);
     }
 

@@ -98,7 +98,7 @@ No federation below publishes an upload API, and Bragd uploads nothing. The dire
 | Terms | The federation registers the tournament first (3 days ahead; 30 days when players above 2700, or women above 2500, take part) and pays the rating fees. Hybrid events also send the full PGN |
 | API | None. [ratings.fide.com](https://ratings.fide.com) has no upload; only rating officers reach the rating server |
 
-TRF-2026 also has records for a national rating beside FIDE's: the federation's code in columns 1 to 3, and record `172` naming the main rating. Bragd's TRF does not write them yet.
+TRF-2026 also has records for a national rating beside FIDE's (*National Rating Support*): the federation's code in columns 1 to 3, the start number in 5 to 8, the national rating in 49 to 52 and the national number in 58 to 68, with record `172` naming the federation and how players are ranked. The spec gives the columns but no example line. Bragd's TRF writes them from the federation rating lists it has fetched, as [Tournaments](../clubs/tournaments.md#publishing-and-exports) describes.
 
 ## chess-results.com
 

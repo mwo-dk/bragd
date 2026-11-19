@@ -111,6 +111,7 @@ const WRITTEN: &str = "012 Club Championship
 042 2026/11/05
 052 2026/12/17
 102 Mette Hansen
+172 DEN OTHER
 192 FIDE_DUTCH_2025
 202 BH/C2,BH/C1,BH
 XXR 7
@@ -118,6 +119,8 @@ XXC white1
 001    1 m GM Krause, Christian                 2500 GER     4600000 1960/01/01  3.5    1     2 w 1     3 b =     0 - U
 001    2 wWIM Doe, Jane                         2300 DEN     1400000 1990/05/17  2.0    2     1 b 0     0 - H     3 w +
 001    3 m    Hansen, Lars                      1850 DEN             1975/03/02  1.0    3     0 - Z     1 w =     2 b -
+DEN    2                                        2215           41027
+DEN    3                                        1904          107733
 ";
 
 #[test]
@@ -131,6 +134,23 @@ fn reads_every_column_of_the_trf_2026_example() {
     assert_eq!((p.sex, p.title.as_str(), p.name.as_str(), p.rating, p.federation.as_str(), p.fide_id.as_str(), p.born.as_str(), p.points, p.rank), ('w', "WIM", "Doe, Jane", 2300, "DEN", "1400000", "1990/05/17", 4, 2));
     assert_eq!(t.players[2].fide_id, "");
     assert_eq!(t.players[0].points, 7);
+}
+
+#[test]
+fn reads_the_national_rating_records_in_trf_2026_columns() {
+    use pairing::trf::TrfNational;
+    let t = parse(WRITTEN).unwrap();
+    assert_eq!(t.rank_method, "DEN OTHER");
+    assert_eq!(
+        t.national,
+        vec![
+            TrfNational { federation: "DEN".into(), start_rank: 2, rating: 2215, number: "41027".into() },
+            TrfNational { federation: "DEN".into(), start_rank: 3, rating: 1904, number: "107733".into() },
+        ]
+    );
+    // Columns 1-3 federation, 5-8 start rank, 49-52 rating, 58-68 number.
+    let line = WRITTEN.lines().find(|l| l.starts_with("DEN    3")).unwrap();
+    assert_eq!((&line[0..3], &line[4..8], &line[48..52], &line[57..68]), ("DEN", "   3", "1904", "     107733"));
 }
 
 #[test]
