@@ -78,6 +78,13 @@ pub fn family_off(family: &str) -> Notice {
     )
 }
 
+/// Says once, where Play with Friends shows (`friends_shown`) and the webview cannot carry a Call
+/// (`!calls`: a WebKitGTK built without WebRTC, as the BSDs package it), that Calls are off.
+pub fn calls_off(friends_shown: bool, calls: bool, st: &AppState) -> Option<Notice> {
+    const ID: &str = "calls-off";
+    (friends_shown && !calls && !st.notices_dismissed.iter().any(|d| d == ID)).then(|| Notice::new(ID, t!("notice.calls_off"), None))
+}
+
 /// Every notice still to show.
 pub fn all(cfg: &Config, st: &AppState) -> Vec<Notice> {
     let mut all = refused(cfg);
@@ -199,6 +206,17 @@ mod tests {
         st.latest_version = crate::update::VERSION.into();
         assert!(update(&Config::default(), &st).is_none());
         assert!(family_off("go").text.contains("Go"));
+    }
+
+    #[test]
+    fn calls_off_is_said_once_where_friends_show_and_calls_cannot_work() {
+        let mut st = AppState::default();
+        assert!(calls_off(true, true, &st).is_none(), "Calls work");
+        assert!(calls_off(false, false, &st).is_none(), "Play with Friends not shown");
+        let n = calls_off(true, false, &st).unwrap();
+        assert!(n.text.contains("Call"), "{}", n.text);
+        dismiss(&mut st, &n.id);
+        assert!(calls_off(true, false, &st).is_none(), "dismissed: never again");
     }
 
     #[test]

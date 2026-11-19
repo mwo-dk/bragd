@@ -82,9 +82,19 @@ pub struct Runtime {
     pub path: PathBuf,
 }
 
+/// Whether the system `os` (`std::env::consts::OS`) runs the Linux container images Bragd's
+/// Engines come in. podman on FreeBSD runs FreeBSD containers only; NetBSD and OpenBSD have
+/// neither podman nor docker. There an Engine comes from the system's packages.
+pub fn images_run_on(os: &str) -> bool {
+    !matches!(os, "freebsd" | "netbsd" | "openbsd")
+}
+
 /// podman or docker, as the setting `choice` allows: `auto` (podman first), `podman`,
-/// `docker` or `off`.
+/// `docker` or `off`. None where the images cannot run ([`images_run_on`]).
 pub fn container_runtime(choice: &str) -> Option<Runtime> {
+    if !images_run_on(std::env::consts::OS) {
+        return None;
+    }
     let order: &[&'static str] = match choice {
         "off" => &[],
         "podman" => &["podman"],
@@ -262,6 +272,16 @@ mod tests {
     #[test]
     fn no_runtime_when_containers_are_off() {
         assert_eq!(container_runtime("off"), None);
+    }
+
+    #[test]
+    fn the_bsds_run_no_engine_images() {
+        for os in ["freebsd", "netbsd", "openbsd"] {
+            assert!(!images_run_on(os), "{os}");
+        }
+        for os in ["linux", "macos", "windows"] {
+            assert!(images_run_on(os), "{os}");
+        }
     }
 
     /// The Rust files of `dir` and below, test folders left out.

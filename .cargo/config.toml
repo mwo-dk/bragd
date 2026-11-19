@@ -1,0 +1,4 @@
+# NetBSD's dynamic linker searches neither pkgsrc's /usr/pkg/lib nor X's /usr/X11R7/lib, where
+# WebKitGTK, GTK and their libraries are: the programs carry both paths, as pkgsrc's own do.
+[target.x86_64-unknown-netbsd]
+rustflags = ["-C", "link-arg=-Wl,-R/usr/pkg/lib", "-C", "link-arg=-Wl,-R/usr/X11R7/lib"]

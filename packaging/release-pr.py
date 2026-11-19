@@ -15,8 +15,9 @@ A changelog.d/ file holds one row, then its markers:
 
     | **What a user gets.** In plain words. | [Page](area/page.md#anchor) | <!-- feature --> <!-- tour: card-id -->
 
-A minor release when any row is marked `<!-- feature -->`, a patch release otherwise; a major one
-is made by hand. Exit codes, each changing nothing:
+A minor release when any row is marked `<!-- feature -->`, a patch release otherwise; from a 0.x
+version, 1.0.0, since nothing is released before it (CLAUDE.md, Shipping). A later major one is
+made by hand. Exit codes, each changing nothing:
 
   2  changelog.d/ has no rows.
   3  the current version has no published GitHub release (`gh release view`): bumping past it
@@ -24,7 +25,10 @@ is made by hand. Exit codes, each changing nothing:
      release (no published release at all) this does not hold.
   4  the new version's GitHub milestone (named X.Y.Z) has open issues: a release is done when its
      milestone is empty. Issues labelled `post-release` or titled "After the release…" are left
-     open on purpose and do not count; a version with no milestone is not held.
+     open on purpose and do not count. When the new version has no milestone of its own, every
+     open milestone above the current version up to the next minor holds it instead, so a week of
+     fixes only does not skip the planned minor's open issues (a patch release between Sundays
+     gets a milestone of its own first).
   5  a feature row has no tour card: every `<!-- feature -->` row names its card with
      `<!-- tour: card-id -->`, and crates/bragd-core/src/tour.rs has a card with that id (the
      string "card-id" in quotes). The release gate of CLAUDE.md, Every feature.
@@ -72,8 +76,21 @@ def gh_json(path: str) -> list:
     r = gh(["api", "--paginate", path], "to read the milestone (or pass --open-issues-ok)")
     if r.returncode != 0:
         sys.exit(f"release-pr.py: gh api {path} failed: {r.stderr.strip()}")
-    # --paginate prints one JSON array per page.
-    return [x for page in re.split(r"(?<=\])\s*(?=\[)", r.stdout.strip()) if page for x in json.loads(page)]
+    return pages(r.stdout)
+
+
+def pages(text: str) -> list:
+    """`gh api --paginate` prints one JSON array per page, back to back: their items, in order."""
+    dec, at, items = json.JSONDecoder(), 0, []
+    while (at := len(text) - len(text[at:].lstrip())) < len(text):
+        page, at = dec.raw_decode(text, at)
+        items += page
+    return items
+
+
+def version(title: str) -> tuple | None:
+    m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", title.strip())
+    return tuple(map(int, m.groups())) if m else None
 
 
 def post_release(issue: dict) -> bool:
@@ -82,14 +99,24 @@ def post_release(issue: dict) -> bool:
             or issue["title"].lower().startswith("after the release"))
 
 
-def open_issues(version: str) -> list[dict]:
-    """The open issues (not pull requests) of milestone `version` that hold its release."""
-    stones = [m for m in gh_json("repos/{owner}/{repo}/milestones?state=all&per_page=100")
-              if m["title"] == version]
-    if not stones:
-        return []
-    issues = gh_json(f"repos/{{owner}}/{{repo}}/issues?milestone={stones[0]['number']}&state=open&per_page=100")
-    return [i for i in issues if "pull_request" not in i and not post_release(i)]
+def holding(stones: list[dict], new: str, was: str) -> list[dict]:
+    """The milestones that hold release `new` over `was`: its own, or when it has none, every open
+    one above `was` up to the next minor (a patch must not skip the planned minor's issues)."""
+    own = [m for m in stones if m["title"] == new]
+    if own:
+        return own[:1]
+    lo = version(was)
+    hi = (lo[0], lo[1] + 1, 0)
+    return [m for m in stones if m["state"] == "open" and (v := version(m["title"])) and lo < v <= hi]
+
+
+def open_issues(new: str, was: str) -> list[dict]:
+    """The open issues (not pull requests) that hold release `new`, each with its milestone."""
+    held = []
+    for m in holding(gh_json("repos/{owner}/{repo}/milestones?state=all&per_page=100"), new, was):
+        issues = gh_json(f"repos/{{owner}}/{{repo}}/issues?milestone={m['number']}&state=open&per_page=100")
+        held += [dict(i, stone=m["title"]) for i in issues if "pull_request" not in i and not post_release(i)]
+    return held
 
 
 def missing_tours(frags: dict[Path, str]) -> list[str]:
@@ -105,6 +132,12 @@ def missing_tours(frags: dict[Path, str]) -> list[str]:
         elif f'"{m.group(1)}"' not in cards:
             out.append(f"{f}: tour card \"{m.group(1)}\" is not in {TOUR_RS}")
     return out
+
+
+def next_version(major: int, minor: int, patch: int, feature: bool) -> str:
+    if major == 0:
+        return "1.0.0"  # nothing is released before 1.0.0 (CLAUDE.md, Shipping)
+    return f"{major}.{minor + 1}.0" if feature else f"{major}.{minor}.{patch + 1}"
 
 
 def main() -> int:
@@ -128,12 +161,14 @@ def main() -> int:
               f"then start Release by hand (gh workflow run release.yml). To skip v{was} on "
               f"purpose, pass --unreleased-ok.", file=sys.stderr)
         return 3
-    new = f"{major}.{minor + 1}.0" if features else f"{major}.{minor}.{patch + 1}"
-    if not open_ok and (held := open_issues(new)):
-        print(f"release-pr.py: milestone {new} has {len(held)} open issue(s); a release is done when "
-              f"its milestone is empty. Close them, or move them to a later milestone:", file=sys.stderr)
+    new = next_version(major, minor, patch, bool(features))
+    if not open_ok and (held := open_issues(new, was)):
+        names = ", ".join(sorted({i["stone"] for i in held}))
+        print(f"release-pr.py: {new} is held by {len(held)} open issue(s) in milestone {names}; a "
+              f"release is done when its milestone is empty. Close them, or move them to a later "
+              f"milestone:", file=sys.stderr)
         for i in held:
-            print(f"  #{i['number']} {i['title']}", file=sys.stderr)
+            print(f"  #{i['number']} {i['title']} ({i['stone']})", file=sys.stderr)
         print("To release anyway, pass --open-issues-ok (the owner's decision only).", file=sys.stderr)
         return 4
     if lacking := missing_tours(frags):

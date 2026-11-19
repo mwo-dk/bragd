@@ -19,8 +19,8 @@ name: Release
 # nothing is published: the draft and the branch are deleted, no tag is made. A release of the
 # same version meanwhile (a patch made by hand) stops the rehearsal and goes ahead.
 #
-#   version ─┬─ test-ci, test-flatpak, test-nix          (the systems' own workflows, in parallel)
-#            └─ draft ── boms ── desktop, flatpak ── verify ── publish ── taps
+#   version ─┬─ test-ci, test-flatpak, test-nix, test-bsd  (the systems' own workflows, in parallel)
+#            └─ draft ── boms ── desktop, flatpak, bsd ── verify ── publish ── taps
 #                                                       │
 #                                  (rehearsal) rehearse ─┤
 #                (anything failed, or a rehearsal: discard) ──┘
@@ -65,6 +65,7 @@ jobs:
       ci: ${{ steps.sys.outputs.ci }}
       flatpak: ${{ steps.sys.outputs.flatpak }}
       nix: ${{ steps.sys.outputs.nix }}
+      bsd: ${{ steps.sys.outputs.bsd }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -87,8 +88,8 @@ jobs:
           fi
           if [ "$REHEARSAL" = true ]; then
             # The version tomorrow's release pull request makes; exit 2: no rows, nothing to rehearse.
-            # Exit 3: the current version has no published release. Exit 4: the new version's
-            # milestone still has open issues. Exit 5: a feature row has no tour card.
+            # Exit 3: the current version has no published release. Exit 4: open milestone
+            # issues hold the new version (listed). Exit 5: a feature row has no tour card.
             rc=0; next=$(python3 packaging/release-pr.py --next) || rc=$?
             if [ "$rc" = 2 ]; then
               echo "::notice title=No rehearsal::changelog.d/ has no rows: nothing to release tomorrow."
@@ -131,7 +132,7 @@ jobs:
           if [ "$NONE" = true ]; then
             echo ci=false >> "$GITHUB_OUTPUT"
           elif [ "$RELEASE" = true ] || [ "$EVENT" != push ]; then
-            printf '%s=true\n' ci flatpak nix >> "$GITHUB_OUTPUT"
+            printf '%s=true\n' ci flatpak nix bsd >> "$GITHUB_OUTPUT"
           else
             echo ci=true >> "$GITHUB_OUTPUT"
             git fetch -q --depth=1 origin "$BEFORE" || true # gone (a forced push): every system runs
@@ -170,12 +171,17 @@ jobs:
     needs: version
     if: needs.version.outputs.nix == 'true'
     uses: ./.github/workflows/nix.yml
+  test-bsd:
+    name: BSD
+    needs: version
+    if: needs.version.outputs.bsd == 'true'
+    uses: ./.github/workflows/bsd.yml
 
   # The gate, then the draft. One release run for a version at a time: a second run for the same
   # version (one started by hand, or a rerun) waits here, then sees the first run's draft and
   # leaves the release to it, or its published release and stops.
   draft:
-    needs: [version, test-ci, test-flatpak, test-nix]
+    needs: [version, test-ci, test-flatpak, test-nix, test-bsd]
     if: ${{ !cancelled() && needs.version.outputs.release == 'true' }}
     concurrency:
       group: release-${{ needs.version.outputs.tag }}
@@ -218,6 +224,10 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           [ "$(python3 packaging/release-pr.py)" = "${TAG#v}" ] || { echo "::error::release-pr.py did not make $TAG"; exit 1; }
+          # The test jobs ran on master's commit: what release-pr.py wrote is checked here, against
+          # that commit (still HEAD), so a fault shows today and not on tomorrow's pull request.
+          python3 tools/docs-check.py --base "$(git rev-parse HEAD)" || { echo "::error::the docs check fails on $TAG's release changes"; exit 1; }
+          python3 tools/msrv-check.py || { echo "::error::the MSRV check fails on $TAG's release changes"; exit 1; }
           git -c user.name="Bragd rehearsal" -c user.email="rehearsal@invalid" commit -qam "Rehearsal of $TAG"
           git push -q "https://x-access-token:$GH_TOKEN@github.com/$REPO.git" "HEAD:refs/heads/rehearsal/$TAG"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -260,7 +270,8 @@ jobs:
           echo "id=$(gh release view "$TAG" --json databaseId -q .databaseId)" >> "$GITHUB_OUTPUT"
 
   # The SBOM, the CBOM and the third-party notices (tools/bom/README.md), uploaded to the draft.
-  # The installers take the notices from there.
+  # The installers take the notices from there. Beside them the built frontend (gui/dist), which
+  # the BSD ports and pkgsrc build from: npm cannot fetch during their builds.
   boms:
     needs: draft
     if: needs.draft.outputs.id != ''
@@ -290,6 +301,14 @@ jobs:
         with:
           tool: cargo-cyclonedx@0.5.7,cargo-about@0.8.4
       - run: tools/bom/generate.sh dist-bom
+      - name: Frontend
+        env:
+          TAG: ${{ needs.draft.outputs.tag }}
+        run: |
+          (cd gui && npm run build)
+          f="bragd-frontend-$TAG.tar.gz"
+          tar czf "dist-bom/$f" -C gui dist
+          (cd dist-bom && sha256sum "$f" > "$f.sha256")
       - name: Upload
         env:
           GH_TOKEN: ${{ github.token }}
@@ -421,11 +440,45 @@ jobs:
           # Its .sha256 is made by `verify`, as every installer's is.
           packaging/retry.sh gh release upload --clobber "$TAG" "$f"
 
+  # FreeBSD, NetBSD and OpenBSD: the binaries the BSD workflow built and started in its virtual
+  # machines in this run, packed with the release's tag and notices (packaging/bsd/pack.sh). Each
+  # system's archive is a release file: one missing stops the release at `verify`.
+  bsd:
+    needs: [draft, boms]
+    if: needs.draft.outputs.id != ''
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { sys: freebsd, target: x86_64-unknown-freebsd }
+          - { sys: netbsd, target: x86_64-unknown-netbsd }
+          - { sys: openbsd, target: x86_64-unknown-openbsd }
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.draft.outputs.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bragd-bsd-${{ matrix.sys }}
+          path: out
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.draft.outputs.tag }}
+        run: |
+          chmod +x out/*
+          packaging/retry.sh gh release download "$TAG" --repo "$GITHUB_REPOSITORY" -p THIRD-PARTY-NOTICES.md --clobber
+          sh packaging/bsd/pack.sh "$TAG" "${{ matrix.target }}" out dist
+          packaging/retry.sh gh release upload --clobber "$TAG" dist/*
+
   # Every file the jobs above make (packaging/release-assets.sh), each installer's .sha256 and
   # one SHA256SUMS over all of them, or no release: on any gap this fails, says what is missing,
   # and `discard` deletes the draft.
   verify:
-    needs: [version, draft, boms, desktop, flatpak]
+    needs: [version, draft, boms, desktop, flatpak, bsd]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -534,7 +587,7 @@ jobs:
   # run made goes, so no half-made release is left behind. A run by hand starts again cleanly.
   # A rehearsal's draft and branch always go.
   discard:
-    needs: [version, draft, boms, desktop, flatpak, verify, rehearse, publish]
+    needs: [version, draft, boms, desktop, flatpak, bsd, verify, rehearse, publish]
     if: always() && (needs.version.outputs.rehearsal == 'true' || (needs.draft.outputs.id != '' && needs.publish.result != 'success'))
     runs-on: ubuntu-24.04
     permissions:

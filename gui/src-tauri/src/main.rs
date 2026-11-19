@@ -419,6 +419,7 @@ fn main() {
             model::slice_commentary_count,
             model::slice_commentary,
             friends::friends_view,
+            friends::webview_webrtc,
             friends::friends_sign_in,
             friends::friends_sign_up,
             friends::friends_sign_in_with,

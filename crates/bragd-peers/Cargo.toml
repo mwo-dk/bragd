@@ -22,10 +22,12 @@ hmac = "0.13"
 sha2 = "0.11"
 # The code itself, from the system's random source.
 getrandom = "0.4"
-# Finding Peers on the home network.
-mdns-sd = { version = "0.21.6", default-features = false }
 # The addresses of the home network, to listen on them only.
 if-addrs = "0.15"
+
+# Finding Peers on the home network. Its socket crate does not build on OpenBSD (`find::MDNS`).
+[target.'cfg(not(target_os = "openbsd"))'.dependencies]
+mdns-sd = { version = "0.21.6", default-features = false }
 
 [target.'cfg(unix)'.dependencies]
 # The machine's name.

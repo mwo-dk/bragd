@@ -529,9 +529,7 @@ impl<W: Weight> Solver<W> {
             count(4 * n + self.edges.len());
             self.label.iter_mut().for_each(|l| *l = 0);
             self.bestedge.iter_mut().for_each(|e| *e = NONE);
-            for b in n..2 * n {
-                self.blossombestedges[b] = None;
-            }
+            self.blossombestedges[n..2 * n].iter_mut().for_each(|b| *b = None);
             self.allowedge.iter_mut().for_each(|a| *a = false);
             self.queue.clear();
             for v in 0..n {
