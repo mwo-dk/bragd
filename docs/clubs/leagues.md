@@ -91,5 +91,9 @@ Its list is fixed once Round 1 is paired, but each match's line-up is chosen fro
 
 A director or an arbiter. Only a director deletes a League.
 
+#### How do League results reach the federation?
+
+As your federation asks: see [Reporting results to your federation](reporting-results.md), country by country.
+
 ---
-[← Previous: Tournaments](tournaments.md) · [Next: Look →](../look/README.md)
+[← Previous: Tournaments](tournaments.md) · [Next: Reporting results to your federation →](reporting-results.md)

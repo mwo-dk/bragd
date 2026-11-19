@@ -9,6 +9,7 @@ A Club is the people who play together: its members, their roles and IDs, and th
 | [Clubs](clubs.md) | Members, roles and IDs in one Club file, club ratings and their audit log, the lock, finding players in rating lists |
 | [Tournaments](tournaments.md) | Swiss and round-robin Tournaments on the night: check-in, pairing, changing a pairing, results, FIDE tiebreaks, publishing and exports |
 | [Team Leagues](leagues.md) | Team Leagues: Teams in board order, Berger Rounds, line-ups, board results, standings by match points then board points |
+| [Reporting results to your federation](reporting-results.md) | Which file to send FIDE and your national federation after a Tournament or League, country by country |
 
 The rating lists Bragd can fetch, and those it cannot, are in [Rating lists](../reference/rating-lists.md).
 

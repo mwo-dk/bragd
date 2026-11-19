@@ -13,6 +13,7 @@ The facts to look up: every `config.toml` key, every item in Settings, the comma
 | [File formats](file-formats.md) | Each file's format and version, what happens to a file from a newer Bragd, and how a format changes |
 | [Privacy](privacy.md) | What leaves the machine, when, and how to stop it |
 | [Rating lists](rating-lists.md) | FIDE's and each federation's list: where, format, terms, rhythm, and which Bragd fetches |
+| [Reporting results](reporting-results.md) | Where FIDE and each federation take results, in which file, who sends them, and which files Bragd writes |
 | [Swiss pairing](swiss-pairing.md) | How Bragd pairs a Swiss round under the FIDE Dutch rules, and how that was tested |
 | [Round-robin, knockout and Scheveningen](round-robin-and-knockout.md) | Berger tables, knockout brackets with seeds and byes, and team-against-team matches |
 | [Monrad and Nordic Swiss](monrad.md) | The Danish Chess Union's Monrad system and its Dansk Schweizer, and how they were tested |

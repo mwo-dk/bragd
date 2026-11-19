@@ -94,6 +94,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [Clubs](clubs/clubs.md) | Members, roles and IDs in one Club file, club ratings and their audit log, the lock, finding players in rating lists |
 | [Tournaments](clubs/tournaments.md) | Swiss and round-robin Tournaments on the night: check-in, pairing, changing a pairing, results, FIDE tiebreaks, publishing and exports |
 | [Team Leagues](clubs/leagues.md) | Team Leagues: Teams in board order, Berger Rounds, line-ups, board results, standings by match points then board points |
+| [Reporting results to your federation](clubs/reporting-results.md) | Which file to send FIDE and your national federation after a Tournament or League, country by country |
 
 ## [Look](look/README.md)
 
@@ -129,6 +130,7 @@ New here? Start with [Installing Bragd](getting-started/install.md), [The instal
 | [File formats](reference/file-formats.md) | Each file's format and version, and what happens to a file from a newer Bragd |
 | [Privacy](reference/privacy.md) | What leaves the machine, when, and how to stop it |
 | [Rating lists](reference/rating-lists.md) | FIDE's and each federation's list: where, format, terms, rhythm, and which Bragd fetches |
+| [Reporting results](reference/reporting-results.md) | Where FIDE and each federation take results, in which file, who sends them, and which files Bragd writes |
 | [Swiss pairing](reference/swiss-pairing.md) | How Bragd pairs a Swiss round under the FIDE Dutch rules, and how that was tested |
 | [Round-robin, knockout and Scheveningen](reference/round-robin-and-knockout.md) | Berger tables, knockout brackets with seeds and byes, and team-against-team matches |
 | [Monrad and Nordic Swiss](reference/monrad.md) | The Danish Chess Union's Monrad system and its Dansk Schweizer, and how they were tested |
