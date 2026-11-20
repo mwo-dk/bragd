@@ -37,6 +37,17 @@ pub enum Kind {
     Sprt { elo0: f64, elo1: f64, alpha: f64, beta: f64 },
 }
 
+impl Kind {
+    /// An SPRT's hypotheses are apart and its error chances within (0, 0.5): outside them its
+    /// bounds are infinite, NaN or the wrong way round, and it never decides or decides at once.
+    pub fn sound(&self) -> bool {
+        match *self {
+            Kind::Sprt { elo0, elo1, alpha, beta } => elo0.is_finite() && elo1.is_finite() && elo0 < elo1 && [alpha, beta].iter().all(|x| *x > 0.0 && *x < 0.5),
+            _ => true,
+        }
+    }
+}
+
 /// When a Game is ended before the rules end it. Scores are centipawns from the engine's own
 /// view; a Family whose engines do not score in centipawns (go, backgammon) ends only by its
 /// rules and by `max_moves`.

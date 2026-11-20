@@ -53,6 +53,10 @@ A new priority applies to later merges. Saving it restarts the Helper, which rea
 
 Two Sources often comment the same Game in different words, or one has the other's comments plus its own. Mixed, they would repeat or contradict each other. So a Game shows the comments of one Source, the highest in the priority that has any. Reorder the priority to see another Source's comments.
 
+#### Why is a short Game never a Near-duplicate?
+
+A Game under 10 plies, such as an abort after `1.e4`, would be the start of every Game with that opening, so it is not compared. A Game that shares its last position with many longer Games is compared with at most 50 of them, so importing a large monthly file stays quick.
+
 #### Why does saving the priority stop a job?
 
 Saving restarts the Helper. A job that was running starts again from its beginning, which is safe because imports can be repeated.

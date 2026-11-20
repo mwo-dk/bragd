@@ -1123,6 +1123,7 @@
  "tournaments.tb.rtng": "Reiting",
  "tournaments.error.damaged": "See turniir klubi failis on rikkis: partii või bye nimetab mängijat, keda pole.",
  "tournaments.error.rated": "Klubi reitingud arvestavad juba selle turniiri partiisid.",
+ "tournaments.error.not_over": "Iga voor tuleb mängida ja tal peavad olema kõik tulemused, enne kui klubi reitingud saavad seda turniiri arvestada.",
  "tournaments.error.bundle": "See ei ole Bragdi turniirifail, või on see rikutud.",
  "tournaments.system.dutch": "Šveitsi süsteem (FIDE, hollandi)",
  "tournaments.system.round_robin": "Ringturniir",

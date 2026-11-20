@@ -1120,6 +1120,7 @@
  "tournaments.tb.rtng": "等級分",
  "tournaments.error.damaged": "俱樂部檔案中的該賽事已損毀：某盤對局或輪空中提到了不存在的選手。",
  "tournaments.error.rated": "俱樂部等級分已計入本賽事的對局。",
+ "tournaments.error.not_over": "每一輪都必須下完並錄入全部結果，俱樂部等級分才能計入本賽事。",
  "tournaments.error.bundle": "這不是 Bragd 賽事包，或檔案已損壞。",
  "tournaments.system.dutch": "瑞士制 (FIDE Dutch)",
  "tournaments.system.round_robin": "循環賽",

@@ -39,7 +39,7 @@
 use crate::board::{HOME, Side};
 use crate::cube::{Cube, CubeError};
 use crate::dice::Roll;
-use crate::position::{Continuation, Position};
+use crate::position::{Continuation, Position, SoFar};
 use crate::turn::{Play, Turn};
 use core::fmt;
 
@@ -363,10 +363,15 @@ impl Game {
         self.position.continue_turn(self.pending_roll()?, played)
     }
 
-    /// The dice of the roll on the table still to play once `played` is on the
-    /// board, or `None` with no roll showing or when `played` cannot be finished.
-    pub fn dice_left(&self, played: &[Play]) -> Option<Vec<u8>> {
-        self.position.dice_left(self.pending_roll()?, played)
+    /// [`Position::so_far`] against the roll on the table: the turns, what may
+    /// follow `played`, and the dice still to play, from one search. `None`
+    /// with no roll showing, a game that is over, or a double waiting to be
+    /// answered.
+    pub fn so_far(&self, played: &[Play]) -> Option<SoFar> {
+        if self.is_over() || self.cube.is_offered() {
+            return None;
+        }
+        Some(self.position.so_far(self.pending_roll()?, played))
     }
 
     /// Whether the next roll is the opening one: nothing played yet, from the

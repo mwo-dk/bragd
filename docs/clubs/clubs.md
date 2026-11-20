@@ -61,15 +61,16 @@ Bragd's Glicko-2 is checked against the worked example in Mark Glickman's descri
 
 ## The lock
 
-When you open a Club, Bragd writes `<file>.bragd-club.lock` beside it with your user name, your machine's name and the time. Closing the Club, or Bragd, removes it.
+When you open a Club, Bragd writes `<file>.bragd-club.lock` beside it with your user name, your machine's name, the Bragd process and the time. Closing the Club, or Bragd, removes it.
 
 | Who has the lock | What you see |
 |---|---|
 | Nobody | The Club opens, and the lock is yours |
-| You, on this machine | The Club opens. A lock left by a window that closed without letting go counts as yours |
+| This Bragd, or a Bragd of yours on this machine that has ended | The Club opens. A lock left by a Bragd that closed without letting go counts as yours |
+| Another Bragd of yours that is still running | The Club opens read-only, as for someone else, so two windows never write over each other's results |
 | Someone else | The Club opens read-only, with who has it and since when. **Take over** takes the lock after you confirm, and the audit log says so |
 
-The lock is a file of its own, so a copy of the Club file carries no lock.
+The lock is a file of its own, so a copy of the Club file carries no lock. A lock file that can be neither read nor removed, say on a share without the right to delete, is reported as an error after a second rather than waited on.
 
 ## Finding players in rating lists
 
@@ -109,7 +110,7 @@ Its copy in the Club file cannot be read, perhaps because the file was edited by
 
 #### Why does a member's rating show ±?
 
-The Club uses Glicko-2, which keeps how sure it is of each rating. The number after ± shrinks as the member plays.
+The Club uses Glicko-2, which keeps how sure it is of each rating. The number after ± shrinks as the member plays. Each time a Tournament is rated, it grows a little for every member who did not play in it, up to the 350 a new member starts with, as Glicko-2 asks.
 
 ---
 [← Previous: Clubs](README.md) · [Next: Tournaments →](tournaments.md)

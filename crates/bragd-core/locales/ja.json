@@ -1120,6 +1120,7 @@
  "tournaments.tb.rtng": "レーティング",
  "tournaments.error.damaged": "クラブファイル内のこの大会は壊れています。対局か不戦勝に、そこにいない選手が含まれています。",
  "tournaments.error.rated": "クラブのレーティングは、この大会の対局をすでに計算に含んでいます。",
+ "tournaments.error.not_over": "すべてのラウンドが対局済みで、結果がすべて入力されていなければ、クラブのレーティングはこの大会を計算に含められません。",
  "tournaments.error.bundle": "Bragd の大会パッケージではないか、破損しています。",
  "tournaments.system.dutch": "スイス式（FIDE オランダ式）",
  "tournaments.system.round_robin": "総当たり戦",

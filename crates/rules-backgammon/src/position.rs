@@ -314,18 +314,7 @@ impl Position {
     ///    ever bites when the maximum is one, and only on a roll that is not a
     ///    double.
     pub fn turns_for(&self, roll: Roll) -> Vec<Turn> {
-        // The same turn arrives by several routes — most obviously on a double,
-        // where four identical dice make every ordering of the same plays a
-        // separate sequence. They are one turn (see [`Turn::placements`]).
-        let mut seen = BTreeSet::new();
-        let mut turns = Vec::new();
-        for sequence in self.legal_sequences(roll) {
-            let turn = Turn::new(sequence);
-            if seen.insert(turn.placements()) {
-                turns.push(turn);
-            }
-        }
-        turns
+        turns_of(&self.sequences_with_dice(roll))
     }
 
     /// What may be played next, given what has been played so far.
@@ -365,65 +354,15 @@ impl Position {
     /// has no business asserting whether a blot was sent to the bar. The turn
     /// handed back carries the engine's own flags.
     pub fn continue_turn(&self, roll: Roll, played: &[Play]) -> Option<Continuation> {
-        let so_far: Vec<(Origin, Destination)> =
-            played.iter().map(|play| play.placement()).collect();
-
-        let mut next: Vec<Play> = Vec::new();
-        let mut complete = None;
-
-        for sequence in self.legal_sequences(roll) {
-            if sequence.len() < played.len() {
-                continue;
-            }
-            let starts_the_same = sequence[..played.len()]
-                .iter()
-                .map(|play| play.placement())
-                .eq(so_far.iter().copied());
-            if !starts_the_same {
-                continue;
-            }
-            match sequence.get(played.len()) {
-                // **Every legal sequence has the same length**, because the
-                // maximal-use rule dropped the short ones. So a prefix that
-                // reaches the end of one has reached the end of all of them,
-                // and finding a whole turn here means there is nothing left to
-                // offer — which is what makes the two cases exclusive.
-                None => complete = Some(Turn::new(sequence)),
-                Some(&play) => {
-                    if !next
-                        .iter()
-                        .any(|already| already.placement() == play.placement())
-                    {
-                        next.push(play);
-                    }
-                }
-            }
-        }
-
-        match complete {
-            Some(turn) => Some(Continuation::Complete(turn)),
-            None if next.is_empty() => None,
-            None => Some(Continuation::More(next)),
-        }
+        continuation_of(&self.sequences_with_dice(roll), played)
     }
 
-    /// The dice still to play once `played` is on the board, in the order [`Roll::dice`] gives
-    /// them, or `None` when `played` cannot be finished into a legal turn. What the board shows as
-    /// unused while a turn is moved one checker at a time.
-    pub fn dice_left(&self, roll: Roll, played: &[Play]) -> Option<Vec<u8>> {
-        let sequence = self.sequences_with_dice(roll).into_iter().find(|sequence| {
-            sequence.len() >= played.len()
-                && sequence[..played.len()]
-                    .iter()
-                    .map(|(play, _)| play.placement())
-                    .eq(played.iter().map(|play| play.placement()))
-        })?;
-        let mut left = roll.dice();
-        for (_, die) in &sequence[..played.len()] {
-            let used = left.iter().position(|d| d == die)?;
-            left.remove(used);
-        }
-        Some(left)
+    /// [`Position::turns_for`], [`Position::continue_turn`] and the dice still to play, from one
+    /// search of the legal sequences: what a board moving a turn one checker at a time asks
+    /// after each checker.
+    pub fn so_far(&self, roll: Roll, played: &[Play]) -> SoFar {
+        let sequences = self.sequences_with_dice(roll);
+        SoFar { turns: turns_of(&sequences), next: continuation_of(&sequences, played), dice_left: dice_left_of(roll, &sequences, played) }
     }
 
     /// Every legal *ordering* of plays for `roll`, each with the die it uses.
@@ -448,14 +387,6 @@ impl Position {
         }
 
         maximal
-    }
-
-    /// [`Position::sequences_with_dice`] without the dice.
-    fn legal_sequences(&self, roll: Roll) -> Vec<Vec<Play>> {
-        self.sequences_with_dice(roll)
-            .into_iter()
-            .map(|sequence| sequence.into_iter().map(|(play, _)| play).collect())
-            .collect()
     }
 
     /// Depth-first over the dice, collecting only sequences that cannot be
@@ -515,6 +446,96 @@ impl fmt::Debug for Position {
         }
         write!(f, "{} to move", self.to_move)
     }
+}
+
+/// What [`Position::so_far`] answers.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SoFar {
+    pub turns: Vec<Turn>,
+    /// [`Position::continue_turn`]'s answer.
+    pub next: Option<Continuation>,
+    /// The dice still to play, in the order [`Roll::dice`] gives them, or `None` when `played`
+    /// cannot be finished into a legal turn. What the board shows as unused.
+    pub dice_left: Option<Vec<u8>>,
+}
+
+/// The legal turns of these sequences.
+fn turns_of(sequences: &[Vec<(Play, u8)>]) -> Vec<Turn> {
+    // The same turn arrives by several routes — most obviously on a double,
+    // where four identical dice make every ordering of the same plays a
+    // separate sequence. They are one turn (see [`Turn::placements`]).
+    let mut seen = BTreeSet::new();
+    let mut turns = Vec::new();
+    for sequence in sequences {
+        let turn = Turn::new(sequence.iter().map(|&(play, _)| play).collect());
+        if seen.insert(turn.placements()) {
+            turns.push(turn);
+        }
+    }
+    turns
+}
+
+/// [`Position::continue_turn`] over these sequences.
+fn continuation_of(sequences: &[Vec<(Play, u8)>], played: &[Play]) -> Option<Continuation> {
+    let so_far: Vec<(Origin, Destination)> =
+        played.iter().map(|play| play.placement()).collect();
+
+    let mut next: Vec<Play> = Vec::new();
+    let mut complete = None;
+
+    for sequence in sequences {
+        if sequence.len() < played.len() {
+            continue;
+        }
+        let starts_the_same = sequence[..played.len()]
+            .iter()
+            .map(|(play, _)| play.placement())
+            .eq(so_far.iter().copied());
+        if !starts_the_same {
+            continue;
+        }
+        match sequence.get(played.len()) {
+            // **Every legal sequence has the same length**, because the
+            // maximal-use rule dropped the short ones. So a prefix that
+            // reaches the end of one has reached the end of all of them,
+            // and finding a whole turn here means there is nothing left to
+            // offer — which is what makes the two cases exclusive.
+            None => complete = Some(Turn::new(sequence.iter().map(|&(play, _)| play).collect())),
+            Some(&(play, _)) => {
+                if !next
+                    .iter()
+                    .any(|already| already.placement() == play.placement())
+                {
+                    next.push(play);
+                }
+            }
+        }
+    }
+
+    match complete {
+        Some(turn) => Some(Continuation::Complete(turn)),
+        None if next.is_empty() => None,
+        None => Some(Continuation::More(next)),
+    }
+}
+
+/// The dice left after `played`. When one play could have spent either die (bearing off from
+/// the 4-point with a 6-4), the smaller is shown spent: the exact one.
+fn dice_left_of(roll: Roll, sequences: &[Vec<(Play, u8)>], played: &[Play]) -> Option<Vec<u8>> {
+    let spent = sequences
+        .iter()
+        .filter(|sequence| {
+            sequence.len() >= played.len()
+                && sequence[..played.len()].iter().map(|(play, _)| play.placement()).eq(played.iter().map(|play| play.placement()))
+        })
+        .map(|sequence| &sequence[..played.len()])
+        .min_by_key(|prefix| prefix.iter().map(|&(_, die)| u32::from(die)).sum::<u32>())?;
+    let mut left = roll.dice();
+    for (_, die) in spent {
+        let used = left.iter().position(|d| d == die)?;
+        left.remove(used);
+    }
+    Some(left)
 }
 
 #[cfg(test)]
@@ -906,12 +927,29 @@ mod tests {
     fn dice_left_drops_the_die_each_checker_used() {
         let start = Position::starting();
         let roll = |a, b| Roll::new(a, b).expect("a roll");
-        assert_eq!(start.dice_left(roll(3, 1), &[]), Some(vec![3, 1]));
-        assert_eq!(start.dice_left(roll(3, 1), &[play("8/5")]), Some(vec![1]));
-        assert_eq!(start.dice_left(roll(3, 1), &[play("6/5")]), Some(vec![3]));
-        assert_eq!(start.dice_left(roll(6, 5), &[play("24/18")]), Some(vec![5]));
-        assert_eq!(start.dice_left(roll(4, 4), &[play("13/9"), play("13/9")]), Some(vec![4, 4]));
-        assert_eq!(start.dice_left(roll(3, 1), &[play("8/6")]), None);
+        assert_eq!(start.so_far(roll(3, 1), &[]).dice_left, Some(vec![3, 1]));
+        assert_eq!(start.so_far(roll(3, 1), &[play("8/5")]).dice_left, Some(vec![1]));
+        assert_eq!(start.so_far(roll(3, 1), &[play("6/5")]).dice_left, Some(vec![3]));
+        assert_eq!(start.so_far(roll(6, 5), &[play("24/18")]).dice_left, Some(vec![5]));
+        assert_eq!(start.so_far(roll(4, 4), &[play("13/9"), play("13/9")]).dice_left, Some(vec![4, 4]));
+        assert_eq!(start.so_far(roll(3, 1), &[play("8/6")]).dice_left, None);
+    }
+
+    /// Bearing off from the 4-point with a 6-4, nothing higher: either die could carry it off,
+    /// and the 4 is the one shown spent.
+    #[test]
+    fn a_bear_off_either_die_makes_spends_the_exact_one() {
+        let position = Position::from_parts(
+            Layout { points: &[(4, 1), (2, 1)], bar: 0, off: CHECKERS - 2 },
+            Layout { points: &[(6, 2)], bar: 0, off: CHECKERS - 2 },
+            Side::White,
+        )
+        .expect("a legal position");
+        let roll = Roll::new(6, 4).expect("a roll");
+        assert_eq!(position.so_far(roll, &[play("4/off")]).dice_left, Some(vec![6]));
+        let so_far = position.so_far(roll, &[]);
+        assert_eq!(so_far.turns, position.turns_for(roll));
+        assert_eq!(so_far.next, position.continue_turn(roll, &[]));
     }
 
     /// The opening: every first tap is on offer, and the turn is not finished

@@ -169,6 +169,10 @@ pub fn play(setup: &Setup, results: String, stop: &(dyn Fn() -> bool + Sync), do
     if setup.engines.len() < 2 {
         return Err("A match needs two engines or more.".into());
     }
+    // A client other than the window may send any numbers.
+    if !setup.kind.sound() {
+        return Err(bragd_core::t!("matches.sprt_bounds"));
+    }
     let chosen = setup.engines.iter().map(|k| local::resolve(&cfg, k, &setup.variant)).collect::<Result<Vec<_>, _>>()?;
     let opening = openings(setup)?;
     let games = matches::schedule(&setup.kind, setup.engines.len(), setup.rounds);
@@ -188,6 +192,17 @@ pub fn play(setup: &Setup, results: String, stop: &(dyn Fn() -> bool + Sync), do
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_sprt_with_error_chances_outside_0_to_half_is_refused() {
+        let setup = |alpha: f64, beta: f64| Setup { variant: "chess".into(), engines: vec!["a".into(), "b".into()], kind: matches::Kind::Sprt { elo0: 0.0, elo1: 5.0, alpha, beta }, rounds: 1, limit: bragd_engines::Limit::Depth(1), clock: None, parallel: 1, book: None, book_depth: 8, adjudication: Default::default(), library: "x".into(), seed: 1 };
+        for (a, b) in [(0.0, 0.05), (0.05, 0.0), (1.0, 0.05), (0.05, 1.5), (0.5, 0.05), (f64::NAN, 0.05)] {
+            let err = play(&setup(a, b), String::new(), &|| true, &|_, _, _| Ok(())).unwrap_err();
+            assert_eq!(err, bragd_core::t!("matches.sprt_bounds"), "alpha {a}, beta {b}");
+        }
+        assert!(matches::Kind::Sprt { elo0: 0.0, elo1: 5.0, alpha: 0.05, beta: 0.1 }.sound());
+        assert!(!matches::Kind::Sprt { elo0: 0.0, elo1: f64::INFINITY, alpha: 0.05, beta: 0.05 }.sound());
+    }
 
     #[test]
     fn opening_lines_of_any_kind() {

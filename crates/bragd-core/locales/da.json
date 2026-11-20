@@ -1123,6 +1123,7 @@
  "tournaments.tb.rtng": "Rating",
  "tournaments.error.damaged": "Denne turnering i klubfilen er beskadiget: en partie eller et bye nævner en spiller, der ikke findes.",
  "tournaments.error.rated": "Klubbens ratings tæller allerede denne turnerings partier.",
+ "tournaments.error.not_over": "Hver runde skal være spillet og have alle sine resultater, før klubbens ratings kan tælle denne turnering.",
  "tournaments.error.bundle": "Dette er ikke en Bragd-turneringspakke, eller også er den beskadiget.",
  "tournaments.system.dutch": "Schweizer (FIDE, hollandsk)",
  "tournaments.system.round_robin": "Alle mod alle",

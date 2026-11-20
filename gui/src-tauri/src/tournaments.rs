@@ -52,6 +52,8 @@ pub struct View {
     all: Vec<Named>,
     /// Why the next Round cannot be paired, if it cannot.
     blocked: Option<String>,
+    /// Every Round is played and has its results: it can be rated.
+    over: bool,
     /// The Variant played, by name.
     variant: String,
     /// A knockout's players through to the next Round by bye, for each Round.
@@ -120,6 +122,7 @@ fn view(id: i64, t: Tournament) -> View {
         tiebreaks: t.tiebreaks.iter().map(|&tb| named(tb)).collect(),
         all: Tiebreak::ALL.iter().map(|&tb| named(tb)).collect(),
         blocked: t.can_pair().err().map(|e| e.to_string()),
+        over: t.over(),
         variant: t!(&format!("variant.{}", t.variant)),
         through: (0..t.played.len()).map(|r| t.through(r)).collect(),
         teams: {

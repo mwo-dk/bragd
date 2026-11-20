@@ -1123,6 +1123,7 @@
  "tournaments.tb.rtng": "امتیاز",
  "tournaments.error.damaged": "این مسابقه در فایل باشگاه آسیب دیده است: یک بازی یا بای بازیکنی را نام می‌برد که آنجا نیست.",
  "tournaments.error.rated": "امتیازهای باشگاه از قبل بازی‌های این مسابقه را حساب می‌کنند.",
+ "tournaments.error.not_over": "هر دور باید بازی شود و همه‌ی نتیجه‌هایش ثبت شده باشد، پیش از آنکه امتیازهای باشگاه بتوانند این مسابقه را حساب کنند.",
  "tournaments.error.bundle": "این یک بسته‌ی مسابقه‌ی Bragd نیست، یا آسیب دیده است.",
  "tournaments.system.dutch": "سوئیسی (FIDE، هلندی)",
  "tournaments.system.round_robin": "دوربه‌دور",

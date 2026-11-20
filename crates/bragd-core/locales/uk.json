@@ -1129,6 +1129,7 @@
  "tournaments.tb.rtng": "Рейтинг",
  "tournaments.error.damaged": "Цей турнір у файлі клубу пошкоджено: партія або бай називає гравця, якого немає.",
  "tournaments.error.rated": "Рейтинги клубу вже враховують партії цього турніру.",
+ "tournaments.error.not_over": "Кожен тур має бути зіграний і мати всі свої результати, перш ніж рейтинги клубу зможуть зарахувати цей турнір.",
  "tournaments.error.bundle": "Це не пакет турніру Bragd або він пошкоджений.",
  "tournaments.system.dutch": "Швейцарська система (FIDE Dutch)",
  "tournaments.system.round_robin": "Круговий",

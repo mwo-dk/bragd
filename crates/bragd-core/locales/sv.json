@@ -1123,6 +1123,7 @@
  "tournaments.tb.rtng": "Rating",
  "tournaments.error.damaged": "Den här turneringen i klubbfilen är skadad: en partie eller frilott nämner en spelare som inte finns.",
  "tournaments.error.rated": "Klubbens ratingar räknar redan partierna i den här turneringen.",
+ "tournaments.error.not_over": "Varje rond måste vara spelad och ha alla sina resultat innan klubbens ratingar kan räkna den här turneringen.",
  "tournaments.error.bundle": "Det här är inte en Bragd-turneringsbunt, eller så är den skadad.",
  "tournaments.system.dutch": "Schweizarsystem (FIDE Dutch)",
  "tournaments.system.round_robin": "Rundturnering",

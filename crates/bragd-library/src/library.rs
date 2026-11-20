@@ -1057,30 +1057,39 @@ fn add_in(tx: &Connection, priority: &[String], g: &NewGame, source: &str, sourc
         put.execute(params![k as i64, id, ply as i64 + 1])?;
     }
     merge_headers(tx, priority, id, &g.result)?;
-    let near = if n == 0 { 0 } else { near_duplicates(tx, g, id, &moves, &chain)? };
+    let near = if n < NEAR_MIN_PLIES { 0 } else { near_duplicates(tx, g, id, &moves, &chain)? };
     Ok((Added::New(id), near))
 }
 
+/// A Game shorter than this is no Near-duplicate, nor has one: an abort after `1.e4` would be
+/// the start of every e4 Game in the Library.
+const NEAR_MIN_PLIES: usize = 10;
+/// The most candidates each search reads: a common opening position is shared by millions
+/// of Games in a Lichess month.
+const NEAR_CANDIDATES: i64 = 50;
+
 /// Records the Near-duplicates of the new Game `id`: longer Games it is a prefix of, and shorter
-/// Games that are a prefix of it. Candidates come from the indexes; the moves decide.
+/// Games that are a prefix of it, of at least [`NEAR_MIN_PLIES`]. Candidates come from the
+/// indexes, at most [`NEAR_CANDIDATES`] a search; the moves decide.
 fn near_duplicates(tx: &Connection, g: &NewGame, id: i64, moves: &str, chain: &[u64]) -> Result<usize> {
     let n = g.moves.len();
     let mut pairs: HashSet<(i64, i64)> = HashSet::new();
     let mut longer = tx.prepare_cached(
         "SELECT g.id, g.moves FROM positions p JOIN games g ON g.id = p.game_id
-         WHERE p.hash = ?1 AND p.ply = ?2 AND g.ply_count > ?2 AND g.family = ?3 AND g.variant = ?4 AND g.start IS ?5",
+         WHERE p.hash = ?1 AND p.ply = ?2 AND g.ply_count > ?2 AND g.family = ?3 AND g.variant = ?4 AND g.start IS ?5 LIMIT ?6",
     )?;
-    let rows = longer.query_map(params![g.keys[n - 1] as i64, n as i64, g.family, g.variant, g.start], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+    let rows = longer.query_map(params![g.keys[n - 1] as i64, n as i64, g.family, g.variant, g.start, NEAR_CANDIDATES], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
     for row in rows {
         let (other, theirs) = row?;
         if theirs.strip_prefix(moves).is_some_and(|rest| rest.starts_with(' ')) {
             pairs.insert((id, other));
         }
     }
-    // The chain after 1 … n-1 plies: a Game whose whole chain is one of them is a shorter prefix.
-    for part in chain[1..n].chunks(500) {
+    // The chain after NEAR_MIN_PLIES … n-1 plies: a Game whose whole chain is one of them is a
+    // shorter prefix.
+    for part in chain[NEAR_MIN_PLIES..n].chunks(500) {
         let marks = vec!["?"; part.len()].join(",");
-        let sql = format!("SELECT id, moves FROM games WHERE zobrist_chain_hash IN ({marks}) AND family = ? AND variant = ? AND start IS ? AND id != ?");
+        let sql = format!("SELECT id, moves FROM games WHERE zobrist_chain_hash IN ({marks}) AND family = ? AND variant = ? AND start IS ? AND id != ? LIMIT {NEAR_CANDIDATES}");
         let mut st = tx.prepare_cached(&sql)?;
         let mut args: Vec<rusqlite::types::Value> = part.iter().map(|&h| (h as i64).into()).collect();
         args.extend([g.family.clone().into(), g.variant.clone().into(), g.start.clone().into(), id.into()]);
@@ -1375,6 +1384,30 @@ pub(crate) mod tests {
             assert_eq!((lib.near_duplicate_count(None).unwrap(), lib.near_duplicates(0, None).unwrap().len()), (1, 0));
             assert_eq!((lib.near_duplicate_count(Some("chess")).unwrap(), lib.near_duplicate_count(Some("shogi")).unwrap(), lib.near_duplicates(9, Some("shogi")).unwrap().len()), (1, 0, 0));
         }
+    }
+
+    /// Counted in candidates read, not in time: 80 Games share the position after a 10-ply
+    /// opening, and an abort after 2 plies shares the start of all of them.
+    #[test]
+    fn a_short_game_reads_a_bounded_number_of_near_duplicate_candidates() {
+        let d = Dir::new("near-bound");
+        let p = d.0.join("games.pgn");
+        let opening = "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7";
+        let mut text = String::new();
+        for w in ["Re1", "d3", "d4", "c3", "Nc3", "Qe2", "h3", "a3", "b3", "g3"] {
+            for b in ["b5", "d6", "O-O", "h6", "a5", "g6", "b6", "Rb8"] {
+                text += &pgn(&[], &format!("{opening} 6. {w} {b}"), "*");
+            }
+        }
+        std::fs::write(&p, text).unwrap();
+        let mut lib = Library::open(&d.0.join("lib.bragd")).unwrap();
+        assert_eq!(import(&mut lib, &p, "lichess").added, 80);
+        let abort = d.0.join("abort.pgn");
+        std::fs::write(&abort, pgn(&[], "1. e4 e5", "*")).unwrap();
+        assert_eq!(import(&mut lib, &abort, "lichess").near_duplicates, 0, "too short to be a copy of anything");
+        let cut = d.0.join("cut.pgn");
+        std::fs::write(&cut, pgn(&[], opening, "*")).unwrap();
+        assert_eq!(import(&mut lib, &cut, "lichess").near_duplicates, NEAR_CANDIDATES as usize);
     }
 
     #[test]

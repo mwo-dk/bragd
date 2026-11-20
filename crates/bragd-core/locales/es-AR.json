@@ -1126,6 +1126,7 @@
  "tournaments.tb.rtng": "Puntuación",
  "tournaments.error.damaged": "Este torneo del archivo del club está dañado: una partida o un bye nombra a un jugador que no está.",
  "tournaments.error.rated": "Las puntuaciones del club ya cuentan las partidas de este torneo.",
+ "tournaments.error.not_over": "Cada ronda debe estar jugada y tener todos sus resultados antes de que las puntuaciones del club puedan contar este torneo.",
  "tournaments.error.bundle": "Esto no es un paquete de torneo de Bragd, o está dañado.",
  "tournaments.system.dutch": "Suizo (FIDE holandés)",
  "tournaments.system.round_robin": "Todos contra todos",

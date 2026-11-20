@@ -104,17 +104,40 @@ pub struct Holder {
     pub host: String,
     /// Unix time it was taken.
     pub since: u64,
+    /// The Bragd process that holds it: two of one user's processes are two holders.
+    #[serde(default)]
+    pub pid: u32,
 }
 
 impl Holder {
     /// This user on this machine, now.
     pub fn me() -> Holder {
-        Holder { user: user(), host: host().to_string(), since: bragd_core::fs::now() }
+        Holder { user: user(), host: host().to_string(), since: bragd_core::fs::now(), pid: std::process::id() }
     }
 
     fn same(&self, other: &Holder) -> bool {
-        self.user == other.user && self.host == other.host
+        self.user == other.user && self.host == other.host && self.pid == other.pid
     }
+
+    /// A lock this machine's process left behind when it ended without letting go.
+    fn stale(&self, me: &Holder) -> bool {
+        // pid 0: written before locks named their process.
+        self.user == me.user && self.host == me.host && (self.pid == 0 || !running(self.pid))
+    }
+}
+
+/// Process `pid` is running on this machine.
+#[cfg(unix)]
+fn running(pid: u32) -> bool {
+    // SAFETY: signal 0 only asks whether the process exists; nothing is sent.
+    unsafe { libc::kill(pid as libc::pid_t, 0) == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM) }
+}
+
+/// shortcut: without a cheap process check here, a crashed process's lock is taken over by
+/// hand; check with OpenProcess when a Windows user reports it.
+#[cfg(not(unix))]
+fn running(_pid: u32) -> bool {
+    true
 }
 
 fn user() -> String {
@@ -215,16 +238,18 @@ fn write_lock(path: &Path, h: &Holder) -> Result<()> {
 }
 
 /// Takes the lock of the Club at `path`, unless someone else holds it: then that holder.
+/// Gives up with the lock file's error when it can be neither read nor removed.
 fn take_lock(path: &Path, me: &Holder) -> Result<Option<Holder>> {
     use std::io::Write;
-    loop {
+    let mut failed = None;
+    for _ in 0..20 {
         match std::fs::OpenOptions::new().write(true).create_new(true).open(lock_path(path)) {
             Ok(mut f) => {
                 f.write_all(&serde_json::to_vec(me).map_err(|e| Error::Io(e.to_string()))?)?;
                 return Ok(None);
             }
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => match read_lock(path) {
-                Some(h) if !h.same(me) => return Ok(Some(h)),
+                Some(h) if !h.same(me) && !h.stale(me) => return Ok(Some(h)),
                 Some(_) => {
                     write_lock(path, me)?;
                     return Ok(None);
@@ -234,13 +259,15 @@ fn take_lock(path: &Path, me: &Holder) -> Result<Option<Holder>> {
                 None => {
                     std::thread::sleep(std::time::Duration::from_millis(50));
                     if read_lock(path).is_none() {
-                        let _ = std::fs::remove_file(lock_path(path));
+                        failed = std::fs::remove_file(lock_path(path)).err();
                     }
                 }
             },
             Err(e) => return Err(e.into()),
         }
     }
+    let why = failed.map_or_else(|| "?".to_string(), |e| e.to_string());
+    Err(Error::Io(format!("{}: {why}", lock_path(path).display())))
 }
 
 /// A Club file, open.
@@ -506,30 +533,43 @@ impl Club {
     /// Runs `f` on Tournament `id` as the director or arbiter `by`, whose name it is given for
     /// the log, and keeps what it changed. Nothing is kept when `f` fails.
     pub fn change_tournament<R>(&self, by: i64, id: i64, f: impl FnOnce(&mut Tournament, &str) -> Result<R>) -> Result<R> {
-        let who = self.official(by)?;
-        let mut t = self.tournament(id)?;
-        let r = f(&mut t, &who)?;
-        self.db.execute("UPDATE tournaments SET data = ?2 WHERE id = ?1", params![id, json(&t)?])?;
+        self.write(|| {
+            let who = self.official(by)?;
+            let mut t = self.tournament(id)?;
+            let r = f(&mut t, &who)?;
+            self.db.execute("UPDATE tournaments SET data = ?2 WHERE id = ?1", params![id, json(&t)?])?;
+            Ok(r)
+        })
+    }
+
+    /// Runs `f` as one write that no other process can interleave with, once the lock is
+    /// seen to be still this process's inside it.
+    fn write<R>(&self, f: impl FnOnce() -> Result<R>) -> Result<R> {
+        let tx = rusqlite::Transaction::new_unchecked(&self.db, rusqlite::TransactionBehavior::Immediate)?;
+        self.director_free()?;
+        let r = f()?;
+        tx.commit()?;
         Ok(r)
     }
 
     /// Rates the members from the games they played each other in Tournament `id`, as one
-    /// rating period, once; the audit log names the Tournament.
+    /// rating period, once, when every Round is played; the audit log names the Tournament.
     pub fn rate_tournament(&self, by: i64, id: i64) -> Result<()> {
-        let who = self.director(by)?;
-        let mut t = self.tournament(id)?;
-        if t.rated {
-            return Err(Error::Invalid("tournaments.error.rated"));
-        }
-        if t.played.iter().any(|r| !r.complete()) {
-            return Err(Error::Invalid("tournaments.error.results_missing"));
-        }
-        let tx = self.db.unchecked_transaction()?;
-        self.rate_period(&who, &t.member_games(), &t.name)?;
-        t.rated = true;
-        self.db.execute("UPDATE tournaments SET data = ?2 WHERE id = ?1", params![id, json(&t)?])?;
-        tx.commit()?;
-        Ok(())
+        self.write(|| {
+            let who = self.director(by)?;
+            let mut t = self.tournament(id)?;
+            if t.rated {
+                return Err(Error::Invalid("tournaments.error.rated"));
+            }
+            // Rated once and for good, so only when no Round is left to play.
+            if !t.over() {
+                return Err(Error::Invalid("tournaments.error.not_over"));
+            }
+            self.rate_period(&who, &t.member_games(), &t.name)?;
+            t.rated = true;
+            self.db.execute("UPDATE tournaments SET data = ?2 WHERE id = ?1", params![id, json(&t)?])?;
+            Ok(())
+        })
     }
 
     /// A director replaces the last Round's pairing of Tournament `id` by hand, with a reason;
@@ -574,11 +614,13 @@ impl Club {
     /// Changes a League as `f` says, by a director or an arbiter (named to `f` for the log);
     /// nothing is kept when `f` fails.
     pub fn change_league<R>(&self, by: i64, id: i64, f: impl FnOnce(&mut League, &str) -> Result<R>) -> Result<R> {
-        let who = self.official(by)?;
-        let mut l = self.league(id)?;
-        let r = f(&mut l, &who)?;
-        self.db.execute("UPDATE leagues SET data = ?2 WHERE id = ?1", params![id, json(&l)?])?;
-        Ok(r)
+        self.write(|| {
+            let who = self.official(by)?;
+            let mut l = self.league(id)?;
+            let r = f(&mut l, &who)?;
+            self.db.execute("UPDATE leagues SET data = ?2 WHERE id = ?1", params![id, json(&l)?])?;
+            Ok(r)
+        })
     }
 
     pub fn remove_league(&self, by: i64, id: i64) -> Result<()> {
@@ -741,6 +783,13 @@ impl Club {
             self.db.execute("UPDATE members SET rating = ?2, deviation = ?3, volatility = ?4 WHERE id = ?1", params![id, r.rating, r.deviation, r.volatility])?;
             self.write_log(who, &m.name, "rating", &round(m.rating.rating), &round(r.rating), why)?;
         }
+        // Glicko-2's step 6: a member who did not play is known less well; the rating stays.
+        if system == System::Glicko2 {
+            for m in before.values().filter(|m| !played.contains_key(&m.id)) {
+                let deviation = rating::glicko2(m.rating, &[]).deviation.min(Rating::default().deviation);
+                self.db.execute("UPDATE members SET deviation = ?2 WHERE id = ?1", params![m.id, deviation])?;
+            }
+        }
         Ok(())
     }
 
@@ -832,7 +881,7 @@ mod tests {
     }
 
     fn someone_else(path: &Path) {
-        write_lock(path, &Holder { user: "anna".into(), host: "club-pc".into(), since: 1 }).unwrap();
+        write_lock(path, &Holder { user: "anna".into(), host: "club-pc".into(), since: 1, pid: 1 }).unwrap();
     }
 
     #[test]
@@ -902,6 +951,62 @@ mod tests {
         assert_eq!(c.rate(me, &[(me, 999, 1.0)], "x"), Err(Error::NoMember));
         c.set_system(me, System::Glicko2, "Move to Glicko-2").unwrap();
         assert_eq!((c.system().unwrap(), c.log().unwrap()[0].what.as_str()), (System::Glicko2, "system"));
+    }
+
+    #[test]
+    fn under_glicko2_a_member_who_did_not_play_is_known_less_well() {
+        let d = Tmp::new("step6");
+        let c = Club::create(&d.club(), "K", System::Glicko2, "Mette").unwrap();
+        let me = c.members().unwrap()[0].id;
+        let bo = c.add(me, &Details { name: "Bo".into(), ..Details::default() }, Some(1500.0)).unwrap();
+        let cy = c.add(me, &Details { name: "Cy".into(), ..Details::default() }, Some(1700.0)).unwrap();
+        c.db.execute("UPDATE members SET deviation = 50 WHERE id = ?1", [cy]).unwrap();
+        c.rate(me, &[(me, bo, 1.0)], "Club evening").unwrap();
+        // Step 6: phi* = sqrt(phi^2 + sigma^2), on Glicko-2's scale of 173.7178.
+        let phi = 50.0 / 173.7178_f64;
+        let want = 173.7178 * (phi * phi + 0.06 * 0.06).sqrt();
+        let got = c.member(cy).unwrap().rating;
+        assert!((got.deviation - want).abs() < 1e-9 && got.deviation > 51.0, "{got:?}");
+        assert_eq!(got.rating, 1700.0);
+        // Never less known than a new member.
+        c.db.execute("UPDATE members SET deviation = 349.9 WHERE id = ?1", [cy]).unwrap();
+        c.rate(me, &[(me, bo, 1.0)], "Club evening").unwrap();
+        assert_eq!(c.member(cy).unwrap().rating.deviation, 350.0);
+    }
+
+    #[test]
+    fn a_lock_that_can_be_neither_read_nor_removed_is_an_error_not_a_hang() {
+        let d = Tmp::new("badlock");
+        let path = d.club();
+        drop(Club::create(&path, "K", System::Glicko2, "Mette").unwrap());
+        // A folder where the lock file should be: it cannot be read, and remove_file fails.
+        std::fs::create_dir(lock_path(&path)).unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let p = path.clone();
+        std::thread::spawn(move || tx.send(Club::open(&p).err()).unwrap());
+        // The limit only guards against the hang this test is about.
+        let got = rx.recv_timeout(std::time::Duration::from_secs(30)).expect("take_lock gave up");
+        assert!(matches!(got, Some(Error::Io(_))), "{got:?}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn another_process_of_this_user_holds_its_own_lock_and_a_dead_ones_is_free() {
+        let d = Tmp::new("pidlock");
+        let path = d.club();
+        drop(Club::create(&path, "K", System::Glicko2, "Mette").unwrap());
+        let me = Holder::me();
+        // Process 1 is always running.
+        write_lock(&path, &Holder { pid: 1, ..me.clone() }).unwrap();
+        let c = Club::open(&path).unwrap();
+        assert!(c.read_only(), "another Bragd process of this user has it");
+        drop(c);
+        assert_eq!(read_lock(&path).map(|h| h.pid), Some(1), "and keeps its lock when this one closes");
+        let mut child = std::process::Command::new("true").spawn().unwrap();
+        let dead = child.id();
+        child.wait().unwrap();
+        write_lock(&path, &Holder { pid: dead, ..me }).unwrap();
+        assert!(!Club::open(&path).unwrap().read_only(), "a lock left by a process that ended is free");
     }
 
     #[test]
@@ -1003,6 +1108,14 @@ mod tests {
         })
         .unwrap();
         assert_eq!(c.rate_tournament(arb, id), Err(Error::NotDirector));
+        // Round 1 of 5 has all its results, but four Rounds are still to come.
+        assert_eq!(c.rate_tournament(me, id), Err(Error::Invalid("tournaments.error.not_over")));
+        assert!(!c.tournament(id).unwrap().rated);
+        c.change_tournament(me, id, |t, _| {
+            t.rounds = 1;
+            Ok(())
+        })
+        .unwrap();
         c.rate_tournament(me, id).unwrap();
         assert_eq!(c.log().unwrap()[0].why, "Autumn Swiss");
         assert_eq!(c.rate_tournament(me, id), Err(Error::Invalid("tournaments.error.rated")));

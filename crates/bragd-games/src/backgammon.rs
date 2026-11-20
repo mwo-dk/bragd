@@ -165,6 +165,9 @@ fn state(game: &Game, part: &[Play]) -> State {
     let position = &part.iter().fold(*game.position(), |p, &play| p.after_play(play));
     let cube = game.cube();
     let needs = game.needs();
+    // One search of the legal sequences answers the turns, the next checker and the dice left.
+    let so_far = game.so_far(part);
+    let turns = so_far.as_ref().map(|s| s.turns.as_slice()).unwrap_or_default();
 
     let (awaiting, mut moves, throws) = match needs {
         None => (Awaiting::Nothing, Vec::new(), Vec::new()),
@@ -183,9 +186,7 @@ fn state(game: &Game, part: &[Play]) -> State {
         }
         Some(Needed::Turn { side, .. }) => (
             Awaiting::Move,
-            game.turns()
-                .iter()
-                .map(|turn| turn_move(side, turn))
+            turns.iter().map(|turn| turn_move(side, turn))
                 .collect(),
             Vec::new(),
         ),
@@ -200,7 +201,7 @@ fn state(game: &Game, part: &[Play]) -> State {
     };
 
     // The next checker to move, by every legal way to finish the turn.
-    let steps = match (needs, game.continue_turn(part)) {
+    let steps = match (needs, so_far.as_ref().and_then(|s| s.next.as_ref())) {
         (Some(Needed::Turn { side, .. }), Some(Continuation::More(next))) => next
             .iter()
             .map(|&play| LegalMove {
@@ -280,7 +281,7 @@ fn state(game: &Game, part: &[Play]) -> State {
     let dice = game.pending_roll().map(|roll| roll.dice()).unwrap_or_default();
     // A die is unused while one of its value is left. Matched from the right, so a double
     // greys its dice from the left.
-    let mut left = game.dice_left(part).unwrap_or_default();
+    let mut left = so_far.as_ref().and_then(|s| s.dice_left.clone()).unwrap_or_default();
     let mut used: Vec<bool> = dice
         .iter()
         .rev()
@@ -324,7 +325,7 @@ fn state(game: &Game, part: &[Play]) -> State {
         check: false,
         // One possible next checker move, played by itself through `step`; or a roll that
         // can play nothing, whose `(no play)` is the whole turn.
-        forced: match (needs, steps.as_slice(), game.turns().as_slice()) {
+        forced: match (needs, steps.as_slice(), turns) {
             (Some(Needed::Turn { .. }), [only], _) => Some(only.wire.clone()),
             (Some(Needed::Turn { .. }), [], [only]) if part.is_empty() => Some(only.to_string()),
             _ => None,
