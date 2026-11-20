@@ -409,7 +409,8 @@ pub struct Run<'a> {
     pub table: Table<'a>,
     pub stop: &'a (dyn Fn() -> bool + Sync),
     /// Hears each Game played: its place in the schedule, the Game, and the results so far.
-    pub done: &'a (dyn Fn(usize, &Played, &str) + Sync),
+    /// An error (the Game could not be stored) leaves the Game unplayed and stops the match.
+    pub done: &'a (dyn Fn(usize, &Played, &str) -> Result<(), String> + Sync),
 }
 
 /// Plays the Games of `results` still to play (`.`), `Setup::parallel` at a time, until all are
@@ -451,7 +452,12 @@ pub fn run(r: &Run, results: String) -> Result<String, String> {
             match played {
                 Ok(p) => {
                     s.results[next] = p.ended.mark();
-                    (r.done)(next, &p, &s.results.iter().collect::<String>());
+                    if let Err(e) = (r.done)(next, &p, &s.results.iter().collect::<String>()) {
+                        // Not stored, so not counted: played again when the match goes on.
+                        s.results[next] = '.';
+                        s.error = Some(e);
+                        return;
+                    }
                 }
                 // Stopped, or an opening the rules refuse: left to play another time.
                 Err(e) => {

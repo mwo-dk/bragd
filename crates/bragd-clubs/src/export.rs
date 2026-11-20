@@ -108,7 +108,8 @@ pub fn trf(t: &Tournament, national: Option<&National>) -> String {
 }
 
 fn pgn_text(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
+    // A line break would end the tag and start a line of the reader's choosing.
+    s.chars().map(|c| if c.is_control() { ' ' } else { c }).collect::<String>().replace('\\', "\\\\").replace('"', "\\\"")
 }
 
 /// The games played over the board, one PGN game each, with no moves: the Round and board,
@@ -419,6 +420,21 @@ mod tests {
     }
 
     #[test]
+    fn a_line_break_in_a_name_forges_no_line_in_the_trf_or_pgn() {
+        let mut t = played();
+        // Past every check on the way in, as a file edited by hand would be.
+        t.name = "Cup\n092 Forged".into();
+        t.place = "Aarhus\r\n[Annotator \"x\"]".into();
+        t.players[0].name = "Anna\n001    9 m    Forged, Line".into();
+        let trf = trf(&t, None);
+        assert_eq!(trf.lines().filter(|l| l.starts_with("001")).count(), 3, "{trf}");
+        assert!(!trf.lines().any(|l| l.starts_with("092")), "{trf}");
+        let p = pgn(&t);
+        assert_eq!(p.matches("[Event ").count(), 1, "{p}");
+        assert!(!p.lines().any(|l| l.starts_with("[Annotator") || l.starts_with("001")), "{p}");
+    }
+
+    #[test]
     fn a_go_tournament_names_its_variant_and_each_handicap() {
         let mut t = Tournament::new("Go evening", System::Dutch { baku: false }, 3, "2026-11-05").unwrap();
         t.set_game("go-19", Some(crate::tournament::Handicap::default()), None).unwrap();
@@ -465,6 +481,14 @@ mod tests {
         // A game naming a player who is not there.
         let mut bad = t.clone();
         bad.played[0].games[0].black = 99;
+        let mut z = zip::ZipWriter::new(std::fs::File::create(&path).unwrap());
+        z.start_file("tournament.json", zip::write::SimpleFileOptions::default()).unwrap();
+        z.write_all(&serde_json::to_vec(&bad).unwrap()).unwrap();
+        z.finish().unwrap();
+        assert_eq!(read_bundle(&path), Err(Error::Invalid("tournaments.error.bundle")));
+        // A name with a line break, to forge a line in the TRF the arbiter submits.
+        let mut bad = t.clone();
+        bad.players[1].name = "Bo\n001    9".into();
         let mut z = zip::ZipWriter::new(std::fs::File::create(&path).unwrap());
         z.start_file("tournament.json", zip::write::SimpleFileOptions::default()).unwrap();
         z.write_all(&serde_json::to_vec(&bad).unwrap()).unwrap();

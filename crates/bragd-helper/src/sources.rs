@@ -551,7 +551,9 @@ impl Source for RatingList {
             let ext = Path::new(self.0.file).extension().map_or(String::new(), |e| format!(".{}", e.to_string_lossy()));
             url = bragd_clubs::lists::file_link(&html, self.0.link, &ext).ok_or_else(|| io::Error::other(format!("{url} links to no {ext} file")))?;
         }
-        if !net::download(cx.net, &url, &to, cx.cap, cx.stop, cx.progress)? {
+        // A list is a known size: much more than that is not the list, unless the user said yes.
+        let cap = if cx.memo.allowed.is_some() { cx.cap } else { cx.cap.min(self.0.max_download()) };
+        if !net::download(cx.net, &url, &to, cap, cx.stop, cx.progress)? {
             return Err(io::Error::other(format!("{url} is not there")));
         }
         Ok(vec![to])
@@ -754,6 +756,20 @@ pub(crate) mod tests {
         // A page that links to no list file is an error, not an empty list.
         let net = Recorded { files: [(list.url.to_string(), b"<p>soon</p>".to_vec())].into(), ..Default::default() };
         assert!(RatingList(list).fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).is_err());
+    }
+
+    #[test]
+    fn a_rating_list_far_bigger_than_its_size_waits_for_a_yes() {
+        let d = crate::tests::Dir::new("list-cap");
+        let list = bragd_clubs::lists::LISTS.iter().find(|l| l.id == "dsu-ratings").unwrap();
+        let big = vec![b'x'; list.max_download() as usize + 1];
+        let net = Recorded { files: [(list.url.to_string(), big)].into(), sizes: true, ..Default::default() };
+        let o = Twic.about().defaults();
+        let err = RatingList(list).fetch(&mut Cx { net: &net, dir: &d.0, cap: MAX_DOWNLOAD, memo: &mut Memo::default(), options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap_err();
+        assert_eq!(crate::net::TooBig::of(&err).and_then(|t| t.size), Some(list.max_download() + 1), "{err}");
+        // Once the user allows it, it comes.
+        let mut memo = Memo { allowed: Some(list.max_download() + 1), ..Memo::default() };
+        assert!(RatingList(list).fetch(&mut Cx { net: &net, dir: &d.0, cap: list.max_download() + 1, memo: &mut memo, options: &o, stop: &|| false, progress: &mut |_| {} }).is_ok());
     }
 
     #[test]

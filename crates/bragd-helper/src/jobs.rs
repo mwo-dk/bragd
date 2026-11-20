@@ -896,15 +896,15 @@ impl Jobs {
         self.progress(id, played(&kept), Some(total));
         let stop = || self.should_stop(id);
         let done = |i: usize, game: bragd_library::library::NewGame, results: &str| {
-            if let Err(e) = lib.lock().unwrap_or_else(|e| e.into_inner()).add(&game, crate::matches::SOURCE, &format!("{id}:{i}")) {
-                crate::note(format_args!("match {id}: Game {i} could not be kept in {}: {e}", setup.library.display()));
-            }
+            // Not stored, not counted: the results are kept only for Games in the Library.
+            lib.lock().unwrap_or_else(|e| e.into_inner()).add(&game, crate::matches::SOURCE, &format!("{id}:{i}")).map_err(|e| format!("Game {} could not be kept in {}: {e}", i + 1, setup.library.display()))?;
             let mut st = self.lock();
             if let Some(j) = st.jobs.iter_mut().find(|j| j.id == id) {
                 j.done = played(results);
                 j.report.get_or_insert_with(Report::default).results = Some(results.to_string());
             }
             self.save(&st);
+            Ok(())
         };
         let results = crate::matches::play(setup, kept, &stop, &done)?;
         Ok(played(&results))

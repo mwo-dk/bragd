@@ -89,7 +89,7 @@ impl Default for League {
 
 impl League {
     pub fn new(name: &str, boards: u32, double: bool, date: &str) -> Result<League> {
-        if name.trim().is_empty() || name.chars().count() > 100 {
+        if !crate::tournament::name_ok(name) {
             return Err(Error::Invalid("leagues.error.name"));
         }
         if !(1..=20).contains(&boards) {
@@ -104,10 +104,10 @@ impl League {
             return Err(Error::Invalid("leagues.error.started"));
         }
         let name = team.name.trim();
-        if name.is_empty() || name.chars().count() > 100 || self.teams.iter().any(|t| t.name.eq_ignore_ascii_case(name)) {
+        if !crate::tournament::name_ok(name) || self.teams.iter().any(|t| t.name.eq_ignore_ascii_case(name)) {
             return Err(Error::Invalid("leagues.error.team_name"));
         }
-        if team.players.iter().any(|p| p.name.trim().is_empty()) {
+        if team.players.iter().any(|p| !crate::tournament::name_ok(&p.name)) {
             return Err(Error::Invalid("clubs.error.name"));
         }
         self.teams.push(Team { name: name.into(), ..team });

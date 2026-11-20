@@ -152,7 +152,7 @@ fn change(held: &Held, by: i64, id: i64, f: impl FnOnce(&mut Tournament, &str) -
 pub fn tournament_new(by: i64, name: String, system: tournament::System, rounds: u32, date: String, place: String, variant: String, handicap: Option<Handicap>, match_to: Option<u32>, held: State<'_, Held>) -> Res<club::View> {
     on(&held, |c| {
         let mut t = Tournament::new(&name, system, rounds, &date)?;
-        t.place = place.trim().into();
+        t.place = place.trim().replace(|c: char| c.is_control(), " ");
         t.set_game(&variant, handicap, match_to)?;
         c.add_tournament(by, &t)?;
         bragd_core::tips::used("tournaments");
@@ -325,7 +325,7 @@ pub fn tournament_import(by: i64, app: AppHandle, held: State<'_, Held>, ctx: St
     let Some(path) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
     let t = export::read_bundle(&path).map_err(|e| e.to_string())?;
     on(&held, |c| {
-        c.add_tournament(by, &t)?;
+        c.import_tournament(by, &t)?;
         c.view()
     })
     .map(Some)

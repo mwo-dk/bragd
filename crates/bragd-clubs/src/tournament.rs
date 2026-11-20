@@ -499,7 +499,7 @@ impl Default for Tournament {
 impl Tournament {
     /// A new Tournament with the Danish default tiebreaks for its system.
     pub fn new(name: &str, system: System, rounds: u32, date: &str) -> Result<Tournament> {
-        if name.trim().is_empty() || name.chars().count() > 100 {
+        if !name_ok(name) {
             return Err(Error::Invalid("tournaments.error.name"));
         }
         if system.swiss() && !(1..=99).contains(&rounds) {
@@ -551,7 +551,7 @@ impl Tournament {
 
     /// Adds a player, Away until checked in. A late entry gets no points for the Rounds before.
     pub fn register(&mut self, p: Player) -> Result<usize> {
-        if p.name.trim().is_empty() || p.name.chars().count() > 100 {
+        if !name_ok(&p.name) || [&p.title, &p.fide_id, &p.national_id, &p.federation].iter().any(|s| s.chars().any(char::is_control)) {
             return Err(Error::Invalid("clubs.error.name"));
         }
         if !self.seeds.is_empty() && !self.system.swiss() {
@@ -1054,12 +1054,14 @@ impl Tournament {
         out
     }
 
-    /// Whether a Tournament read from a file holds together: every board, bye and seed names a
-    /// player who is there, and no one plays themself.
+    /// Whether a Tournament read from a file holds together: its name and its players' are on one
+    /// line each, every board, bye and seed names a player who is there, and no one plays themself.
     pub fn sound(&self) -> bool {
         let n = self.players.len();
         let ok = |p: &usize| *p < n;
-        self.seeds.iter().all(ok) && self.played.iter().all(|r| r.games.iter().all(|g| ok(&g.white) && ok(&g.black) && g.white != g.black && g.playoff.iter().all(|w| *w == g.white || *w == g.black)) && r.bye.iter().all(ok) && r.half.iter().all(ok))
+        let line = |s: &String| !s.chars().any(char::is_control);
+        line(&self.name) && self.players.iter().all(|p| line(&p.name))
+            && self.seeds.iter().all(ok) && self.played.iter().all(|r| r.games.iter().all(|g| ok(&g.white) && ok(&g.black) && g.white != g.black && g.playoff.iter().all(|w| *w == g.white || *w == g.black)) && r.bye.iter().all(ok) && r.half.iter().all(ok))
     }
 
     /// Games between Club members with a result on the board, for the Club's rating:
@@ -1074,6 +1076,12 @@ impl Tournament {
             })
             .collect()
     }
+}
+
+/// A name a person typed or a file gave: not blank, at most 100 characters, and on one line, with
+/// no control character to forge a line in a TRF or PGN export.
+pub fn name_ok(s: &str) -> bool {
+    !s.trim().is_empty() && s.chars().count() <= 100 && !s.chars().any(char::is_control)
 }
 
 /// The numbers `0..n` in an order drawn by lot.
@@ -1336,6 +1344,20 @@ mod tests {
         assert!(!bad.sound());
         bad.played[0].games[0].black = 7;
         assert!(!bad.sound());
+        let mut bad = t.clone();
+        bad.players[1].name = "Bo\n001    9".into();
+        assert!(!bad.sound());
+    }
+
+    #[test]
+    fn a_name_with_a_line_break_is_refused() {
+        let mut t = Tournament::new("T", System::Dutch { baku: false }, 3, "").unwrap();
+        for name in ["Bo\n001    9 x", "Bo\r", "Bo\u{0}"] {
+            assert_eq!(t.register(Player { name: name.into(), ..Player::default() }), Err(Error::Invalid("clubs.error.name")));
+        }
+        assert!(t.register(Player { name: "Bo".into(), fide_id: "1\n2".into(), ..Player::default() }).is_err());
+        assert_eq!(Tournament::new("T\n012 X", System::Dutch { baku: false }, 3, "").err(), Some(Error::Invalid("tournaments.error.name")));
+        assert_eq!(crate::league::League::new("L\n", 4, false, "").err(), Some(Error::Invalid("leagues.error.name")));
     }
 
     /// A Tournament of `system` with these players checked in, each with a team when given.

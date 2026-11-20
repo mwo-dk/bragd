@@ -197,6 +197,7 @@ fn a_round_robin_plays_every_game_in_parallel() {
         done: &|_, p, _| {
             assert_eq!(p.reason, "length");
             heard.fetch_add(1, Ordering::Relaxed);
+            Ok(())
         },
     };
     let results = run(&r, unplayed(games.len())).unwrap();
@@ -215,7 +216,7 @@ fn an_sprt_stops_once_it_decides() {
     let s = setup(Kind::Sprt { elo0: 0.0, elo1: 50.0, alpha: 0.05, beta: 0.05 }, 2, 500, 1, Adjudication { draw_cp: None, ..adj(50) });
     let games = schedule(&s.kind, 2, s.rounds);
     // Engine 1 always sees itself lost, so engine 0 wins every Game.
-    let r = Run { setup: &s, games: &games, opening: &|_| Opening::default(), start: &|n| Ok(fake("chess", Mode::First(if n == 0 { 0 } else { -1000 }))), table: NO_TABLE, stop: NEVER, done: &|_, _, _| {} };
+    let r = Run { setup: &s, games: &games, opening: &|_| Opening::default(), start: &|n| Ok(fake("chess", Mode::First(if n == 0 { 0 } else { -1000 }))), table: NO_TABLE, stop: NEVER, done: &|_, _, _| Ok(()) };
     let results = run(&r, unplayed(games.len())).unwrap();
     let played = results.chars().filter(|c| *c != '.').count();
     assert!(played > 0 && played < games.len(), "{played} games");
@@ -241,8 +242,33 @@ fn game_pairs_and_the_sprt_state() {
 fn an_engine_that_cannot_start_stops_the_match() {
     let s = setup(Kind::Gauntlet, 3, 1, 2, adj(3));
     let games = schedule(&s.kind, 3, s.rounds);
-    let r = Run { setup: &s, games: &games, opening: &|_| Opening::default(), start: &|n| if n == 2 { Err("e2 is not there".into()) } else { Ok(fake("chess", Mode::First(0))) }, table: NO_TABLE, stop: NEVER, done: &|_, _, _| {} };
+    let r = Run { setup: &s, games: &games, opening: &|_| Opening::default(), start: &|n| if n == 2 { Err("e2 is not there".into()) } else { Ok(fake("chess", Mode::First(0))) }, table: NO_TABLE, stop: NEVER, done: &|_, _, _| Ok(()) };
     assert_eq!(run(&r, unplayed(games.len())), Err("e2 is not there".into()));
+}
+
+#[test]
+fn a_game_that_cannot_be_stored_is_left_unplayed_and_stops_the_match() {
+    let s = setup(Kind::RoundRobin, 3, 1, 1, adj(3));
+    let games = schedule(&s.kind, 3, s.rounds);
+    let kept = Mutex::new(vec![]);
+    let r = Run {
+        setup: &s,
+        games: &games,
+        opening: &|_| Opening::default(),
+        start: &|_| Ok(fake("chess", Mode::First(30))),
+        table: NO_TABLE,
+        stop: NEVER,
+        done: &|i, _, so_far| {
+            if i == 1 {
+                return Err("the disk is full".into());
+            }
+            kept.lock().unwrap().push(so_far.to_string());
+            Ok(())
+        },
+    };
+    assert_eq!(run(&r, unplayed(games.len())), Err("the disk is full".into()));
+    // Game 0 was stored and counted; Game 1 was not stored and stays to play.
+    assert_eq!(*kept.lock().unwrap(), ["=....."]);
 }
 
 /// With a clock, each engine is told its own time and the other's, each Side once the first;
