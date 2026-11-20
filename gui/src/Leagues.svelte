@@ -78,6 +78,12 @@
       onclub(v);
     }
   }
+  /** Deletes one the Club file holds damaged, which cannot be opened. */
+  async function removeDamaged(/** @type {any} */ x) {
+    if (!confirm(t("leagues.remove_confirm", { name: x.name || `#${x.id}` }))) return;
+    const v = await run(() => api.leagueRemove(by, x.id));
+    if (v) onclub(v);
+  }
   function addMember() {
     const m = club.members.find((/** @type {any} */ x) => x.id === member);
     if (m) team.players = [...team.players, { name: m.name, rating: Math.round(m.rating.rating), fide_id: m.fide_id, national_id: m.national_id, federation: m.federation, member: m.id }];
@@ -137,8 +143,14 @@
     <ul class="known">
       {#each club.leagues as x (x.id)}
         <li>
-          <button class="link" onclick={() => open(x.id)}>{x.name}</button>
-          <span class="dim">{[x.date, t("leagues.progress", { paired: num(x.paired), rounds: num(x.rounds), teams: num(x.teams) })].filter(Boolean).join(" · ")}</span>
+          {#if x.damaged}
+            <span>{x.name || `#${x.id}`}</span>
+            <span class="error">{x.damaged}</span>
+            <button disabled={!director} onclick={() => removeDamaged(x)}>{t("leagues.remove")}</button>
+          {:else}
+            <button class="link" onclick={() => open(x.id)}>{x.name}</button>
+            <span class="dim">{[x.date, t("leagues.progress", { paired: num(x.paired), rounds: num(x.rounds), teams: num(x.teams) })].filter(Boolean).join(" · ")}</span>
+          {/if}
         </li>
       {/each}
     </ul>

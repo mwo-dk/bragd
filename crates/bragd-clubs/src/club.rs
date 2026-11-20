@@ -271,6 +271,8 @@ pub struct View {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct LeagueListed {
     pub id: i64,
+    /// Why it cannot be opened, when its stored copy is damaged; it can only be deleted.
+    pub damaged: Option<String>,
     pub name: String,
     pub date: String,
     pub teams: u32,
@@ -283,6 +285,8 @@ pub struct LeagueListed {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Listed {
     pub id: i64,
+    /// Why it cannot be opened, when its stored copy is damaged; it can only be deleted.
+    pub damaged: Option<String>,
     pub name: String,
     pub date: String,
     pub system: tournament::System,
@@ -324,7 +328,7 @@ CREATE TABLE IF NOT EXISTS leagues (id INTEGER PRIMARY KEY, data TEXT NOT NULL);
 
 fn valid(d: &Details) -> Result<()> {
     let ok = |s: &str, max: usize, f: fn(char) -> bool| s.chars().count() <= max && s.chars().all(f);
-    if d.name.trim().is_empty() || d.name.chars().count() > 100 {
+    if !tournament::name_ok(&d.name) {
         return Err(Error::Invalid("clubs.error.name"));
     }
     if !ok(&d.fide_id, 12, |c| c.is_ascii_digit()) {
@@ -451,8 +455,15 @@ impl Club {
         let mut out = vec![];
         for row in rows {
             let (id, data) = row?;
-            let t = parse(&data)?;
-            out.push(Listed { id, name: t.name, date: t.date, system: t.system, system_name: bragd_core::t!(t.system.key()), rounds: t.rounds, paired: t.played.len() as u32, players: t.players.len() as u32 });
+            // One damaged Tournament must not keep the rest of the Club out of reach.
+            let t = match parse(&data) {
+                Ok(t) => t,
+                Err(e) => {
+                    out.push(Listed { id, damaged: Some(e.to_string()), name: damaged_name(&data), date: String::new(), system: tournament::System::Knockout, system_name: String::new(), rounds: 0, paired: 0, players: 0 });
+                    continue;
+                }
+            };
+            out.push(Listed { id, damaged: None, name: t.name, date: t.date, system: t.system, system_name: bragd_core::t!(t.system.key()), rounds: t.rounds, paired: t.played.len() as u32, players: t.players.len() as u32 });
         }
         Ok(out)
     }
@@ -471,6 +482,25 @@ impl Club {
         }
         self.db.execute("INSERT INTO tournaments (data) VALUES (?1)", [json(&t)?])?;
         Ok(self.db.last_insert_rowid())
+    }
+
+    /// Adds a Tournament read from a bundle, which may come from another Club: its players'
+    /// member numbers are that Club's, so each is linked again to the member here with the same
+    /// FIDE ID, or to none, and it has not been rated here. Its id.
+    pub fn import_tournament(&self, by: i64, t: &Tournament) -> Result<i64> {
+        let members = self.members()?;
+        let mut t = t.clone();
+        t.rated = false;
+        for i in 0..t.players.len() {
+            let fide = &t.players[i].fide_id;
+            let mut same = members.iter().filter(|m| !fide.is_empty() && m.fide_id == *fide);
+            let member = match (same.next(), same.next()) {
+                (Some(m), None) if !t.players[..i].iter().any(|p| p.member == Some(m.id)) => Some(m.id),
+                _ => None,
+            };
+            t.players[i].member = member;
+        }
+        self.add_tournament(by, &t)
     }
 
     /// Runs `f` on Tournament `id` as the director or arbiter `by`, whose name it is given for
@@ -517,8 +547,14 @@ impl Club {
         let mut out = vec![];
         for row in rows {
             let (id, data) = row?;
-            let l = parse_league(&data)?;
-            out.push(LeagueListed { id, rounds: l.rounds(), name: l.name, date: l.date, teams: l.teams.len() as u32, paired: l.played.len() as u32 });
+            let l = match parse_league(&data) {
+                Ok(l) => l,
+                Err(e) => {
+                    out.push(LeagueListed { id, damaged: Some(e.to_string()), name: damaged_name(&data), date: String::new(), rounds: 0, teams: 0, paired: 0 });
+                    continue;
+                }
+            };
+            out.push(LeagueListed { id, damaged: None, rounds: l.rounds(), name: l.name, date: l.date, teams: l.teams.len() as u32, paired: l.played.len() as u32 });
         }
         Ok(out)
     }
@@ -739,6 +775,12 @@ fn parse(data: &str) -> Result<Tournament> {
     let t: Tournament = serde_json::from_str(data).map_err(|e| Error::Db(e.to_string()))?;
     // A Club file is shared by copying it: one edited by hand must not crash the page.
     if t.sound() { Ok(t) } else { Err(Error::Invalid("tournaments.error.damaged")) }
+}
+
+/// The name a damaged Tournament or League was stored with, if that much of it can be read.
+fn damaged_name(data: &str) -> String {
+    let v: serde_json::Value = serde_json::from_str(data).unwrap_or_default();
+    v["name"].as_str().unwrap_or("").chars().filter(|c| !c.is_control()).take(100).collect()
 }
 
 fn parse_league(data: &str) -> Result<League> {
@@ -966,6 +1008,50 @@ mod tests {
         assert_eq!(c.rate_tournament(me, id), Err(Error::Invalid("tournaments.error.rated")));
         c.remove_tournament(me, id).unwrap();
         assert!(c.tournaments().unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_bundle_from_another_club_is_linked_to_members_here_by_fide_id_and_not_rated() {
+        use crate::tournament::{self, Status};
+        let d = Tmp::new("import");
+        let c = Club::create(&d.club(), "B", System::Glicko2, "Mette").unwrap();
+        let me = c.members().unwrap()[0].id;
+        let bo = c.add(me, &Details { name: "Bo".into(), fide_id: "1401234".into(), ..Details::default() }, Some(1500.0)).unwrap();
+        let cy = c.add(me, &Details { name: "Cy".into(), ..Details::default() }, Some(1500.0)).unwrap();
+        // Club A's Tournament, rated there: its member numbers are A's, and here name Mette and Cy.
+        let mut t = Tournament::new("Joint open", tournament::System::Dutch { baku: false }, 1, "").unwrap();
+        for (n, fide, m) in [("Bo", "1401234", me), ("Dan", "", cy)] {
+            let p = t.register(tournament::Player { name: n.into(), fide_id: fide.into(), member: Some(m), ..tournament::Player::default() }).unwrap();
+            t.set_status("", p, Status::Here).unwrap();
+        }
+        t.pair_next().unwrap();
+        t.set_result("", 0, 0, Some(tournament::Outcome::White), "").unwrap();
+        t.rated = true;
+        let id = c.import_tournament(me, &t).unwrap();
+        let got = c.tournament(id).unwrap();
+        assert_eq!((got.players[0].member, got.players[1].member, got.rated), (Some(bo), None, false));
+        // Dan is no member here, so there is nothing to rate and no member is touched.
+        c.rate_tournament(me, id).unwrap();
+        assert!(c.log().unwrap().iter().all(|e| e.why != "Joint open"));
+    }
+
+    #[test]
+    fn a_damaged_tournament_or_league_leaves_the_rest_of_the_club_open() {
+        let d = Tmp::new("damaged");
+        let c = Club::create(&d.club(), "K", System::Glicko2, "Mette").unwrap();
+        let me = c.members().unwrap()[0].id;
+        let good = c.add_tournament(me, &Tournament::new("Good", tournament::System::Dutch { baku: false }, 5, "").unwrap()).unwrap();
+        c.add_league(me, &League::new("Division 1", 1, false, "").unwrap()).unwrap();
+        c.db.execute("INSERT INTO tournaments (data) VALUES ('{\"name\": \"Broken\", \"players\": 7')", []).unwrap();
+        c.db.execute("INSERT INTO leagues (data) VALUES ('not json')", []).unwrap();
+        let v = c.view().unwrap();
+        assert_eq!(v.members.len(), 1);
+        assert_eq!(v.tournaments.iter().map(|t| (t.name.as_str(), t.damaged.is_some())).collect::<Vec<_>>(), [("", true), ("Good", false)]);
+        assert_eq!(v.leagues.iter().map(|l| l.damaged.is_some()).collect::<Vec<_>>(), [true, false]);
+        // The damaged one can be deleted, and the others still open.
+        c.remove_tournament(me, v.tournaments[0].id).unwrap();
+        assert_eq!(c.view().unwrap().tournaments.len(), 1);
+        assert_eq!(c.tournament(good).unwrap().name, "Good");
     }
 
     #[test]

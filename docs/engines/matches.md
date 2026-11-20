@@ -111,6 +111,10 @@ As fishtest works it out: the generalised SPRT with the expected score as its st
 
 Yes. The match runs in the Helper. When the Helper stops, the match goes on where it was the next time the Helper starts. A Game that was under way is played again.
 
+#### What happens when a Game cannot be stored?
+
+The match stops with the reason, for example a full disk or a Library folder that cannot be written. That Game is not counted, so the tally holds only Games that are in the Library. When the match goes on, the Game is played again.
+
 #### Does a match hold up my Sources?
 
 No. Matches run beside the Helper's other jobs, one match at a time.

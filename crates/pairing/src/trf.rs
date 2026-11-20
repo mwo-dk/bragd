@@ -107,6 +107,12 @@ impl std::fmt::Display for TrfError {
 
 impl std::error::Error for TrfError {}
 
+/// `s` with each control character (a line break above all) a space: a field cannot start a
+/// line of its own.
+fn one_line(s: &str) -> String {
+    s.chars().map(|c| if c.is_control() { ' ' } else { c }).collect()
+}
+
 /// Writes a report: the header lines that are not empty, `XXR` and `XXC` when
 /// known, then one `001` line per player in the columns [`parse`] reads.
 pub fn write(t: &Trf) -> String {
@@ -123,7 +129,7 @@ pub fn write(t: &Trf) -> String {
         ("202", &t.tiebreaks),
     ] {
         if !v.is_empty() {
-            out.push_str(&format!("{code} {v}\n"));
+            out.push_str(&format!("{code} {}\n", one_line(v)));
         }
     }
     if let Some(r) = t.rounds {
@@ -135,7 +141,7 @@ pub fn write(t: &Trf) -> String {
     let blank = |n: u32| if n == 0 { String::new() } else { n.to_string() };
     for p in &t.players {
         // Fields cut to their columns, so a long name cannot shift the rest.
-        let fit = |s: &str, w: usize| s.chars().take(w).collect::<String>();
+        let fit = |s: &str, w: usize| one_line(s).chars().take(w).collect::<String>();
         let mut line = format!(
             "001 {:>4} {}{:>3} {:<33} {:>4} {:<3} {:>11} {:<10} {:>4} {:>4}  ",
             p.start_rank,

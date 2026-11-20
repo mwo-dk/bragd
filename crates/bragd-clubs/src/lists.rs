@@ -383,8 +383,35 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
     }
 }
 
+impl List {
+    /// The most bytes one download of it may take: a few times its usual size, so a list that
+    /// grows still comes, and a host that serves something else cannot fill the disk.
+    pub fn max_download(&self) -> u64 {
+        self.size * 4
+    }
+
+    /// The most bytes a packed list may unpack to: FIDE's 45 MB zip holds some 311 MB of text.
+    pub fn max_unpacked(&self) -> u64 {
+        self.size * 20
+    }
+}
+
+/// A reader that fails once more than `left` bytes have come through it.
+struct Limited<R> {
+    inner: R,
+    left: u64,
+}
+
+impl<R: Read> Read for Limited<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let n = self.inner.read(buf)?;
+        self.left = self.left.checked_sub(n as u64).ok_or_else(|| io::Error::other("the list unpacks to more than it should"))?;
+        Ok(n)
+    }
+}
+
 /// The players in the downloaded file `file` of `list`: the first text file in it when it is a
-/// zip.
+/// zip, which may unpack to `List::max_unpacked` at most.
 pub fn read(list: &List, file: &Path, each: Each) -> io::Result<()> {
     let mut f = std::fs::File::open(file)?;
     let mut magic = [0; 4];
@@ -400,7 +427,12 @@ pub fn read(list: &List, file: &Path, each: Each) -> io::Result<()> {
         None => z.by_index(0),
     }
     .map_err(io::Error::other)?;
-    parse(list.format, &mut BufReader::new(entry), each)
+    let max = list.max_unpacked();
+    if entry.size() > max {
+        return Err(io::Error::other(format!("the list unpacks to {} bytes, more than the {max} it should", entry.size())));
+    }
+    // The size an entry gives may be false: what comes out is counted too.
+    parse(list.format, &mut BufReader::new(Limited { inner: entry, left: max }), each)
 }
 
 /// The rating lists file: in the data folder.
@@ -491,8 +523,14 @@ pub fn import_with(path: &Path, list: &str, fill: impl FnOnce(Each) -> io::Resul
     let mut n = 0;
     {
         let mut q = tx.prepare("INSERT OR REPLACE INTO players (list, id, name, key, federation, club, title, rating, rapid, blitz, born, fide_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)").map_err(sql)?;
-        fill(&mut |p: Player| {
-            if p.id.is_empty() || p.name.trim().is_empty() {
+        fill(&mut |mut p: Player| {
+            // A list is somebody else's file: no field may carry a line break into an export.
+            for s in [&mut p.id, &mut p.name, &mut p.federation, &mut p.club, &mut p.title, &mut p.fide_id] {
+                if s.chars().any(char::is_control) {
+                    *s = s.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
+                }
+            }
+            if p.id.trim().is_empty() || p.name.trim().is_empty() {
                 return Ok(());
             }
             q.execute(params![list, p.id, p.name.trim(), fold(&p.name), p.federation, p.club, p.title, p.rating, p.rapid, p.blitz, p.born, p.fide_id]).map_err(sql)?;
@@ -639,6 +677,53 @@ mod tests {
         assert_eq!(names("moller"), ["dsu:Søren Møller"]);
         let l = lists(&db).unwrap();
         assert_eq!(l.iter().map(|i| (i.list.as_str(), i.players)).collect::<Vec<_>>(), [("dsu", 1), ("fide", 1)]);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_list_cannot_forge_a_line_with_a_control_character() {
+        let d = std::env::temp_dir().join(format!("bragd-lists-control-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let db = d.join("rating-lists.sqlite");
+        import(&db, "nzcf-ratings", [Player { federation: "NZ\nL".into(), ..p("1\r", "Bo\n001    9 Forged", Some(1500)) }]).unwrap();
+        let got = search(&db, "bo").unwrap();
+        assert_eq!((got[0].player.name.as_str(), got[0].player.id.as_str(), got[0].player.federation.as_str()), ("Bo 001    9 Forged", "1 ", "NZ L"));
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_packed_list_that_unpacks_to_too_much_is_refused() {
+        use std::io::Write;
+        let d = std::env::temp_dir().join(format!("bragd-lists-bomb-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let list = List { size: 1_000, ..LISTS[0] };
+        let zip_of = |text: &[u8]| {
+            let path = d.join("players_list.zip");
+            let mut z = zip::ZipWriter::new(std::fs::File::create(&path).unwrap());
+            z.start_file("players_list_foa.txt", zip::write::SimpleFileOptions::default()).unwrap();
+            z.write_all(text).unwrap();
+            z.finish().unwrap();
+            path
+        };
+        let head = b"ID Number      Name                                                         Fed Sex Tit  WTit OTit           FOA SRtng SGm SK RRtng RGm Rk BRtng BGm BK B-day Flag\n";
+        let row = b"1503014        Carlsen, Magnus                                              NOR M   GM                             2830  0   10 2800 0   20 2880 0   20 1990  \n";
+        let mut n = 0;
+        let small = zip_of(&[&head[..], &row[..]].concat());
+        read(&list, &small, &mut |_| { n += 1; Ok(()) }).unwrap();
+        assert_eq!(n, 1);
+        // Twenty-one thousand bytes of rows from a list of a thousand: refused before reading.
+        let big = zip_of(&[&head[..], &row.repeat(21_000 / row.len() + 1)].concat());
+        assert!(read(&list, &big, &mut |_| Ok(())).is_err());
+        // The same with the zip claiming it unpacks to 100 bytes: what comes out is counted.
+        let mut bytes = std::fs::read(&big).unwrap();
+        for (sig, at) in [(b"PK\x03\x04", 22), (b"PK\x01\x02", 24)] {
+            let i = bytes.windows(4).position(|w| w == sig).unwrap() + at;
+            bytes[i..i + 4].copy_from_slice(&100u32.to_le_bytes());
+        }
+        std::fs::write(&big, bytes).unwrap();
+        let mut n = 0;
+        assert!(read(&list, &big, &mut |_| { n += 1; Ok(()) }).is_err());
+        assert!(n < 150, "{n} rows read");
         let _ = std::fs::remove_dir_all(&d);
     }
 

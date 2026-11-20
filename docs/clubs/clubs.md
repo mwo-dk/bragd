@@ -103,6 +103,10 @@ Choose a director under **Acting as** (an arbiter runs Tournaments but does not 
 
 A Club without a director could never be changed again. Make someone else a director first.
 
+#### Why does a Tournament or League show as damaged?
+
+Its copy in the Club file cannot be read, perhaps because the file was edited by hand or copied with an error. The rest of the Club opens as usual. The damaged one is listed with the reason, and a director can delete it.
+
 #### Why does a member's rating show ±?
 
 The Club uses Glicko-2, which keeps how sure it is of each rating. The number after ± shrinks as the member plays.

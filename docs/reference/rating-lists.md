@@ -287,7 +287,7 @@ No. It stays in `rating-lists.sqlite` on your machine. Searching it at check-in 
 
 #### How big are the downloads?
 
-The FIDE combined list is 45 MB zipped and 320 MB unzipped, about 1.9 million lines. The standard-only list is 13 MB. The Danish list is 0.5 MB, the Finnish 0.75 MB, the New Zealand 0.9 MB, the Swedish 1 MB, the English 4.5 MB, the Czech 4.8 MB and the Canadian 5.4 MB. The wizard and the Sources page show each list's size before anything is downloaded.
+The FIDE combined list is 45 MB zipped and 320 MB unzipped, about 1.9 million lines. The standard-only list is 13 MB. The Danish list is 0.5 MB, the Finnish 0.75 MB, the New Zealand 0.9 MB, the Swedish 1 MB, the English 4.5 MB, the Czech 4.8 MB and the Canadian 5.4 MB. The wizard and the Sources page show each list's size before anything is downloaded. A download more than four times that size waits for your yes, as any download over its cap does, and a zipped list may unpack to at most twenty times it, so a host that serves something else cannot fill your disk.
 
 #### How much disk does a list take, and how fast is a search?
 

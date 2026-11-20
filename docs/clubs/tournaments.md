@@ -168,7 +168,7 @@ In a Swiss, Monrad, Nordic Swiss or Drop-in, rounds a player did not play count 
 | **Standings and crosstable (HTML)** | One page with the standings and every tiebreak, the crosstable and every Round's pairings and results. It needs no Bragd to read |
 | **FIDE report (TRF)** | FIDE's Tournament Report File (TRF-2026), with the tiebreaks in its `202` line, the system in its `192` line and the players' national ratings. Pairing programs and FIDE rating reports read it |
 | **Games (PGN)** | Every game played over the board, with the players, ratings, FIDE IDs, Round, board and result, but no moves |
-| **Bragd Tournament bundle** | The whole Tournament with its log, plus the three files above, in one `.bragd-tournament` file. **Open a bundle…** reads it into a Club |
+| **Bragd Tournament bundle** | The whole Tournament with its log, plus the three files above, in one `.bragd-tournament` file. **Open a bundle…** reads it into a Club, as a Tournament not yet rated there. A player is linked to the member of this Club with the same FIDE ID, and is a guest otherwise |
 
 The `192` line uses FIDE's code table: `FIDE_DUTCH` or `FIDE_DUTCH_BAKU`, `FIDE_ROUNDROBIN` or `FIDE_DOUBLEROUNDROBIN`, and for the systems FIDE does not define `CUSTOM_SWISS` (Monrad, Nordic Swiss, Drop-in), `CUSTOM_KNOCKOUT` and `CUSTOM_SCHEVENINGEN`. FIDE has not yet fixed a Scheveningen schedule, so Bragd's own is a custom one.
 
@@ -221,6 +221,14 @@ Since March 2026, C.07 caps the score that counts for a player's own unplayed Ro
 #### Where are the pairings for the second screen kept?
 
 In Bragd's cache folder, as `pairings.html`, written each time you press **Show on a second screen**. The window shows that page and nothing else.
+
+#### Why are players from an opened bundle guests?
+
+A bundle can come from another Club, whose member numbers mean other people here. **Open a bundle…** links each player to the member of your Club with the same FIDE ID, and leaves the others as guests, so **Rate** rates only the right members. A bundle rated in its own Club can be rated once in yours.
+
+#### Why can't a name hold a line break?
+
+A name is one line in the TRF and the PGN. A line break in it would start a line of its own, which could pass for a player or a tag. Bragd refuses a name with a line break or another control character, refuses a bundle holding one, and turns them into spaces in a rating list and in every export.
 
 ---
 [← Previous: Clubs](clubs.md) · [Next: Team Leagues →](leagues.md)

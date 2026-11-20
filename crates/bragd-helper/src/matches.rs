@@ -162,8 +162,9 @@ pub fn record(setup: &Setup, names: &[String], index: usize, game: &matches::Gam
 }
 
 /// Plays the match `setup` on from `results`: the results at the end. `stop` is asked between
-/// moves; `done` hears each Game with its record and the results so far.
-pub fn play(setup: &Setup, results: String, stop: &(dyn Fn() -> bool + Sync), done: &(dyn Fn(usize, NewGame, &str) + Sync)) -> Result<String, String> {
+/// moves; `done` hears each Game with its record and the results so far, and its error (the
+/// Game could not be stored) stops the match with that Game unplayed.
+pub fn play(setup: &Setup, results: String, stop: &(dyn Fn() -> bool + Sync), done: &(dyn Fn(usize, NewGame, &str) -> Result<(), String> + Sync)) -> Result<String, String> {
     let cfg = Config::load().unwrap_or_default();
     if setup.engines.len() < 2 {
         return Err("A match needs two engines or more.".into());
@@ -179,10 +180,7 @@ pub fn play(setup: &Setup, results: String, stop: &(dyn Fn() -> bool + Sync), do
         Ok(Player { session: Box::new(e), notation })
     };
     let table = |s: &State, score: Option<i32>| tablebase(&tb, &setup.variant, s, score);
-    let heard = |i: usize, p: &Played, so_far: &str| match record(setup, &names, i, &games[i], p, &date) {
-        Ok(g) => done(i, g, so_far),
-        Err(e) => crate::note(format_args!("a match Game could not be recorded: {e}")),
-    };
+    let heard = |i: usize, p: &Played, so_far: &str| done(i, record(setup, &names, i, &games[i], p, &date).map_err(|e| format!("a match Game could not be recorded: {e}"))?, so_far);
     let results = if results.len() == games.len() { results } else { matches::unplayed(games.len()) };
     matches::run(&Run { setup, games: &games, opening: &*opening, start: &start, table: &table, stop, done: &heard }, results)
 }
