@@ -5,8 +5,12 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+# Kept although it equals the repository: the Tauri bundler writes it into the .deb and .rpm.
 homepage.workspace = true
 publish.workspace = true
+
+[lints.cargo]
+redundant_homepage = "allow"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
