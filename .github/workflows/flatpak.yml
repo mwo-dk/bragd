@@ -133,6 +133,8 @@ jobs:
           sh packaging/pkg-retry.sh flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           sh packaging/pkg-retry.sh flatpak install --user -y --noninteractive flathub org.gnome.Platform//51
           flatpak install --user -y --noninteractive bragd.flatpak
+          # Both programs: the window starts the Helper from beside its own.
+          flatpak run --command=sh io.github.mwo_dk.Bragd -c 'test -x /app/bin/bragd-helper'
       # The window opens and stays up for 40 seconds. A crash or a missing library ends it
       # before the time is up.
       - name: Start

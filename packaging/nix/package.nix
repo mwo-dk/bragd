@@ -25,7 +25,8 @@ let
     version = (lib.importTOML ../../Cargo.toml).workspace.package.version;
     src = lib.cleanSource ../..;
     strictDeps = true;
-    cargoExtraArgs = "--locked -p bragd-gui";
+    # The Helper too: the window starts it from beside its own program.
+    cargoExtraArgs = "--locked -p bragd-gui -p bragd-helper";
     # The workspace's tests run in CI (ci.yml), on every system.
     doCheck = false;
     # wrapGAppsHook3 in both steps: it adds GTK's paths to PKG_CONFIG_PATH, and a change there
