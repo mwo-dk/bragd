@@ -25,11 +25,17 @@ fn sgf_url(base: &str, id: u64) -> String {
     format!("{base}/api/v1/games/{id}/sgf")
 }
 
+/// Whether `url` is a page of the site `root`: under it, not merely starting with its letters
+/// (`https://online-go.com.evil.example/` is not), so the token goes nowhere else.
+fn under(url: &str, root: &str) -> bool {
+    url.strip_prefix(root.trim_end_matches('/')).is_some_and(|rest| rest.is_empty() || rest.starts_with('/'))
+}
+
 /// The Game's number in `game`: the number itself, or an OGS address that ends in it
 /// (`https://online-go.com/game/12345`).
 fn game_id(game: &str, base: &str) -> Option<u64> {
     let g = game.trim().trim_end_matches('/');
-    if g.contains("://") && !(g.starts_with(base) || g.starts_with(OGS.url)) {
+    if g.contains("://") && !(under(g, base) || under(g, OGS.url)) {
         return None;
     }
     let last = g.rsplit('/').next()?;
@@ -74,7 +80,7 @@ impl Source for Ogs {
                 ended.push((id, t));
             }
             match v["next"].as_str() {
-                Some(next) if next.starts_with(&base) => url = next.into(),
+                Some(next) if under(next, &base) => url = next.into(),
                 _ => break,
             }
         }
