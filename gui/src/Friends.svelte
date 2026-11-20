@@ -29,10 +29,12 @@
   let confirmName = $state("");
   let keepGames = $state(false);
 
+  // The poll's own error, cleared by the next poll that works; an action's error stays.
+  let pollError = $state("");
   const refresh = () =>
     api.friendsView().then(
-      (v) => (view = v),
-      (e) => (error = String(e)),
+      (v) => ((view = v), (pollError = "")),
+      (e) => (pollError = String(e)),
     );
   refresh();
   const timer = setInterval(refresh, 1000);
@@ -82,8 +84,8 @@
     {/if}
   </header>
 
-  {#if error || view?.error}
-    <p class="error" role="alert">{error || view.error}</p>
+  {#if error || pollError || view?.error}
+    <p class="error" role="alert">{error || pollError || view.error}</p>
   {/if}
   {#if view?.notice}
     <p class="notice" role="status">{view.notice}</p>
@@ -126,10 +128,10 @@
         <ul class="list">
           {#each view.friends as f (f.name)}
             <li>
-              <span><strong>{f.name}</strong>{#if f.club} <small class="hint">· {t("friends.from_club")}</small>{/if}</span>
-              {#if !f.club}<button onclick={() => act("friends/remove", { name: f.name })} disabled={busy}>{t("friends.remove")}</button>{/if}
-              <button onclick={() => act("blocks", { name: f.name })} disabled={busy}>{t("friends.block")}</button>
-              <button onclick={() => (reporting = f.name)} disabled={busy}>{t("friends.report")}</button>
+              <span><strong id="friend-{f.name}">{f.name}</strong>{#if f.club} <small class="hint">· {t("friends.from_club")}</small>{/if}</span>
+              {#if !f.club}<button onclick={() => act("friends/remove", { name: f.name })} disabled={busy} aria-describedby="friend-{f.name}">{t("friends.remove")}</button>{/if}
+              <button onclick={() => act("blocks", { name: f.name })} disabled={busy} aria-describedby="friend-{f.name}">{t("friends.block")}</button>
+              <button onclick={() => (reporting = f.name)} disabled={busy} aria-describedby="friend-{f.name}">{t("friends.report")}</button>
             </li>
           {/each}
         </ul>

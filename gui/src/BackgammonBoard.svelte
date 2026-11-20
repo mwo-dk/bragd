@@ -3,6 +3,7 @@
   // the bar in the middle and the trays of borne-off checkers on the right. The checkers,
   // dice and cube come from bragd-games; a point is a cell named by its number.
   import { point } from "./board.js";
+  import { t } from "./i18n.svelte.js";
   import { boardKey, stop } from "./rove.js";
 
   /** @type {{ state: any, flipped?: boolean, selected?: string | null, targets?: string[], oncell?: (square: string) => void, onpress?: (square: string, e: PointerEvent) => void }} */
@@ -135,9 +136,9 @@
         onpointerdown={(e) => onpress?.(String(n), e)}
       />
     {/each}
-    <rect class="hit" data-square="bar" x="6" y="0" width="1" height={H} role="gridcell" tabindex={tabStop === "bar" ? 0 : -1} aria-label="bar"
+    <rect class="hit" data-square="bar" x="6" y="0" width="1" height={H} role="gridcell" tabindex={tabStop === "bar" ? 0 : -1} aria-label={t("play.bar")}
       onclick={() => oncell("bar")} onkeydown={(e) => boardKey(e, onScreen, oncell)} onpointerdown={(e) => onpress?.("bar", e)} />
-    <rect class="hit" data-square="off" x="13.2" y="0" width="0.8" height={H} role="gridcell" tabindex={tabStop === "off" ? 0 : -1} aria-label="off"
+    <rect class="hit" data-square="off" x="13.2" y="0" width="0.8" height={H} role="gridcell" tabindex={tabStop === "off" ? 0 : -1} aria-label={t("play.off")}
       onclick={() => oncell("off")} onkeydown={(e) => boardKey(e, onScreen, oncell)} />
   {/if}
   {#if ringBox}

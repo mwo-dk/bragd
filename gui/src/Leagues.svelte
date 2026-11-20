@@ -4,6 +4,8 @@
   // standings (bragd_clubs::league); this page draws them.
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
+  import { ask } from "./confirm.js";
+  import { tabKeys } from "./tabs.js";
   import Why from "./Why.svelte";
   import { here, set } from "./nav.svelte.js";
   import Scroll from "./Scroll.svelte";
@@ -71,7 +73,7 @@
     }
   }
   async function remove() {
-    if (!confirm(t("leagues.remove_confirm", { name: L.name }))) return;
+    if (!(await ask(t("leagues.remove_confirm", { name: L.name }), t("leagues.remove")))) return;
     const v = await run(() => api.leagueRemove(by, lv.id));
     if (v) {
       close();
@@ -80,7 +82,7 @@
   }
   /** Deletes one the Club file holds damaged, which cannot be opened. */
   async function removeDamaged(/** @type {any} */ x) {
-    if (!confirm(t("leagues.remove_confirm", { name: x.name || `#${x.id}` }))) return;
+    if (!(await ask(t("leagues.remove_confirm", { name: x.name || `#${x.id}` }), t("leagues.remove")))) return;
     const v = await run(() => api.leagueRemove(by, x.id));
     if (v) onclub(v);
   }
@@ -175,12 +177,13 @@
         <button disabled={!director} onclick={remove}>{t("leagues.remove")}</button>
       </div>
     </div>
-    <div class="tabs" role="tablist">
+    <div class="tabs" role="tablist" tabindex="-1" onkeydown={tabKeys}>
       {#each TABS as id}
-        <button role="tab" id="lg-tab-{id}" aria-selected={tab === id} class:current={tab === id} onclick={() => (set({ league_tab: id }), (error = ""))}>{t(`leagues.tab.${id}`)}</button>
+        <button role="tab" id="lg-tab-{id}" aria-controls="lg-panel" aria-selected={tab === id} tabindex={tab === id ? 0 : -1} class:current={tab === id} onclick={() => (set({ league_tab: id }), (error = ""))}>{t(`leagues.tab.${id}`)}</button>
       {/each}
     </div>
 
+    <div role="tabpanel" id="lg-panel" aria-labelledby="lg-tab-{tab}">
     {#if tab === "teams"}
       {#each L.teams as tm, i (i)}
         <details open={L.teams.length < 5}>
@@ -290,6 +293,7 @@
         {/each}
       </ul>
     {/if}
+    </div>
   {/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 </div>

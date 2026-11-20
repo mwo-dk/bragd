@@ -415,6 +415,7 @@
                     class:current={sel?.drop === p.sprite || sel?.gate === p.sprite || (sel?.from === "waiting" && h.seat === st.toMove?.index)}
                     disabled={!p.count}
                     onclick={() => hand(h, p)}
+                    aria-label={t("play.in_hand", { piece: t(`piece.${p.sprite}`), count: p.count })}
                   >
                     <svg viewBox="0 0 1 1"><use href="#{p.sprite}" width="1" height="1" /></svg>
                     <span>{p.count}</span>

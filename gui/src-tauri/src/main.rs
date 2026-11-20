@@ -242,6 +242,23 @@ fn save_setting(name: String, value: Value, ctx: tauri::State<'_, Ctx>) -> Resul
     Ok(snap)
 }
 
+/// Saves several options in one write, all or none: a language model's server with its model.
+#[tauri::command]
+fn save_settings(values: Vec<(String, Value)>, ctx: tauri::State<'_, Ctx>) -> Result<Snapshot, String> {
+    if values.iter().any(|(name, _)| name == "start_with_session") {
+        return Err("start_with_session is saved on its own".into());
+    }
+    let cfg = settings::save_all(&values)?;
+    for (name, _) in &values {
+        if let Some(f) = bragd_core::tips::of_setting(name) {
+            bragd_core::tips::used(f);
+        }
+    }
+    let snap = snapshot(&cfg);
+    *ctx.cfg.write().unwrap_or_else(|e| e.into_inner()) = cfg;
+    Ok(snap)
+}
+
 /// Saves one option. *Start with my session* registers the Helper with the session, or takes
 /// the registration away, first (`register`): a registration that failed saves nothing.
 fn save_with(name: &str, value: &Value, register: impl FnOnce(bool) -> std::io::Result<()>) -> Result<Config, String> {
@@ -365,11 +382,9 @@ fn main() {
     if let Some("--version" | "-V") = std::env::args().nth(1).as_deref() {
         return println!("bragd-gui {}", update::VERSION);
     }
-    // A mistake in config.toml costs only its area; a file that cannot be read leaves defaults.
-    let cfg = Config::load().unwrap_or_else(|e| {
-        eprintln!("bragd: {e}; using defaults");
-        Config::default()
-    });
+    // A mistake in config.toml costs only its area; a file that cannot be read leaves defaults,
+    // and a notice says so (`notices::refused`).
+    let cfg = Config::load().unwrap_or_else(Config::unreadable);
     i18n::set_language(i18n::resolve(&cfg.language));
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -400,6 +415,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
             save_setting,
+            save_settings,
             game_new,
             family_turn_on,
             families_only,

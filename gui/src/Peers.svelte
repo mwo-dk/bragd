@@ -6,6 +6,7 @@
   // only draws its view.
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
+  import { ask } from "./confirm.js";
   import Picker from "./Picker.svelte";
 
   /** @type {{ snap: any, save: (name: string, value: any) => Promise<any> }} */
@@ -61,7 +62,11 @@
       code = "";
     }, fail);
   };
-  const unpair = (/** @type {string} */ id) => ((error = ""), api.peerUnpair(id).then(got, fail));
+  async function unpair(/** @type {any} */ p) {
+    if (!(await ask(t("peers.unpair_confirm", { name: p.name }), t("peers.unpair")))) return;
+    error = "";
+    api.peerUnpair(p.key).then(got, fail);
+  }
   const check = () => ((busy = true), api.peersView(true).then(got, fail));
   const syncNow = () => ((error = ""), api.peersSync().then(got, fail));
   const when = (/** @type {number} */ s) => new Date(s * 1000).toLocaleString();
@@ -135,7 +140,7 @@
     {#each v.peers as p (p.key)}
       <div class="peer">
         <div>
-          <strong>{p.name}</strong> <small>{p.addr}</small>
+          <strong id="peer-{p.key}">{p.name}</strong> <small>{p.addr}</small>
           <p class="hint">
             {p.online === true ? t("peers.online") : p.online === false ? t("peers.offline") : ""}
             {#if p.version}{t("peers.version", { version: p.version })}{/if}
@@ -153,7 +158,7 @@
             </p>{/if}
           {:else if v.on}<p class="hint">{t("peers.sync.never")}</p>{/if}
         </div>
-        <button onclick={() => unpair(p.key)}>{t("peers.unpair")}</button>
+        <button onclick={() => unpair(p)} aria-describedby="peer-{p.key}">{t("peers.unpair")}</button>
       </div>
     {/each}
     {#if v.peers.length}

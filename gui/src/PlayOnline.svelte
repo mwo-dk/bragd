@@ -35,10 +35,12 @@
   /** @type {any[]} */
   let choose = $state([]);
 
+  // The poll's own error, cleared by the next poll that works; an action's error stays.
+  let pollError = $state("");
   const refresh = () =>
     api.onlineView(server).then(
-      (v) => (view = v),
-      (e) => (error = String(e)),
+      (v) => ((view = v), (pollError = "")),
+      (e) => (pollError = String(e)),
     );
   refresh();
   const timer = setInterval(refresh, 300);
@@ -159,7 +161,7 @@
     <div class="tray">
       {#each hands(seat) as h}
         {#each h.pieces as p}
-          <button class="hand" class:current={sel?.drop === p.sprite} disabled={!p.count || !mine || seat !== game.seat} onclick={() => hand(p)}>
+          <button class="hand" class:current={sel?.drop === p.sprite} disabled={!p.count || !mine || seat !== game.seat} onclick={() => hand(p)} aria-label={t("play.in_hand", { piece: t(`piece.${p.sprite}`), count: p.count })}>
             <svg viewBox="0 0 1 1"><use href="#{p.sprite}" width="1" height="1" /></svg>
             <span>{p.count}</span>
           </button>
@@ -180,9 +182,9 @@
     {/if}
   </header>{/if}
 
-  {#if error || view?.error}
+  {#if error || pollError || view?.error}
     <p class="error" role="alert">
-      {error || view.error}
+      {error || pollError || view.error}
       {#if view?.signedIn && !view.connected}
         <button onclick={() => run(() => api.onlineReconnect(server))} disabled={busy}>{t("online.reconnect")}</button>
       {/if}

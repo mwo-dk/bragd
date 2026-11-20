@@ -5,6 +5,7 @@
   import * as api from "./api.js";
   import { jobCancel } from "./knowledge.js";
   import { t } from "./i18n.svelte.js";
+  import { ask } from "./confirm.js";
 
   /** @type {any[]} */
   let tables = $state([]);
@@ -18,6 +19,9 @@
     return () => clearInterval(id);
   });
   const act = (/** @type {Promise<any>} */ p) => p.then(load, (e) => (error = String(e)));
+  async function remove(/** @type {any} */ x) {
+    if (await ask(t("ur.table_delete_confirm", { name: x.name }), t("ur.table_delete"))) act(api.urTableDelete(x.variant));
+  }
 </script>
 
 <h2>{t("ur.tables")}</h2>
@@ -26,7 +30,7 @@
   <tbody>
     {#each tables as x (x.variant)}
       <tr>
-        <th scope="row">{x.name}</th>
+        <th scope="row" id="ur-{x.variant}">{x.name}</th>
         <td>
           {#if x.ready}{t("ur.table_ready", { size: x.size })}
           {:else if x.job !== null}
@@ -37,7 +41,7 @@
         </td>
         <td class="actions">
           {#if x.ready}
-            <button onclick={() => act(api.urTableDelete(x.variant))}>{t("ur.table_delete")}</button>
+            <button onclick={() => remove(x)} aria-describedby="ur-{x.variant}">{t("ur.table_delete")}</button>
           {:else if x.job !== null}
             <button onclick={() => act(jobCancel(x.job))}>{t("common.cancel")}</button>
           {:else}

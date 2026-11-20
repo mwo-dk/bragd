@@ -61,7 +61,7 @@ Under *Position store*, below Export and Import, a table lists what each Engine 
 | Delete older Editions | The Evaluations and Annotations of every Edition older than its Engine's newest one here. Another network or image of the newest version stays |
 | Delete removed Engines | The Evaluations and Annotations of Engines no longer set up on this machine: not installed, no image pulled, or added by a path that is gone |
 
-Each button names how many positions it would delete. A shallower Evaluation of the same Edition is never kept: the deeper one replaces it as it arrives. The file shrinks once the rows are gone.
+Each button names how many positions it would delete, and asks before it deletes them. A shallower Evaluation of the same Edition is never kept: the deeper one replaces it as it arrives. The file shrinks once the rows are gone.
 
 ## What it needs
 

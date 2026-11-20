@@ -4,6 +4,7 @@
   // prune the Editions older than the newest and the Engines removed from this machine.
   import * as k from "./knowledge.js";
   import { t, num } from "./i18n.svelte.js";
+  import { ask } from "./confirm.js";
   import Scroll from "./Scroll.svelte";
 
   // The id of the heading it sits under, for its table.
@@ -26,7 +27,8 @@
     load();
   });
 
-  async function prune(/** @type {string} */ what) {
+  async function prune(/** @type {string} */ what, /** @type {string} */ label) {
+    if (!(await ask(t("store.prune_confirm"), label))) return;
     error = message = "";
     busy = true;
     try {
@@ -64,8 +66,8 @@
       </table>
     </Scroll>
     <div class="row">
-      <button onclick={() => prune("older")} disabled={busy || !s.editions.some((/** @type {any} */ e) => e.older)}>{t("store.prune_older", { positions: s.older })}</button>
-      <button onclick={() => prune("removed")} disabled={busy || !s.editions.some((/** @type {any} */ e) => e.removed)}>{t("store.prune_removed", { positions: s.removed })}</button>
+      <button onclick={() => prune("older", t("store.prune_older", { positions: s.older }))} disabled={busy || !s.editions.some((/** @type {any} */ e) => e.older)}>{t("store.prune_older", { positions: s.older })}</button>
+      <button onclick={() => prune("removed", t("store.prune_removed", { positions: s.removed }))} disabled={busy || !s.editions.some((/** @type {any} */ e) => e.removed)}>{t("store.prune_removed", { positions: s.removed })}</button>
     </div>
   {/if}
   {#if message}<p role="status">{message}</p>{/if}

@@ -60,9 +60,9 @@
     {#if more}<p class="hint">{t("background.more")}</p>{/if}
   </fieldset>
   <div class="row">
-    <label class="check"><input type="radio" bind:group={by} value="depth" /> {t("background.depth")}</label>
+    <label class="check"><input type="radio" name="slice-analyse-by" bind:group={by} value="depth" /> {t("background.depth")}</label>
     <input type="number" min="1" max="99" bind:value={depth} disabled={by !== "depth"} aria-label={t("background.depth")} />
-    <label class="check"><input type="radio" bind:group={by} value="time" /> {t("background.seconds")}</label>
+    <label class="check"><input type="radio" name="slice-analyse-by" bind:group={by} value="time" /> {t("background.seconds")}</label>
     <input type="number" min="0.1" step="0.1" bind:value={seconds} disabled={by !== "time"} aria-label={t("background.seconds")} />
   </div>
   <label class="row">{t("background.top")} <input type="number" min="1" max="100000" bind:value={top} /></label>
