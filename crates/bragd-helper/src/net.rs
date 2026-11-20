@@ -30,9 +30,16 @@ pub trait Fetcher: Send + Sync {
     /// `url` of a site's API, as the account `token` signed in there (a Bearer token), asking
     /// for `accept` when it is not empty. A 401, 403 or 429 is `Refused`.
     fn api(&self, url: &str, token: &str, accept: &str) -> io::Result<Got>;
-    /// Waits `secs` before the next request to a site that asks for a pace.
-    fn pause(&self, secs: u64) {
-        std::thread::sleep(std::time::Duration::from_secs(secs));
+    /// Waits `secs` before the next request to a site that asks for a pace, a second at a
+    /// time, asking `stop` between: true when it stopped the wait.
+    fn pause(&self, secs: u64, stop: &dyn Fn() -> bool) -> bool {
+        for _ in 0..secs {
+            if stop() {
+                return true;
+            }
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        stop()
     }
 }
 
@@ -98,6 +105,8 @@ impl Fetcher for Web {
         let r = req.call().map_err(io::Error::other)?;
         let resumed = match r.status().as_u16() {
             404 | 410 => return Ok(Got::Missing),
+            // The `.part` is past the file's end (the file was made again, smaller): all of it.
+            416 if from > 0 => return self.get(url, 0),
             206 => true,
             200 => false,
             s => return Err(status_error(url, s)),
@@ -296,8 +305,9 @@ pub(crate) mod tests {
             let Some(b) = self.files.get(url) else { return Ok(Got::Missing) };
             Ok(Got::Body { resumed: false, size: self.sizes.then_some(b.len() as u64), body: Box::new(io::Cursor::new(b.clone())) })
         }
-        fn pause(&self, secs: u64) {
+        fn pause(&self, secs: u64, stop: &dyn Fn() -> bool) -> bool {
             self.paused.lock().unwrap().push(secs);
+            stop()
         }
     }
 
@@ -323,6 +333,55 @@ pub(crate) mod tests {
         assert!(download(&net, "u", &to, 100, &|| false, &mut |_| {}).unwrap());
         assert_eq!(fs::read(&to).unwrap(), b"0123456789");
         assert!(!download(&net, "nothing", &d.0.join("b.pgn"), 100, &|| false, &mut |_| {}).unwrap());
+    }
+
+    /// Issue 472: a `.part` past the end of the file as it is now (a 416): the file comes
+    /// whole, from its first byte.
+    #[test]
+    fn a_part_past_the_files_end_starts_over() {
+        use std::io::{BufRead, Write as _};
+        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/twic1600g.zip", l.local_addr().unwrap());
+        std::thread::spawn(move || {
+            for s in l.incoming().flatten() {
+                let mut r = io::BufReader::new(s);
+                let mut ranged = false;
+                loop {
+                    let mut line = String::new();
+                    if r.read_line(&mut line).unwrap_or(0) == 0 || line == "\r\n" {
+                        break;
+                    }
+                    ranged |= line.to_ascii_lowercase().starts_with("range:");
+                }
+                let answer = if ranged { "HTTP/1.1 416 Range Not Satisfiable\r\nContent-Length: 0\r\n" } else { "HTTP/1.1 200 OK\r\nContent-Length: 4\r\n" };
+                let _ = write!(r.get_mut(), "{answer}Connection: close\r\n\r\n{}", if ranged { "" } else { "abcd" });
+            }
+        });
+        let d = crate::tests::Dir::new("range");
+        let to = d.0.join("a.zip");
+        fs::write(part_of(&to), b"0123456789").unwrap();
+        let web = Web { offline: false, ..Web::default() };
+        assert!(download(&web, &url, &to, 100, &|| false, &mut |_| {}).unwrap());
+        assert_eq!(fs::read(&to).unwrap(), b"abcd");
+    }
+
+    /// Issue 473: a long wait a site asks for ends when the job is told to stop.
+    #[test]
+    fn a_pause_stops_when_asked() {
+        struct Plain;
+        impl Fetcher for Plain {
+            fn get(&self, _: &str, _: u64) -> io::Result<Got> {
+                Ok(Got::Missing)
+            }
+            fn api(&self, _: &str, _: &str, _: &str) -> io::Result<Got> {
+                Ok(Got::Missing)
+            }
+        }
+        let asked = std::sync::atomic::AtomicU32::new(0);
+        // An hour, stopped at its third second: asked three times, not 3600.
+        assert!(Plain.pause(3600, &|| asked.fetch_add(1, std::sync::atomic::Ordering::Relaxed) >= 2));
+        assert_eq!(asked.into_inner(), 3);
+        assert!(!Plain.pause(0, &|| false));
     }
 
     #[test]

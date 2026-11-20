@@ -18,6 +18,9 @@ pub struct Ogs;
 const PACE: u64 = 2;
 /// Games in one page of the list.
 const PAGE: u32 = 50;
+/// The most Games one fetch lists: the first fetch takes the newest thousand.
+// shortcut: a later fetch with more Games ended since than this skips the oldest of them; a daily fetch never meets it.
+const MOST: u32 = 1000;
 /// About what one Game's SGF takes: a 19×19 Game with its chat.
 const SGF_BYTES: u64 = 3_000;
 
@@ -43,7 +46,7 @@ impl Source for Ogs {
             name: "OGS".into(),
             family: "go".into(),
             // A thousand Games the first time; later fetches take only those ended since.
-            size: 1000 * SGF_BYTES,
+            size: MOST as u64 * SGF_BYTES,
             schedule: Schedule::Daily,
             url: format!("{}/", OGS.url),
             fetchable: true,
@@ -56,13 +59,14 @@ impl Source for Ogs {
     }
 
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>> {
-        let site = Account::signed_in(cx.net, &OGS, PACE)?;
+        let site = Account::signed_in(cx.net, &OGS, PACE, cx.stop)?;
         let base = OGS.base();
         // `last_issue`: when the last Game fetched ended, in seconds since 1970.
         let last = cx.memo.last_issue.map(u64::from);
         let mut url = format!("{base}/api/v1/me/games/?ordering=-ended&page_size={PAGE}");
         let mut ended: Vec<(u64, u64)> = vec![];
-        'pages: loop {
+        // Bounded, whatever `next` the server keeps giving; a stop is asked before each page.
+        'pages: for _ in 0..MOST / PAGE {
             let text = page(&site, &url)?.ok_or_else(|| io::Error::other(format!("{url} is not there")))?;
             let v: serde_json::Value = serde_json::from_str(&text).map_err(|e| io::Error::other(format!("{url}: {e}")))?;
             // Games still being played come first (no end yet): they wait for a later fetch.
@@ -98,7 +102,7 @@ impl Source for Ogs {
         let id = game_id(game, &base).ok_or_else(|| io::Error::other(bragd_core::t!("source.not_a_game", "game" => game.trim(), "server" => OGS.name)))?;
         let to = cx.dir.join(format!("ogs-{id}.sgf"));
         // An SGF is public: the account is asked for only when Bragd is signed in.
-        let site = Account::signed_in(cx.net, &OGS, PACE).ok();
+        let site = Account::signed_in(cx.net, &OGS, PACE, cx.stop).ok();
         let net: &dyn Fetcher = site.as_ref().map_or(cx.net, |s| s);
         if !net::download(net, &sgf_url(&base, id), &to, cx.cap, cx.stop, cx.progress)? {
             return Err(io::Error::other(format!("{} is not there", sgf_url(&base, id))));
@@ -230,6 +234,49 @@ mod tests {
         let _token = Token::set(&base);
         let e = Ogs.fetch(&mut Cx { net: &net, dir: &d.0, cap: SGF_BYTES, memo: &mut memo, options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap_err();
         assert_eq!(TooBig::of(&e).and_then(|t| t.size), Some(2 * SGF_BYTES));
+    }
+
+    /// Issue 474: a list whose `next` never ends is walked for a thousand Games at most, and a
+    /// stop ends the walk at the next page.
+    #[test]
+    fn the_list_walk_is_bounded_and_stops_when_asked() {
+        let _one = KEYCHAIN.lock().unwrap_or_else(|e| e.into_inner());
+        bragd_model::key::mock();
+        let base = OGS.base();
+        let d = crate::tests::Dir::new("ogs-walk");
+        // Every page lists Games being played, and names itself as the next.
+        let net = site(&[(LIST.to_string(), list(&[(30, None)], Some(LIST)))], &[]);
+        let o = Ogs.about().defaults();
+        let _token = Token::set(&base);
+        let mut memo = crate::sources::Memo::default();
+        assert!(Ogs.fetch(&mut Cx { net: &net, dir: &d.0, cap: crate::sources::MAX_DOWNLOAD, memo: &mut memo, options: &o, stop: &|| false, progress: &mut |_| {} }).unwrap().is_empty());
+        assert_eq!(net.asked.lock().unwrap().len(), (MOST / PAGE) as usize);
+        // Stopped after two pages: the walk ends there, said as a stop.
+        let net = site(&[(LIST.to_string(), list(&[(30, None)], Some(LIST)))], &[]);
+        let stop = || net.asked.lock().unwrap().len() >= 2;
+        let e = Ogs.fetch(&mut Cx { net: &net, dir: &d.0, cap: crate::sources::MAX_DOWNLOAD, memo: &mut memo, options: &o, stop: &stop, progress: &mut |_| {} }).unwrap_err();
+        assert_eq!(e.kind(), io::ErrorKind::Interrupted);
+        assert_eq!(net.asked.lock().unwrap().len(), 2);
+    }
+
+    /// Issue 473: a 429's wait is cut short by a stop (Cancel, or the Helper leaving).
+    #[test]
+    fn a_429_wait_ends_when_the_job_is_stopped() {
+        let _one = KEYCHAIN.lock().unwrap_or_else(|e| e.into_inner());
+        bragd_model::key::mock();
+        let base = OGS.base();
+        let d = crate::tests::Dir::new("ogs-429-stop");
+        let net = site(&[(LIST.to_string(), list(&[(10, Some("2026-07-01T08:00:00Z"))], None))], &[10]);
+        net.busy.lock().unwrap().push(sgf_url(&base, 10));
+        // Stopped once the 429 came: the pause hears it.
+        let stop = || net.asked.lock().unwrap().len() >= 2;
+        let o = Ogs.about().defaults();
+        let _token = Token::set(&base);
+        let mut memo = crate::sources::Memo::default();
+        let e = Ogs.fetch(&mut Cx { net: &net, dir: &d.0, cap: crate::sources::MAX_DOWNLOAD, memo: &mut memo, options: &o, stop: &stop, progress: &mut |_| {} }).unwrap_err();
+        assert_eq!(e.kind(), io::ErrorKind::Interrupted);
+        assert_eq!(*net.paused.lock().unwrap(), [PACE, 60], "the wait asked for, cut short");
+        assert_eq!(net.asked.lock().unwrap().len(), 2, "not asked again");
     }
 
     /// The test account's token in the keychain while it lives.

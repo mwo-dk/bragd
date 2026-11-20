@@ -1,6 +1,7 @@
 name: Release
 
-# One run for each push to master. When the version in Cargo.toml has no release yet, it tests
+# Started by hand on master (below: no push or schedule trigger yet; packaging/README.md says the
+# steps). As written for when it runs on each push to master: when the version in Cargo.toml has no release yet, it tests
 # every system, builds every installer, checks that every file is there, publishes the GitHub
 # Release (which creates the tag) and updates the Homebrew cask. WinGet is not updated here:
 # winget.yml files the newest release there once a week. Nix builds from the tag's flake, and
@@ -25,10 +26,12 @@ name: Release
 #                                    (rehearsal) rehearse ─┤
 #                  (anything failed, or a rehearsal: discard) ──┘
 #
-# Never a partial release: every system and every file, or nothing. A failed test stops the run
-# before the draft; a missing file stops it before publishing, and the draft is deleted. A job
-# that failed on GitHub's side is run again with `gh run rerun <id> --failed`: `upload` makes the
-# draft again (packaging/release-draft.sh). A
+# Never a partial release: every system, every file and every channel, or nothing. A failed test
+# or a channel's secret missing or expired stops the run before the draft; a missing file stops it
+# before publishing. A job that failed on GitHub's side is run again with
+# `gh run rerun <id> --failed`: when it failed before `upload` finished, the draft was deleted and
+# `upload` makes it again (packaging/release-draft.sh); when `verify`, `publish` or `rehearse`
+# failed, the draft was kept, whole, and is checked again. A
 # channel that still fails after its retries turns the run red, named. release-check.yml then
 # installs the release and checks every channel.
 # Nothing is released before 1.0.0 (CLAUDE.md), so it runs only by hand until then.
@@ -184,11 +187,32 @@ jobs:
     if: needs.version.outputs.bsd == 'true'
     uses: ./.github/workflows/bsd.yml
 
-  # The gate, then the draft. One release run for a version at a time: a second run for the same
+  # Every channel's secret is there and still signs in, before any draft is made: a channel that
+  # could not be updated after publishing would be a partial release. Builds nothing.
+  channels:
+    needs: version
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          ok=true
+          if [ -z "$TAP_TOKEN" ] || ! GH_TOKEN="$TAP_TOKEN" gh api repos/mwo-dk/homebrew-bragd --silent; then
+            echo "::error title=TAP_TOKEN::not set, or it no longer reaches mwo-dk/homebrew-bragd (expired?): no release. See packaging/README.md."; ok=false
+          fi
+          if [ -z "$WINGET_TOKEN" ] || ! GH_TOKEN="$WINGET_TOKEN" gh api user --silent; then
+            echo "::error title=WINGET_TOKEN::not set, or it no longer signs in (expired?): no release. See packaging/README.md."; ok=false
+          fi
+          "$ok"
+
+  # The gate (every system passed, every channel can be updated), then the draft. One release run for a version at a time: a second run for the same
   # version (one started by hand, or a rerun) waits here, then sees the first run's draft and
   # leaves the release to it, or its published release and stops.
   draft:
-    needs: [version, test-ci, test-flatpak, test-nix, test-bsd]
+    needs: [version, channels, test-ci, test-flatpak, test-nix, test-bsd]
     if: ${{ !cancelled() && needs.version.outputs.release == 'true' }}
     concurrency:
       group: release-${{ needs.version.outputs.tag }}
@@ -298,8 +322,8 @@ jobs:
           toolchain: stable
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          key: boms
-          save-if: false # the Dependencies workflow keeps it, from master
+          shared-key: boms # not keyed by the job's id: deps.yml's `bom` job keeps it, from master
+          save-if: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -387,11 +411,19 @@ jobs:
       # the same target.
       - name: Helper
         shell: bash
-        run: bash packaging/helper-sidecar.sh ${{ matrix.args }}
+        env:
+          ARGS: ${{ matrix.args }}
+        run: |
+          read -ra args <<<"$ARGS"
+          bash packaging/helper-sidecar.sh "${args[@]}"
       - name: Build
         shell: bash
         working-directory: gui
-        run: npm run tauri -- build ${{ matrix.args }} --config '{"bundle":{"resources":["THIRD-PARTY-NOTICES.md"],"externalBin":["binaries/bragd-helper"]}}'
+        env:
+          ARGS: ${{ matrix.args }}
+        run: |
+          read -ra args <<<"$ARGS"
+          npm run tauri -- build "${args[@]}" --config '{"bundle":{"resources":["THIRD-PARTY-NOTICES.md"],"externalBin":["binaries/bragd-helper"]}}'
       # Each installer under the name it has in the release; the macOS .app packed beside its
       # .dmg, named as the .dmg is.
       - name: The installers
@@ -498,7 +530,8 @@ jobs:
   # the Flatpak bundle the Flatpak workflow built and started in this run, and the BSD binaries
   # the BSD workflow built and started in its virtual machines, packed with the tag and notices
   # (packaging/bsd/pack.sh). It finds this run's draft, or makes it again when `discard` deleted it
-  # after a failed attempt: `gh run rerun <id> --failed` then finishes the release.
+  # after an attempt that failed before this job finished: `gh run rerun <id> --failed` then
+  # finishes the release.
   upload:
     needs: [version, draft, boms, desktop, sign-macos]
     if: needs.draft.outputs.id != ''
@@ -549,8 +582,8 @@ jobs:
           packaging/retry.sh gh release upload --clobber "$TAG" files/*
 
   # Every file the jobs above make (packaging/release-assets.sh), each installer's .sha256 and
-  # one SHA256SUMS over all of them, or no release: on any gap this fails, says what is missing,
-  # and `discard` deletes the draft.
+  # one SHA256SUMS over all of them, or no release: on any gap this fails and says what is
+  # missing. `discard` keeps the draft, unpublished, for `gh run rerun <id> --failed`.
   verify:
     needs: [version, draft, upload]
     runs-on: ubuntu-24.04
@@ -659,10 +692,12 @@ jobs:
           packaging/retry.sh packaging/taps/generate.sh "$TAG" "$dir"
           brew audit --cask rehearsal/check/bragd
 
-  # Anything between the draft and publishing failed, or the run was cancelled: the draft this
-  # run made goes, so no half-made release is left behind. A run by hand starts again cleanly; a
-  # rerun of the failed jobs makes the draft again in `upload`. A rehearsal's draft always goes,
-  # its branch when it passed: a failed one's jobs build from it when they are run again.
+  # Anything between the draft and publishing failed, or the run was cancelled: nothing is
+  # published. The draft this run made goes, unless only `verify`, `publish` or `rehearse` failed
+  # after `upload` finished: then it stays, unpublished, so a rerun of the failed jobs checks it
+  # again (their `needs.upload.outputs.id` names it); a rerun after an earlier failure makes it
+  # again in `upload`. A run by hand replaces a draft no run is working on. A rehearsal's draft
+  # goes when it passed, and its branch: a failed one's jobs build from it when run again.
   discard:
     needs: [version, draft, boms, desktop, sign-macos, upload, verify, rehearse, publish]
     if: always() && (needs.version.outputs.rehearsal == 'true' || (needs.draft.outputs.id != '' && needs.publish.result != 'success'))
@@ -687,7 +722,12 @@ jobs:
             fi
           else
             failed=$(jq -r 'to_entries[] | select(.value.result != "success") | "\(.key) (\(.value.result))"' <<<"$NEEDS" | xargs)
-            echo "::error title=No release::$TAG is not released: $failed. Its draft is deleted. A fault on GitHub's side: gh run rerun $GITHUB_RUN_ID --failed."
+            echo "::error title=No release::$TAG is not released: $failed. A fault on GitHub's side: gh run rerun $GITHUB_RUN_ID --failed."
+          fi
+          # Failed after a whole upload, not cancelled: the draft stays for the rerun.
+          keep=$(jq -r '.upload.result == "success" and ([.[].result] | index("cancelled") | not) and ([.verify.result, .publish.result, .rehearse.result] | index("failure") != null)' <<<"$NEEDS")
+          if [ "$keep" = true ]; then
+            echo "::notice::$TAG: its draft is kept, unpublished, for gh run rerun $GITHUB_RUN_ID --failed."; exit 0
           fi
           info="$(gh release view "$TAG" --repo "$REPO" --json isDraft,body)" || exit 0
           if [ "$(jq -r .isDraft <<<"$info")" = true ] &&
@@ -704,15 +744,14 @@ jobs:
     env:
       TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
     steps:
+      # `channels` checked it before the draft; gone since, the run is red.
       - if: env.TAP_TOKEN == ''
-        run: echo "::notice::TAP_TOKEN is not set, so Homebrew is not updated. See packaging/README.md."
+        run: echo "::error::TAP_TOKEN is not set, so Homebrew is not updated. See packaging/README.md."; exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: env.TAP_TOKEN != ''
         with:
           persist-credentials: false
           ref: ${{ needs.draft.outputs.sha }}
       - name: Update mwo-dk/homebrew-bragd
-        if: env.TAP_TOKEN != ''
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.draft.outputs.tag }}

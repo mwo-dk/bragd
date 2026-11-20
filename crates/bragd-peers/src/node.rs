@@ -38,7 +38,7 @@ pub const CODE_TRIES: u32 = 5;
 /// A line longer than this ends the connection.
 const LINE_MAX: u64 = 64 * 1024;
 /// A reply to a `call`, at most: a Peer paired with this one sends it.
-const REPLY_MAX: u64 = 4 * 1024 * 1024;
+pub const REPLY_MAX: u64 = 4 * 1024 * 1024;
 /// The whole of a connection, handshake included: a Peer answers at once.
 const DEADLINE: Duration = Duration::from_secs(5);
 /// How long dialling a Peer may take.
@@ -320,7 +320,7 @@ impl Node {
     /// it listens on.
     pub fn listen(self: &Arc<Self>, addrs: &[SocketAddr]) -> io::Result<Listening> {
         let stop = Arc::new(AtomicBool::new(false));
-        let mut bound = vec![];
+        let (mut bound, mut threads) = (vec![], vec![]);
         let listeners = addrs.iter().map(TcpListener::bind).collect::<io::Result<Vec<_>>>()?;
         for l in listeners {
             l.set_nonblocking(true)?;
@@ -328,7 +328,7 @@ impl Node {
             self.port.store(at.port(), Ordering::Relaxed);
             bound.push(at);
             let (node, stop) = (self.clone(), stop.clone());
-            std::thread::spawn(move || {
+            threads.push(std::thread::spawn(move || {
                 while !stop.load(Ordering::Relaxed) {
                     match l.accept() {
                         Ok((sock, from)) => {
@@ -346,9 +346,9 @@ impl Node {
                         Err(_) => std::thread::sleep(Duration::from_millis(500)),
                     }
                 }
-            });
+            }));
         }
-        Ok(Listening { stop, addrs: bound })
+        Ok(Listening { stop, addrs: bound, threads })
     }
 
     fn serve(&self, sock: TcpStream, from: SocketAddr) -> io::Result<()> {
@@ -553,14 +553,20 @@ pub fn resolve(addr: &str) -> io::Result<Vec<SocketAddr>> {
     Ok(found.collect())
 }
 
-/// Listening, until dropped.
+/// Listening, until dropped. Dropped, its sockets are closed: the same addresses can be
+/// listened on again at once.
 pub struct Listening {
     stop: Arc<AtomicBool>,
     pub addrs: Vec<SocketAddr>,
+    threads: Vec<std::thread::JoinHandle<()>>,
 }
 
 impl Drop for Listening {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::Relaxed);
+        // Each thread owns its listener: joined, the socket is closed.
+        for t in self.threads.drain(..) {
+            let _ = t.join();
+        }
     }
 }

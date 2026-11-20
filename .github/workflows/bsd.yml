@@ -112,10 +112,12 @@ jobs:
       # Packed as the release packs it, with this checkout's version: the archive's layout is
       # tested on every run, not first in a release.
       - name: Pack
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
           v="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-          sh packaging/bsd/pack.sh "v$v" "${{ matrix.target }}" out dist
-          tar tzf "dist/bragd-desktop-v$v-${{ matrix.target }}.tar.gz"
+          sh packaging/bsd/pack.sh "v$v" "$TARGET" out dist
+          tar tzf "dist/bragd-desktop-v$v-$TARGET.tar.gz"
           (cd dist && sha256sum -c ./*.sha256)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

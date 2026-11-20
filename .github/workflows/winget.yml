@@ -31,13 +31,11 @@ jobs:
       ID: mwo-dk.Bragd
     steps:
       - if: env.WINGET_TOKEN == ''
-        run: echo "::notice::WINGET_TOKEN is not set, so WinGet is not updated. See packaging/README.md."
+        run: echo "::error::WINGET_TOKEN is not set, so WinGet is not updated. See packaging/README.md."; exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: env.WINGET_TOKEN != ''
         with:
           persist-credentials: false
       - name: File the winget-pkgs pull request, close the ones it supersedes
-        if: env.WINGET_TOKEN != ''
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}

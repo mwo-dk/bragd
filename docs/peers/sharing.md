@@ -24,7 +24,7 @@ A job of the shared queue also shows on the [Jobs page](../knowledge/helper.md),
 
 ## The Position store's sync
 
-Every minute, the Helper asks each paired machine for the rows that changed in its store since the last time, and merges them by the store's rule: for one position and one Edition, the deeper row wins. The order rows arrive in makes no difference, so merging never conflicts. Each machine asks the other, so rows go both ways, and a row passes on: with three machines, A and C each paired only with B, all three end with the same store.
+When Peers are turned on, and every minute after, the Helper asks each paired machine for the rows that changed in its store since the last time, and merges them by the store's rule: for one position and one Edition, the deeper row wins. The order rows arrive in makes no difference, so merging never conflicts. Each machine asks the other, so rows go both ways, and a row passes on: with three machines, A and C each paired only with B, all three end with the same store.
 
 Only what changed since the last sync goes over: each row carries a change number, and each machine keeps how far it got with each Peer. A sync takes at most 50 batches of 2,000 rows from one Peer; a big store comes over in several minutes. Delete the Position store on one machine, and it takes everything again from its Peers.
 
@@ -37,7 +37,7 @@ A machine takes a job from a Peer when it has none of its own waiting, and only 
 
 The job carries its positions, so the other machine needs neither the Library nor the Slice. It runs there into that machine's own Position store, and its results come back with the next sync. The machine that queued it marks it done as soon as it is given back, and takes the results at once.
 
-A job is lent for ten minutes, and renewed every minute while it runs. If the other machine goes away, the lease runs out and the job goes back to the queue: here, or to another Peer. Positions already analysed are not analysed again. A machine that cannot do a job, for want of the Engine, too old an Edition, or because it failed there, gives it back, and is not offered that job again.
+A job is lent for ten minutes, and renewed every minute while it runs. If the other machine goes away, the lease runs out and the job goes back to the queue: here, or to another Peer. Positions already analysed are not analysed again. A machine that cannot do a job, for want of the Engine, too old an Edition, or because it failed there, gives it back, and is not offered that job again. A job too large to send in one reply (more than 4 MiB, a Slice of many thousand positions) is never lent: this machine does it itself.
 
 Container Engines run the same Edition on every machine, pinned by image digest, so they suit shared jobs best ([Engine container images](../engines/container-images.md)). A machine asking for a job says which Engines it runs from their image, and is lent the jobs for those Engines first. The jobs you asked for still go before those from Games you opened.
 

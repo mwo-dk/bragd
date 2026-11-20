@@ -83,9 +83,16 @@ fn node(l: &mut Live) -> Result<Arc<Node>, String> {
     }
     let dir = crate::folder().ok_or("no data folder")?.join("peers");
     let n = Node::open(&dir, &bragd_peers::machine_name(), crate::VERSION).map_err(|e| e.to_string())?;
-    if let Some(jobs) = JOBS.get() {
-        let share = SHARE.get_or_init(|| crate::share::Share::new(n.clone(), jobs.clone()));
+    if let Some(jobs) = JOBS.get()
+        && SHARE.get().is_none()
+    {
+        let share = crate::share::Share::new(n.clone(), jobs.clone());
+        let _ = SHARE.set(share.clone());
         let _ = jobs.peers.set(share.clone() as Arc<dyn crate::jobs::Peers>);
+        // The Position store's sync, from when this machine first is a Peer; it leaves with
+        // the Helper, not waited for.
+        let jobs = jobs.clone();
+        std::thread::spawn(move || share.run(&|| jobs.quitting()));
     }
     l.node = Some(n.clone());
     Ok(n)

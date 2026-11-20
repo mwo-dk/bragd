@@ -123,7 +123,6 @@ fn an_unpaired_key_is_refused() {
     let code = stranger.node.show_code(CODE_TTL).unwrap();
     b.node.pair_with(&stranger.addr(), &code).unwrap();
     stranger.listening = None;
-    std::thread::sleep(Duration::from_millis(300));
     b.node.unpair(&stranger.node.id()).unwrap();
     assert_eq!(stranger.node.peers().len(), 1);
     // Refused in the handshake, before a word is said.
@@ -148,7 +147,6 @@ fn a_peer_moves_only_when_it_answers_at_the_new_address() {
     // b at a new address of its own: it answers there, and the move is kept.
     let mut b = b;
     b.listening = None;
-    std::thread::sleep(Duration::from_millis(300));
     b.listening = Some(b.node.listen(&["127.0.0.1:0".parse::<SocketAddr>().unwrap()]).unwrap());
     assert!(a.node.hello(&b.node.id()).is_err());
     a.node.moved(&b.node.id(), &b.addr()).unwrap();
@@ -174,11 +172,22 @@ fn either_side_can_unpair() {
     let d_id = d.node.id();
     let mut d = d;
     d.listening = None;
-    std::thread::sleep(Duration::from_millis(300));
     c.node.unpair(&d_id).unwrap();
     assert!(c.node.peers().is_empty());
     d.listening = Some(d.node.listen(&[d_addr.parse().unwrap()]).unwrap());
     assert!(d.node.hello(&c.node.id()).is_err());
+}
+
+/// Issue 471: a `Listening` dropped has closed its sockets, so the same address can be
+/// listened on again at once, as a change of interface does.
+#[test]
+fn the_same_address_is_listened_on_again_at_once() {
+    let mut a = Machine::new("a");
+    let at = a.addr();
+    for _ in 0..3 {
+        a.listening = None;
+        a.listening = Some(a.node.listen(&[at.parse().unwrap()]).unwrap());
+    }
 }
 
 #[test]
