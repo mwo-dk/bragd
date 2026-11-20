@@ -26,6 +26,7 @@ fn busy_anna(db: &Db) -> (User, User, User) {
     db.call(&carl, "POST", "/v1/reports", json!({ "name": "Anna", "reason": "rude too" }));
     let club = db.call(&anna, "POST", "/v1/clubs", json!({ "name": "Skakklubben" })).1;
     db.call(&bo, "POST", "/v1/clubs/join", json!({ "code": club["code"] }));
+    db.call(&anna, "POST", "/v1/clubs", json!({ "name": "Annas egen" }));
     let game = |them: &User, accept: bool| {
         let id = db.call(&anna, "POST", "/v1/games", json!({ "opponent": name(db, them), "variant": "chess", "side": "first" })).1["id"].as_str().unwrap().to_string();
         if accept {
@@ -99,15 +100,20 @@ fn deleting_an_account_leaves_no_row_with_its_id(pg: &Pg) {
     assert_eq!(games[0]["moves"], json!(["e2e4"]));
     assert_eq!(games[0]["result"], "1-0");
     assert_eq!(st["friends"], json!([]));
-    assert_eq!(st["clubs"], json!([]), "the Club Anna made went with her");
+    let clubs = &st["clubs"];
+    assert_eq!((clubs.as_array().unwrap().len(), &clubs[0]["name"], &clubs[0]["members"]), (1, &json!("Skakklubben"), &json!(1)), "{st}");
+    assert_ne!(clubs[0]["code"], "", "the Club Anna made is Bo's now");
+    let alone: i64 = db.owner().query_one("select count(*) from public.clubs where name = 'Annas egen'", &[]).unwrap().get(0);
+    assert_eq!(alone, 0, "a Club with no other member goes");
     let id = games[0]["id"].as_str().unwrap();
     assert_eq!(db.call(&bo, "POST", &format!("/v1/games/{id}/resign"), json!({})), (409, json!({ "error": "not_now" })));
 
-    // Carl's Game under way ended as Anna's resignation; his own Chat line stays.
+    // Carl's Game under way ended as Anna's resignation; the Chat both kept stays whole.
     let st = db.call(&carl, "GET", "/v1/state", json!({})).1;
     let g = &st["games"][0];
     assert_eq!((g["status"].as_str(), g["result"].as_str(), g["reason"].as_str()), (Some("over"), Some("0-1"), Some("resign")), "{st}");
-    assert_eq!(g["chat"]["lines"], json!([{ "mine": true, "text": "hello" }]));
+    assert_eq!(g["chat"]["lines"], json!([{ "mine": false, "text": "hi" }, { "mine": true, "text": "hello" }]));
+    assert_reports_kept(&db);
 
     // Her token no longer opens anything of hers, and deleting again is harmless.
     assert_eq!(db.call(&anna, "GET", "/v1/state", json!({})).1["me"], Value::Null);
@@ -124,4 +130,13 @@ fn deleting_without_keeping_takes_the_games_too(pg: &Pg) {
     }
     let n: i64 = db.owner().query_one("select count(*) from public.games", &[]).unwrap().get(0);
     assert_eq!(n, 0);
+    assert_reports_kept(&db);
+}
+
+/// The report Carl made about Anna is still the operator's, with her name and without her id;
+/// the one she made is gone with her.
+fn assert_reports_kept(db: &Db) {
+    let rows = db.owner().query("select reported is null, reported_name, reason from public.reports", &[]).unwrap();
+    let rows: Vec<(bool, Option<String>, String)> = rows.iter().map(|r| (r.get(0), r.get(1), r.get(2))).collect();
+    assert_eq!(rows, vec![(true, Some("Anna".to_string()), "rude too".to_string())]);
 }

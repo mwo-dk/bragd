@@ -24,6 +24,48 @@ pub struct Service {
     pub verifier: Verifier,
     pub public: Public,
     pub turn: Turn,
+    pub limits: Limits,
+}
+
+/// A token bucket for each caller: `burst` requests at once, then `per_second` more each second.
+/// Kept in memory: a restart forgets it, which costs a flooder nothing they could not get anyway.
+pub struct Limits {
+    burst: f64,
+    per_second: f64,
+    buckets: std::sync::Mutex<std::collections::HashMap<uuid::Uuid, (f64, std::time::Instant)>>,
+}
+
+/// The service's own limits: plenty for a player, Realtime's nudges included.
+const BURST: f64 = 120.0;
+const PER_SECOND: f64 = 4.0;
+
+impl Default for Limits {
+    fn default() -> Limits {
+        Limits::new(BURST, PER_SECOND)
+    }
+}
+
+/// Callers remembered before the full buckets are forgotten.
+const CALLERS: usize = 10_000;
+
+impl Limits {
+    pub fn new(burst: f64, per_second: f64) -> Limits {
+        Limits { burst, per_second, buckets: Default::default() }
+    }
+
+    /// Whether `who` may make a request at `now`, which then counts.
+    pub fn allow(&self, who: uuid::Uuid, now: std::time::Instant) -> bool {
+        let mut m = self.buckets.lock().unwrap_or_else(|e| e.into_inner());
+        let fill = |(tokens, at): (f64, std::time::Instant)| (tokens + now.saturating_duration_since(at).as_secs_f64() * self.per_second).min(self.burst);
+        if m.len() >= CALLERS {
+            m.retain(|_, b| fill(*b) < self.burst);
+        }
+        let b = m.entry(who).or_insert((self.burst, now));
+        let tokens = fill(*b);
+        let ok = tokens >= 1.0;
+        *b = (if ok { tokens - 1.0 } else { tokens }, now);
+        ok
+    }
 }
 
 /// The STUN and TURN servers a Call may use, and the secret TURN shares with the game service.
@@ -47,6 +89,8 @@ impl From<postgres::Error> for Error {
             Some(c) if *c == SqlState::INSUFFICIENT_PRIVILEGE => Error(403, "refused"),
             Some(c) if *c == SqlState::CHECK_VIOLATION || *c == SqlState::NOT_NULL_VIOLATION => Error(400, "bad_request"),
             Some(c) if *c == SqlState::FOREIGN_KEY_VIOLATION => Error(400, "no_profile"),
+            // `bragd.quota()`: the player wrote as much as they may for now.
+            Some(c) if c.code() == "PT429" => Error(429, "too_often"),
             _ => {
                 eprintln!("database: {e}");
                 Error(500, "server")
@@ -78,6 +122,9 @@ impl Service {
         }
         let token = authorization.and_then(|a| a.strip_prefix("Bearer ")).ok_or(Error(401, "signed_out"))?;
         let caller = self.verifier.check(token).map_err(|_| Error(401, "signed_out"))?;
+        if !self.limits.allow(caller.id, std::time::Instant::now()) {
+            return Err(Error(429, "too_often"));
+        }
         let body: Value = if body.trim().is_empty() { json!({}) } else { serde_json::from_str(body).map_err(|_| Error(400, "bad_request"))? };
         let parts: Vec<&str> = path.trim_matches('/').split('/').collect();
         match (method, parts.as_slice()) {
@@ -108,6 +155,14 @@ impl Service {
     /// ended in the last day.
     fn state(&self, caller: &Caller) -> Res {
         self.pool.as_user(caller, |tx| {
+            // A challenge stands for 7 days; then it is cancelled, as the referee.
+            db::referee(tx)?;
+            tx.execute(
+                "update public.games set status = 'cancelled' \
+                 where status = 'offered' and created_at < now() - interval '7 days' and $1 in (first, second)",
+                &[&caller.id],
+            )?;
+            tx.batch_execute("set local role authenticated")?;
             let me = tx.query_opt("select name from public.profiles where id = auth.uid()", &[])?.map(|r| r.get::<_, String>(0));
             let rows = tx.query(
                 "select g.id, f.name, s.name, coalesce(g.first = auth.uid(), false), coalesce(g.challenger = auth.uid(), false), g.variant, g.status, \
@@ -120,14 +175,14 @@ impl Service {
                  case when g.first = auth.uid() then g.keep_second else g.keep_first end, \
                  coalesce(bragd.are_friends(auth.uid(), case when g.first = auth.uid() then g.second else g.first end), false), \
                  case when g.first = auth.uid() then g.second else g.first end, \
-                 (select coalesce(json_agg(json_build_object('mine', c.sender = auth.uid(), 'text', c.text) order by c.id), '[]'::json) \
+                 (select coalesce(json_agg(json_build_object('mine', coalesce(c.sender = auth.uid(), false), 'text', c.text) order by c.id), '[]'::json) \
                   from (select * from public.chat where game_id = g.id order by id desc limit 100) c), \
                  g.initial, g.clock_ms, g.increment_ms, g.rated, g.left_first, g.left_second, g.clock_side, \
                  coalesce((extract(epoch from now() - g.turn_started) * 1000)::bigint, 0) \
                  from public.games g left join public.profiles f on f.id = g.first left join public.profiles s on s.id = g.second \
                  where (g.first is null or f.id is not null) and (g.second is null or s.id is not null) \
                  and (g.status in ('offered', 'playing') or g.updated_at > now() - interval '1 day') \
-                 order by g.updated_at desc limit 50",
+                 order by g.status = 'playing' desc, g.updated_at desc limit 50",
                 &[],
             )?;
             let games: Vec<Value> = rows
@@ -288,10 +343,11 @@ impl Service {
     fn take(&self, caller: &Caller, id: uuid::Uuid) -> Res {
         self.pool.as_user(caller, |tx| {
             // Seen as the caller: a seek between players who block each other is not there.
-            let seeker: uuid::Uuid = tx
-                .query_opt("select player from public.seeks where id = $1 and created_at > now() - interval '1 hour'", &[&id])?
-                .ok_or(Error(404, "no_seek"))?
-                .get(0);
+            let seek = tx
+                .query_opt("select player, variant from public.seeks where id = $1 and created_at > now() - interval '1 hour'", &[&id])?
+                .ok_or(Error(404, "no_seek"))?;
+            let seeker: uuid::Uuid = seek.get(0);
+            playable(seek.get(1)).map_err(|_| Error(409, "variant"))?;
             if seeker == caller.id {
                 return Err(Error(409, "own_seek"));
             }
@@ -302,7 +358,6 @@ impl Service {
                 .query_opt("delete from public.seeks where id = $1 returning variant, clock_ms, increment_ms, rated", &[&id])?
                 .ok_or(Error(404, "no_seek"))?;
             let variant: String = row.get(0);
-            playable(&variant)?;
             let (a, b) = if random_bit() { (seeker, caller.id) } else { (caller.id, seeker) };
             let game: uuid::Uuid = tx
                 .query_one(
@@ -395,7 +450,11 @@ impl Game {
         }
         let challenged = me != self.challenger;
         match (what, self.status.as_str()) {
-            ("accept", "offered") if challenged => self.start(tx),
+            ("accept", "offered") if challenged => {
+                // A challenge written past the game service, in a Variant the referee has no rules for.
+                playable(&self.variant).map_err(|_| Error(409, "variant"))?;
+                self.start(tx)
+            }
             ("decline", "offered") if challenged => self.set(tx, "declined", None, None),
             ("cancel", "offered") if !challenged => self.set(tx, "cancelled", None, None),
             ("move", "playing") => self.play(tx, me, body),
@@ -643,4 +702,22 @@ pub(crate) fn text<'a>(body: &'a Value, field: &str) -> Result<&'a str, Error> {
 fn random_bit() -> bool {
     let mut b = [0u8; 1];
     ring::rand::SecureRandom::fill(&ring::rand::SystemRandom::new(), &mut b).is_ok() && b[0] & 1 == 1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn a_caller_gets_a_burst_then_a_steady_rate() {
+        let (limits, t0) = (Limits::default(), Instant::now());
+        let (anna, bo) = (uuid::Uuid::new_v4(), uuid::Uuid::new_v4());
+        assert_eq!((0..200).filter(|_| limits.allow(anna, t0)).count(), BURST as usize);
+        assert!(limits.allow(bo, t0), "another caller's bucket is their own");
+        let later = t0 + Duration::from_secs(1);
+        assert_eq!((0..200).filter(|_| limits.allow(anna, later)).count(), PER_SECOND as usize);
+        let much_later = t0 + Duration::from_secs(3600);
+        assert_eq!((0..200).filter(|_| limits.allow(anna, much_later)).count(), BURST as usize, "never more than the burst");
+    }
 }

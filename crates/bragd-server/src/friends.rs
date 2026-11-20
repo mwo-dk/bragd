@@ -98,6 +98,8 @@ impl Service {
             }
             ["invites"] => {
                 let code = code();
+                // An invite lasts 7 days: the caller's older ones go first.
+                tx.execute("delete from public.invites where inviter = auth.uid() and created_at < now() - interval '7 days'", &[])?;
                 tx.execute("insert into public.invites (code, inviter) values ($1, auth.uid())", &[&code])?;
                 Ok(json!({ "code": code }))
             }
@@ -105,7 +107,10 @@ impl Service {
             ["invites", "redeem"] => {
                 let code = text(body, "code")?;
                 db::referee(tx)?;
-                let inviter: uuid::Uuid = tx.query_opt("delete from public.invites where code = $1 returning inviter", &[&code])?.ok_or(Error(404, "no_invite"))?.get(0);
+                let inviter: uuid::Uuid = tx
+                    .query_opt("delete from public.invites where code = $1 and created_at > now() - interval '7 days' returning inviter", &[&code])?
+                    .ok_or(Error(404, "no_invite"))?
+                    .get(0);
                 if inviter == caller.id {
                     return Err(Error(409, "own_invite"));
                 }

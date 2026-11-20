@@ -7,7 +7,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
-use bragd_server::api::{Public, Service, Turn};
+use bragd_server::api::{Limits, Public, Service, Turn};
 use bragd_server::db::Pool;
 use bragd_server::jwt::{Verifier, sign_hs256, user_claims};
 use postgres::{Client, NoTls};
@@ -98,6 +98,8 @@ impl Pg {
             pool: Pool::new(&format!("{url}?sslmode=disable")).unwrap(),
             verifier: Verifier::new(Some(SECRET), None),
             public: Public { supabase_url: "http://supabase.test".into(), supabase_key: "publishable".into(), oauth: vec!["github".into()] },
+            // The game tests play whole Games at once; `abuse` puts the real limits back.
+            limits: Limits::new(1e9, 0.0),
             turn: Turn { urls: vec!["stun:turn.test:3478".into(), "turn:turn.test:3478".into(), "turns:turn.test:5349".into()], secret: "turn-secret".into() },
         };
         Db { url, service }

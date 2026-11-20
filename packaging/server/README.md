@@ -19,7 +19,32 @@ referee's writes, made after the rules have checked a move, step out of that rol
 *Delete my account* (`DELETE /v1/me`) runs `bragd.forget` from
 `supabase/migrations/…_delete_account.sql` as that role too. It deletes the caller's row in
 `auth.users`, whose cascades take everything else, so the role must be allowed to delete there, as
-Supabase's `postgres` role is. A player cannot run it themselves.
+Supabase's `postgres` role is. A player cannot run it themselves. Three things outlive the account
+without its id (`…_hardening.sql`): reports about the player, with the name they had; a Club they
+made, passed to another member; and Chat lines both players kept.
+
+Supabase grants its API roles everything on every new table in `public`. The migrations take that
+back and grant each table column by column, and later tables start with nothing: a new table's
+migration grants what players may do with it, or they can do nothing.
+
+### Limits
+
+What one account may write, enforced in the database, so they hold through Supabase's own API too.
+Past a limit the answer is 429 `too_often`.
+
+| What | Limit |
+|---|---|
+| Reports | 20 a day |
+| Invite codes | 20 at once; a code lasts 7 days |
+| Clubs | 5 a day |
+| Open challenges | 10 at once; a challenge lasts 7 days |
+| Games started | 200 a day |
+| Friend requests | 50 a day |
+| Chat lines | 30 a minute |
+
+The game service also allows each signed-in caller 120 requests at once and 4 a second after
+that. Each connection has 20 seconds to send its request and read the answer, and carries one
+request; at most 8 requests use the database at once.
 
 ## Running it
 
@@ -28,7 +53,7 @@ podman build -f packaging/server/Dockerfile --ignorefile packaging/server/Docker
 podman run -d --init --name bragd-server -p 127.0.0.1:8080:8080 --env-file /etc/bragd-server.env localhost/bragd-server:dev
 ```
 
-`--init` lets the container stop at once: the service itself does not wait for a signal. Put a TLS proxy in front of port 8080. Bragd's Settings → Online → *Bragd server address* is that
+`--init` lets the container stop at once: the service itself does not wait for a signal. Put a TLS proxy in front of port 8080, set to buffer each request's body before passing it on (Caddy and nginx do by default) and to limit connections from one address. The service drops a connection that takes over 20 seconds, but only the proxy sees who opens them. Bragd's Settings → Online → *Bragd server address* is that
 proxy's `https://` address.
 
 | Variable | What |
