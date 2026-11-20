@@ -17,7 +17,8 @@
   const tab = $derived(place.view.tournament_tab ?? "players");
   let error = $state("");
   let note = $state("");
-  const today = () => new Date().toISOString().slice(0, 10);
+  // The local date: toISOString would give UTC's, tomorrow's on an evening east of Greenwich.
+  const today = () => new Date().toLocaleDateString("en-CA");
   const blank = () => ({ name: "", system: "dutch", baku: false, standings: "percentage", best: 10, rounds: 7, date: today(), place: "", variant: variants[0]?.key ?? "chess", handicap: false, reduction: 0, max: 9, matchTo: 7 });
   /** The Variants of the Families turned on. @type {any[]} */
   let variants = $state([]);

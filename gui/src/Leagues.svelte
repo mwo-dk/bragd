@@ -16,7 +16,8 @@
   /** The open League and its tab are part of the place, so Back returns to them. */
   const tab = $derived(here.view.league_tab ?? "teams");
   let error = $state("");
-  const today = () => new Date().toISOString().slice(0, 10);
+  // The local date: toISOString would give UTC's, tomorrow's on an evening east of Greenwich.
+  const today = () => new Date().toLocaleDateString("en-CA");
   const blank = () => ({ name: "", boards: 4, double: false, date: today() });
   let fresh = $state(blank());
   /** The Team being made: its name and its players in board order. @type {{ name: string, players: any[] }} */
