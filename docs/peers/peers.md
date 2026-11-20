@@ -5,6 +5,7 @@
 Peers are your own machines. You pair two of them once: one shows a 6-digit code, and you type it on the other. Each keeps the other's key, and from then on their Helpers talk only to each other, encrypted. In F1 this is the `peers` entry.
 
 ![Settings at Peers: Peers on, listening on the home network, a code shown, and one paired machine](../screenshots/peers-1100.png)
+<!-- screenshot: peers-1100.png: the paired machine's sync time written in the user's language -->
 *Settings → Peers.*
 
 ## How to reach it
