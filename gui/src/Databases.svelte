@@ -7,6 +7,7 @@
   import Libraries from "./Libraries.svelte";
   import Sources from "./Sources.svelte";
   import { here, set } from "./nav.svelte.js";
+  import { tabKeys } from "./tabs.js";
 
   /** @type {{ family: any, slice?: any, onslices: () => void, onsnap: (snap: any) => void }} */
   let { family, slice = null, onslices, onsnap } = $props();
@@ -21,11 +22,12 @@
 
 <section class="databases">
   <h1>{family.name}: {t("sidebar.databases")}</h1>
-  <div class="tabs" role="tablist">
+  <div class="tabs" role="tablist" tabindex="-1" onkeydown={tabKeys}>
     {#each TABS as id}
-      <button role="tab" aria-selected={tab === id} class:current={tab === id} onclick={() => set({ tab: id })}>{t(`db.tab.${id}`)}</button>
+      <button role="tab" id="db-tab-{id}" aria-controls="db-panel" aria-selected={tab === id} tabindex={tab === id ? 0 : -1} class:current={tab === id} onclick={() => set({ tab: id })}>{t(`db.tab.${id}`)}</button>
     {/each}
   </div>
+  <div role="tabpanel" id="db-panel" aria-labelledby="db-tab-{tab}">
   {#if tab === "files"}
     <ForeignDb {family} {onstep} {onsnap} />
   {:else if tab === "libraries"}
@@ -33,6 +35,7 @@
   {:else}
     <Sources {family} />
   {/if}
+  </div>
 </section>
 
 <style>

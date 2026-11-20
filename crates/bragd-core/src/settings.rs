@@ -337,8 +337,18 @@ pub fn only(cfg: &Config, id: &str) -> Vec<(String, Value)> {
 
 /// Writes one option's new value to config.toml.
 pub fn save(name: &str, value: &Value) -> Result<Config, String> {
-    let o = find(name).ok_or_else(|| format!("no setting {name}"))?;
-    Config::save_value(o.path, to_toml(&as_number(o, value)?)?)
+    save_all(&[(name.to_string(), value.clone())])
+}
+
+/// Saves several options in one write: all of them, or none when one does not fit.
+pub fn save_all(values: &[(String, Value)]) -> Result<Config, String> {
+    let mut edits = vec![];
+    for (name, value) in values {
+        let o = find(name).ok_or_else(|| format!("no setting {name}"))?;
+        edits.push((o.path, to_toml(&as_number(o, value)?)?));
+    }
+    let path = Config::path().ok_or_else(|| crate::t!("config.no_folder"))?;
+    Config::save_values_at(&path, edits)
 }
 
 /// A number typed into a text field, for an option that holds a number.

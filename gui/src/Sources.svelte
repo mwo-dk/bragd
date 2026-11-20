@@ -10,6 +10,7 @@
   // URL can be added, and removed again.
   import * as k from "./knowledge.js";
   import { t, i18n } from "./i18n.svelte.js";
+  import { ask } from "./confirm.js";
   import Picker from "./Picker.svelte";
   import StripEditor from "./StripEditor.svelte";
   import JobLine from "./JobLine.svelte";
@@ -34,8 +35,6 @@
   let url = $state("");
   /** A Game's address or number, typed for each Source of an online account. @type {Record<string, string>} */
   let games = $state({});
-  /** The custom URL Source whose removal waits for a yes. @type {string | null} */
-  let removing = $state(null);
 
   /** The select's value for "a new Library", which no Library file can be called. */
   const NEW = "\u0000new";
@@ -87,8 +86,8 @@
   }
 
   async function remove(/** @type {any} */ s) {
+    if (!(await ask(t("source.remove_confirm", { name: s.name }), t("source.remove")))) return;
     error = message = "";
-    removing = null;
     try {
       await k.sourceRemove(s.id);
       message = t("source.removed", { name: s.name });
@@ -122,16 +121,9 @@
       {#if !s.later}<span class="buttons">
         <button onclick={() => expand(s)} aria-expanded={open === s.id}>{open === s.id ? t("source.less") : t("source.more")}</button>
         <button onclick={() => start(s.id, k.sourceFetch(s.id))} disabled={!s.options.enabled}>{t("source.fetch_now")}</button>
-        {#if s.custom}<button onclick={() => (removing = s.id)}>{t("source.remove")}</button>{/if}
+        {#if s.custom}<button onclick={() => remove(s)}>{t("source.remove")}</button>{/if}
       </span>{/if}
     </div>
-    {#if removing === s.id}
-      <div class="notice" role="alertdialog" aria-label={t("source.remove")}>
-        <p>{t("source.remove_confirm", { name: s.name })}</p>
-        <button onclick={() => remove(s)}>{t("source.remove")}</button>
-        <button class="primary" onclick={() => (removing = null)}>{t("common.cancel")}</button>
-      </div>
-    {/if}
     {#if s.error}<p class="error">{s.error}</p>{/if}
     {#if s.paused}<p class="notice">{t("source.paused")}</p>{/if}
     {#if s.tooBig}

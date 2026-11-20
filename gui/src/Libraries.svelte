@@ -156,10 +156,10 @@
   {#if lib}
     <nav class="tabs">
       {#each ["games", "review", "slice"] as v}
-        <button class:current={view === v} onclick={() => set({ library: lib.path, library_view: v, game: null, ...(v === "slice" ? { slice_name: null } : {}) })}>{t(`lib.tab.${v}`)}</button>
+        <button class:current={view === v} aria-current={view === v ? "page" : undefined} onclick={() => set({ library: lib.path, library_view: v, game: null, ...(v === "slice" ? { slice_name: null } : {}) })}>{t(`lib.tab.${v}`)}</button>
       {/each}
       {#each lib.slices.filter((/** @type {any} */ s) => !s.families.length || s.families.includes(family)) as s}
-        <button class:current={view === "slice" && editing?.name === s.name} onclick={() => set({ library: lib.path, library_view: "slice", slice_name: s.name })}>{s.name}{s.materialised ? " ⧉" : ""}</button>
+        <button class:current={view === "slice" && editing?.name === s.name} aria-current={view === "slice" && editing?.name === s.name ? "page" : undefined} onclick={() => set({ library: lib.path, library_view: "slice", slice_name: s.name })}>{s.name}{s.materialised ? " ⧉" : ""}</button>
       {/each}
     </nav>
     <form class="bar" role="search" onsubmit={search}>

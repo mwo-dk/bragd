@@ -4,6 +4,8 @@
   // every pairing, warning, tiebreak and export (bragd_clubs::tournament); this page draws it.
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
+  import { ask } from "./confirm.js";
+  import { tabKeys } from "./tabs.js";
   import Why from "./Why.svelte";
   import { here as place, set } from "./nav.svelte.js";
   import Scroll from "./Scroll.svelte";
@@ -121,7 +123,7 @@
     if (v) onclub(v);
   }
   async function remove() {
-    if (!confirm(t("tournaments.remove_confirm", { name: T.name }))) return;
+    if (!(await ask(t("tournaments.remove_confirm", { name: T.name }), t("tournaments.remove")))) return;
     const v = await run(() => api.tournamentRemove(by, tv.id));
     if (v) {
       close();
@@ -130,7 +132,7 @@
   }
   /** Deletes one the Club file holds damaged, which cannot be opened. */
   async function removeDamaged(/** @type {any} */ x) {
-    if (!confirm(t("tournaments.remove_confirm", { name: x.name || `#${x.id}` }))) return;
+    if (!(await ask(t("tournaments.remove_confirm", { name: x.name || `#${x.id}` }), t("tournaments.remove")))) return;
     const v = await run(() => api.tournamentRemove(by, x.id));
     if (v) onclub(v);
   }
@@ -340,12 +342,13 @@
         <button disabled={!director} onclick={remove}>{t("tournaments.remove")}</button>
       </div>
     </div>
-    <div class="tabs" role="tablist">
+    <div class="tabs" role="tablist" tabindex="-1" onkeydown={tabKeys}>
       {#each TABS as id}
-        <button role="tab" id="tn-tab-{id}" aria-selected={tab === id} class:current={tab === id} onclick={() => (set({ tournament_tab: id }), (error = note = ""))}>{t(`tournaments.tab.${id}`)}</button>
+        <button role="tab" id="tn-tab-{id}" aria-controls="tn-panel" aria-selected={tab === id} tabindex={tab === id ? 0 : -1} class:current={tab === id} onclick={() => (set({ tournament_tab: id }), (error = note = ""))}>{t(`tournaments.tab.${id}`)}</button>
       {/each}
     </div>
 
+    <div role="tabpanel" id="tn-panel" aria-labelledby="tn-tab-{tab}">
     {#if tab === "players"}
       <p class="dim">{t("tournaments.players_hint")}</p>
       {#if T.players.length}
@@ -607,6 +610,7 @@
         </Scroll>
       {/if}
     {/if}
+    </div>
   {/if}
   {#if note}<p class="dim" role="status">{note}</p>{/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}

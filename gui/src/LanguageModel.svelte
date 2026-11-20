@@ -5,7 +5,7 @@
   import * as api from "./api.js";
   import { t } from "./i18n.svelte.js";
 
-  /** @type {{ snap: any, save: (name: string, value: any) => Promise<any> }} */
+  /** @type {{ snap: any, save: (name: string | Record<string, any>, value?: any) => Promise<any> }} */
   let { snap, save } = $props();
   /** @type {any} */
   let st = $state(null);
@@ -32,7 +32,7 @@
     }, fail));
   look();
 
-  const use = (/** @type {string} */ url, /** @type {string} */ model) => ((error = ""), save("model_url", url).then(() => save("model_name", model)).catch(fail));
+  const use = (/** @type {string} */ url, /** @type {string} */ model) => ((error = ""), save({ model_url: url, model_name: model }).catch(fail));
   const list = () => ((error = ""), api.modelModels().then((m) => (models = m), fail));
   const saveKey = (/** @type {string} */ k) => ((error = ""), api.modelKey(k).then((s) => ((st = s), (key = "")), fail));
 </script>

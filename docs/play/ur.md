@@ -41,7 +41,7 @@ Every Ur rule set Bragd plays is solved (F1 → Features: `ur_solved`): Bragd wo
 
 *Ur's solved tables, Blitz made. At phone width: [390 px](../screenshots/ur-tables-390.png).*
 
-Sidebar → **Ur** → **Engines** lists one table for each Ur Variant that is on, with its size on disk and the memory it takes while it is made. **Make** queues the job, which shows its progress there and on the Jobs page. **Cancel** stops it, and nothing is written. **Delete** removes a table.
+Sidebar → **Ur** → **Engines** lists one table for each Ur Variant that is on, with its size on disk and the memory it takes while it is made. **Make** queues the job, which shows its progress there and on the Jobs page. **Cancel** stops it, and nothing is written. **Delete** removes a table, after asking, since making it again takes hours.
 
 | Rule set | Positions | On disk | Memory while made |
 |---|---|---|---|

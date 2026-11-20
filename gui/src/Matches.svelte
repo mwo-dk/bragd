@@ -233,7 +233,7 @@
         </table>
         {#if m.sprt}<p role="status">{m.sprt}</p>{/if}
         {#if m.error}<p class="error">{m.error}</p>{/if}
-        {#if m.live}<div class="actions"><button onclick={() => k.jobCancel(m.id).then(load)}>{t("common.cancel")}</button></div>{/if}
+        {#if m.live}<div class="actions"><button onclick={() => k.jobCancel(m.id).then(load, fail)}>{t("common.cancel")}</button></div>{/if}
       </article>
     {:else}
       <p class="dim">{t("matches.empty")}</p>

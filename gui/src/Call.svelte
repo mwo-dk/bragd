@@ -21,7 +21,11 @@
   let localVideo = $state();
   const local = new MediaStream();
 
-  const send = (/** @type {any} */ signal) => api.friendsCallSignal(signal).catch(() => {});
+  // A signal that cannot be sent says so: the Call would otherwise wait for ever.
+  const send = (/** @type {any} */ signal) => api.friendsCallSignal(signal).then(
+    () => mediaError === t("talk.error.signalling") && (mediaError = ""),
+    () => (mediaError = t("talk.error.signalling")),
+  );
 
   function setup() {
     pc = new RTCPeerConnection({ iceServers: call.iceServers ?? [] });
@@ -138,9 +142,9 @@
 {/each}
 <div class="tiles" class:shown={call.voice.open || call.camera.open}>
   <!-- svelte-ignore a11y_media_has_caption -->
-  <video bind:this={remoteVideo} autoplay playsinline class:hidden={!call.camera.open}></video>
+  <video bind:this={remoteVideo} autoplay playsinline class:hidden={!call.camera.open} aria-label={t("talk.video_theirs", { name: call.opponent })}></video>
   <!-- The user's own picture, without their own sound. -->
-  <video bind:this={localVideo} autoplay playsinline muted class="self" class:hidden={!call.camera.open}></video>
+  <video bind:this={localVideo} autoplay playsinline muted class="self" class:hidden={!call.camera.open} aria-label={t("talk.video_mine")}></video>
 </div>
 <p class="hint">{t("talk.no_recording")}</p>
 

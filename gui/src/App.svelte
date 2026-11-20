@@ -12,6 +12,7 @@
   import WhatsNew from "./WhatsNew.svelte";
   import Wizard from "./Wizard.svelte";
   import Notices from "./Notices.svelte";
+  import Confirm from "./Confirm.svelte";
   import { guide } from "./guide.svelte.js";
   import { here, go as visit, replace, back } from "./nav.svelte.js";
   import { wantsBack } from "./back.js";
@@ -104,7 +105,9 @@
   const loadSlices = () => knowledge.slices().then((s) => (slices = s), () => {});
   loadSlices();
 
-  const save = (/** @type {string} */ name, /** @type {any} */ value) => api.saveSetting(name, value).then(apply);
+  /** Saves one option, or several in one write (`{ name: value }`): all of them or none. */
+  const save = (/** @type {string | Record<string, any>} */ name, /** @type {any} */ value) =>
+    (typeof name === "string" ? api.saveSetting(name, value) : api.saveSettings(Object.entries(name))).then(apply);
 
   function go(/** @type {any} */ p) {
     visit(p);
@@ -135,6 +138,7 @@
 />
 
 <Sprites />
+<Confirm />
 
 {#if splashing}
   <div class="splash" class:still={reduced}>

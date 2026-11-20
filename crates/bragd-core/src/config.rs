@@ -365,13 +365,26 @@ impl Config {
     }
 
     /// The user's config, the defaults when there is no file. A mistake costs only its area
-    /// (`lenient`); only a file that cannot be read at all, or one from a newer Bragd, is an error.
+    /// (`lenient`), and a file from a newer Bragd gives the defaults with a notice (`read`);
+    /// only a file that cannot be read at all is an error.
     pub fn load() -> Result<Config, String> {
         match Config::path().map(std::fs::read_to_string) {
-            Some(Ok(text)) => FORMAT.upgrade(&text).map(|t| Config::lenient(&t)).map_err(|e| e.to_string()),
+            Some(Ok(text)) => Ok(Config::read(&text)),
             Some(Err(e)) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("config: {e}")),
             _ => Ok(Config::default()),
         }
+    }
+
+    /// config.toml's `text`: read as far as it can be (`lenient`). One from a newer Bragd gives
+    /// the defaults, named in `refused` so a notice says so; the file is never written over.
+    pub fn read(text: &str) -> Config {
+        FORMAT.upgrade(text).map_or_else(|e| Config::unreadable(e.to_string()), |t| Config::lenient(&t))
+    }
+
+    /// The defaults, with `problem` named in `refused` for the whole file.
+    pub fn unreadable(problem: String) -> Config {
+        let problem = problem.trim_end_matches('.').to_string();
+        Config { refused: vec![Refused { area: String::new(), problem }], ..Config::default() }
     }
 
     /// `text` as a whole; unknown keys and areas are ignored.
@@ -486,13 +499,21 @@ impl Config {
         keys: &[&str],
         value: toml_edit::Value,
     ) -> Result<Config, String> {
+        Config::save_values_at(path, vec![(keys, value)])
+    }
+
+    /// Sets several values in one write: all of them, or none when one does not fit.
+    pub fn save_values_at(path: &std::path::Path, values: Vec<(&[&str], toml_edit::Value)>) -> Result<Config, String> {
         let old = match std::fs::read_to_string(path) {
             Ok(t) => t,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
             Err(e) => return Err(format!("config: {e}")),
         };
         let old = FORMAT.upgrade(&old).map_err(|e| e.to_string())?;
-        let new = Config::edit(&old, keys, value)?;
+        let mut new = old.clone();
+        for (keys, value) in values {
+            new = Config::edit(&new, keys, value)?;
+        }
         let cfg = Config::parse_saved(&old, &new)?;
         crate::fs::replace(path, new.as_bytes(), false).map_err(|e| format!("config: {e}"))?;
         Ok(cfg)
@@ -533,12 +554,10 @@ impl Config {
         let text = std::fs::read_to_string(path).unwrap_or_default();
         let old = Config::lenient(&text).disk;
         let n = |v: u64| toml_edit::Value::from(i64::try_from(v).unwrap_or(i64::MAX));
-        Config::save_value_at(path, &["disk", "total"], n(limits.total))?;
-        let mut cfg = Config::save_value_at(path, &["disk", "free_below"], n(limits.free_below))?;
-        for id in old.items.keys().chain(limits.items.keys()) {
-            cfg = Config::save_value_at(path, &["disk", "items", id], n(limits.items.get(id).copied().unwrap_or(0)))?;
-        }
-        Ok(cfg)
+        let keys: Vec<[&str; 3]> = old.items.keys().chain(limits.items.keys()).map(|id| ["disk", "items", id.as_str()]).collect();
+        let mut values: Vec<(&[&str], toml_edit::Value)> = vec![(&["disk", "total"], n(limits.total)), (&["disk", "free_below"], n(limits.free_below))];
+        values.extend(keys.iter().map(|k| (&k[..], n(limits.items.get(k[2]).copied().unwrap_or(0)))));
+        Config::save_values_at(path, values)
     }
 
     /// Whether the Family `id` is turned on.
@@ -654,6 +673,12 @@ on = true
         let c = Config::lenient("[look\n");
         assert_eq!(c.refused.len(), 1);
         assert_eq!(c.refused[0].area, "");
+        // A file from a newer Bragd gives the defaults, and says so for the whole file.
+        let c = Config::read("format = 99\nlanguage = \"da\"\n");
+        assert_eq!(c.language, Config::default().language);
+        assert_eq!(c.refused.len(), 1);
+        assert_eq!(c.refused[0].area, "");
+        assert!(!c.refused[0].problem.ends_with('.'), "the notice adds its own full stop");
         // Every area is read: background analysis's limits too.
         let c = Config::lenient("[look]\ntheme = 7\n[analysis]\nthreads = 3\nfrom_hour = 22\nuntil_hour = 7\non_battery = true\n");
         assert_eq!((c.analysis.threads, c.analysis.from_hour, c.analysis.until_hour, c.analysis.on_battery), (3, 22, 7, true));
@@ -710,8 +735,10 @@ on = true
                 .unwrap()
                 .starts_with("# mine")
         );
-        // A value of the wrong kind is not written.
+        // A value of the wrong kind is not written, nor the values saved with it.
         assert!(Config::save_value_at(&path, &["updates", "check"], "maybe".into()).is_err());
+        assert!(Config::save_values_at(&path, vec![(&["model", "url"], "http://x".into()), (&["updates", "check"], "maybe".into())]).is_err());
+        assert!(Config::parse(&std::fs::read_to_string(&path).unwrap()).unwrap().model.url.is_empty(), "nothing is saved by half");
         assert!(
             !Config::parse(&std::fs::read_to_string(&path).unwrap())
                 .unwrap()

@@ -5,6 +5,7 @@
   import { untrack } from "svelte";
   import * as api from "./api.js";
   import { t, num, i18n } from "./i18n.svelte.js";
+  import { ask } from "./confirm.js";
   import { here as place, set, replace } from "./nav.svelte.js";
   import Tournaments from "./Tournaments.svelte";
   import Leagues from "./Leagues.svelte";
@@ -52,7 +53,7 @@
       const ds = v.members.filter((/** @type {any} */ m) => m.role !== "member");
       by = ds.length === 1 ? ds[0].id : null;
     }
-    if (v) system.value = v.system;
+    if (v) system = { value: v.system, why: "" };
   }
 
   // The Club open is part of the place (`club`: its file, "" for none), so Back reopens it.
@@ -164,8 +165,11 @@
       rate = null;
     }
   }
-  function takeOver() {
-    if (confirm(t("clubs.take_over_confirm", { user: club.held_by.user, host: club.held_by.host }))) change(() => api.clubTakeOver(by));
+  async function takeOver() {
+    if (await ask(t("clubs.take_over_confirm", { user: club.held_by.user, host: club.held_by.host }), t("clubs.take_over"))) change(() => api.clubTakeOver(by));
+  }
+  async function removeMember(/** @type {any} */ m) {
+    if (await ask(t("clubs.remove_confirm", { name: m.name }), t("clubs.remove"))) change(() => api.clubRemove(by, m.id));
   }
 </script>
 
@@ -218,16 +222,16 @@
           <tbody>
             {#each club.members as m (m.id)}
               <tr>
-                <td>{m.name}</td>
+                <td id="member-{m.id}">{m.name}</td>
                 <td>{t(`clubs.role.${m.role}`)}</td>
                 <td data-label={m.fide_id ? t("clubs.fide_id") : null}>{m.fide_id}</td>
                 <td data-label={m.national_id ? t("clubs.national_id") : null}>{m.national_id}{m.federation ? ` (${m.federation})` : ""}</td>
                 <td data-label={m.lichess ? t("clubs.lichess") : null}>{m.lichess}</td>
                 <td class="num" data-label={t("clubs.rating")}>{rating(m)}</td>
                 <td class="acts">
-                  <button disabled={!director} onclick={() => edit(m)}>{t("clubs.edit")}</button>
-                  <button disabled={!director} onclick={() => (rate = { id: m.id, name: m.name, value: Math.round(m.rating.rating), why: "" })}>{t("clubs.set_rating")}</button>
-                  <button disabled={!director} onclick={() => confirm(t("clubs.remove_confirm", { name: m.name })) && change(() => api.clubRemove(by, m.id))}>{t("clubs.remove")}</button>
+                  <button disabled={!director} onclick={() => edit(m)} aria-describedby="member-{m.id}">{t("clubs.edit")}</button>
+                  <button disabled={!director} aria-describedby="member-{m.id}" onclick={() => (rate = { id: m.id, name: m.name, value: Math.round(m.rating.rating), why: "" })}>{t("clubs.set_rating")}</button>
+                  <button disabled={!director} onclick={() => removeMember(m)} aria-describedby="member-{m.id}">{t("clubs.remove")}</button>
                 </td>
               </tr>
             {/each}

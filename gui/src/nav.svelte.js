@@ -3,6 +3,7 @@
 // Rust keeps the way back (bragd_core::history); this reports each move and asks it.
 import * as api from "./api.js";
 import { t } from "./i18n.svelte.js";
+import { ask } from "./confirm.js";
 
 export const here = $state({
   /** @type {Record<string, any>} */
@@ -36,7 +37,7 @@ export const replace = (/** @type {Record<string, any>} */ view) => (here.view =
 
 /** Back to where the window was, with its scroll; asks first when typing would be lost. */
 export async function back() {
-  if (here.dirty && !confirm(t("nav.discard"))) return;
+  if (here.dirty && !(await ask(t("nav.discard"), t("nav.leave")))) return;
   const r = await api.navBack();
   if (!r) return (here.back = false);
   const [p, more] = r;

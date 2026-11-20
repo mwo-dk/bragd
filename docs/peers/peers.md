@@ -26,7 +26,7 @@ Both machines now list each other under *Paired machines*. The code is used up.
 | **Use** | Puts a machine found into *Address* |
 | **Pair** | Pairs with the machine at *Address* that shows the code typed |
 | **Check again** | Asks every paired machine whether it is there, with its name and version |
-| **Unpair** | Forgets that machine here and tells it to forget this one |
+| **Unpair** | Forgets that machine here and tells it to forget this one, after you confirm |
 
 ## Finding a machine
 
@@ -38,7 +38,7 @@ Away from home, or on a network that blocks mDNS, type the other machine's addre
 
 ## Unpairing
 
-Press **Unpair** beside a machine, on either side. This machine forgets the other's key at once and closes any connection with it. Bragd also tells the other machine, which forgets this one too. If the other machine cannot be reached, it keeps the key until you unpair there, but this machine refuses it in the TLS handshake from now on.
+Press **Unpair** beside a machine, on either side, and confirm. This machine forgets the other's key at once and closes any connection with it. Bragd also tells the other machine, which forgets this one too. If the other machine cannot be reached, it keeps the key until you unpair there, but this machine refuses it in the TLS handshake from now on.
 
 To pair again, show a new code.
 

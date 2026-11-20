@@ -10,7 +10,7 @@
   import LanguageModel from "./LanguageModel.svelte";
   import Peers from "./Peers.svelte";
 
-  /** @type {{ snap: any, save: (name: string, value: any) => Promise<any> }} */
+  /** @type {{ snap: any, save: (name: string | Record<string, any>, value?: any) => Promise<any> }} */
   let { snap, save } = $props();
   // The area is part of the place (a link elsewhere names it); one Rust no longer lists (its
   // last Family turned off) gives way to Overview.
