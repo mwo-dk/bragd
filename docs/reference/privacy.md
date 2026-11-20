@@ -41,17 +41,18 @@ An Engine Bragd runs from an image has no network at all. An installed Engine is
 
 The Bragd server is run by Bragd's makers. It is Supabase, hosted on Supabase's free plan in an EU region, and Bragd's own game service on a server in Germany. Supabase Inc processes the data on the makers' behalf: your account (email, and the sign-in provider's name for you if you use one), your name, your Friends, blocks, reports and Clubs, your seeks, your Games and your ratings. It is used for nothing else.
 
-A report goes to the operator alone.
+A report goes to the operator alone. A player may make 20 reports a day.
 
-**Deleting your account.** *Delete my account* at the foot of *Play with Friends* deletes your account on the Bragd server at once ([Deleting your account](../online/play-with-friends.md#deleting-your-account)). Nothing is left with your account's id:
+**Deleting your account.** *Delete my account* at the foot of *Play with Friends* deletes your account on the Bragd server at once ([Deleting your account](../online/play-with-friends.md#deleting-your-account)). Nothing is left with your account's id. Three things stay with the other players and the operator, without your id, because they are theirs as much as yours:
 
 | What | What happens to it |
 |---|---|
 | Your sign-in (Supabase Auth: email, provider) | Deleted |
 | Your name, Friends, requests, invite codes, blocks, Club memberships | Deleted |
-| Clubs you made | Deleted, for their members too |
-| Reports you made, and reports about you | Deleted |
-| Your Chat lines | Deleted |
+| Clubs you made | Passed to another member, who then hands out the code. A Club with no other member is deleted |
+| Reports you made | Deleted |
+| Reports about you | Kept for the operator, with the name you had, so deleting an account does not wipe what others reported |
+| Your Chat lines | Deleted, except in a finished Game you leave to the other player where you both ticked *Keep*: there your lines stay, from *Deleted player* |
 | Your seek and your ratings | Deleted |
 | Your Games and their moves | Deleted. If you tick *Leave my finished Games to the other players*, the Games that ended stay with the other player, with your side shown as *Deleted player*. A Game under way first ends as your resignation |
 | Call signals, and the server's word to you that a Game changed | Deleted where the server allows; Supabase Realtime drops them within days anyway |
