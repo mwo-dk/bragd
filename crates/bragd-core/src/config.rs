@@ -506,7 +506,14 @@ impl Config {
     }
 
     pub fn remove_value_at(path: &std::path::Path, keys: &[&str]) -> Result<Config, String> {
-        let old = FORMAT.upgrade(&std::fs::read_to_string(path).unwrap_or_default()).map_err(|e| e.to_string())?;
+        // As `save_value_at`: a file that is there but cannot be read is left as it is, never
+        // written over with an empty one.
+        let old = match std::fs::read_to_string(path) {
+            Ok(t) => t,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(e) => return Err(format!("config: {e}")),
+        };
+        let old = FORMAT.upgrade(&old).map_err(|e| e.to_string())?;
         let mut doc: toml_edit::DocumentMut = old.parse().map_err(|e| format!("config: {e}"))?;
         let (last, parents) = keys.split_last().ok_or("config: no key")?;
         let mut table: Option<&mut dyn toml_edit::TableLike> = Some(doc.as_table_mut());
@@ -594,6 +601,17 @@ mod tests {
         assert_eq!(c2.engines.paths.keys().collect::<Vec<_>>(), ["other"]);
         assert!(std::fs::read_to_string(&p).unwrap().starts_with("format = 1\n# mine"));
         Config::remove_value_at(&p, &["nothing", "here"]).unwrap();
+        // A config.toml that is there but cannot be read is left as it is (not as root, which reads anything).
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o000)).unwrap();
+            if std::fs::read_to_string(&p).is_err() {
+                assert!(Config::remove_value_at(&p, &["engines", "paths", "other"]).is_err());
+            }
+            std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o600)).unwrap();
+            assert!(std::fs::read_to_string(&p).unwrap().contains("other"));
+        }
         std::fs::remove_dir_all(&d).unwrap();
     }
 
