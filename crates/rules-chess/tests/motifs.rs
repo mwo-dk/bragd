@@ -51,6 +51,20 @@ fn a_piece_that_hung_before_the_move_is_not_news() {
     assert_eq!(of("4k3/8/8/2b5/8/4N3/8/K3R3 w - - 0 1", "e1f1"), [Motif::Hangs]);
 }
 
+/// A castle is held as king takes rook, so the king's square after it is not the move's `to`:
+/// the motifs are read from where the king lands (and the rook's square is empty, no crash).
+#[test]
+fn a_castle_has_its_motifs_read_from_where_the_king_lands() {
+    let both = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
+    assert_eq!(of(both, "e1g1"), []);
+    assert_eq!(of(both, "e1h1"), []);
+    assert_eq!(of(both, "e1c1"), []);
+    assert_eq!(of("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1", "e8c8"), []);
+    // The king leaves the pawn on f2 to the bishop: it hangs after the castle, not before.
+    assert_eq!(of("4k3/8/8/2b5/8/8/5P2/R3K3 w Q - 0 1", "e1c1"), [Motif::Hangs]);
+    assert_eq!(of("4k3/8/8/2b5/8/8/5P2/R3K3 w Q - 0 1", "e1a1"), [Motif::Hangs]);
+}
+
 #[test]
 fn black_moves_too_and_an_illegal_move_has_none() {
     assert_eq!(of("4k3/1n6/8/8/8/8/8/R3K2R b - - 0 1", "b7c5"), []);
