@@ -38,22 +38,27 @@
   const timer = setInterval(refresh, 1000);
   onDestroy(() => clearInterval(timer));
 
-  /** Runs a command, showing its refusal. */
+  /** Runs a command, showing its refusal; true when it went through, so a form clears only then. */
   async function run(/** @type {() => Promise<any>} */ f) {
     busy = true;
     try {
       const r = await f();
       if (r) view = r;
       error = "";
+      return true;
     } catch (e) {
       error = String(e);
+      return false;
+    } finally {
+      busy = false;
     }
-    busy = false;
   }
   const act = (/** @type {string} */ what, /** @type {any} */ body = {}) => run(() => api.friendsAct(what, body));
+  /** Clears what was typed once the command went through: what was refused stays to be corrected. */
+  const then = (/** @type {() => void} */ clear) => (/** @type {boolean} */ ok) => ok && clear();
   const signOut = () => run(() => api.onlineSignOut("bragd").then(() => api.friendsView()));
   const deleteAccount = () => run(() => api.friendsDeleteAccount(confirmName, keepGames)).then(() => (deleting = view?.signedIn ?? false));
-  const report = () => act("reports", { name: reporting, reason }).then(() => ((reporting = ""), (reason = "")));
+  const report = () => act("reports", { name: reporting, reason }).then(then(() => ((reporting = ""), (reason = ""))));
 </script>
 
 {#snippet deleteForm()}
@@ -162,14 +167,14 @@
             <button type="button" onclick={() => (reporting = "")}>{t("common.cancel")}</button>
           </form>
         {/if}
-        <form class="form" onsubmit={(e) => (e.preventDefault(), act("friends", { name: ask }).then(() => (ask = "")))}>
+        <form class="form" onsubmit={(e) => (e.preventDefault(), act("friends", { name: ask }).then(then(() => (ask = ""))))}>
           <label class="field">{t("friends.add")} <input bind:value={ask} autocomplete="off" spellcheck="false" /></label>
           <button type="submit" disabled={busy || !ask.trim()}>{t("friends.ask")}</button>
         </form>
         <div class="form">
           <button onclick={() => act("invites")} disabled={busy}>{t("friends.invite")}</button>
         </div>
-        <form class="form" onsubmit={(e) => (e.preventDefault(), act("invites/redeem", { code }).then(() => (code = "")))}>
+        <form class="form" onsubmit={(e) => (e.preventDefault(), act("invites/redeem", { code }).then(then(() => (code = ""))))}>
           <label class="field">{t("friends.redeem")} <input bind:value={code} autocomplete="off" spellcheck="false" /></label>
           <button type="submit" disabled={busy || !code.trim()}>{t("friends.redeem_button")}</button>
         </form>
@@ -199,11 +204,11 @@
             </li>
           {/each}
         </ul>
-        <form class="form" onsubmit={(e) => (e.preventDefault(), act("clubs", { name: clubName }).then(() => (clubName = "")))}>
+        <form class="form" onsubmit={(e) => (e.preventDefault(), act("clubs", { name: clubName }).then(then(() => (clubName = ""))))}>
           <label class="field">{t("friends.new_club")} <input bind:value={clubName} maxlength="80" /></label>
           <button type="submit" disabled={busy || !clubName.trim()}>{t("friends.make_club")}</button>
         </form>
-        <form class="form" onsubmit={(e) => (e.preventDefault(), act("clubs/join", { code: clubCode }).then(() => (clubCode = "")))}>
+        <form class="form" onsubmit={(e) => (e.preventDefault(), act("clubs/join", { code: clubCode }).then(then(() => (clubCode = ""))))}>
           <label class="field">{t("friends.join_code")} <input bind:value={clubCode} autocomplete="off" spellcheck="false" /></label>
           <button type="submit" disabled={busy || !clubCode.trim()}>{t("friends.join")}</button>
         </form>

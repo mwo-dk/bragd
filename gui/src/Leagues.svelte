@@ -16,7 +16,8 @@
   /** The open League and its tab are part of the place, so Back returns to them. */
   const tab = $derived(here.view.league_tab ?? "teams");
   let error = $state("");
-  const today = () => new Date().toISOString().slice(0, 10);
+  // The local date: toISOString would give UTC's, tomorrow's on an evening east of Greenwich.
+  const today = () => new Date().toLocaleDateString("en-CA");
   const blank = () => ({ name: "", boards: 4, double: false, date: today() });
   let fresh = $state(blank());
   /** The Team being made: its name and its players in board order. @type {{ name: string, players: any[] }} */
@@ -40,7 +41,7 @@
   const L = $derived(lv?.league);
   const OUTCOMES = ["white", "draw", "black", "white_forfeit", "black_forfeit", "double_forfeit"];
   const TABS = ["teams", "rounds", "standings", "log"];
-  const homeWhite = (/** @type {number} */ b) => b % 2 === 0;
+  const homeWhite = (/** @type {number} */ b) => lv.home_white[b];
   const player = (/** @type {number} */ team, /** @type {number|null} */ p) => (p === null ? "–" : (L.teams[team].players[p]?.name ?? ""));
 
   async function run(/** @type {() => Promise<any>} */ f) {

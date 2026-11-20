@@ -80,6 +80,8 @@ jobs:
         run: |
           nix build -L .#default
           test -f result/share/applications/bragd.desktop
+          # Both programs: the window starts the Helper from beside its own.
+          test -x result/bin/bragd-helper
           # Every library found.
           ! ldd result/bin/.bragd-gui-wrapped | grep 'not found'
 

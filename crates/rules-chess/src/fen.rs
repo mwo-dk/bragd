@@ -396,6 +396,13 @@ fn parse_board(field: &str) -> Result<[Option<Piece>; 64], FenError> {
                     return Err(FenError::UnknownPiece(letter));
                 }
                 file += skip as u8;
+                // Checked at once: a rank of many digits must not overflow the file.
+                if file > 8 {
+                    return Err(FenError::WrongRankWidth {
+                        rank: index,
+                        width: file as usize,
+                    });
+                }
             } else {
                 let piece = Piece::from_fen_char(letter).ok_or(FenError::UnknownPiece(letter))?;
                 if file >= 8 {

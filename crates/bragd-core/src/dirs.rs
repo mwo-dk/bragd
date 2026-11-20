@@ -8,6 +8,11 @@ pub use ::dirs::{cache_dir, config_dir, data_dir};
 #[cfg(not(any(test, feature = "test-home")))]
 pub use std::env::home_dir;
 
+// The fake home below replaces `dirs` in tests; named here so a test build does not warn of
+// an unused dependency.
+#[cfg(any(test, feature = "test-home"))]
+use ::dirs as _;
+
 #[cfg(any(test, feature = "test-home"))]
 mod fake {
     use std::path::PathBuf;

@@ -140,15 +140,17 @@ mod tests {
     }
 }
 
-/// A key on Play or a board was used: the keyboard's usage signal (`tips`).
-#[tauri::command]
+/// A key on Play or a board was used: the keyboard's usage signal (`tips`). Both this and
+/// `action_ran` write state.json, so they run off the main thread: a key during a Game must not
+/// wait for the disk.
+#[tauri::command(async)]
 pub fn key_used() {
     bragd_core::tips::used("keys");
 }
 
 /// An action of Play ran, by its key or (`!by_key`) from its button: the hint that names its key
 /// once only the button ever ran it (`notices::ran_in`); counted.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn action_ran(action: String, by_key: bool, can_show: bool) -> Option<Notice> {
     let mut st = AppState::load();
     let (notice, changed) = notices::ran_in(&action, by_key, can_show, &mut st);

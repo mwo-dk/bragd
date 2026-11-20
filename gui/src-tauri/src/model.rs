@@ -21,8 +21,9 @@ use crate::knowledge::Knowledge;
 /// How long a translation by a Peer's model is waited for.
 const PEER_WAIT: Duration = Duration::from_secs(120);
 
-/// The language model as Settings shows it.
-#[tauri::command]
+/// The language model as Settings shows it. Off the main thread: it asks the keychain, which may
+/// wait for the user to unlock it.
+#[tauri::command(async)]
 pub fn model_status(ctx: tauri::State<'_, Ctx>) -> Status {
     bragd_model::status(&ctx.cfg().model)
 }

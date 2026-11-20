@@ -5,6 +5,7 @@
 Paired machines share two things: what is new in their [Position stores](../knowledge/position-store.md), and their queues of [background analysis](../engines/background-analysis.md), translations and [Commentary](../engines/commentary.md). A machine with nothing to do takes a job the other has waiting, inside its own limits. Libraries, Slices and Settings stay on each machine. In F1 this is the `sharing` entry.
 
 ![Settings at Peers: a paired machine with its sync and what it works on, and the shared queue](../screenshots/peers-sharing-1100.png)
+<!-- screenshot: peers-sharing-1100.png: the sync time written in the user's language, as the Clubs pages write theirs -->
 *Settings → Peers, with a paired machine sharing.*
 
 ## How to reach it

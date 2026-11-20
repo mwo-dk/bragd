@@ -771,6 +771,13 @@ impl Jobs {
             return false;
         }
         let Some((owner, work)) = peers.borrow(lane) else { return false };
+        // Only what was asked for: a Peer's answer must not make this machine run a job of
+        // another lane, such as a prune or an export with paths of the Peer's choosing.
+        if Lane::of(&work) != lane {
+            crate::note(format_args!("job {} of {}: not a {lane:?} job: refused", owner.id, owner.name));
+            peers.give_back(&owner, Outcome::Cannot { why: "not the lane asked for".into() });
+            return false;
+        }
         self.add_from(work, Some(owner));
         self.run_first(lane)
     }
@@ -821,9 +828,11 @@ impl Jobs {
 
     /// The job `id` that `peer` had, back with how it went.
     pub fn returned(&self, peer: &str, id: u64, outcome: Outcome) {
-        let cancelled = self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
         let mut st = self.lock();
         let Some(j) = st.jobs.iter_mut().find(|j| j.id == id && j.lent.as_ref().is_some_and(|l| l.peer == peer)) else { return };
+        // Taken only by the Peer that has it: a late word from one whose lease ran out must not
+        // clear a cancellation meant for the next.
+        let cancelled = self.cancelled.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
         let name = j.lent.take().map(|l| l.name).unwrap_or_default();
         j.status = Status::Queued;
         match outcome {
@@ -1951,5 +1960,49 @@ pub(crate) mod tests {
             o.routes = bad.clone();
             assert!(jobs.set_source(&a.id, o.clone()).is_err(), "{bad:?}");
         }
+    }
+
+    /// A Peer may only hand this machine a job of the lane it asked for: one of another lane,
+    /// such as a prune of a Library the Peer names, is refused and never queued.
+    #[test]
+    fn a_borrowed_job_of_another_lane_is_refused() {
+        struct Hostile(std::sync::Mutex<Vec<Outcome>>);
+        impl Peers for Hostile {
+            fn borrow(&self, _: Lane) -> Option<(Owner, Work)> {
+                Some((Owner { peer: "k".into(), name: "them".into(), id: 7 }, Work::Prune { library: PathBuf::from("/some/library.bragd"), dry_run: false }))
+            }
+            fn renew(&self, _: &Owner, _: u64, _: Option<u64>) -> bool {
+                true
+            }
+            fn give_back(&self, _: &Owner, outcome: Outcome) {
+                self.0.lock().unwrap().push(outcome);
+            }
+        }
+        let _config = CONFIG.lock().unwrap_or_else(|e| e.into_inner());
+        let d = crate::tests::Dir::new("hostile-lane");
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
+        let hostile = Arc::new(Hostile(std::sync::Mutex::default()));
+        let _ = jobs.peers.set(hostile.clone() as Arc<dyn Peers>);
+        assert!(!jobs.run_borrowed(Lane::Analysis));
+        assert!(jobs.list().is_empty(), "nothing queued");
+        assert!(matches!(hostile.0.lock().unwrap().as_slice(), [Outcome::Cannot { .. }]), "given back as not doable");
+    }
+
+    /// A job lent to a Peer whose lease ran out, lent again and then cancelled: the first Peer's
+    /// late word leaves the cancellation for the one that has it now.
+    #[test]
+    fn a_late_return_from_an_earlier_lessee_keeps_the_cancellation() {
+        let d = crate::tests::Dir::new("late-return");
+        let jobs = jobs_in(&d.0, Recorded::default(), Arc::default());
+        let id = jobs.add(Work::Analyse { job: analyse_job("stockfish", &[(1, 1)], "", false) });
+        let now = bragd_core::fs::now();
+        assert_eq!(jobs.lend("a", "A", Lane::Analysis, &[], now).map(|(i, _)| i), Some(id));
+        jobs.expire(now + LEASE + 1);
+        assert_eq!(jobs.lend("b", "B", Lane::Analysis, &[], now + LEASE + 1).map(|(i, _)| i), Some(id));
+        assert!(jobs.cancel(id));
+        jobs.returned("a", id, Outcome::Stopped);
+        assert!(!jobs.renew("b", id, 0, Some(1), now + LEASE + 2), "B still hears of the cancellation");
+        jobs.returned("b", id, Outcome::Stopped);
+        assert_eq!(jobs.list().into_iter().find(|j| j.id == id).unwrap().status, Status::Cancelled);
     }
 }

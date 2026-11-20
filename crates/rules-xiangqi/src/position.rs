@@ -268,6 +268,10 @@ impl Position {
             for character in row.chars() {
                 if let Some(skip) = character.to_digit(10) {
                     file += skip as u8;
+                    // Checked at once: a rank of many digits must not overflow the file.
+                    if file > FILES {
+                        return None;
+                    }
                     continue;
                 }
                 let role = Role::from_letter(character)?;
@@ -527,8 +531,10 @@ impl Position {
             return false;
         }
         let occupied = self.occupied();
-        let mut rank = red.rank() + 1;
-        while rank < black.rank() {
+        // Whichever stands higher: a set-up position may have them the other way round.
+        let (low, high) = (red.rank().min(black.rank()), red.rank().max(black.rank()));
+        let mut rank = low + 1;
+        while rank < high {
             let between =
                 Point::from_file_rank(red.file() as i16, rank as i16).expect("on the board");
             if occupied.contains(between) {

@@ -247,7 +247,7 @@ pub fn online_seek(server: String, variant: String, time: String, rated: bool, c
     Ok(page(s, &ctx))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn online_seek_cancel(server: String) -> Res<()> {
     self::server(&server)?.seek_cancel();
     Ok(())

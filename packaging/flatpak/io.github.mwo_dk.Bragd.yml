@@ -47,8 +47,9 @@ modules:
       # The Tauri crate embeds gui/dist, so the frontend builds first. No install scripts: the only
       # ones are optional dev tools (libxmljs2, fsevents) the build never runs.
       - cd gui && npm ci --offline --ignore-scripts --no-audit --no-fund && npm run build
-      - cargo build --release --locked --offline -p bragd-gui
-      - install -Dm755 target/release/bragd-gui -t /app/bin
+      # The Helper too: the window starts it from beside its own program (`bragd_helper::helper::program`).
+      - cargo build --release --locked --offline -p bragd-gui -p bragd-helper
+      - install -Dm755 target/release/bragd-gui target/release/bragd-helper -t /app/bin
       - install -Dm644 packaging/flatpak/io.github.mwo_dk.Bragd.desktop -t /app/share/applications
       - install -Dm644 assets/brand/icons/128x128.png /app/share/icons/hicolor/128x128/apps/io.github.mwo_dk.Bragd.png
       - install -Dm644 assets/brand/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/io.github.mwo_dk.Bragd.png

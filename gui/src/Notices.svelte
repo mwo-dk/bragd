@@ -43,10 +43,8 @@
     guide.tip = null;
     api.tipSilence(tip.id);
   }
-  async function copy(/** @type {any} */ n) {
-    await navigator.clipboard?.writeText(n.copy).catch(() => {});
-    copied = n.id;
-  }
+  // Copied says so only once the clipboard took it.
+  const copy = (/** @type {any} */ n) => navigator.clipboard?.writeText(n.copy).then(() => (copied = n.id), () => {});
 </script>
 
 {#if (shown || guide.tip) && !guide.wizard && !guide.cards.length}

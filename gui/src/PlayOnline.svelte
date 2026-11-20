@@ -380,9 +380,11 @@
         <!-- The Bragd server's Chat is its own, with consent from both. -->
         {#if view.talk}
           {@const c = view.talk}
-          <h2>{t("online.chat")}</h2>
+          <h2 id="chat-{server}">{t("online.chat")}</h2>
           {#if c.open}
-            <ul class="chat" aria-live="polite">
+            <!-- The lines scroll: a stop for the keyboard, named by the heading (as Scroll.svelte). -->
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <ul class="chat" aria-live="polite" tabindex="0" role="region" aria-labelledby="chat-{server}">
               {#each c.lines as l}
                 <li><strong>{l.mine ? t("friends.you") : c.opponent}</strong> {l.text}</li>
               {/each}
@@ -411,9 +413,10 @@
             <button onclick={() => run(() => api.friendsChat(true))}>{t("talk.ask_chat")}</button>
           {/if}
         {:else if view.terms}
-        <h2>{t("online.chat")}</h2>
+        <h2 id="chat-{server}">{t("online.chat")}</h2>
         {#if view.chatOn}
-          <ul class="chat" aria-live="polite">
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <ul class="chat" aria-live="polite" tabindex="0" role="region" aria-labelledby="chat-{server}">
             {#each view.chat as c}
               <li><strong>{c.user}</strong> {c.text}</li>
             {/each}

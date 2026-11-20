@@ -6,9 +6,10 @@
 
 use crate::attacks;
 use crate::bitboard::Bitboard;
+use crate::castling::Side;
 use crate::piece::{Color, Role};
 use crate::square::Square;
-use crate::{CastlingNotation, Position};
+use crate::{CastlingNotation, MoveKind, Position};
 
 fn value(role: Role) -> u8 {
     match role {
@@ -83,8 +84,14 @@ pub fn motifs(before: &Position, uci: &str) -> Vec<Motif> {
     let mover = before.side_to_move();
     let opponent = mover.opponent();
     let after = before.make_move(mv);
-    let moved = after.piece_at(mv.to()).expect("a legal move places a piece at its destination");
-    let to = mv.to();
+    // A castle is held as king takes rook: the king lands on its castling square, and `mv.to()`,
+    // the rook's old square, is empty afterwards.
+    let to = match mv.kind() {
+        MoveKind::KingsideCastle => Side::Kingside.king_destination(mover),
+        MoveKind::QueensideCastle => Side::Queenside.king_destination(mover),
+        _ => mv.to(),
+    };
+    let moved = after.piece_at(to).expect("a legal move places a piece at its destination");
     let occupied = after.occupied();
     let moved_attacks = attacks_from(moved.role, mover, to, occupied);
     let mut result = Vec::new();
@@ -130,7 +137,7 @@ pub fn motifs(before: &Position, uci: &str) -> Vec<Motif> {
     let hanging_before = hanging(before, mover);
     let hanging_after = hanging(&after, mover);
     if hanging_after.into_iter().any(|square| {
-        !hanging_before.contains(square) || square == mv.to()
+        !hanging_before.contains(square) || square == to
     }) {
         result.push(Motif::Hangs);
     }

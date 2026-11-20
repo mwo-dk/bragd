@@ -114,7 +114,8 @@ impl Dialect for Gtp {
         let colour = if self.colour_next.is_empty() { "B" } else { self.colour_next };
         // Moves per period are Canadian byo-yomi: so many stones in the time left.
         if let Limit::Clock { own, to_go, .. } = limit {
-            let s = own / 1000;
+            // Rounded up to a second, never nought: `0` would tell the engine it has no time limit.
+            let s = own.div_ceil(1000).max(1);
             let settings = match to_go {
                 Some(m) => format!("time_settings 0 {s} {m}"),
                 None => format!("time_settings {s} 0 0"),
@@ -212,9 +213,12 @@ mod tests {
         d.greeted("= 3.8", &mut about);
         d.position(&about, &Position::new("go-9", &["E5"]));
         let canadian = Limit::Clock { own: 90_400, other: 1, inc: 0, to_go: Some(10), first: false };
-        assert_eq!(d.go(&about, canadian, 1), "time_settings 0 90 10\ntime_left W 90 10\ngenmove W\n");
+        assert_eq!(d.go(&about, canadian, 1), "time_settings 0 91 10\ntime_left W 91 10\ngenmove W\n");
         let sudden = Limit::Clock { own: 30_000, other: 1, inc: 0, to_go: None, first: false };
         assert_eq!(d.go(&about, sudden, 1), "time_settings 30 0 0\ntime_left W 30 0\ngenmove W\n");
+        // Under a second left is one second, never nought: nought means no limit to GNU Go.
+        let little = Limit::Clock { own: 400, other: 1, inc: 0, to_go: None, first: false };
+        assert_eq!(d.go(&about, little, 1), "time_settings 1 0 0\ntime_left W 1 0\ngenmove W\n");
     }
 
     #[test]
