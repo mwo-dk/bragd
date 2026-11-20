@@ -60,7 +60,13 @@ fn entries(list: &str) -> impl Iterator<Item = &str> {
 
 /// A character that can be part of a word, including the symbols that stand in for letters.
 fn in_word(c: char) -> bool {
-    c.is_alphanumeric() || is_combining_mark(c) || c == '@' || c == '$'
+    c.is_alphanumeric() || is_combining_mark(c) || c == '@' || c == '$' || invisible(c)
+}
+
+/// A character that shows nothing: a soft hyphen, a zero-width space or joiner, a word joiner, a
+/// byte order mark. Part of the word it is typed into, and folded away, so it splits nothing.
+fn invisible(c: char) -> bool {
+    matches!(c, '\u{00AD}' | '\u{200B}'..='\u{200F}' | '\u{2060}'..='\u{2064}' | '\u{FEFF}')
 }
 
 /// Han, kana and Hangul: scripts whose words are not set apart by spaces.
@@ -75,6 +81,9 @@ fn fold(word: &[char]) -> Vec<(char, usize)> {
     let leet = word.iter().any(|c| c.is_alphabetic());
     let mut out = Vec::new();
     for (i, &c) in word.iter().enumerate() {
+        if invisible(c) {
+            continue;
+        }
         let c = match c {
             '0' if leet => 'o',
             '1' if leet => 'i',
@@ -159,6 +168,10 @@ mod tests {
         assert_eq!(mask("cabron y cabrón"), "****** y ******");
         // Decomposed accents count as one character with their letter.
         assert_eq!(mask("encule\u{301}!"), "*******!");
+        // A zero-width space, a soft hyphen or a joiner typed into a word splits it for no one.
+        assert_eq!(mask("fu\u{200B}ck"), "*****");
+        assert_eq!(mask("sh\u{AD}it \u{FEFF}cunt"), "***** *****");
+        assert_eq!(mask("f\u{200D}u\u{200C}ck"), "******");
     }
 
     #[test]
