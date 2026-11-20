@@ -136,6 +136,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
         run: |
+          set -o pipefail # a crash of the script below must fail the step, not skip systems
           if [ "$NONE" = true ]; then
             echo ci=false >> "$GITHUB_OUTPUT"
           elif [ "$RELEASE" = true ] || [ "$EVENT" != push ]; then
@@ -570,6 +571,7 @@ jobs:
           ref: ${{ needs.draft.outputs.sha }}
       - name: Every file, uploaded completely
         run: |
+          set -o pipefail # a failed listing must not pass as an empty one
           gh api --paginate "repos/$REPO/releases/$ID/assets" -q '.[] | [.name, .state, .size] | @tsv' | tee listed.tsv
           bad=$(awk -F'\t' '$2 != "uploaded" || $3 == 0 { print $1 " (" $2 ", " $3 " bytes)" }' listed.tsv | xargs)
           [ -z "$bad" ] || { echo "::error title=$TAG is not complete::not uploaded completely: $bad"; exit 1; }
