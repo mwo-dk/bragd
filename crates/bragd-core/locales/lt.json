@@ -1126,6 +1126,7 @@
  "tournaments.tb.rtng": "Reitingas",
  "tournaments.error.damaged": "Šis turnyras Klubo faile sugadintas: partijoje arba laisvame rate nurodytas žaidėjas, kurio nėra.",
  "tournaments.error.rated": "Klubo reitingai jau skaičiuoja šio turnyro partijas.",
+ "tournaments.error.not_over": "Kiekvienas ratas turi būti sužaistas ir turėti visus savo rezultatus, kol klubo reitingai gali įskaičiuoti šį turnyrą.",
  "tournaments.error.bundle": "Tai nėra Bragd turnyro paketas arba jis sugadintas.",
  "tournaments.system.dutch": "Šveicariška (FIDE olandiška)",
  "tournaments.system.round_robin": "Visi su visais",

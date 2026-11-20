@@ -197,9 +197,7 @@ pub fn checked(cfg: &Config, mut setup: Setup) -> Res<Setup> {
     if matches!(setup.kind, Kind::Sprt { .. }) && setup.engines.len() != 2 {
         return Err(t!("matches.sprt_two"));
     }
-    if let Kind::Sprt { elo0, elo1, alpha, beta } = setup.kind
-        && !(elo0 < elo1 && (0.0..0.5).contains(&alpha) && alpha > 0.0 && (0.0..0.5).contains(&beta) && beta > 0.0)
-    {
+    if !setup.kind.sound() {
         return Err(t!("matches.sprt_bounds"));
     }
     if let Limit::Time(ms) = setup.limit {

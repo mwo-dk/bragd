@@ -571,7 +571,8 @@
       {/if}
       <h4>{t("tournaments.rate")}</h4>
       <p class="dim">{T.rated ? t("tournaments.rated") : t("tournaments.rate_hint")}</p>
-      <button disabled={!director || T.rated || T.played.length === 0} onclick={rate}>{t("tournaments.rate_button")}</button>
+      {#if !T.rated && !tv.over}<p class="dim">{t("tournaments.error.not_over")}</p>{/if}
+      <button disabled={!director || T.rated || !tv.over} onclick={rate}>{t("tournaments.rate_button")}</button>
     {:else if tab === "exports"}
       <p class="dim">{t("tournaments.exports_hint")}</p>
       <ul class="exports">

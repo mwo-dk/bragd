@@ -1123,6 +1123,7 @@
  "tournaments.tb.rtng": "Luokitus",
  "tournaments.error.damaged": "Tämä turnaus klubitiedostossa on vioittunut: peli tai vapaa kierros viittaa pelaajaan, jota ei ole.",
  "tournaments.error.rated": "Klubin luokitukset laskevat jo tämän turnauksen pelit.",
+ "tournaments.error.not_over": "Jokainen kierros on pelattava ja sen kaikki tulokset kirjattava, ennen kuin Klubin luokitukset voivat laskea tämän turnauksen.",
  "tournaments.error.bundle": "Tämä ei ole Bragd-turnauspaketti tai se on vioittunut.",
  "tournaments.system.dutch": "Sveitsiläinen (FIDE:n hollantilainen)",
  "tournaments.system.round_robin": "Kaikki vastaan kaikki",

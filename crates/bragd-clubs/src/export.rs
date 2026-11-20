@@ -23,17 +23,10 @@ pub const EXT: &str = "bragd-tournament";
 /// is a few megabytes.
 const MAX_JSON: u64 = 64 << 20;
 
-/// Start numbers: the order players are seeded in, from 1.
+/// Start numbers, from 1: the numbers the pairing gave the players.
 fn numbers(t: &Tournament) -> Vec<u32> {
-    let mut order: Vec<usize> = (0..t.players.len()).collect();
-    if t.seeds.is_empty() {
-        order.sort_by(|&a, &b| t.players[b].rating.cmp(&t.players[a].rating).then(t.players[a].name.to_lowercase().cmp(&t.players[b].name.to_lowercase())));
-    } else {
-        // A round-robin's numbers are its seeds; anyone left out comes after.
-        order.sort_by_key(|p| t.seeds.iter().position(|s| s == p).unwrap_or(usize::MAX));
-    }
     let mut n = vec![0; t.players.len()];
-    for (k, &p) in order.iter().enumerate() {
+    for (k, p) in t.start_order().into_iter().enumerate() {
         n[p] = k as u32 + 1;
     }
     n
@@ -376,6 +369,19 @@ mod tests {
         t.pair_next().unwrap();
         t.set_result("Mette", 1, 0, Some(Outcome::WhiteForfeit), "").unwrap();
         t
+    }
+
+    #[test]
+    fn start_numbers_follow_the_seeding_under_baku_acceleration() {
+        let mut t = Tournament::new("T", System::Dutch { baku: true }, 7, "").unwrap();
+        // Registered weakest first, so registration order is the reverse of the seeding.
+        for (k, r) in [1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400].into_iter().enumerate() {
+            let p = t.register(Player { name: format!("P{k}"), rating: r, ..Player::default() }).unwrap();
+            t.set_status("Mette", p, Status::Here).unwrap();
+        }
+        t.pair_next().unwrap();
+        assert_eq!(t.seeds.len(), 4, "GA holds only the top half");
+        assert_eq!(numbers(&t), [8, 7, 6, 5, 4, 3, 2, 1]);
     }
 
     #[test]

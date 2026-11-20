@@ -646,6 +646,22 @@ impl Tournament {
         order
     }
 
+    /// Players in start-number order: a round-robin's, knockout's, Scheveningen's or Monrad's
+    /// fixed numbers, anyone left out after them; otherwise the seeding (also under Baku
+    /// acceleration, whose `seeds` are only group GA).
+    pub fn start_order(&self) -> Vec<usize> {
+        let mut order = self.seeding();
+        if !matches!(self.system, System::Dutch { .. } | System::Nordic | System::DropIn { .. }) && !self.seeds.is_empty() {
+            order.sort_by_key(|p| self.seeds.iter().position(|s| s == p).unwrap_or(usize::MAX));
+        }
+        order
+    }
+
+    /// Every declared Round is paired and has all its results: the Tournament can be rated.
+    pub fn over(&self) -> bool {
+        self.rounds > 0 && self.played.len() as u32 >= self.rounds && self.played.iter().all(|r| r.complete())
+    }
+
     /// Why the next Round cannot be paired yet, if it cannot.
     pub fn can_pair(&self) -> Result<()> {
         if self.played.last().is_some_and(|r| !r.complete()) {

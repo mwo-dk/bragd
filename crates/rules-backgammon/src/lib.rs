@@ -55,5 +55,5 @@ pub use board::{BAR_POINT, CHECKERS, HOME, POINTS, Point, Side};
 pub use cube::{Cube, CubeError, MAX_CUBE};
 pub use dice::Roll;
 pub use game::{Concession, Entry, Game, Needed, Outcome, PlayError, WinReason};
-pub use position::{Continuation, Layout, Position};
+pub use position::{Continuation, Layout, Position, SoFar};
 pub use turn::{Destination, NO_PLAY, Origin, Play, Turn};

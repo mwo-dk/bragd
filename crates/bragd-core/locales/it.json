@@ -1126,6 +1126,7 @@
  "tournaments.tb.rtng": "Rating",
  "tournaments.error.damaged": "Questo torneo nel file del Club è danneggiato: una partita o un riposo cita un giocatore che non c'è.",
  "tournaments.error.rated": "I rating del Club contano già le partite di questo torneo.",
+ "tournaments.error.not_over": "Ogni turno deve essere giocato e avere tutti i suoi risultati prima che i rating del Club possano contare questo torneo.",
  "tournaments.error.bundle": "Questo non è un pacchetto di Torneo Bragd, oppure è danneggiato.",
  "tournaments.system.dutch": "Svizzero (FIDE olandese)",
  "tournaments.system.round_robin": "Round robin",

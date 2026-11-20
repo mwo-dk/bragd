@@ -1123,6 +1123,7 @@
  "tournaments.tb.rtng": "Puntuazioa",
  "tournaments.error.damaged": "Txapelketa hau klubaren fitxategian hondatuta dago: partida batek edo bye batek ez dagoen jokalari bat aipatzen du.",
  "tournaments.error.rated": "Klubaren puntuazioek txapelketa honetako partidak jada zenbatzen dituzte.",
+ "tournaments.error.not_over": "Txanda guztiak jokatu eta emaitza guztiak izan behar dituzte, klubaren puntuazioek txapelketa hau zenbatu aurretik.",
  "tournaments.error.bundle": "Hau ez da Bragd txapelketa-paketerik, edo hondatuta dago.",
  "tournaments.system.dutch": "Suitzarra (FIDE, holandarra)",
  "tournaments.system.round_robin": "Denak denen kontra",

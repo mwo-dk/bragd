@@ -210,10 +210,13 @@ pub fn parse(format: Format, r: &mut dyn BufRead, each: Each) -> io::Result<()> 
                     }
                     return Ok(());
                 }
+                // Columns count characters: a Latin-1 byte read in is one character of two bytes.
+                let at: Vec<usize> = line.char_indices().map(|(b, _)| b).chain([line.len()]).collect();
+                let byte = |c: usize| at[c.min(at.len() - 1)];
                 let get = |name: &str| -> &str {
                     let Some(i) = cols.iter().position(|(n, _)| n == name) else { return "" };
-                    let from = cols[i].1.min(line.len());
-                    let to = cols.get(i + 1).map_or(line.len(), |c| c.1).clamp(from, line.len());
+                    let from = byte(cols[i].1);
+                    let to = cols.get(i + 1).map_or(line.len(), |c| byte(c.1)).max(from);
                     line.get(from..to).unwrap_or("").trim()
                 };
                 each(Player {
@@ -815,6 +818,10 @@ mod tests {
         assert_eq!((c.rating, c.rapid, c.blitz, c.born, c.fide_id.as_str()), (Some(2830), Some(2780), Some(2880), Some(1990), "1503014"));
         // Unrated: no rating rather than 0.
         assert_eq!((ps[1].rating, ps[1].title.as_str(), ps[1].born), (None, "", Some(2009)));
+        // One Latin-1 byte in a name shifts no column after it.
+        let latin: Vec<u8> = FIDE.replacen("Carlsen, Magnus", "Carls#n, Magnus", 1).bytes().map(|b| if b == b'#' { 0xe9 } else { b }).collect();
+        let c = &parsed(Format::FideTxt, &latin)[0];
+        assert_eq!((c.name.as_str(), c.federation.as_str(), c.title.as_str(), c.rating, c.born), ("Carlsén, Magnus", "NOR", "GM", Some(2830), Some(1990)));
     }
 
     #[test]

@@ -178,7 +178,7 @@ The Danish Chess Union publishes no file format for rating reports. Results are 
 
 ## Club ratings
 
-When every result is in, **Rate the members' games** works out the club ratings of the members from the games they played each other, as one rating period. Guests and forfeits do not count. It can be done once per Tournament, and the Club's audit log names the Tournament.
+When every declared Round is played and every result is in, **Rate the members' games** works out the club ratings of the members from the games they played each other, as one rating period. Guests and forfeits do not count. It can be done once per Tournament, and the Club's audit log names the Tournament. Until the last Round is in, the button is greyed out and the page says why: rating half-way would leave the later Rounds unrated for good. Under Glicko-2, members who did not play become a little less certain, as in every rating period.
 
 ## What it needs
 

@@ -1123,6 +1123,7 @@
  "tournaments.tb.rtng": "Wertung",
  "tournaments.error.damaged": "Dieses Turnier in der Club-Datei ist beschädigt: Eine Partie oder ein Freilos nennt einen Spieler, der nicht vorhanden ist.",
  "tournaments.error.rated": "Die Wertungen des Clubs zählen die Partien dieses Turniers bereits.",
+ "tournaments.error.not_over": "Jede Runde muss gespielt sein und alle ihre Ergebnisse haben, bevor die Wertungen des Clubs dieses Turnier zählen können.",
  "tournaments.error.bundle": "Dies ist kein Bragd-Turnierpaket, oder es ist beschädigt.",
  "tournaments.system.dutch": "Schweizer System (FIDE, holländisch)",
  "tournaments.system.round_robin": "Rundenturnier",

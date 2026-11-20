@@ -1126,6 +1126,7 @@
  "tournaments.tb.rtng": "Puntuació",
  "tournaments.error.damaged": "Aquest torneig del fitxer del Club està malmès: una partida o un bye té un jugador que no hi és.",
  "tournaments.error.rated": "Les puntuacions del Club ja compten les partides d'aquest torneig.",
+ "tournaments.error.not_over": "Cada ronda s'ha de jugar i tenir tots els seus resultats abans que les puntuacions del Club puguin comptar aquest torneig.",
  "tournaments.error.bundle": "Això no és un paquet de torneig de Bragd, o està malmès.",
  "tournaments.system.dutch": "Suís (FIDE, holandès)",
  "tournaments.system.round_robin": "Tots contra tots",
