@@ -12,7 +12,7 @@ pub mod keys;
 pub mod node;
 mod tls;
 
-pub use node::{CODE_TRIES, CODE_TTL, Failed, Listening, Node, Peer};
+pub use node::{CODE_TRIES, CODE_TTL, REPLY_MAX, Failed, Listening, Node, Peer};
 
 /// The port a Helper listens on for Peers, and the one a typed address without a port gets.
 pub const PORT: u16 = 47_247;

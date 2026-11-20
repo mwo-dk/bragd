@@ -17,7 +17,7 @@ The FICS games database holds the Games played on the Free Internet Chess Server
 
 ## What a fetch does
 
-FICS makes each file when it is asked for. A month is out on the 2nd of the next month. The first fetch takes last month, or every month from *First month*. Later fetches take each month after the last one fetched, at most 12 at a time, and stop at a month that is not out yet. The files go into `<data>/bragd/helper/sources/fics/`.
+FICS makes each file when it is asked for. A month is out on the 2nd of the next month. The first fetch takes last month, or every month from *First month*. Later fetches take each month after the last one fetched, at most 12 at a time, and stop at the newest month while it is not out yet. An older month with no file for one of your game types had no such games: that type is skipped for it, and the fetch goes on. The files go into `<data>/bragd/helper/sources/fics/`.
 
 Sizes of a month in 2025, packed:
 
@@ -41,7 +41,7 @@ The other options are those of every Source ([Sources](sources.md#options)).
 
 #### Why did a fetch take fewer months than I asked for?
 
-It takes at most 12 a time, and FICS limits how much of its large archives one address downloads. When FICS gives no file for a month, the fetch stops there, and the next fetch goes on from that month.
+It takes at most 12 a time, and FICS limits how much of its large archives one address downloads. When FICS gives no file for last month, it is not out yet: the fetch stops there, and the next fetch goes on from that month. An older month without a file for one game type is passed over for that type only.
 
 #### Why are there no variant Games?
 

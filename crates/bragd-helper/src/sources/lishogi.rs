@@ -60,7 +60,7 @@ impl Source for Lishogi {
     }
 
     fn fetch(&self, cx: &mut Cx) -> io::Result<Vec<PathBuf>> {
-        let mut site = Account::signed_in(cx.net, &LISHOGI, PACE)?;
+        let mut site = Account::signed_in(cx.net, &LISHOGI, PACE, cx.stop)?;
         let base = LISHOGI.base();
         let me = super::page(&site, &format!("{base}/api/account"))?.ok_or_else(|| io::Error::other(format!("{base}/api/account is not there")))?;
         let me: serde_json::Value = serde_json::from_str(&me).map_err(|e| io::Error::other(format!("{base}/api/account: {e}")))?;
@@ -120,7 +120,7 @@ impl Source for Lishogi {
         let base = LISHOGI.base();
         let id = game_id(game, &base).ok_or_else(|| io::Error::other(bragd_core::t!("source.not_a_game", "game" => game.trim(), "server" => LISHOGI.name)))?;
         let url = format!("{base}/game/export/{id}?notationInJson=true&clocks=false&evals=false");
-        let text = match Account::signed_in(cx.net, &LISHOGI, PACE) {
+        let text = match Account::signed_in(cx.net, &LISHOGI, PACE, cx.stop) {
             Ok(mut site) => {
                 site.accept = "application/json";
                 super::page(&site, &url)?

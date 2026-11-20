@@ -189,6 +189,9 @@ pub trait Peers: Send + Sync {
 
 /// How long a Peer keeps a job lent without renewing it.
 pub const LEASE: u64 = 600;
+/// The most a job lent to a Peer may take as JSON: what a reply carries, less room for its
+/// envelope.
+const LEND_MAX: u64 = bragd_peers::REPLY_MAX - 64 * 1024;
 /// How often a Peer working on a job renews it.
 const RENEW: Duration = Duration::from_secs(60);
 
@@ -786,7 +789,9 @@ impl Jobs {
         self.expire(now);
         let declined = self.declined.lock().unwrap_or_else(|e| e.into_inner()).clone();
         let mut st = self.lock();
-        let ok = |j: &Job| j.status == Status::Queued && j.from.is_none() && Lane::of(&j.work) == lane && !declined.contains(&(j.id, peer.to_string()));
+        // A job its reply could not carry stays here, for this machine's own worker.
+        let fits = |j: &Job| serde_json::to_vec(&j.work).is_ok_and(|v| (v.len() as u64) < LEND_MAX);
+        let ok = |j: &Job| j.status == Status::Queued && j.from.is_none() && Lane::of(&j.work) == lane && !declined.contains(&(j.id, peer.to_string())) && fits(j);
         let rank = |j: &Job| match &j.work {
             Work::Analyse { job } => (job.low, !containers.contains(&job.engine)),
             _ => (false, false),
@@ -1350,6 +1355,21 @@ pub(crate) mod tests {
         assert_eq!(lent(&fairy), Some(boxed));
         assert_eq!(lent(&fairy), Some(native));
         assert_eq!(lent(&[]), Some(low));
+    }
+
+    /// Issue 468: a job too big for the reply is not lent (it would never arrive, and sit lent
+    /// for the lease); the next one is, and the big one waits for this machine's own worker.
+    #[test]
+    fn a_job_too_big_for_the_reply_is_not_lent() {
+        let d = crate::tests::Dir::new("lend-big");
+        let jobs = jobs_with(&d.0, &d.0.join("data"), Recorded::default(), Arc::default());
+        let keys: Vec<(u64, u32)> = (1..60_000).map(|k| (k, 1)).collect();
+        let big = jobs.add(Work::Analyse { job: analyse_job("stockfish", &keys, "", false) });
+        assert!(serde_json::to_vec(&jobs.list().into_iter().find(|j| j.id == big).unwrap().work).unwrap().len() as u64 > bragd_peers::REPLY_MAX);
+        let small = jobs.add(Work::Analyse { job: analyse_job("stockfish", &[(1, 1)], "", false) });
+        assert_eq!(jobs.lend("p", "P", Lane::Analysis, &[], 0).map(|(id, _)| id), Some(small));
+        assert_eq!(jobs.lend("p", "P", Lane::Analysis, &[], 0), None);
+        assert_eq!(jobs.list().into_iter().find(|j| j.id == big).unwrap().status, Status::Queued);
     }
 
     /// Background analysis takes the jobs asked for before those from Games opened, the most

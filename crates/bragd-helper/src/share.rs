@@ -233,12 +233,12 @@ impl Share {
         }
     }
 
-    /// Syncs every `SYNC_EVERY` until `quit`.
+    /// Syncs every `SYNC_EVERY` until `quit`, and at once when Peers are turned on.
     pub fn run(&self, quit: &dyn Fn() -> bool) {
         while !quit() {
             self.sync_all();
-            let until = std::time::Instant::now() + SYNC_EVERY;
-            while !quit() && std::time::Instant::now() < until {
+            let (until, was_on) = (std::time::Instant::now() + SYNC_EVERY, self.on.load(Ordering::Relaxed));
+            while !quit() && std::time::Instant::now() < until && (was_on || !self.on.load(Ordering::Relaxed)) {
                 std::thread::sleep(Duration::from_millis(250));
             }
         }
@@ -386,6 +386,32 @@ mod tests {
         assert!(!b.share.renew(&owner, 0, Some(1)));
         b.share.give_back(&owner, Outcome::Stopped);
         assert_eq!(a.jobs.list().into_iter().find(|j| j.id == owner.id).unwrap().status, Status::Cancelled);
+    }
+
+    /// Issue 469: Peers turned on after the sync loop started: it syncs at once, not only
+    /// after a restart or a minute.
+    #[test]
+    fn the_sync_starts_when_peers_are_turned_on() {
+        let (a, b) = (Machine::new("a"), Machine::new("b"));
+        pair(&a, &b);
+        b.store().put(&row(1, "Stockfish 17", 9)).unwrap();
+        a.share.on.store(false, Ordering::Relaxed);
+        let quit = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let looping = {
+            let (share, quit) = (a.share.clone(), quit.clone());
+            std::thread::spawn(move || share.run(&|| quit.load(Ordering::Relaxed)))
+        };
+        std::thread::sleep(Duration::from_millis(300));
+        assert!(a.share.synced(&b.id()).is_none(), "off: no sync");
+        a.share.on.store(true, Ordering::Relaxed);
+        // The limit only guards against a hang: the loop wakes within 250 ms.
+        let until = std::time::Instant::now() + Duration::from_secs(10);
+        while a.share.synced(&b.id()).is_none() && std::time::Instant::now() < until {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        quit.store(true, Ordering::Relaxed);
+        looping.join().unwrap();
+        assert_eq!(a.share.synced(&b.id()).map(|s| s.got), Some(1));
     }
 
     /// A model job: B, with a model ready, translates for A, which keeps the translation.

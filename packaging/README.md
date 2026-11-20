@@ -14,7 +14,21 @@ every channel, or it does not go out (CLAUDE.md, Shipping).
 | AUR | `bragd` and `bragd-bin` ([aur/](aur/README.md)). Published by hand | by hand | none |
 | Scripts | `install/install.sh` (Linux, macOS) and `install/install.ps1` (Windows) build from source | by hand | none |
 
-Without its secret a channel's job leaves a notice and does nothing.
+Without its secret a channel's job fails. Before it makes a draft, a release run (and a
+rehearsal) checks in its `channels` job that `TAP_TOKEN` and `WINGET_TOKEN` are set and still sign
+in, so an expired token stops the release before anything is published.
+
+## Releasing by hand, until the triggers are on
+
+`release.yml` and `release-pr.yml` have no `push` or `schedule` trigger yet ([#512](https://github.com/mwo-dk/bragd/issues/512)): nothing is released
+before 1.0.0 (CLAUDE.md), and a push trigger would turn every push red while `Cargo.toml` holds an
+unreleased 0.x version. Until they are on, a release is:
+
+1. `gh workflow run release.yml --ref master -f rehearsal=true`, on the Saturday: tomorrow's
+   release built and checked, nothing published.
+2. `gh workflow run release-pr.yml --ref master`: the release pull request, with auto-merge on.
+3. Once it has merged: `gh workflow run release.yml --ref master`. Merging it releases nothing
+   by itself.
 
 ## The week
 
@@ -93,8 +107,11 @@ engine images (`images.yml`) build into an OCI archive, and a `push` job copies 
 skopeo.
 
 A job that failed on GitHub's side (a runner lost, an upload refused) is run again with
-`gh run rerun <run id> --failed`. `discard` deleted the run's draft, and `upload` makes it again
-(`release-draft.sh`, which leaves another run's draft alone). A failed rehearsal keeps its
+`gh run rerun <run id> --failed`. When it failed before `upload` finished, `discard` deleted the
+run's draft, and `upload` makes it again (`release-draft.sh`, which leaves another run's draft
+alone). When `verify`, `publish` or `rehearse` failed, `discard` keeps the draft, unpublished, so
+the rerun checks it again; a cancelled run's draft is always deleted. A draft kept and never
+rerun is replaced by the next run started by hand. A failed rehearsal keeps its
 `rehearsal/vX.Y.Z` branch for the same reason; the next rehearsal replaces it, and publishing that
 version deletes it.
 
@@ -112,7 +129,10 @@ read and write: `gh secret set RELEASE_PR_TOKEN -R mwo-dk/bragd`. A pull request
 write: `gh secret set TAP_TOKEN -R mwo-dk/bragd`.
 
 **WINGET_TOKEN:** a classic token with `public_repo`, from the account that owns the fork
-`mwo-dk/winget-pkgs`: `gh secret set WINGET_TOKEN -R mwo-dk/bragd`.
+`mwo-dk/winget-pkgs`: `gh secret set WINGET_TOKEN -R mwo-dk/bragd`. Komac, a downloaded program
+(pinned by its SHA-256), holds it while it runs, and `public_repo` writes to every public
+repository of that account, this one included. Make it on a bot account of its own that owns only
+the fork, so a leak cannot reach `mwo-dk/bragd`.
 
 **APPLE_CERTIFICATE**, **APPLE_CERTIFICATE_PASSWORD**, **APPLE_ID**, **APPLE_PASSWORD**,
 **APPLE_TEAM_ID** (optional): Developer ID signing and notarisation of the `.dmg`, in the `sign-macos` job,

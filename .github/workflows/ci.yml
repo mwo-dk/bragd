@@ -118,8 +118,10 @@ jobs:
         if: runner.arch == 'ARM64' && runner.os != 'macOS' && steps.gui.outputs.exists == 'true'
         working-directory: gui
         shell: bash
+        env:
+          BUNDLES: ${{ runner.os == 'Linux' && 'deb,appimage' || 'nsis,msi' }}
         run: |
-          npx tauri build --debug --ci --bundles ${{ runner.os == 'Linux' && 'deb,appimage' || 'nsis,msi' }}
+          npx tauri build --debug --ci --bundles "$BUNDLES"
           if [ "$RUNNER_OS" = Linux ]; then
             entry="$(dpkg-deb --fsys-tarfile ../target/debug/bundle/deb/*.deb | tar -xO --wildcards '*.desktop')"
             echo "$entry"

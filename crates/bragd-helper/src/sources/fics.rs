@@ -1,6 +1,7 @@
 //! The FICS games database: a month of one game type as a `.pgn.bz2`, made by its download
 //! page on request. The page answers with a link to the file, or with none while the month is
-//! not out yet (on the 2nd of the next month).
+//! not out yet (on the 2nd of the next month). An older month with no file for a game type
+//! had no such games: that type is skipped for it.
 
 use std::io;
 use std::path::PathBuf;
@@ -46,8 +47,13 @@ impl Fics {
             for (id, n) in &types {
                 let to = cx.dir.join(format!("ficsgamesdb_{}_{id}.pgn.bz2", month_text(m).replace('-', "")));
                 if !to.exists() {
-                    // No link: the month is not out yet, and nothing after it is either.
-                    let Some(path) = page(cx.net, &asked(*n, m))?.as_deref().and_then(link).map(String::from) else { return Ok(files) };
+                    let Some(path) = page(cx.net, &asked(*n, m))?.as_deref().and_then(link).map(String::from) else {
+                        // The newest month is not out yet; one before it had none of these.
+                        if m == newest {
+                            return Ok(files);
+                        }
+                        continue;
+                    };
                     let url = format!("{SITE}{path}");
                     if !net::download(cx.net, &url, &to, cx.cap, cx.stop, cx.progress)? {
                         return Err(io::Error::other(format!("{url} is not there")));
@@ -147,11 +153,35 @@ mod tests {
         o.since = "2026-08".into();
         o.parts = vec!["blitz".into()];
         let mut memo = Memo::default();
-        // Blitz is not there for September: the fetch stops at August.
+        // Blitz is not there for September (skipped) nor for October, the newest (not out yet).
         assert_eq!(fetch(&net, &d.0, &mut memo, &o, NOW), [d.0.join("ficsgamesdb_202608_blitz.pgn.bz2")]);
-        assert_eq!(memo.last_issue, Some(aug));
+        assert_eq!(memo.last_issue, Some(sep));
         o.parts = vec![];
-        assert_eq!(fetch(&net, &d.0, &mut memo, &o, NOW).len(), 2, "September and October of the default type");
+        assert_eq!(fetch(&net, &d.0, &mut memo, &o, NOW), [d.0.join("ficsgamesdb_202610_standard2000.pgn.bz2")], "October of the default type");
+    }
+
+    /// Issue 475: a month with no file for one of the types picked does not stall the Source:
+    /// that type is skipped for it, the other comes once, and the months after it follow.
+    #[test]
+    fn a_month_without_one_type_is_passed() {
+        let d = crate::tests::Dir::new("fics-gap");
+        let (aug, sep, oct) = (month("2026-08").unwrap(), month("2026-09").unwrap(), month("2026-10").unwrap());
+        let mut net = site(&[aug, sep, oct]);
+        for m in [aug, oct] {
+            let name = format!("ficsgamesdb_{}_lightning2000_nomovetimes_1.pgn.bz2", month_text(m).replace('-', ""));
+            net.files.insert(asked(8, m), answer(&name));
+            net.files.insert(format!("{SITE}/dl/{name}"), b"x".to_vec());
+        }
+        net.files.insert(asked(8, sep), b"<p>Download not available</p>".to_vec());
+        let mut o: Options = Fics.about().defaults();
+        o.since = "2026-08".into();
+        o.parts = vec!["standard2000".into(), "lightning2000".into()];
+        let mut memo = Memo::default();
+        let got = fetch(&net, &d.0, &mut memo, &o, NOW);
+        let name = |m: &str, t: &str| d.0.join(format!("ficsgamesdb_{m}_{t}.pgn.bz2"));
+        assert_eq!(got, [name("202608", "standard2000"), name("202608", "lightning2000"), name("202609", "standard2000"), name("202610", "standard2000"), name("202610", "lightning2000")]);
+        assert_eq!(memo.last_issue, Some(oct));
+        assert!(fetch(&net, &d.0, &mut memo, &o, NOW).is_empty(), "nothing given twice");
     }
 
     #[test]

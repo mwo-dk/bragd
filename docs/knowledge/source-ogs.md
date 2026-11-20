@@ -20,7 +20,7 @@ The install wizard's Knowledge step offers it too, unticked, when go is on.
 
 | Step | What happens |
 |---|---|
-| List | Bragd asks OGS for your account's Games, the most recently ended first, 50 to a page, until it reaches the last Game it fetched |
+| List | Bragd asks OGS for your account's Games, the most recently ended first, 50 to a page, until it reaches the last Game it fetched, and a thousand Games at most |
 | Ask | When the new Games would take more than *Largest download* (about 3 kB a Game), nothing is downloaded. The Source's line shows the size with **Download it anyway** |
 | Download | Each Game's SGF, oldest first, into `<data>/bragd/helper/sources/ogs/` as `ogs-<number>.sgf`. One request every 2 seconds |
 | Import | Through the Routes and their Strip rules. A Game fetched twice is stored once ([Duplicates](duplicates.md)) |
@@ -40,7 +40,7 @@ The Source fetches the Games of your account, so it needs the account Bragd sign
 
 #### Why is a first fetch slow?
 
-Bragd asks OGS for one Game every 2 seconds, so a thousand Games take about 35 minutes. OGS serves its players from its own servers and states no rate for other apps, so Bragd goes gently. When OGS asks Bragd to slow down, it waits as long as OGS asks and goes on. Later fetches take only the Games ended since, often none.
+Bragd asks OGS for one Game every 2 seconds, so a thousand Games take about 35 minutes. OGS serves its players from its own servers and states no rate for other apps, so Bragd goes gently. When OGS asks Bragd to slow down, it waits as long as OGS asks, up to an hour, and goes on. **Cancel** on the Jobs page ends the wait at once. Later fetches take only the Games ended since, often none.
 
 #### Why does it say about 3 MB the first time?
 

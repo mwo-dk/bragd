@@ -310,7 +310,7 @@ pub struct Cx<'a> {
     pub cap: u64,
     pub memo: &'a mut Memo,
     pub options: &'a Options,
-    pub stop: &'a dyn Fn() -> bool,
+    pub stop: &'a (dyn Fn() -> bool + Sync),
     pub progress: &'a mut dyn FnMut(u64),
 }
 
@@ -330,12 +330,13 @@ pub trait Source: Send + Sync {
 /// A site's API as the account Bragd signed in to it with, as a `Fetcher`, so `net::download`
 /// and `page` read it. It keeps the site's pace: `pace` seconds before every request but the
 /// first. A 429 waits as long as the site asks and goes again, twice at most; a 401 or 403 says
-/// to sign in again.
+/// to sign in again. Each request and each wait asks `stop` first.
 pub struct Account<'a> {
     net: &'a dyn Fetcher,
     server: &'static bragd_online::server::Server,
     token: String,
     pace: u64,
+    stop: &'a (dyn Fn() -> bool + Sync),
     /// What it asks the site's API for (`Accept`), when not empty.
     pub accept: &'static str,
     asked: std::sync::atomic::AtomicBool,
@@ -344,9 +345,9 @@ pub struct Account<'a> {
 impl<'a> Account<'a> {
     /// The account kept for `server` (its token in the OS keychain); none: an error that says
     /// where to sign in.
-    pub fn signed_in(net: &'a dyn Fetcher, server: &'static bragd_online::server::Server, pace: u64) -> io::Result<Self> {
+    pub fn signed_in(net: &'a dyn Fetcher, server: &'static bragd_online::server::Server, pace: u64, stop: &'a (dyn Fn() -> bool + Sync)) -> io::Result<Self> {
         let token = server.token(&server.base()).filter(|t| !t.is_empty()).ok_or_else(|| io::Error::other(bragd_core::t!("source.sign_in", "server" => server.name)))?;
-        Ok(Account { net, server, token, pace, accept: "", asked: Default::default() })
+        Ok(Account { net, server, token, pace, stop, accept: "", asked: Default::default() })
     }
 }
 
@@ -356,8 +357,10 @@ impl Fetcher for Account<'_> {
     }
 
     fn api(&self, url: &str, _: &str, accept: &str) -> io::Result<net::Got> {
-        if self.asked.swap(true, std::sync::atomic::Ordering::Relaxed) {
-            self.net.pause(self.pace);
+        let stopped = || io::Error::new(io::ErrorKind::Interrupted, "stopped");
+        let first = !self.asked.swap(true, std::sync::atomic::Ordering::Relaxed);
+        if (self.stop)() || !first && self.net.pause(self.pace, self.stop) {
+            return Err(stopped());
         }
         let mut tries = 0;
         loop {
@@ -365,7 +368,9 @@ impl Fetcher for Account<'_> {
                 Err(e) => match net::Refused::of(&e) {
                     Some(r) if r.status == 429 && tries < 2 => {
                         tries += 1;
-                        self.net.pause(r.wait);
+                        if self.net.pause(r.wait, self.stop) {
+                            return Err(stopped());
+                        }
                     }
                     Some(r) if r.status == 429 => return Err(io::Error::other(bragd_core::t!("source.busy", "server" => self.server.name))),
                     Some(_) => return Err(io::Error::other(bragd_core::t!("source.sign_in_again", "server" => self.server.name))),

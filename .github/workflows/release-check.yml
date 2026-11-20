@@ -166,8 +166,10 @@ jobs:
           persist-credentials: false
           sparse-checkout: .github/actions
       - name: Download
+        env:
+          ARCH: ${{ matrix.deb }}
         run: |
-          deb="Bragd_${VER}_${{ matrix.deb }}.deb"
+          deb="Bragd_${VER}_${ARCH}.deb"
           for f in SHA256SUMS "$deb"; do
             curl -fsSLO "https://github.com/$REPO/releases/download/$TAG/$f"
           done
@@ -211,8 +213,10 @@ jobs:
       VER: ${{ needs.resolve.outputs.version }}
     steps:
       - name: The .dmg, mounted
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
-          dmg="Bragd_${VER}_${{ matrix.arch }}.dmg"
+          dmg="Bragd_${VER}_${ARCH}.dmg"
           for f in SHA256SUMS "$dmg"; do
             curl -fsSLO "https://github.com/$REPO/releases/download/$TAG/$f"
           done
@@ -241,8 +245,10 @@ jobs:
     steps:
       - name: The NSIS installer, silently
         shell: pwsh
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
-          $exe = "Bragd_${env:VER}_${{ matrix.arch }}-setup.exe"
+          $exe = "Bragd_${env:VER}_${env:ARCH}-setup.exe"
           foreach ($f in @("SHA256SUMS", $exe)) {
             Invoke-WebRequest "https://github.com/$env:REPO/releases/download/$env:TAG/$f" -OutFile $f -UseBasicParsing
           }

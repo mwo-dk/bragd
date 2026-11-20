@@ -353,11 +353,6 @@ pub fn serve_in(ours: Ours, dir: &Path, stays: bool, linger: Duration, jobs: imp
         let jobs = jobs.clone();
         std::thread::spawn(move || jobs.work_lane(crate::jobs::Lane::Model))
     };
-    // The Position store's sync with Peers; it leaves with the Helper, not waited for.
-    if let Some(share) = crate::peers::share() {
-        let (share, jobs) = (share.clone(), jobs.clone());
-        std::thread::spawn(move || share.run(&|| jobs.quitting()));
-    }
     let (clients, quit, last) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicBool::new(false)), Arc::new(Mutex::new(Instant::now())));
     {
         let (jobs, clients, quit, last) = (jobs.clone(), clients.clone(), quit.clone(), last.clone());
