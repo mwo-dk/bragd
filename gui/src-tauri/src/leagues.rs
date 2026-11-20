@@ -34,6 +34,8 @@ pub struct View {
     rounds: u32,
     /// Each match's board points, home and away, written out: by Round, then match.
     scores: Vec<Vec<(String, String)>>,
+    /// Whether the home Team has White, board by board: the rules' say, not the page's.
+    home_white: Vec<bool>,
     standings: Vec<Row>,
     /// Why the next Round cannot be paired, if it cannot.
     blocked: Option<String>,
@@ -47,7 +49,8 @@ fn view(id: i64, l: League) -> View {
         .map(|s| Row { rank: s.rank, team: s.team, played: s.played, won: s.won, drawn: s.drawn, lost: s.lost, match_points: tournament::half_text(s.match_points), board_points: tournament::half_text(s.board_points) })
         .collect();
     let blocked = l.clone().pair_next().err().map(|e| e.to_string());
-    View { id, rounds: l.rounds(), scores, standings, blocked, league: l }
+    let home_white = (0..l.boards as usize).map(League::home_white).collect();
+    View { id, rounds: l.rounds(), scores, home_white, standings, blocked, league: l }
 }
 
 /// Runs `f` on the open Club.

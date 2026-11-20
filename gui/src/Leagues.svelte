@@ -40,7 +40,7 @@
   const L = $derived(lv?.league);
   const OUTCOMES = ["white", "draw", "black", "white_forfeit", "black_forfeit", "double_forfeit"];
   const TABS = ["teams", "rounds", "standings", "log"];
-  const homeWhite = (/** @type {number} */ b) => b % 2 === 0;
+  const homeWhite = (/** @type {number} */ b) => lv.home_white[b];
   const player = (/** @type {number} */ team, /** @type {number|null} */ p) => (p === null ? "–" : (L.teams[team].players[p]?.name ?? ""));
 
   async function run(/** @type {() => Promise<any>} */ f) {
