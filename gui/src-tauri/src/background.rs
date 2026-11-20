@@ -3,7 +3,6 @@
 //! the store's housekeeping in Disk watch. The work is the Helper's (`bragd_helper::analysis`)
 //! and the store's (`bragd_positions`); this module builds the jobs and the texts.
 
-use std::path::Path;
 
 use bragd_core::config::Config;
 use bragd_core::t;
@@ -159,7 +158,7 @@ pub fn slice_analyse(library: String, name: String, family: String, engines: Vec
         (_, Some(s)) if s > 0.0 => Per::Millis((s * 1000.0).round().min(3_600_000.0) as u32),
         _ => return Err(t!("background.no_limit")),
     };
-    let lib = Library::open(Path::new(&library)).map_err(|e| e.to_string())?;
+    let lib = Library::open(&crate::databases::library_at(&ctx.cfg(), &library, false)?).map_err(|e| e.to_string())?;
     let ids = lib.slice_games(&name).map_err(|e| e.to_string())?;
     let found = lib.frequent(&ids, &family, top.clamp(1, MOST) as usize).map_err(|e| e.to_string())?;
     let jobs = slice_jobs(&ctx.cfg(), &name, &found, &engines, per);

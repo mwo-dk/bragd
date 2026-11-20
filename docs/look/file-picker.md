@@ -12,7 +12,7 @@ Coxswain's picker shows full names, searches as you type, and looks the same on 
 |---|---|
 | Settings | *Settings → Look → File picker*: *Automatic*, *Coxswain* or *The system's dialog* when Coxswain is installed; only *The system's dialog* otherwise |
 | Databases | **Open…** and **Save as…** on a Foreign database |
-| Engines | **Choose…** next to *Path to the engine program* |
+| Engines | **Choose the Engine's program** under *Add an Engine* |
 | Tablebases | **Choose…** next to the tablebase folder |
 | Opening books | **Choose…** next to the book's path |
 

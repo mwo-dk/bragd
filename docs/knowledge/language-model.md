@@ -25,7 +25,7 @@ For another server, type its address under *Address and model*, then a model's n
 |---|---|
 | **Use** | Sets the server found and the model picked |
 | **Look again** | Looks for Ollama, Lemonade and LM Studio on this machine again |
-| **List models** | Asks the server at the address for its models |
+| **List models** | Asks the server at the address for its models. For an address off this machine, only after you have agreed to it |
 | **Save key** | Keeps the key you typed in the system's keychain |
 | **Remove key** | Takes the key for this address out of the keychain |
 | **I agree** | Agrees that comments and positions go to an address off this machine |

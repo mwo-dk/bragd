@@ -208,7 +208,8 @@ pub fn unpair(id: &str) -> Result<View, String> {
     view(false)
 }
 
-/// Other Helpers announcing themselves on the home network, and Peers found at a new address.
+/// Other Helpers announcing themselves on the home network, and Peers found at a new address:
+/// a Peer's address moves only once it has answered there with its pinned key.
 pub fn look() -> Result<Vec<Found>, String> {
     if !find::MDNS {
         return Err(bragd_core::t!("peers.no_mdns"));

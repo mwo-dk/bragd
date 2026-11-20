@@ -37,6 +37,16 @@ pub fn ready(m: &ModelConfig) -> bool {
     !m.url.trim().is_empty() && !m.name.trim().is_empty() && (client::on_this_machine(&m.url) || m.consent.trim() == m.url.trim())
 }
 
+/// *List models*: the models the address set in `m` offers, asked with the key kept for it. An
+/// address off this machine is not contacted before the user has agreed to it.
+pub fn models(m: &ModelConfig) -> Result<Vec<String>, String> {
+    let url = m.url.trim();
+    if !client::on_this_machine(url) && m.consent.trim() != url {
+        return Err(t!("model.consent", "url" => url));
+    }
+    client::models(url, key::get(url).as_deref())
+}
+
 pub fn status(m: &ModelConfig) -> Status {
     let set = !m.url.trim().is_empty();
     let local = client::on_this_machine(&m.url);
@@ -151,6 +161,21 @@ mod tests {
         assert!(s.consent_needed && !s.ready && !s.on_this_machine);
         assert!(!ready(&cfg(cloud, "gpt", "https://other.example.com/v1")), "consent is per address");
         assert!(ready(&cfg(cloud, "gpt", cloud)));
+    }
+
+    /// Issue 456: *List models* asks nothing of an address off this machine, nor sends its key,
+    /// before the user has agreed to that address.
+    #[test]
+    fn listing_models_waits_for_consent_to_an_address_off_this_machine() {
+        key::mock();
+        let cloud = "https://api.example.com/v1";
+        key::set(cloud, "secret").unwrap();
+        for consent in ["", "https://other.example.com/v1"] {
+            assert_eq!(models(&cfg(cloud, "", consent)), Err(t!("model.consent", "url" => cloud)));
+        }
+        // A server on this machine needs no consent.
+        let (url, _) = client::tests::fake(vec![(200, r#"{"data":[{"id":"qwen3"}]}"#.into())]);
+        assert_eq!(models(&cfg(&url, "", "")).unwrap(), ["qwen3"]);
     }
 
     #[test]

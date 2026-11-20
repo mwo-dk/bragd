@@ -30,7 +30,7 @@ Both machines now list each other under *Paired machines*. The code is used up.
 
 ## Finding a machine
 
-On the same home network, **Look around** finds every Helper that has Peers on: they announce themselves by mDNS as `_bragd._tcp`. A paired machine found at a new address is remembered there.
+On the same home network, **Look around** finds every Helper that has Peers on: they announce themselves by mDNS as `_bragd._tcp`. A paired machine found at a new address is remembered there once it has answered there with its own key: anyone can announce a key by mDNS, so the announcement alone moves nothing.
 
 On OpenBSD, Bragd cannot use mDNS yet: Look around says so, and the Helper does not announce itself there. Pair by address instead.
 

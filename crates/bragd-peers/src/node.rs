@@ -479,7 +479,13 @@ impl Node {
     /// Says hello to the Peer `id`; its name and version come back, and are kept.
     pub fn hello(&self, id: &str) -> Result<Peer, Failed> {
         let (key, addr) = self.pinned_key(id).ok_or(Failed::Refused(Why::NotPaired))?;
-        let mut line = self.dial(&addr, Some(key))?;
+        self.hello_at(id, key, &addr, false)
+    }
+
+    /// `hello` at `addr`, the Peer's key pinned; `moved` keeps `addr` as its address once it has
+    /// answered there.
+    fn hello_at(&self, id: &str, key: Key, addr: &str, moved: bool) -> Result<Peer, Failed> {
+        let mut line = self.dial(addr, Some(key))?;
         line.say(&Ask::Hello { name: self.name.clone(), version: self.version.clone() })?;
         let (name, version) = match line.hear()? {
             Answer::Hello { name, version } => (name, version),
@@ -490,6 +496,9 @@ impl Node {
         self.update(|ps| {
             if let Some(p) = ps.iter_mut().find(|p| p.key == id) {
                 (p.name, p.version, p.seen) = (name, Some(version), Some(bragd_core::fs::now()));
+                if moved {
+                    p.addr = addr.into();
+                }
                 seen = Some(p.clone());
             }
         })?;
@@ -508,13 +517,11 @@ impl Node {
         }
     }
 
-    /// A Peer found at another address (mDNS): kept for the next time.
-    pub fn moved(&self, id: &str, addr: &str) -> io::Result<()> {
-        self.update(|ps| {
-            if let Some(p) = ps.iter_mut().find(|p| p.key == id) {
-                p.addr = addr.into();
-            }
-        })
+    /// A Peer found at another address (mDNS), kept for the next time only once it has said
+    /// hello there with its pinned key: an mDNS record is not signed, so anyone could claim it.
+    pub fn moved(&self, id: &str, addr: &str) -> Result<Peer, Failed> {
+        let (key, _) = self.pinned_key(id).ok_or(Failed::Refused(Why::NotPaired))?;
+        self.hello_at(id, key, addr, true)
     }
 
     /// Forgets the Peer `id`, closes its connections, and tells it, if it can be reached.

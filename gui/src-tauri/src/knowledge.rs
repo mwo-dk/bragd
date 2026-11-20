@@ -172,16 +172,16 @@ pub fn libraries_list(family: Option<String>, ctx: State<'_, Ctx>) -> Res<Vec<Li
 }
 
 #[tauri::command(async)]
-pub fn library_rows(path: String, query: Value, from: usize, count: usize, k: State<'_, Knowledge>) -> Res<Rows> {
-    k.dbs.library_rows(Path::new(&path), &databases::query_in(query)?, from, count)
+pub fn library_rows(path: String, query: Value, from: usize, count: usize, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Rows> {
+    k.dbs.library_rows(&databases::library_at(&ctx.cfg(), &path, false)?, &databases::query_in(query)?, from, count)
 }
 
 #[tauri::command(async)]
 pub fn library_game(path: String, id: i64, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Replay> {
-    let lib = Library::open(Path::new(&path)).map_err(|e| e.to_string())?;
+    let cfg = ctx.cfg();
+    let lib = Library::open(&databases::library_at(&cfg, &path, false)?).map_err(|e| e.to_string())?;
     let e = |e: bragd_library::library::Error| e.to_string();
     let r = databases::stored_replay(&lib.stored(id).map_err(e)?, &lib.keys(id, usize::MAX).map_err(e)?);
-    let cfg = ctx.cfg();
     if cfg.analysis.open_games
         && let Ok(o) = crate::background::Opened::of_stored(&lib, id, &r.title)
     {
@@ -194,8 +194,9 @@ pub fn library_game(path: String, id: i64, k: State<'_, Knowledge>, ctx: State<'
 /// its name and the names of its two sides.
 #[tauri::command(async)]
 pub fn library_player(path: String, name: String, ctx: State<'_, Ctx>) -> Res<PlayerView> {
-    let s = Library::open(Path::new(&path)).and_then(|l| l.player(&name)).map_err(|e| e.to_string())?;
-    Ok(player_view(s, &ctx.cfg()))
+    let cfg = ctx.cfg();
+    let s = Library::open(&databases::library_at(&cfg, &path, false)?).and_then(|l| l.player(&name)).map_err(|e| e.to_string())?;
+    Ok(player_view(s, &cfg))
 }
 
 /// A player's summary over the open Foreign database's Games read so far.
@@ -218,8 +219,8 @@ fn player_view(s: bragd_library::player::PlayerSummary, cfg: &Config) -> PlayerV
 
 /// The players of the Library at `path` whose name starts with `text`, with their Games.
 #[tauri::command(async)]
-pub fn library_players(path: String, text: String) -> Res<Vec<(String, u32)>> {
-    Library::open(Path::new(&path)).and_then(|l| l.players(&text, 20)).map_err(|e| e.to_string())
+pub fn library_players(path: String, text: String, ctx: State<'_, Ctx>) -> Res<Vec<(String, u32)>> {
+    Library::open(&databases::library_at(&ctx.cfg(), &path, false)?).and_then(|l| l.players(&text, 20)).map_err(|e| e.to_string())
 }
 
 #[derive(Serialize)]
@@ -239,14 +240,14 @@ pub struct FamilyView {
 /// The names of the sides of a Library's `white` and `black` columns in `family`.
 
 #[tauri::command(async)]
-pub fn library_review(path: String, family: Option<String>) -> Res<Review> {
-    databases::review(Path::new(&path), family.as_deref())
+pub fn library_review(path: String, family: Option<String>, ctx: State<'_, Ctx>) -> Res<Review> {
+    databases::review(&databases::library_at(&ctx.cfg(), &path, false)?, family.as_deref())
 }
 
 /// "Dedupe now": the Helper merges the headers of every merged Game again: its job's id.
 #[tauri::command(async)]
-pub fn library_dedupe(path: String, k: State<'_, Knowledge>) -> Res<u64> {
-    k.link.start(&Request::DedupeNow { library: Some(PathBuf::from(path)) })
+pub fn library_dedupe(path: String, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<u64> {
+    k.link.start(&Request::DedupeNow { library: Some(databases::library_at(&ctx.cfg(), &path, false)?) })
 }
 
 /// Export to Parquet: the Library written to a `.parquet` file the user picks, as a Helper
@@ -254,7 +255,7 @@ pub fn library_dedupe(path: String, k: State<'_, Knowledge>) -> Res<u64> {
 #[tauri::command(async)]
 pub fn library_export(app: AppHandle, path: String, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Res<Option<u64>> {
     bragd_core::tips::used("parquet");
-    let library = PathBuf::from(path);
+    let library = databases::library_at(&ctx.cfg(), &path, false)?;
     let name = format!("{}.parquet", library.file_stem().unwrap_or_default().to_string_lossy());
     let ask = files::Ask { title: t!("lib.export_title"), save: Some(name), filters: vec![("Parquet".into(), vec!["parquet".into()])], start: library.parent().map(Path::to_path_buf), ..Default::default() };
     let Some(to) = files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(None) };
@@ -376,19 +377,19 @@ pub fn slices_list(ctx: State<'_, Ctx>) -> Res<BTreeMap<String, Vec<SliceView>>>
 }
 
 #[tauri::command(async)]
-pub fn slice_save(library: String, name: String, query: Value) -> Res<()> {
+pub fn slice_save(library: String, name: String, query: Value, ctx: State<'_, Ctx>) -> Res<()> {
     let name = name.trim();
     if name.is_empty() {
         return Err(t!("slice.no_name"));
     }
-    let lib = Library::open(Path::new(&library)).map_err(|e| e.to_string())?;
+    let lib = Library::open(&databases::library_at(&ctx.cfg(), &library, false)?).map_err(|e| e.to_string())?;
     lib.save_slice(name, &databases::query_in(query)?).map_err(|e| e.to_string())
 }
 
 /// "Keep as a separate copy": the new Library's path.
 #[tauri::command(async)]
-pub fn slice_materialise(library: String, name: String) -> Res<String> {
-    databases::materialise(Path::new(&library), &name)
+pub fn slice_materialise(library: String, name: String, ctx: State<'_, Ctx>) -> Res<String> {
+    databases::materialise(&databases::library_at(&ctx.cfg(), &library, false)?, &name)
 }
 
 /// The key a Slice finds the position `fen` of `family` by, as text.

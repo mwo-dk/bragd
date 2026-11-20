@@ -73,7 +73,7 @@ export const enginesPage = (/** @type {string} */ familyKey) => invoke("engines_
 /** @returns {Promise<void>} */
 export const engineDefault = (/** @type {string} */ variant, /** @type {string} */ engine) => invoke("engine_default", { variant, engine });
 /** @returns {Promise<void>} */
-export const engineAdd = (/** @type {string} */ familyKey, /** @type {string} */ path) => invoke("engine_add", { familyKey, path });
+export const engineAdd = (/** @type {string} */ familyKey) => invoke("engine_add", { familyKey });
 /** @returns {Promise<void>} */
 export const engineRemove = (/** @type {string} */ key) => invoke("engine_remove", { key });
 /** @returns {Promise<any>} */
@@ -252,7 +252,7 @@ export const modelStatus = () => invoke("model_status");
 /** Local model servers running now, with their models. @returns {Promise<any[]>} */
 export const modelFind = () => invoke("model_find");
 /** The models a server offers. @returns {Promise<string[]>} */
-export const modelModels = (/** @type {string} */ url) => invoke("model_models", { url });
+export const modelModels = () => invoke("model_models");
 /** Keeps a key for the address set, in the keychain; empty removes it. @returns {Promise<any>} */
 export const modelKey = (/** @type {string} */ key) => invoke("model_key", { key });
 /** Whether to offer Translate on a Comment, and its kept translation. @returns {Promise<any>} */

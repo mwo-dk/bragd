@@ -451,6 +451,31 @@ pub fn library_folder(cfg: &Config) -> Option<PathBuf> {
     bragd_helper::default_library(cfg)?.parent().map(Path::to_path_buf)
 }
 
+/// The Library the page names by `path`, refused unless it is a `*.bragd` file right in the
+/// Library folder: the page only ever names one `libraries` listed, and no other file is opened,
+/// made or rewritten for it. `new` lets a Library that is not there yet be named (a match's).
+pub fn library_at(cfg: &Config, path: &str, new: bool) -> Result<PathBuf, String> {
+    // Never shown in normal use: the page names only Libraries it was given.
+    let refused = || format!("{path} is not a Library in the Library folder");
+    let dir = library_folder(cfg).ok_or_else(|| t!("app.no_folder"))?;
+    if new {
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    }
+    let dir = dir.canonicalize().map_err(|_| refused())?;
+    let p = Path::new(path);
+    let (Some(name), Some(parent)) = (p.file_name(), p.parent()) else { return Err(refused()) };
+    if p.extension().is_none_or(|e| e != "bragd") || parent.canonicalize().ok().as_deref() != Some(dir.as_path()) {
+        return Err(refused());
+    }
+    let at = dir.join(name);
+    match at.canonicalize() {
+        // A link in the folder to a file elsewhere is refused too.
+        Ok(real) if real.parent() == Some(dir.as_path()) && real.is_file() => Ok(at),
+        Err(e) if new && e.kind() == std::io::ErrorKind::NotFound => Ok(at),
+        _ => Err(refused()),
+    }
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryView {
@@ -802,5 +827,42 @@ mod tests {
         assert_eq!(slice_families(&q(Some("go"), None), never), ["go"]);
         assert_eq!(slice_families(&q(None, Some("shogi")), never), ["shogi"]);
         assert_eq!(slice_families(&q(None, None), || vec!["chess".into()]), ["chess"]);
+    }
+
+    /// Issue 451: the page names a Library by path, and only one in the Library folder is
+    /// opened, made or rewritten.
+    #[test]
+    fn only_a_library_in_the_library_folder_is_opened_for_the_page() {
+        let d = std::env::temp_dir().join(format!("bragd-libat-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let (libs, elsewhere) = (d.join("libraries"), d.join("elsewhere"));
+        std::fs::create_dir_all(&elsewhere).unwrap();
+        let mut cfg = Config::default();
+        cfg.knowledge.library = libs.display().to_string();
+        // A new match Library may be named in the folder, which is then made.
+        let first = libs.join("matches.bragd");
+        assert_eq!(library_at(&cfg, &first.display().to_string(), true).unwrap(), libs.canonicalize().unwrap().join("matches.bragd"));
+        let main = libs.join("main.bragd");
+        Library::open(&main).unwrap();
+        assert!(library_at(&cfg, &main.display().to_string(), false).is_ok());
+        let refused = |p: &Path, new: bool| library_at(&cfg, &p.display().to_string(), new).is_err();
+        // Not there yet, and not a new match Library: refused, and no file is made.
+        assert!(refused(&libs.join("x.bragd"), false));
+        assert!(!libs.join("x.bragd").exists());
+        // Outside the folder, by name, by `..`, or by a link: refused, made or not.
+        std::fs::write(elsewhere.join("other.bragd"), b"").unwrap();
+        for p in [elsewhere.join("other.bragd"), elsewhere.join("new.bragd"), libs.join("../elsewhere/other.bragd"), libs.join("sub/x.bragd")] {
+            assert!(refused(&p, false) && refused(&p, true), "{}", p.display());
+        }
+        assert!(!elsewhere.join("new.bragd").exists());
+        // Another kind of file in the folder: refused.
+        std::fs::write(libs.join("notes.sqlite"), b"").unwrap();
+        assert!(refused(&libs.join("notes.sqlite"), false));
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(elsewhere.join("other.bragd"), libs.join("link.bragd")).unwrap();
+            assert!(refused(&libs.join("link.bragd"), false));
+        }
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

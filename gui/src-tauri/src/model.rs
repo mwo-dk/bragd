@@ -33,10 +33,11 @@ pub fn model_find() -> Vec<Found> {
     bragd_model::client::find()
 }
 
-/// The models the server at `url` offers, asked with the key kept for it.
+/// The models the address set offers, asked with the key kept for it; one off this machine only
+/// once the user has agreed to it.
 #[tauri::command(async)]
-pub fn model_models(url: String) -> Result<Vec<String>, String> {
-    bragd_model::client::models(&url, bragd_model::key::get(&url).as_deref())
+pub fn model_models(ctx: tauri::State<'_, Ctx>) -> Result<Vec<String>, String> {
+    bragd_model::models(&ctx.cfg().model)
 }
 
 /// Keeps `key` for the address set, in the keychain; an empty one removes it.
@@ -196,7 +197,7 @@ pub fn slice_commentary_count(library: String, name: String, family: String, ctx
     }
     let Some(path) = bragd_positions::Store::path().filter(|p| p.exists()) else { return Ok(0) };
     let store = bragd_positions::Store::open(&path).map_err(|e| e.to_string())?;
-    let lib = bragd_library::library::Library::open(std::path::Path::new(&library)).map_err(|e| e.to_string())?;
+    let lib = bragd_library::library::Library::open(&crate::databases::library_at(&cfg, &library, false)?).map_err(|e| e.to_string())?;
     let found = bragd_helper::commentary::slice(&cfg, &store, &lib, &name, &family, i18n::language(), &|| false, &mut |_, _| {})?;
     Ok(found.len() as u64)
 }
@@ -204,9 +205,10 @@ pub fn slice_commentary_count(library: String, name: String, family: String, ctx
 /// *Write Commentary* for a Slice, once the user has seen the count: the Helper's job, which
 /// queues one Commentary per move (`Work::SliceCommentary`). Its id.
 #[tauri::command(async)]
-pub fn slice_commentary(library: String, name: String, family: String, k: State<'_, Knowledge>) -> Result<u64, String> {
+pub fn slice_commentary(library: String, name: String, family: String, k: State<'_, Knowledge>, ctx: State<'_, Ctx>) -> Result<u64, String> {
+    let library = crate::databases::library_at(&ctx.cfg(), &library, false)?;
     bragd_core::tips::used("commentary");
-    k.link.start(&Request::Start { work: Work::SliceCommentary { library: library.into(), slice: name, family, language: i18n::language().into() } })
+    k.link.start(&Request::Start { work: Work::SliceCommentary { library, slice: name, family, language: i18n::language().into() } })
 }
 
 #[cfg(test)]
