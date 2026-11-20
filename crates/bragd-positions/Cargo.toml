@@ -9,7 +9,7 @@ description = "Bragd's Position store: Evaluations by position, tagged by Editio
 [dependencies]
 # Where the store lives (`dirs::app_data`).
 bragd-core = { path = "../bragd-core" }
-rusqlite = { version = "0.41.1", features = ["bundled"] }
+rusqlite = { version = "0.43.0", features = ["bundled"] }
 # The store exported for backups, moving it by hand and reading it in DuckDB. Pure Rust codecs only.
 parquet = { version = "60", default-features = false, features = ["snap"] }
 serde = { version = "1", features = ["derive"] }

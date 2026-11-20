@@ -13,7 +13,7 @@ bragd-core = { path = "../bragd-core" }
 pairing = { path = "../pairing" }
 # A Tournament's Variant and its Family: go's handicaps and backgammon's matches.
 bragd-games = { path = "../bragd-games" }
-rusqlite = { version = "0.41.1", features = ["bundled"] }
+rusqlite = { version = "0.43.0", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # FIDE sends its list as a zip. Deflate only, in pure Rust.
@@ -28,4 +28,4 @@ libc = "0.2"
 [dev-dependencies]
 bragd-core = { path = "../bragd-core", features = ["test-home"] }
 # A test counts a search's work in SQLite steps (`progress_handler`).
-rusqlite = { version = "0.41.1", features = ["bundled", "hooks"] }
+rusqlite = { version = "0.43.0", features = ["bundled", "hooks"] }

@@ -18,7 +18,7 @@ ureq = { version = "3", features = ["platform-verifier", "json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Translations kept beside the Position store, by original text and language.
-rusqlite = { version = "0.41.1", features = ["bundled"] }
+rusqlite = { version = "0.43.0", features = ["bundled"] }
 # A Comment's language guessed on the machine, so one in the reader's language is not sent.
 whatlang = "0.18"
 # The key of a cloud model, in the OS keychain only.
