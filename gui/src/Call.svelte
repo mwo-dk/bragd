@@ -20,6 +20,9 @@
   /** @type {HTMLVideoElement | undefined} */
   let localVideo = $state();
   const local = new MediaStream();
+  /** The kinds whose microphone or camera is being asked for: `call` comes anew with every poll,
+   * so `tracks` runs again before the first permission prompt has been answered. */
+  const opening = new Set();
 
   const send = (/** @type {any} */ signal) => api.friendsCallSignal(signal).catch(() => {});
 
@@ -73,8 +76,9 @@
   async function tracks(/** @type {boolean} */ voice, /** @type {boolean} */ camera) {
     if (!pc) return;
     for (const [kind, want] of /** @type {[string, boolean][]} */ ([["audio", voice], ["video", camera]])) {
-      const sender = pc.getSenders().find((x) => x.track?.kind === kind);
-      if (want && !sender) {
+      const senders = pc.getSenders().filter((x) => x.track?.kind === kind);
+      if (want && !senders.length && !opening.has(kind)) {
+        opening.add(kind);
         try {
           const media = await navigator.mediaDevices.getUserMedia({ [kind]: true });
           for (const track of media.getTracks()) {
@@ -85,11 +89,16 @@
           mediaError = "";
         } catch (e) {
           mediaError = t("talk.media_error", { why: String(e) });
+        } finally {
+          opening.delete(kind);
         }
-      } else if (!want && sender?.track) {
-        sender.track.stop();
-        local.removeTrack(sender.track);
-        pc.removeTrack(sender);
+      } else if (!want) {
+        // Every track of the kind: the microphone must not stay live once the user stopped it.
+        for (const sender of senders) {
+          sender.track?.stop();
+          if (sender.track) local.removeTrack(sender.track);
+          pc.removeTrack(sender);
+        }
       }
     }
   }
