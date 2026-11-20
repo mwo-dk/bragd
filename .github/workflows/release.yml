@@ -575,19 +575,19 @@ jobs:
           [ -z "$bad" ] || { echo "::error title=$TAG is not complete::not uploaded completely: $bad"; exit 1; }
       - name: Every file, and its checksums
         run: |
-          packaging/retry.sh gh release download "$TAG" --repo "$REPO" -D assets --clobber
+          packaging/retry.sh gh release download "$TAG" --repo "$REPO" -D release-files --clobber
           # `upload` uploads the installers without a .sha256: each gets its own here, from
           # the file in the draft.
           made=()
-          for f in assets/Bragd[_-]*; do
+          for f in release-files/Bragd[_-]*; do
             case "$f" in *.sha256) continue ;; esac
-            [ -e "$f.sha256" ] || { (cd assets && sha256sum "${f#assets/}" > "${f#assets/}.sha256"); made+=("$f.sha256"); }
+            [ -e "$f.sha256" ] || { (cd release-files && sha256sum "${f#release-files/}" > "${f#release-files/}.sha256"); made+=("$f.sha256"); }
           done
           [ ${#made[@]} = 0 ] || packaging/retry.sh gh release upload --clobber "$TAG" --repo "$REPO" "${made[@]}"
-          packaging/release-assets.sh "$TAG" assets
+          packaging/release-assets.sh "$TAG" release-files
           # One SHA256SUMS over every download, so a download can be checked against what this
           # run uploaded.
-          (cd assets && rm -f SHA256SUMS && sha256sum -- * > ../SHA256SUMS)
+          (cd release-files && rm -f SHA256SUMS && sha256sum -- * > ../SHA256SUMS)
           cat SHA256SUMS
           packaging/retry.sh gh release upload --clobber "$TAG" --repo "$REPO" SHA256SUMS
       - name: The draft, as it will be published
@@ -605,7 +605,7 @@ jobs:
         if: needs.version.outputs.rehearsal != 'true'
         continue-on-error: true
         with:
-          subject-path: assets/*
+          subject-path: release-files/*
 
   publish:
     needs: [version, draft, verify]
