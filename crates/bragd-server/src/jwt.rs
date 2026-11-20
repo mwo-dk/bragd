@@ -116,10 +116,19 @@ impl Verifier {
             return Err("unknown key".into());
         }
         held.1 = Some(Instant::now());
-        let body = ureq::get(url).call().map_err(|e| format!("JWKS: {e}"))?.body_mut().read_to_string().map_err(|e| format!("JWKS: {e}"))?;
+        // Fetched while the lock is held, so one stalled fetch would hold up every check: the
+        // time limit keeps that short.
+        let body = agent().get(url).call().map_err(|e| format!("JWKS: {e}"))?.body_mut().read_to_string().map_err(|e| format!("JWKS: {e}"))?;
         held.0 = parse_jwks(&body)?;
         find(&held.0).ok_or_else(|| "unknown key".into())
     }
+}
+
+/// The client that reads the JWKS: the system's certificate store, and a time limit, which
+/// ureq's default has neither of.
+fn agent() -> ureq::Agent {
+    let tls = ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build();
+    ureq::Agent::config_builder().timeout_global(Some(Duration::from_secs(10))).tls_config(tls).build().into()
 }
 
 fn now() -> u64 {
