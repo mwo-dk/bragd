@@ -76,9 +76,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.resolve.outputs.tag }}
         run: |
-          packaging/retry.sh gh release download "$TAG" --repo "$REPO" -D assets
-          test -f assets/SHA256SUMS || { echo "::error::$TAG has no SHA256SUMS"; exit 1; }
-          packaging/release-assets.sh "$TAG" assets
+          packaging/retry.sh gh release download "$TAG" --repo "$REPO" -D release-files
+          test -f release-files/SHA256SUMS || { echo "::error::$TAG has no SHA256SUMS"; exit 1; }
+          packaging/release-assets.sh "$TAG" release-files
 
   # Each channel has this version. A channel's job in release.yml may have just finished:
   # each check waits a little.
