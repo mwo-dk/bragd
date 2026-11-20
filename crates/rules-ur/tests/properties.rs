@@ -297,27 +297,6 @@ fn every_position_survives_its_picture() {
 }
 
 #[test]
-fn the_distribution_of_throws_is_one_four_six_four_one() {
-    // Not a rule of the game, but the thing a player is told on the rules document,
-    // and the generator in this file is what the property tests lean on.
-    let mut dice = Dice::new(0xC0FF_EE12_3456_789A);
-    let mut counts = [0u32; 5];
-    let rounds = 400_000;
-    for _ in 0..rounds {
-        counts[dice.throw(&FINKEL).marks() as usize] += 1;
-    }
-    let expected = [1.0, 4.0, 6.0, 4.0, 1.0];
-    for (marks, &count) in counts.iter().enumerate() {
-        let share = count as f64 / rounds as f64;
-        let want = expected[marks] / 16.0;
-        assert!(
-            (share - want).abs() < 0.01,
-            "a throw of {marks} came up {share:.4} of the time, not about {want:.4}"
-        );
-    }
-}
-
-#[test]
 fn a_piece_is_never_taken_on_the_safe_square() {
     const SAFE: usize = 9;
     // The property that most directly encodes a rule. Played over many games,

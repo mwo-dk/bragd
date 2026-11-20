@@ -160,6 +160,21 @@ mod tests {
         assert_eq!(cast(Family::Chess, 4, &mut bytes(&[1])), None);
     }
 
+    /// Four tetrahedral dice come up 1-4-6-4-1 in sixteenths, as the rules page says, and
+    /// Masters' three 1-3-3-1 in eighths: every byte once, no randomness needed.
+    #[test]
+    fn ur_throws_come_up_one_four_six_four_one() {
+        let marks = |dice: u8, b: u8| cast(Family::Ur, dice, &mut bytes(&[b])).unwrap().parse::<usize>().unwrap();
+        let mut four = [0u32; 5];
+        let mut three = [0u32; 4];
+        for b in 0..=255u8 {
+            four[marks(4, b)] += 1;
+            three[marks(3, b)] += 1;
+        }
+        assert_eq!(four, [16, 64, 96, 64, 16]);
+        assert_eq!(three, [32, 96, 96, 32]);
+    }
+
     /// Every pair of opening dice: never a double, the higher die's Side moves first, and a tie
     /// is thrown again (here as 1 against 2, so Black starts).
     #[test]
