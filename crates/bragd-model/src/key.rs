@@ -54,7 +54,30 @@ pub fn set(url: &str, key: &str) -> Result<(), String> {
 /// The secret kept for `account` under `service`, if any. Other crates (an online server's
 /// token) keep theirs through here, so the keychain is set up in one place.
 pub fn get_in(service: &str, account: &str) -> Option<String> {
-    entry(service, account).ok()?.get_password().ok()
+    find_in(service, account).ok().flatten()
+}
+
+/// The secret kept for `account` under `service`: none when there is none, an error when the
+/// keychain did not answer (not set up, or still locked).
+pub fn find_in(service: &str, account: &str) -> Result<Option<String>, String> {
+    #[cfg(any(test, feature = "mock-keychain"))]
+    if LOCKED.lock().unwrap_or_else(|e| e.into_inner()).iter().any(|a| a == account.trim()) {
+        return Err(t!("model.error.keychain", "why" => "locked"));
+    }
+    match entry(service, account)?.get_password() {
+        Ok(p) => Ok(Some(p)),
+        Err(Error::NoEntry) => Ok(None),
+        Err(e) => Err(t!("model.error.keychain", "why" => e)),
+    }
+}
+
+#[cfg(any(test, feature = "mock-keychain"))]
+static LOCKED: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+/// The mock keychain answers for `account` as a locked keychain does, for tests.
+#[cfg(any(test, feature = "mock-keychain"))]
+pub fn mock_locked(account: &str) {
+    LOCKED.lock().unwrap_or_else(|e| e.into_inner()).push(account.trim().to_string());
 }
 
 /// Keeps `key` for `account` under `service`; an empty one removes it.

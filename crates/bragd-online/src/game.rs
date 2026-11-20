@@ -208,12 +208,21 @@ impl Live {
         other.ai_level.is_none() && other.title.as_deref() != Some("BOT")
     }
 
+    /// The seat to move, from the position replayed by Bragd's rules: a Game from a position,
+    /// or a shogi handicap, need not start with the first seat. Counted from the moves for a
+    /// Variant Bragd has no rules for.
+    pub fn to_move(&self) -> Option<u8> {
+        let entries = self.entries();
+        match self.variant {
+            Some(v) => bragd_games::replay(v, self.initial.as_deref(), &entries).ok()?.to_move.map(|s| s.index),
+            None => Some((entries.len() % 2) as u8),
+        }
+    }
+
     /// The seat whose clock runs: the side to move, once both Sides have made their first move
-    /// (Lichess starts the clocks then), while the Game is on. White moves when the number of
-    /// moves is even.
+    /// (Lichess starts the clocks then), while the Game is on.
     pub fn running(&self) -> Option<u8> {
-        let moves = self.entries().len();
-        if self.over() || moves < 2 { None } else { Some((moves % 2) as u8) }
+        if self.over() || self.entries().len() < 2 { None } else { self.to_move() }
     }
 
     /// White's and Black's time left in milliseconds, `elapsed` ms after the last state came:
@@ -336,6 +345,15 @@ mod tests {
     }
 
     #[test]
+    fn game_from_a_position_with_black_to_move_runs_black_first() {
+        let fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
+        let json = RATED.replace(r#""initialFen":"startpos""#, &format!(r#""initialFen":"{fen}""#)).replace("e2e4 c7c5 g1f3", "c7c5 g1f3");
+        let g = Live::from_full(full(&json), "bragdtester", LICHESS);
+        assert_eq!(g.to_move(), Some(1), "two moves from Black's turn: Black again");
+        assert_eq!(g.running(), Some(1));
+    }
+
+    #[test]
     fn game_takeback_offers_by_side() {
         let mut g = Live::from_full(full(RATED), "bragdtester", LICHESS);
         g.update(GameState { moves: "e2e4".into(), status: "started".into(), btakeback: true, wtakeback: false, ..Default::default() });
@@ -382,6 +400,8 @@ mod lishogi {
         let sfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/7R1/LNSGKGSNL w - 1";
         let g = live(&FULL.replace(r#""initialSfen":"startpos""#, &format!(r#""initialSfen":"{sfen}""#)), "alice");
         assert_eq!(g.initial.as_deref(), Some(sfen), "a handicap starts from its SFEN");
+        let h = live(&FULL.replace(r#""initialSfen":"startpos""#, &format!(r#""initialSfen":"{sfen}""#)).replace("7g7f 3c3d 2g2f", "3c3d"), "alice");
+        assert_eq!(h.to_move(), Some(0), "gote moved first in the handicap: sente's turn now");
         assert_eq!(server_variant(LISHOGI, "shogi"), Some("standard"));
         assert_eq!(variant(LISHOGI, "minishogi"), None);
     }

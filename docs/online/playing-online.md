@@ -27,7 +27,7 @@ Open chess's **Play** and press **Play on Lichess**. The first time, press **Sig
 | **Challenge** | Challenges the Lichess user named, with the Variant and *Rated* chosen above, a time of its own (blitz is offered here) and the colour chosen |
 | **Accept** / **Decline** | Answers a challenge made to you |
 | **Cancel** | Takes back a challenge you made |
-| **Reconnect** | Opens the connection again after it was lost |
+| **Reconnect** | Opens the connection again after it was lost, and goes back to the Game you were playing |
 
 ### Playing
 
@@ -113,6 +113,18 @@ Another Bragd window on this machine is playing a rated Game against a person. A
 #### Why does sign-in say Lichess no longer accepts it?
 
 The token was taken back on Lichess (*Preferences → API access tokens*), or it ran out. Sign in again.
+
+#### Why does Bragd not show my correspondence Game?
+
+Correspondence Games stay on lichess.org: Bragd plays Games in real time. When you sign in, Lichess names every Game you have going; Bragd shows a real-time one, and leaves the board alone while a Game is on.
+
+#### Why does Bragd say the connection was lost when nothing went wrong?
+
+Lichess and Lishogi send a sign of life about every 6 seconds. When nothing at all comes for 30 seconds, as after the machine slept or the Wi-Fi dropped, Bragd counts the connection as lost and offers **Reconnect**, rather than showing a Game whose clock runs out unseen.
+
+#### Why does Bragd say the keychain could not be used?
+
+Bragd keeps your token in your system's keychain. When the keychain is locked as Bragd opens the page, the page says so; unlock it and press **Reconnect**.
 
 #### Why can't I seek a 3-minute Game?
 

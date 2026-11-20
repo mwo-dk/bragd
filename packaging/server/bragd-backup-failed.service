@@ -1,0 +1,8 @@
+[Unit]
+Description=Say that the Bragd server's backup failed
+
+[Service]
+Type=oneshot
+# BRAGD_BACKUP_ALERT, if set there, is the command that tells the operator.
+EnvironmentFile=/etc/bragd-backup.env
+ExecStart=/opt/bragd/backup.sh --failed

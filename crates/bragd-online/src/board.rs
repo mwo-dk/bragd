@@ -200,6 +200,10 @@ pub struct Client {
     base: String,
     token: String,
     agent: ureq::Agent,
+    /// How long a stream may stay silent before the connection counts as lost: Lichess and
+    /// Lishogi send an empty line about every 6 s, so a socket quiet for longer is dead (a
+    /// network gone without a word, a machine that slept).
+    quiet: Duration,
 }
 
 impl Client {
@@ -209,7 +213,7 @@ impl Client {
         if bragd_core::offline() && !on_this_machine(base) {
             return Err(t!("online.error.offline", "server" => server.name));
         }
-        Ok(Client { server, base: base.trim_end_matches('/').to_string(), token: token.to_string(), agent: agent() })
+        Ok(Client { server, base: base.trim_end_matches('/').to_string(), token: token.to_string(), agent: agent(), quiet: Duration::from_secs(30) })
     }
 
     fn url(&self, path: &str) -> String {
@@ -248,9 +252,10 @@ impl Client {
     /// `line`, until it ends or `stop` is set. Lichess's empty keep-alive lines let `stop` be
     /// seen within seconds. Ok when the server ended it or `stop` was set.
     pub fn stream(&self, path: &str, form: Option<&[(&str, &str)]>, stop: &AtomicBool, mut line: impl FnMut(Value)) -> Result<(), String> {
+        let quiet = Some(self.quiet);
         let r = match form {
-            None => self.agent.get(self.url(path)).header("Authorization", self.bearer()).call(),
-            Some(f) => self.agent.post(self.url(path)).header("Authorization", self.bearer()).send_form(f.iter().copied()),
+            None => self.agent.get(self.url(path)).config().timeout_per_read(quiet).build().header("Authorization", self.bearer()).call(),
+            Some(f) => self.agent.post(self.url(path)).config().timeout_per_read(quiet).build().header("Authorization", self.bearer()).send_form(f.iter().copied()),
         };
         let r = r.map_err(|e| t!("online.error.unreachable", "server" => self.server.name, "why" => e))?;
         if !r.status().is_success() {
@@ -316,6 +321,35 @@ mod tests {
         let mut got = vec![];
         Client::new(&server::LICHESS, &fake.url, "t").unwrap().stream("/s", None, &AtomicBool::new(false), |v| got.push(v["type"].as_str().unwrap().to_string())).unwrap();
         assert_eq!(got, ["a", "b"]);
+    }
+
+    #[test]
+    fn lichess_stream_gone_silent_is_lost() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let (hold, held) = std::sync::mpsc::channel::<()>();
+        std::thread::spawn(move || {
+            let (mut c, _) = listener.accept().unwrap();
+            let _ = c.read(&mut [0; 4096]);
+            let line = "{\"type\":\"a\"}\n";
+            write!(c, "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n{:x}\r\n{line}\r\n", line.len()).unwrap();
+            // The network is gone without a word: the socket stays open and says nothing.
+            let _ = held.recv();
+        });
+        let (done, result) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let mut c = Client::new(&server::LICHESS, &url, "t").unwrap();
+            c.quiet = Duration::from_millis(200);
+            let mut got = 0;
+            let _ = done.send((c.stream("/s", None, &AtomicBool::new(false), |_| got += 1), got));
+        });
+        // The limit only guards against a hang.
+        let (r, got) = result.recv_timeout(Duration::from_secs(20)).expect("the stream hangs on a silent socket");
+        assert_eq!(got, 1);
+        let lost = t!("online.error.lost", "server" => "Lichess", "why" => "");
+        assert!(r.as_ref().unwrap_err().starts_with(lost.trim_end()), "{r:?}");
+        drop(hold);
     }
 
     #[test]

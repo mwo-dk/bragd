@@ -54,7 +54,7 @@ A report goes to the operator alone. A player may make 20 reports a day.
 | Reports about you | Kept for the operator, with the name you had, so deleting an account does not wipe what others reported |
 | Your Chat lines | Deleted, except in a finished Game you leave to the other player where you both ticked *Keep*: there your lines stay, from *Deleted player* |
 | Your seek and your ratings | Deleted |
-| Your Games and their moves | Deleted. If you tick *Leave my finished Games to the other players*, the Games that ended stay with the other player, with your side shown as *Deleted player*. A Game under way first ends as your resignation |
+| Your Games and their moves | Deleted. If you tick *Leave my finished Games to the other players*, the Games that ended stay with the other player, with your side shown as *Deleted player*. A Game under way first ends as your resignation, and a rated one is rated |
 | Call signals, and the server's word to you that a Game changed | Deleted where the server allows; Supabase Realtime drops them within days anyway |
 
 Bragd then signs out and removes the sign-in from your keychain. Backups of the Bragd server's database, kept on the operator's Storage Box, still hold the account for up to 30 days after you delete it, when the backups are deleted; they are never restored for anything but recovering the server.
