@@ -69,8 +69,9 @@ fn get_models(url: &str, key: Option<&str>, timeout: Duration) -> Result<Vec<Str
     Ok(ids)
 }
 
-/// The models the server at `url` offers, by id.
-pub fn models(url: &str, key: Option<&str>) -> Result<Vec<String>, String> {
+/// The models the server at `url` offers, by id. Asked through `crate::models`, which holds back
+/// an address off this machine until the user has agreed to it.
+pub(crate) fn models(url: &str, key: Option<&str>) -> Result<Vec<String>, String> {
     get_models(url, key, Duration::from_secs(10))
 }
 

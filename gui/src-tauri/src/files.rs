@@ -143,13 +143,13 @@ pub fn pick(app: &AppHandle, cfg: &Config, ask: &Ask) -> Result<Vec<PathBuf>, St
     }
 }
 
-/// A path for a field of the page: an engine's program, an opening book or the tablebase
-/// folder, `what` says which. Only the path is handed back; nothing is opened.
+/// A path for a field of the page: an opening book or the tablebase folder, `what` says which.
+/// Only the path is handed back; nothing is opened. (An Engine's program is chosen by
+/// `engine_add` itself, so the page never names a program to start.)
 #[tauri::command(async)]
 pub fn pick_path(what: String, app: AppHandle, ctx: tauri::State<'_, crate::Ctx>) -> Result<Option<String>, String> {
     let tr = |k: &str| bragd_core::i18n::tr(k, &[]);
     let ask = match what.as_str() {
-        "engine" => Ask { title: tr("files.pick_engine"), ..Default::default() },
         "book" => Ask { title: tr("files.pick_book"), filters: vec![(tr("files.books"), vec!["bin".into()])], ..Default::default() },
         "tablebases" => Ask { title: tr("files.pick_tablebases"), folder: true, ..Default::default() },
         _ => return Err(format!("nothing to pick for {what}")),

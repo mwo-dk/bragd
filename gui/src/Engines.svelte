@@ -13,7 +13,6 @@
   /** @type {any} */
   let page = $state(null);
   let error = $state("");
-  let path = $state("");
   let busy = $state(false);
   /** The engine whose options are open, and for which Variant. @type {{key: string, info: any} | null} */
   let opts = $state(null);
@@ -215,11 +214,9 @@
     {/if}
 
     <h2>{t("engines.add")}</h2>
-    <form class="add" onsubmit={(e) => (e.preventDefault(), act(api.engineAdd(family.id, path)).then(() => (path = "")))}>
-      <input type="text" bind:value={path} placeholder={t("engines.add_path")} aria-label={t("engines.add_path")} />
-      <button type="button" disabled={busy} onclick={() => api.pickPath("engine").then((p) => p && (path = p), fail)}>{t("files.choose")}</button>
-      <button class="primary" disabled={busy || !path.trim()}>{t("engines.add_button")}</button>
-    </form>
+    <div class="add">
+      <button class="primary" disabled={busy} onclick={() => act(api.engineAdd(family.id))}>{t("files.pick_engine")}</button>
+    </div>
     <p class="dim">{t("engines.add_hint")}</p>
   {/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -288,10 +285,6 @@
   }
   .row label {
     min-width: 10rem;
-  }
-  .add input {
-    flex: 1;
-    min-width: 12rem;
   }
   .error {
     color: var(--red);

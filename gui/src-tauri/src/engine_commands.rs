@@ -42,9 +42,14 @@ pub fn engine_default(variant: String, engine: String, ctx: Managed<'_, Ctx>) ->
     keep(&ctx, engines::set_default(&variant, &engine)).map(drop)
 }
 
+/// *Add an Engine*: the program is chosen in the file dialog here, never named by the page, so
+/// only a program the user picked is started. False when the dialog was closed.
 #[tauri::command(async)]
-pub fn engine_add(family_key: String, path: String, ctx: Managed<'_, Ctx>) -> Res<()> {
-    keep(&ctx, engines::add(family(&family_key)?, &path)).map(drop)
+pub fn engine_add(family_key: String, app: tauri::AppHandle, ctx: Managed<'_, Ctx>) -> Res<bool> {
+    let family = family(&family_key)?;
+    let ask = crate::files::Ask { title: tr("files.pick_engine", &[]), ..Default::default() };
+    let Some(path) = crate::files::pick_one(&app, &ctx.cfg(), &ask)? else { return Ok(false) };
+    keep(&ctx, engines::add(family, &path)).map(|_| true)
 }
 
 #[tauri::command]

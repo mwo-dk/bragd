@@ -70,7 +70,7 @@ A `call`'s body is one of these, and the reply's body is `{"ok":…}` or `{"erro
 
 ## Finding each other
 
-A Helper with Peers on announces itself by mDNS as `_bragd._tcp.local.`, with its name and key in the TXT record. **Look around** lists what answers within three seconds. mDNS only says where a machine is; whether it is the machine you paired is decided by its key, in TLS.
+A Helper with Peers on announces itself by mDNS as `_bragd._tcp.local.`, with its name and key in the TXT record. **Look around** lists what answers within three seconds. mDNS only says where a machine is; whether it is the machine you paired is decided by its key, in TLS. A paired machine found at a new address is kept there only after a `hello` at that address, with its pinned key, succeeds.
 
 ## Limits
 

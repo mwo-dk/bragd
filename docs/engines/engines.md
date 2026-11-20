@@ -35,11 +35,11 @@ The page has four parts:
    | *Its container image is a Linux image, which this system cannot run* | On FreeBSD, NetBSD and OpenBSD: install the Engine from your system's packages, or **Download page** |
 
 3. **Options.** *Options* on a ready Engine starts it and lists the options it offers: switches, lists, numbers and text. ↺ puts one back to the Engine's default, and *Reset all* puts them all back.
-4. **Add an engine.** Type the path to a program and press *Add*.
+4. **Add an engine.** **Choose the Engine's program** opens the file picker; the program you choose is added.
 
 ## What it needs
 
-- An Engine installed on this machine, found on your `PATH` by its usual program name, or a path you give (**Choose…** opens the file picker). The Engines Bragd knows:
+- An Engine installed on this machine, found on your `PATH` by its usual program name, or a program you choose under *Add an Engine*. The Engines Bragd knows:
 
   | Engine | Plays | Program names looked for | Where to get it |
   |---|---|---|---|
@@ -81,7 +81,11 @@ The one chosen for the Variant, if it still plays it. Otherwise the first Engine
 
 #### How do I add an Engine Bragd does not know?
 
-Type its path under *Add an engine* and press *Add*. Bragd starts the program once and checks that it speaks one of the Family's protocols. A program that names itself as an Engine Bragd knows, such as Stockfish, becomes that Engine's program in `engines.paths`. Any other is added under its own name in `engines.added`, and is offered for every Variant of the Family.
+Under *Add an Engine*, press **Choose the Engine's program** and choose the program in the file picker. Bragd starts the program once and checks that it speaks one of the Family's protocols. A program that names itself as an Engine Bragd knows, such as Stockfish, becomes that Engine's program in `engines.paths`. Any other is added under its own name in `engines.added`, and is offered for every Variant of the Family.
+
+#### Why can I not type an Engine's path?
+
+Adding an Engine starts the program. Bragd starts only a program you chose yourself in the file picker, so nothing on the page can name a program for it to run.
 
 #### Why does my added chess Engine refuse a Variant?
 

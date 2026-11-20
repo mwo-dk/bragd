@@ -212,9 +212,11 @@ pub fn checked(cfg: &Config, mut setup: Setup) -> Res<Setup> {
     }
     setup.rounds = setup.rounds.clamp(1, 100_000);
     setup.parallel = setup.parallel.clamp(1, std::thread::available_parallelism().map_or(1, |n| n.get()) as u32);
-    if setup.library.as_os_str().is_empty() {
-        setup.library = default_library(cfg).ok_or_else(engines::no_folder)?;
-    }
+    setup.library = if setup.library.as_os_str().is_empty() {
+        default_library(cfg).ok_or_else(engines::no_folder)?
+    } else {
+        databases::library_at(cfg, &setup.library.to_string_lossy(), true)?
+    };
     setup.seed = bragd_core::throw::seed();
     // Checked here too, so a wrong book is said at once rather than in the job.
     let _ = bragd_helper::matches::openings(&setup)?;
@@ -271,18 +273,26 @@ mod tests {
 
     #[test]
     fn a_setup_is_checked_before_it_goes() {
-        let cfg = Config::default();
+        let mut cfg = Config::default();
+        let d = std::env::temp_dir().join(format!("bragd-match-lib-{}", std::process::id()));
+        cfg.knowledge.library = d.display().to_string();
+        // The Games go to a Library in the Library folder only.
+        assert!(checked(&cfg, setup(Kind::Gauntlet)).is_err(), "/x/matches.bragd is outside it");
+        let into = |library: PathBuf| Setup { library, ..setup(Kind::Gauntlet) };
+        assert_eq!(checked(&cfg, into(d.join("matches.bragd"))).unwrap().library, d.canonicalize().unwrap().join("matches.bragd"));
+        assert_eq!(checked(&cfg, into(PathBuf::new())).unwrap().library, d.join("matches.bragd"));
         assert_eq!(checked(&cfg, Setup { engines: vec!["fruit".into(), "fruit".into()], ..setup(Kind::RoundRobin) }).unwrap_err(), t!("matches.need_two"));
         let three = Setup { engines: vec!["a".into(), "b".into(), "c".into()], ..setup(Kind::Sprt { elo0: 0.0, elo1: 5.0, alpha: 0.05, beta: 0.05 }) };
         assert_eq!(checked(&cfg, three).unwrap_err(), t!("matches.sprt_two"));
         assert_eq!(checked(&cfg, setup(Kind::Sprt { elo0: 5.0, elo1: 0.0, alpha: 0.05, beta: 0.05 })).unwrap_err(), t!("matches.sprt_bounds"));
-        let ok = checked(&cfg, Setup { parallel: 10_000, rounds: 0, limit: Limit::Time(1), ..setup(Kind::Gauntlet) }).unwrap();
+        let ok = checked(&cfg, Setup { parallel: 10_000, rounds: 0, limit: Limit::Time(1), ..into(PathBuf::new()) }).unwrap();
         assert!(ok.parallel >= 1 && ok.parallel as usize <= std::thread::available_parallelism().unwrap().get());
         assert_eq!((ok.rounds, ok.limit), (1, Limit::Time(10)));
         let clock = Some(matches::TimeControl { base_ms: 0, inc_ms: u32::MAX, moves: Some(0) });
-        let ok = checked(&cfg, Setup { clock, ..setup(Kind::Gauntlet) }).unwrap();
+        let ok = checked(&cfg, Setup { clock, ..into(PathBuf::new()) }).unwrap();
         assert_eq!(ok.clock, Some(matches::TimeControl { base_ms: 1_000, inc_ms: 600_000, moves: None }));
-        let book = Setup { book: Some("/nowhere/book.txt".into()), ..setup(Kind::Gauntlet) };
+        let book = Setup { book: Some("/nowhere/book.txt".into()), ..into(PathBuf::new()) };
         assert!(checked(&cfg, book).is_err());
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

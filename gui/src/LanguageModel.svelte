@@ -33,7 +33,7 @@
   look();
 
   const use = (/** @type {string} */ url, /** @type {string} */ model) => ((error = ""), save("model_url", url).then(() => save("model_name", model)).catch(fail));
-  const list = () => ((error = ""), api.modelModels(st.url).then((m) => (models = m), fail));
+  const list = () => ((error = ""), api.modelModels().then((m) => (models = m), fail));
   const saveKey = (/** @type {string} */ k) => ((error = ""), api.modelKey(k).then((s) => ((st = s), (key = "")), fail));
 </script>
 
@@ -72,7 +72,7 @@
         <div class="line">
           <input id="model-name" type="text" list="model-list" value={st.model} onchange={(e) => save("model_name", e.currentTarget.value.trim()).catch(fail)} />
           <datalist id="model-list">{#each models as m}<option value={m}></option>{/each}</datalist>
-          <button onclick={list}>{t("model.list")}</button>
+          <button onclick={list} disabled={st.consentNeeded}>{t("model.list")}</button>
         </div>
         <p class="hint">{t("setting.model_name.hint")}</p>
       </div>

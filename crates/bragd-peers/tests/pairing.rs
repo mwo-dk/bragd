@@ -133,14 +133,27 @@ fn an_unpaired_key_is_refused() {
     assert!(a.node.peers().is_empty());
 }
 
+/// Issue 453: an mDNS record claiming b's key at c's address does not move b. The move is kept
+/// only once b itself has said hello at the new address.
 #[test]
-fn a_client_refuses_a_server_with_another_key() {
+fn a_peer_moves_only_when_it_answers_at_the_new_address() {
     let (a, b, c) = (Machine::new("a"), Machine::new("b"), Machine::new("c"));
     paired(&a, &b);
-    // b's address now answers with c's key: a's pinned check fails before anything is said.
-    a.node.moved(&b.node.id(), &c.addr()).unwrap();
-    assert!(matches!(a.node.hello(&b.node.id()), Err(Failed::Line(_))));
+    let b_at = a.node.peers()[0].addr.clone();
+    // c's address answers with c's key: a's pinned check fails before anything is said.
+    assert!(matches!(a.node.moved(&b.node.id(), &c.addr()), Err(Failed::Line(_))));
+    assert_eq!(a.node.peers()[0].addr, b_at);
     assert!(c.node.peers().is_empty());
+    a.node.hello(&b.node.id()).unwrap();
+    // b at a new address of its own: it answers there, and the move is kept.
+    let mut b = b;
+    b.listening = None;
+    std::thread::sleep(Duration::from_millis(300));
+    b.listening = Some(b.node.listen(&["127.0.0.1:0".parse::<SocketAddr>().unwrap()]).unwrap());
+    assert!(a.node.hello(&b.node.id()).is_err());
+    a.node.moved(&b.node.id(), &b.addr()).unwrap();
+    assert_eq!(a.node.peers()[0].addr, b.addr());
+    a.node.hello(&b.node.id()).unwrap();
 }
 
 #[test]

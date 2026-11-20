@@ -251,11 +251,13 @@ pub fn set_default(variant: &str, engine: &str) -> Result<Config, String> {
     if engine.is_empty() { Config::remove_value(&["engines", "default", variant]) } else { Config::save_value(&["engines", "default", variant], engine.into()) }
 }
 
-/// Adds the program at `path` as an engine of `family`, once it has answered in one of the
-/// Family's protocols. One that says it is an engine Bragd knows (Stockfish) becomes that
+/// Adds the program at `path`, chosen in the file dialog, as an engine of `family`, once it has
+/// answered in one of the Family's protocols. Only a file named in full is started: never a
+/// name looked up on PATH. One that says it is an engine Bragd knows (Stockfish) becomes that
 /// engine's program; any other is added under its own name.
-pub fn add(family: Family, path: &str) -> Result<Config, String> {
-    let p = home().and_then(|h| known::configured(path, &h)).ok_or_else(|| i18n::tr("engines.no_file", &[("path", path)]))?;
+pub fn add(family: Family, chosen: &std::path::Path) -> Result<Config, String> {
+    let path = &chosen.display().to_string();
+    let p = Some(chosen.to_path_buf()).filter(|p| p.is_absolute() && p.is_file()).ok_or_else(|| i18n::tr("engines.no_file", &[("path", path)]))?;
     let program = Program::Installed { path: p.clone(), args: vec![] };
     let e = Engine::start_any(&program, seam::protocols(family), Duration::from_secs(10), &|| false).map_err(|e| i18n::tr("engines.no_start", &[("name", path), ("why", &e.to_string())]))?;
     let name = options::engine_key(&e.about().name);
@@ -403,6 +405,16 @@ mod tests {
         assert_eq!(default_for(&cfg, "xiangqi").as_deref(), Some("pikafish"));
         cfg.engines.default.insert("xiangqi".into(), "stockfish".into());
         assert_ne!(default_for(&cfg, "xiangqi").as_deref(), Some("stockfish"), "Stockfish does not play xiangqi");
+    }
+
+    /// Issue 452: only a program named in full, as the file dialog gives it, is ever started; a
+    /// bare name is not looked up on PATH, and a relative path is not read from the home folder.
+    #[test]
+    fn only_a_chosen_program_is_added() {
+        for name in ["sh", "cmd.exe", "bin/sh", "~/.local/bin/x"] {
+            let said = add(Family::Chess, std::path::Path::new(name)).unwrap_err();
+            assert_eq!(said, i18n::tr("engines.no_file", &[("path", name)]), "{name} was started");
+        }
     }
 
     /// A fake UCI engine on a path plays a legal move, given back as the seam's entry.
