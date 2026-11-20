@@ -5,7 +5,7 @@
   // does the pairing, the talking and the sharing (bragd-peers, bragd_helper::share); this page
   // only draws its view.
   import * as api from "./api.js";
-  import { t } from "./i18n.svelte.js";
+  import { i18n, t } from "./i18n.svelte.js";
   import Picker from "./Picker.svelte";
 
   /** @type {{ snap: any, save: (name: string, value: any) => Promise<any> }} */
@@ -64,7 +64,7 @@
   const unpair = (/** @type {string} */ id) => ((error = ""), api.peerUnpair(id).then(got, fail));
   const check = () => ((busy = true), api.peersView(true).then(got, fail));
   const syncNow = () => ((error = ""), api.peersSync().then(got, fail));
-  const when = (/** @type {number} */ s) => new Date(s * 1000).toLocaleString();
+  const when = (/** @type {number} */ s) => new Date(s * 1000).toLocaleString(i18n.lang, { dateStyle: "medium", timeStyle: "short" });
   const paired = (/** @type {string} */ key) => v?.peers.some((/** @type {any} */ p) => p.key === key);
 </script>
 
