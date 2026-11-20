@@ -595,6 +595,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.1",
+ "socket-pktinfo",
  "spake2",
 ]
 
@@ -4731,9 +4732,9 @@ checksum = "199905e6153d6405f9728fe44daace35f8f837bbf830bb6e85fbd5828709a886"
 
 [[package]]
 name = "socket-pktinfo"
-version = "0.4.2"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "512f5c35377cf69f350b106df2366c3a1df6bd01b047a7a58c8390b70d28838d"
+checksum = "612942246d0cc239cfd83af1dfd39be47f649208a3524e5e9da651910128e0ac"
 dependencies = [
  "libc",
  "socket2",
