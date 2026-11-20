@@ -14,6 +14,7 @@ pub const CASES: &[crate::Case] = &[
     ("a_game_is_seen_by_its_players_only", a_game_is_seen_by_its_players_only),
     ("players_cannot_write_moves_or_results_themselves", players_cannot_write_moves_or_results_themselves),
     ("resign_and_draw_by_agreement", resign_and_draw_by_agreement),
+    ("a_draw_offer_stands_through_the_offerers_own_move", a_draw_offer_stands_through_the_offerers_own_move),
     ("unknown_variants_are_refused", unknown_variants_are_refused),
     ("a_race_game_has_no_draw_to_offer", a_race_game_has_no_draw_to_offer),
     ("ur_and_senet_are_played_with_the_referees_throws", ur_and_senet_are_played_with_the_referees_throws),
@@ -151,6 +152,20 @@ fn resign_and_draw_by_agreement(pg: &Pg) {
     assert_eq!(act(&anna, "resign").0, 200);
     let (_, st) = db.call(&bo, "GET", "/v1/state", json!({}));
     assert_eq!(st["games"][0]["result"], "0-1");
+}
+
+/// In chess the offer is made, then the move played: the offer waits for the other's answer or
+/// move.
+fn a_draw_offer_stands_through_the_offerers_own_move(pg: &Pg) {
+    let db = pg.fresh();
+    let (anna, bo, id) = playing(&db);
+    let mv = |u, ply: u64, e: &str| db.call(u, "POST", &format!("/v1/games/{id}/move"), json!({ "ply": ply, "entry": e })).0;
+    let seen = |u| db.call(u, "GET", "/v1/state", json!({})).1["games"][0].clone();
+    assert_eq!(db.call(&anna, "POST", &format!("/v1/games/{id}/draw"), json!({ "yes": true })).0, 200);
+    assert_eq!(mv(&anna, 0, "e2e4"), 200);
+    assert_eq!(seen(&bo)["draw_offered"], true, "Anna's own move keeps her offer");
+    assert_eq!(mv(&bo, 1, "e7e5"), 200);
+    assert_eq!((seen(&bo)["draw_offered"].clone(), seen(&anna)["draw_asked"].clone()), (json!(false), json!(false)), "Bo's move declines it");
 }
 
 fn a_race_game_has_no_draw_to_offer(pg: &Pg) {

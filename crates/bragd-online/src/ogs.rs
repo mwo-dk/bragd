@@ -41,6 +41,9 @@ pub const VARIANTS: [(&str, u32); 3] = [("go-9", 9), ("go-13", 13), ("go-19", 19
 pub const TIMES: [&str; 4] = ["5|5x30", "10|5x30", "20|5x30", "30|5x30"];
 /// How long the browser has for the sign-in.
 const SIGN_IN: Duration = Duration::from_secs(300);
+/// The keep-alives, a second apart, a challenge to a player waits for an answer before it is
+/// taken back: five minutes.
+const CHALLENGE_BEATS: u32 = if cfg!(test) { 3 } else { 300 };
 
 /// Bragd's entry for OGS's point `x`, `y` on a board `size` wide: `pass` for -1.
 pub fn entry(x: i64, y: i64, size: u32) -> Option<String> {
@@ -604,18 +607,25 @@ impl Ogs {
     }
 
     /// Keeps the challenge `id` (of Game `game`) open while it waits, as OGS asks once a second,
-    /// until `stop`, or until it has left the list.
-    fn keep(&self, id: i64, game: i64, stop: Arc<AtomicBool>) {
+    /// until `stop`, until it has left the list, or after `beats` keep-alives, when it is taken
+    /// back.
+    fn keep(&self, id: i64, game: i64, stop: Arc<AtomicBool>, beats: Option<u32>) {
         let this = self.clone();
         std::thread::spawn(move || {
             let waits = |i: &Inner| i.seek.as_ref().is_some_and(|s| s.0 == id) || i.challenges.iter().any(|c| c.id == id && !c.incoming);
+            let mut sent = 0;
             while !stop.load(Ordering::Relaxed) && waits(&this.lock()) {
+                if beats.is_some_and(|b| sent >= b) {
+                    let _ = this.answer(&id.to_string(), "cancel");
+                    return;
+                }
                 match this.socket() {
                     Ok(s) => {
                         let _ = s.send("challenge/keepalive", json!({"challenge_id": id, "game_id": game}));
                     }
                     Err(_) => return,
                 }
+                sent += 1;
                 std::thread::sleep(Duration::from_secs(1));
             }
         });
@@ -710,7 +720,8 @@ impl Play for Ogs {
             }
             i.tried = true;
         }
-        let Some(token) = OGS.token(&self.base) else { return Ok(()) };
+        // A keychain still locked says so, with Reconnect, rather than "not signed in".
+        let Some(token) = OGS.kept(&self.base).map_err(|e| self.fail(e))? else { return Ok(()) };
         self.connect(&token)
     }
 
@@ -787,7 +798,7 @@ impl Play for Ogs {
         if let Some((_, old)) = self.lock().seek.replace((id, stop.clone())) {
             old.store(true, Ordering::Relaxed);
         }
-        self.keep(id, game, stop);
+        self.keep(id, game, stop, None);
         Ok(())
     }
 
@@ -824,7 +835,7 @@ impl Play for Ogs {
         let c = Challenge { id, game, incoming: false, who: Player::of(&player).named(), size, ranked: rated, time: time_label(&body["game"]["time_control_parameters"]) };
         self.lock().challenges.push(c);
         // Kept open until it is answered: the Game starting, or OGS saying no, takes it away.
-        self.keep(id, game, stop);
+        self.keep(id, game, stop, Some(CHALLENGE_BEATS));
         Ok(())
     }
 
@@ -833,7 +844,10 @@ impl Play for Ogs {
         let rest = self.rest()?;
         let r = match what {
             "accept" => rest.post(&format!("/api/v1/me/challenges/{n}/accept"), &json!({})),
-            "decline" | "cancel" => rest.delete(&format!("/api/v1/me/challenges/{n}")),
+            // One sent to the user is declined among theirs; one the user sent is taken back
+            // as a seek is.
+            "decline" => rest.delete(&format!("/api/v1/me/challenges/{n}")),
+            "cancel" => rest.delete(&format!("/api/v1/challenges/{n}/")),
             _ => return Err(t!("online.error.reply", "server" => OGS.name)),
         };
         let r = r.map_err(|e| self.fail(e))?;

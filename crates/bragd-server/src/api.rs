@@ -275,11 +275,18 @@ impl Service {
 
     /// Deletes the caller's account and everything with their id
     /// (`supabase/migrations/…_delete_account.sql`). With `keep_games`, the Games that ended stay
-    /// with the other players, against a deleted player.
+    /// with the other players, against a deleted player. A Game under way is first resigned
+    /// here, so a rated one is rated as any resignation is.
     fn forget(&self, caller: &Caller, body: &Value) -> Res {
         let keep = body["keep_games"].as_bool().unwrap_or(false);
         self.pool.as_user(caller, |tx| {
             db::referee(tx)?;
+            let playing: Vec<uuid::Uuid> =
+                tx.query("select id from public.games where status = 'playing' and $1 in (first, second) order by id", &[&caller.id])?.iter().map(|r| r.get(0)).collect();
+            for id in playing {
+                let g = Game::load(tx, id)?;
+                g.end(tx, Some(if caller.id == g.first { 1 } else { 0 }), "resign")?;
+            }
             tx.execute("select bragd.forget($1, $2)", &[&caller.id, &keep])?;
             Ok(json!({}))
         })
@@ -469,7 +476,7 @@ impl Game {
                 }
                 let next = self.throws(tx, true)?;
                 self.tick(tx, &now, &next)?;
-                self.after(tx, &next)
+                self.after(tx, me, &next)
             }
             // Chat: the caller's yes, or closing it for both; keeping it; a line.
             ("chat", "playing") => {
@@ -550,11 +557,16 @@ impl Game {
         use bragd_clubs::rating::{Game as Rated, Rating, glicko2};
         let family = bragd_games::variant(&self.variant).map_err(|_| Error(500, "server"))?.family().key();
         let players = [self.first, self.second];
-        tx.execute("insert into public.ratings (player, family) values ($1, $3), ($2, $3) on conflict do nothing", &[&players[0], &players[1], &family])?;
+        // Both rows are locked in one order, the players' ids sorted, whatever their seats: two
+        // rated Games between the same pair, ending at once with the seats swapped, would
+        // otherwise each hold the row the other waits for.
+        let order = lock_order(players);
+        let (a, b) = (players[order[0]], players[order[1]]);
+        tx.execute("insert into public.ratings (player, family) values ($1, $3), ($2, $3) on conflict do nothing", &[&a, &b, &family])?;
         let mut before = [Rating::default(); 2];
-        for (b, p) in before.iter_mut().zip(&players) {
-            let r = tx.query_one("select rating, deviation, volatility from public.ratings where player = $1 and family = $2 for update", &[p, &family])?;
-            *b = Rating { rating: r.get(0), deviation: r.get(1), volatility: r.get(2) };
+        for i in order {
+            let r = tx.query_one("select rating, deviation, volatility from public.ratings where player = $1 and family = $2 for update", &[&players[i], &family])?;
+            before[i] = Rating { rating: r.get(0), deviation: r.get(1), volatility: r.get(2) };
         }
         for (i, p) in players.iter().enumerate() {
             let score = match winner {
@@ -626,14 +638,15 @@ impl Game {
         tx.execute("insert into public.moves (game_id, ply, entry) values ($1, $2, $3)", &[&self.id, &(entries.len() as i32), &entry])?;
         let next = self.throws(tx, false)?;
         self.tick(tx, &now, &next)?;
-        self.after(tx, &next)
+        self.after(tx, me, &next)
     }
 
-    /// The Game over by the rules, or the turn passed on.
-    fn after(&self, tx: &mut Transaction, next: &bragd_games::State) -> Res {
+    /// The Game over by the rules, or the turn passed on by `me`. A draw offer stands until the
+    /// other player moves or answers: the offerer's own move, as chess has it, keeps it.
+    fn after(&self, tx: &mut Transaction, me: uuid::Uuid, next: &bragd_games::State) -> Res {
         match &next.outcome {
             Some(o) => self.over(tx, o.winner.map(|w| w.index), &o.result, &o.reason),
-            None => self.offer(tx, None),
+            None => self.offer(tx, self.draw_offer.filter(|&o| o == me)),
         }
     }
 
@@ -671,6 +684,12 @@ impl Game {
 }
 
 /// A Variant a Game on the Bragd server may be played in: one Bragd has the rules of.
+/// The seats of `players` in the order their rating rows are locked: by id, the same for every
+/// Game between the same two.
+fn lock_order(players: [uuid::Uuid; 2]) -> [usize; 2] {
+    if players[0] <= players[1] { [0, 1] } else { [1, 0] }
+}
+
 fn playable(variant: &str) -> Result<(), Error> {
     bragd_games::variant(variant).map(|_| ()).map_err(|_| Error(400, "variant"))
 }
@@ -719,5 +738,13 @@ mod tests {
         assert_eq!((0..200).filter(|_| limits.allow(anna, later)).count(), PER_SECOND as usize);
         let much_later = t0 + Duration::from_secs(3600);
         assert_eq!((0..200).filter(|_| limits.allow(anna, much_later)).count(), BURST as usize, "never more than the burst");
+    }
+
+    #[test]
+    fn rating_rows_are_locked_in_one_order_whatever_the_seats() {
+        let (a, b) = (uuid::Uuid::from_u128(1), uuid::Uuid::from_u128(2));
+        let order = |p: [uuid::Uuid; 2]| lock_order(p).map(|i| p[i]);
+        assert_eq!(order([a, b]), [a, b]);
+        assert_eq!(order([b, a]), [a, b], "seats swapped: the same rows first");
     }
 }

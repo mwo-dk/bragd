@@ -23,7 +23,7 @@ OGS knows each app that signs in beforehand. Until Bragd is registered with OGS,
 | **Seek a Game** | Opens a challenge anyone may take, on the board size, time and *Rated* chosen. **Cancel** takes it away |
 | **Challenge** | Challenges the OGS player named, with the colour chosen |
 | **Accept** / **Decline** | Answers a challenge made to you |
-| **Cancel** | Takes back a challenge you made |
+| **Cancel** | Takes back a challenge you made. One that is not answered within five minutes is taken back by itself |
 
 ### Playing
 

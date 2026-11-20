@@ -72,7 +72,13 @@ proxy's `https://` address.
 `backup.sh` dumps the project's Postgres with `pg_dump` into `BRAGD_BACKUP_DIR`, the Storage Box
 mounted on the host, and **deletes backups older than 30 days**. Run it daily from a timer. Backups
 are kept for 30 days, so a deleted account is gone from them 30 days after it was deleted. They are
-restored for nothing but recovering the server. `backup.sh --check` tests the pruning.
+restored for nothing but recovering the server. `backup.sh --check` tests the pruning, the
+clean-up after a failed dump, the alarm, and that the password is not on `pg_dump`'s command line.
+
+The password is taken out of `BRAGD_SERVER_DATABASE_URL` and handed to `pg_dump` in its
+environment (`PGPASSWORD`), so other users of the host cannot read it in `/proc`. A failed dump
+leaves no `.part` file behind. A failed run starts `bragd-backup-failed.service`, which logs a
+critical message and runs `BRAGD_BACKUP_ALERT` when it is set.
 
 `bragd-backup.service` runs `backup.sh` once, and `bragd-backup.timer` starts it every day at about
 03:30. `Persistent=true` makes a run missed while the host was off happen at the next boot, and
@@ -84,13 +90,17 @@ is not mounted. To set it up on the host (as root):
 2. Create `/etc/bragd-backup.env`, readable by root only (`chmod 600`), with two lines:
    `BRAGD_SERVER_DATABASE_URL=postgres://…` (with `sslmode=require`) and
    `BRAGD_BACKUP_DIR=/mnt/storagebox/bragd`. The password stays in this file, never in the repository.
-3. Copy `bragd-backup.service` and `bragd-backup.timer` to `/etc/systemd/system/`. If the Storage
+   Add a third line, `BRAGD_BACKUP_ALERT=…`, with a command that reaches you, such as
+   `mail -s 'Bragd backup failed' you@example.org </dev/null`. Without it, a failure is only logged.
+3. Copy `bragd-backup.service`, `bragd-backup-failed.service` and `bragd-backup.timer` to
+   `/etc/systemd/system/`. If the Storage
    Box is mounted elsewhere, run `systemctl edit bragd-backup.service` and set
    `RequiresMountsFor=` to its path under `[Unit]`.
 4. Run `systemctl daemon-reload`, then `systemctl enable --now bragd-backup.timer`.
 5. Test it once with `systemctl start bragd-backup.service`. Read the result with
    `journalctl -u bragd-backup.service` and look for a new `bragd-*.dump` in the folder.
-   `systemctl list-timers bragd-backup.timer` shows the next run.
+   `systemctl list-timers bragd-backup.timer` shows the next run. Test the alarm with
+   `systemctl start bragd-backup-failed.service`.
 
 ## Calls: signalling and TURN
 

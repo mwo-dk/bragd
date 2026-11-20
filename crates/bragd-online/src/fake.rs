@@ -486,10 +486,13 @@ fn ogs_reply(r: &Request, fake: &Fake, game: &Mutex<Option<OgsGame>>) -> Reply {
             ogs_start(fake, game, 777, true);
             json("{}")
         }
-        ("DELETE", "/api/v1/me/challenges/55") | ("DELETE", "/api/v1/challenges/66/") | ("DELETE", "/api/v1/me/challenges/67") => Reply::Json(204, String::new()),
+        ("DELETE", "/api/v1/me/challenges/55") | ("DELETE", "/api/v1/challenges/66/" | "/api/v1/challenges/67/" | "/api/v1/challenges/68/") => Reply::Json(204, String::new()),
         ("POST", "/api/v1/challenges/") => json(r#"{"challenge":66,"game":778}"#),
         ("GET", "/api/v1/players/") if r.query.to_lowercase().contains("username=anna&") => json(r#"{"results":[{"id":2002,"username":"Anna","ranking":24.3}]}"#),
+        // Bo never answers a challenge.
+        ("GET", "/api/v1/players/") if r.query.to_lowercase().contains("username=bo&") => json(r#"{"results":[{"id":2003,"username":"Bo","ranking":20.0}]}"#),
         ("GET", "/api/v1/players/") => json(r#"{"results":[]}"#),
+        ("POST", "/api/v1/players/2003/challenge") => json(r#"{"challenge":68,"game":780}"#),
         ("POST", "/api/v1/players/2002/challenge") => json(r#"{"challenge":67,"game":779}"#),
         _ => Reply::Json(404, r#"{"detail":"Not found."}"#.into()),
     }

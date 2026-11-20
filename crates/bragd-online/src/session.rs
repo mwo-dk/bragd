@@ -258,7 +258,16 @@ impl Online {
             Some("gameStart") => {
                 let g = &v["game"];
                 let id = g["gameId"].as_str().or(g["id"].as_str()).unwrap_or_default().to_string();
-                if !id.is_empty() {
+                // Lichess names every ongoing Game as the stream opens: a correspondence Game
+                // stays in Lichess's own lists, and a Game on keeps the board.
+                let busy = {
+                    let i = self.lock();
+                    let on = i.game.as_ref().filter(|(l, _)| !l.over()).map(|(l, _)| l.id.clone()).or_else(|| {
+                        i.game_id.as_ref().filter(|(g, s)| !s.load(Ordering::Relaxed) && i.game.as_ref().is_none_or(|(l, _)| l.id != *g)).map(|(g, _)| g.clone())
+                    });
+                    on.is_some_and(|g| g != id)
+                };
+                if !id.is_empty() && g["speed"] != "correspondence" && !busy {
                     self.watch(id);
                 }
             }
@@ -449,7 +458,8 @@ impl Play for Online {
             }
             i.tried = true;
         }
-        let Some(token) = self.dialect.server.token(&self.base) else { return Ok(()) };
+        // A keychain still locked says so, with Reconnect, rather than "not signed in".
+        let Some(token) = self.dialect.server.kept(&self.base).map_err(|e| self.fail(e))? else { return Ok(()) };
         self.connect(&token)
     }
 
@@ -461,7 +471,13 @@ impl Play for Online {
             i.error = None;
             i.tried = false;
         }
-        self.open()
+        self.open()?;
+        // The Game on before the connection was lost, as it stands now.
+        let on = self.lock().game.as_ref().filter(|(g, _)| !g.over()).map(|(g, _)| g.id.clone());
+        if let Some(id) = on {
+            self.watch(id);
+        }
+        Ok(())
     }
 
     fn sign_in(&self, open: &dyn Fn(&str) -> Result<(), String>) -> Result<(), String> {
@@ -584,7 +600,7 @@ impl Play for Online {
             let (g, _) = i.game.as_ref().ok_or_else(|| t!("online.error.no_game"))?;
             let variant = g.variant.ok_or_else(|| t!("online.error.variant", "site" => self.dialect.server.site))?;
             let entries = g.entries();
-            let mine = g.seat.is_some_and(|s| entries.len() % 2 == s as usize);
+            let mine = g.seat.is_some() && g.to_move() == g.seat;
             if g.over() || !mine {
                 return Err(t!("online.error.not_your_turn"));
             }
@@ -666,6 +682,7 @@ impl Play for Online {
 mod tests {
     use super::*;
     use crate::fake;
+    use serde_json::json;
     use crate::board::LICHESS;
 
     /// Waits for `what` to hold; the limit only guards against a hang.
@@ -742,6 +759,19 @@ mod tests {
     }
 
     #[test]
+    fn online_a_keychain_still_locked_says_so_with_reconnect() {
+        bragd_model::key::mock();
+        let f = fake::lichess();
+        bragd_model::key::set_in(SERVICE, &f.url, fake::TOKEN).unwrap();
+        bragd_model::key::mock_locked(&f.url);
+        let online = Online::new(&LICHESS, &f.url);
+        assert!(online.open().is_err());
+        let e = online.view().error.expect("an error the page shows, with Reconnect");
+        assert!(e.contains("locked"), "{e}");
+        assert!(f.seen().is_empty());
+    }
+
+    #[test]
     fn online_without_a_token_asks_nothing() {
         bragd_model::key::mock();
         let f = fake::lichess();
@@ -777,6 +807,23 @@ mod tests {
         assert_eq!(online.play("g1f3").unwrap_err(), t!("online.error.not_your_turn"));
         online.leave();
         assert!(online.view().game.is_none());
+    }
+
+    #[test]
+    fn online_game_start_leaves_correspondence_alone_and_a_game_on_keeps_the_board() {
+        let (_f, online) = signed_in();
+        let start = |id: &str, speed: &str| json!({ "type": "gameStart", "game": { "gameId": id, "speed": speed } });
+        let watched = || online.lock().game_id.as_ref().map(|(g, _)| g.clone());
+        online.event(&start("corr1", "correspondence"));
+        assert_eq!(watched(), None, "a correspondence Game does not take the board");
+        online.answer("c1anna", "accept").unwrap();
+        let anna = until(&online, |v| v.game.is_some()).game.unwrap().id;
+        online.event(&start("other1", "blitz"));
+        assert_eq!(watched(), Some(anna.clone()), "the Game on keeps the board");
+        online.resign().unwrap();
+        until(&online, |v| v.game.as_ref().is_some_and(|g| g.over));
+        online.event(&start("other1", "blitz"));
+        assert_eq!(watched().as_deref(), Some("other1"), "once it is over, the next Game takes the board");
     }
 
     #[test]

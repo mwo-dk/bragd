@@ -4,6 +4,8 @@ Description=Back up the Bragd server's Postgres to the Storage Box
 RequiresMountsFor=/mnt/storagebox
 After=network-online.target
 Wants=network-online.target
+# A failed run raises the alarm (backup.sh --failed), not only a line in the journal.
+OnFailure=bragd-backup-failed.service
 
 [Service]
 Type=oneshot

@@ -185,6 +185,23 @@ fn ogs_challenge_finds_the_player_and_a_refusal_is_shown() {
 }
 
 #[test]
+fn ogs_unanswered_challenge_is_taken_back_after_its_keep_alives() {
+    let (f, ogs) = signed_in();
+    until(&ogs, |v| v.connected);
+    ogs.challenge("bo", "go-19", "10|5x30", false, "random").unwrap();
+    // The limit only guards against a hang: the challenge ends after three keep-alives.
+    for _ in 0..1000 {
+        if f.seen().iter().any(|r| r.method == "DELETE" && r.path == "/api/v1/challenges/68/") {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(ogs.view().challenges.iter().all(|c| c.incoming), "taken back");
+    assert_eq!(said(&f, "challenge/keepalive").iter().filter(|c| c["challenge_id"] == 68).count(), 3);
+    assert!(!f.seen().iter().any(|r| r.path.starts_with("/api/v1/me/challenges/68")), "a challenge the user sent is not declined among theirs");
+}
+
+#[test]
 fn ogs_chat_is_off_until_turned_on() {
     let (f, ogs) = signed_in();
     until(&ogs, |v| !v.challenges.is_empty());

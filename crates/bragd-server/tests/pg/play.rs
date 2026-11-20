@@ -9,6 +9,8 @@ pub const CASES: &[crate::Case] = &[
     ("a_flag_is_claimed_only_once_the_time_is_up", a_flag_is_claimed_only_once_the_time_is_up),
     ("players_cannot_set_a_clock_or_a_rating_themselves", players_cannot_set_a_clock_or_a_rating_themselves),
     ("a_rated_game_changes_both_ratings_and_a_casual_one_none", a_rated_game_changes_both_ratings_and_a_casual_one_none),
+    ("a_rated_game_left_by_a_deleted_account_is_rated", a_rated_game_left_by_a_deleted_account_is_rated),
+    ("the_lookups_of_every_state_have_indexes", the_lookups_of_every_state_have_indexes),
     ("a_seek_is_taken_by_another_player_once", a_seek_is_taken_by_another_player_once),
     ("a_seek_is_hidden_between_players_who_block", a_seek_is_hidden_between_players_who_block),
     ("a_seek_is_the_players_own", a_seek_is_the_players_own),
@@ -109,6 +111,33 @@ fn a_rated_game_changes_both_ratings_and_a_casual_one_none(pg: &Pg) {
     db.call(&bo, "POST", &format!("/v1/games/{id}/accept"), json!({}));
     assert_eq!(db.call(&bo, "POST", &format!("/v1/games/{id}/resign"), json!({})).0, 200);
     assert_eq!(ratings(&anna), a);
+}
+
+fn a_rated_game_left_by_a_deleted_account_is_rated(pg: &Pg) {
+    let db = pg.fresh();
+    let (anna, bo, _) = playing(&db, json!({ "rated": true }));
+    let (s, _) = db.service.handle("DELETE", "/v1/me", Some(&format!("Bearer {}", anna.token)), &json!({ "keep_games": true }).to_string());
+    assert_eq!(s, 200);
+    let st = db.call(&bo, "GET", "/v1/state", json!({})).1;
+    assert_eq!((st["games"][0]["result"].as_str(), st["games"][0]["reason"].as_str()), (Some("0-1"), Some("resign")), "{st}");
+    let r = &st["ratings"][0];
+    assert_eq!((r["family"].as_str(), r["games"].as_i64()), (Some("chess"), Some(1)), "{st}");
+    assert!(r["rating"].as_f64().unwrap() > 1500.0, "{r}");
+}
+
+/// `/v1/state` asks for a player's Clubs and Friends on every Realtime nudge.
+fn the_lookups_of_every_state_have_indexes(pg: &Pg) {
+    let db = pg.fresh();
+    let lead = |table: &str| -> Vec<String> {
+        db.owner()
+            .query("select a.attname::text from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = i.indkey[0] where i.indrelid = $1::text::regclass", &[&table])
+            .unwrap()
+            .iter()
+            .map(|r| r.get(0))
+            .collect()
+    };
+    assert!(lead("public.club_members").contains(&"member".to_string()));
+    assert!(lead("public.friendships").contains(&"b".to_string()));
 }
 
 fn a_seek_is_taken_by_another_player_once(pg: &Pg) {

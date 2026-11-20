@@ -345,17 +345,29 @@ impl BragdServer {
     /// The game service's `method path` with `body`, as the signed-in user.
     pub(crate) fn call(&self, method: &str, path: &str, body: &Value) -> Result<Value, String> {
         let base = self.base()?;
-        let token = self.token()?;
         let url = format!("{base}{path}");
-        let auth = format!("Bearer {token}");
-        let agent = board::agent();
-        let r = match method {
-            "GET" => agent.get(&url).header("Authorization", &auth).call(),
-            "PUT" => agent.put(&url).header("Authorization", &auth).send_json(body),
-            "DELETE" => agent.delete(&url).header("Authorization", &auth).force_send_body().send_json(body),
-            _ => agent.post(&url).header("Authorization", &auth).send_json(body),
+        let send = |token: &str| {
+            let auth = format!("Bearer {token}");
+            let agent = board::agent();
+            read(match method {
+                "GET" => agent.get(&url).header("Authorization", &auth).call(),
+                "PUT" => agent.put(&url).header("Authorization", &auth).send_json(body),
+                "DELETE" => agent.delete(&url).header("Authorization", &auth).force_send_body().send_json(body),
+                _ => agent.post(&url).header("Authorization", &auth).send_json(body),
+            })
         };
-        read(r).map_err(|e| self.fail(e))
+        match send(&self.token()?) {
+            // The access token ran out unseen (`Instant` stands still while the machine
+            // sleeps): refresh it once, and forget the sign-in only when that fails too.
+            Err(e) if e == t!("online.error.signed_out", "server" => SERVER.name) => {
+                let refresh = self.lock().session.as_ref().map(|s| s.refresh.clone());
+                if refresh.is_none_or(|r| self.refresh(&r).is_err()) {
+                    return Err(self.fail(e));
+                }
+                send(&self.token()?).map_err(|e| self.fail(e))
+            }
+            r => r.map_err(|e| self.fail(e)),
+        }
     }
 
     /// Asks how things stand now.
@@ -463,6 +475,28 @@ impl BragdServer {
         if !p.oauth.iter().any(|o| o == provider) {
             return Err(error_text("provider"));
         }
+        let stop = Arc::new(AtomicBool::new(false));
+        {
+            // A second click while the browser is open starts nothing more.
+            let mut i = self.lock();
+            if i.signing_in.is_some() {
+                return Ok(());
+            }
+            i.signing_in = Some(stop.clone());
+        }
+        let r = self.sign_in_wait(&p, provider, &stop, open);
+        let mut i = self.lock();
+        if i.signing_in.as_ref().is_some_and(|s| Arc::ptr_eq(s, &stop)) {
+            i.signing_in = None;
+        }
+        drop(i);
+        let v = self.auth("token?grant_type=pkce", &r?).map_err(|e| self.fail(e))?;
+        self.keep(&v)?;
+        self.start()
+    }
+
+    /// Shows the provider's page and waits for its code: the body of the PKCE swap.
+    fn sign_in_wait(&self, p: &Public, provider: &str, stop: &Arc<AtomicBool>, open: &dyn Fn(&str) -> Result<(), String>) -> Result<Value, String> {
         let pkce = oauth::Pkce::new();
         let lo = oauth::Loopback::bind(0)?;
         // Supabase Auth adds `code` to this address; the state comes back as it was sent.
@@ -474,13 +508,8 @@ impl BragdServer {
             oauth::encode(&back),
             pkce.challenge
         );
-        let stop = Arc::new(AtomicBool::new(false));
-        self.lock().signing_in = Some(stop.clone());
-        let code = open(&url).and_then(|()| lo.wait(SERVER.name, &pkce.state, &stop, SIGN_IN));
-        self.lock().signing_in = None;
-        let v = self.auth("token?grant_type=pkce", &json!({ "auth_code": code?, "code_verifier": pkce.verifier })).map_err(|e| self.fail(e))?;
-        self.keep(&v)?;
-        self.start()
+        let code = open(&url).and_then(|()| lo.wait(SERVER.name, &pkce.state, stop, SIGN_IN))?;
+        Ok(json!({ "auth_code": code, "code_verifier": pkce.verifier }))
     }
 
     /// Chooses or changes the public name.
@@ -787,7 +816,9 @@ impl Play for BragdServer {
     }
 
     fn live(&self) -> Option<(bool, bool, bool)> {
-        self.shown().map(|g| (g["rated"] == true, true, g["status"] == "over"))
+        // A rated Game under way locks engine help, whichever Game the page shows.
+        let rated = self.games().into_iter().find(|g| g["rated"] == true && g["status"] == "playing");
+        rated.or_else(|| self.shown()).map(|g| (g["rated"] == true, true, g["status"] == "over"))
     }
 
     fn open(&self) -> Result<(), String> {
@@ -801,7 +832,7 @@ impl Play for BragdServer {
         }
         // The sign-in providers, for the page; a server that does not answer says so on the page.
         self.public().map_err(|e| self.fail(e))?;
-        let kept = std::env::var(SERVER.token_var).ok().filter(|_| board::on_this_machine(&base)).or_else(|| bragd_model::key::get_in(SERVICE, &base)).filter(|t| !t.is_empty());
+        let kept = std::env::var(SERVER.token_var).ok().filter(|_| board::on_this_machine(&base)).map_or_else(|| bragd_model::key::find_in(SERVICE, &base).map_err(|e| self.fail(e)), |t| Ok(Some(t)))?.filter(|t| !t.is_empty());
         let Some(refresh) = kept else { return Ok(()) };
         self.refresh(&refresh).map_err(|e| self.fail(e))?;
         self.start()
@@ -1039,6 +1070,43 @@ mod tests {
     }
 
     #[test]
+    fn bragd_server_a_token_run_out_while_asleep_is_refreshed_not_forgotten() {
+        let (b, fake, _) = signed_in();
+        // The server says the access token is out of date, though its time here has not come.
+        b.lock().session.as_mut().unwrap().access = "slept-through".into();
+        b.poll().unwrap();
+        assert!(b.friends_view().signed_in);
+        assert_eq!(bragd_model::key::get_in(SERVICE, &fake.url).as_deref(), Some(fake_bragd::REFRESH));
+        // When the refresh token is refused as well, the sign-in is forgotten.
+        let mut i = b.lock();
+        let s = i.session.as_mut().unwrap();
+        s.access = "slept-through".into();
+        s.refresh = "revoked".into();
+        drop(i);
+        assert_eq!(b.poll(), Err(t!("online.error.signed_out", "server" => SERVER.name)));
+        assert!(!b.friends_view().signed_in);
+        assert!(bragd_model::key::get_in(SERVICE, &fake.url).filter(|t| !t.is_empty()).is_none());
+    }
+
+    #[test]
+    fn bragd_server_a_second_sign_in_click_opens_nothing_more() {
+        bragd_model::key::mock();
+        let (fake, _) = fake_bragd::bragd();
+        let b = BragdServer::at(&fake.url);
+        let opened = std::sync::atomic::AtomicUsize::new(0);
+        let open = |_: &str| -> Result<(), String> {
+            if opened.fetch_add(1, Ordering::SeqCst) == 0 {
+                // Clicked again while the browser is open.
+                assert_eq!(b.sign_in_with("github", &|_| Err("second".into())), Ok(()));
+            }
+            Err("closed".into())
+        };
+        assert_eq!(b.sign_in_with("github", &open), Err("closed".into()));
+        assert_eq!(opened.load(Ordering::SeqCst), 1, "one browser page");
+        assert!(!b.view().signing_in, "the guard is lifted after");
+    }
+
+    #[test]
     fn bragd_server_deletes_the_account_and_forgets_the_sign_in() {
         let (b, fake, world) = signed_in();
         assert!(b.delete_account("Bragd", true).is_err(), "only the user's own name confirms");
@@ -1167,6 +1235,9 @@ mod tests {
         assert_eq!(g.running, Some(0));
         assert!(g.clocks[0] <= 600_000 && g.clocks[1] == 600_000, "{:?}", g.clocks);
         assert_eq!(b.live(), Some((true, true, false)), "rated: the fair-play lock holds");
+        b.answer("g-anna", "accept").unwrap();
+        assert!(!b.view().game.unwrap().rated, "Anna's casual Game is shown");
+        assert_eq!(b.live(), Some((true, true, false)), "the rated Game still on keeps the lock");
     }
 
     #[test]

@@ -70,8 +70,15 @@ impl Server {
 
     /// The token kept for `base`: the keychain's, or the variable's for a server on this machine.
     pub fn token(&self, base: &str) -> Option<String> {
-        let fake = std::env::var(self.token_var).ok().filter(|_| crate::board::on_this_machine(base));
-        fake.or_else(|| bragd_model::key::get_in(crate::session::SERVICE, base))
+        self.kept(base).ok().flatten()
+    }
+
+    /// The token kept for `base`, or why the keychain did not answer.
+    pub fn kept(&self, base: &str) -> Result<Option<String>, String> {
+        match std::env::var(self.token_var).ok().filter(|_| crate::board::on_this_machine(base)) {
+            Some(fake) => Ok(Some(fake)),
+            None => bragd_model::key::find_in(crate::session::SERVICE, base),
+        }
     }
 
     /// Plays a Family that is on.

@@ -76,7 +76,7 @@ Seek a Game that any player may take, challenge a player by their name, with the
 | **Challenge** | Challenges the player named, in the Variant, time and rating chosen |
 | **Accept** / **Decline** | Answers a challenge made to you, or takes another player's seek. **Decline** on a seek only hides it from you |
 | **Cancel** | Takes back a challenge you made |
-| **Offer a draw** | Offers a draw; the other player accepts or declines. Backgammon, Ur and senet have none: they are always won, and the server refuses it |
+| **Offer a draw** | Offers a draw; the other player accepts or declines. It stands through your own move, until the other player answers or moves. Backgammon, Ur and senet have none: they are always won, and the server refuses it |
 | **Resign** | Gives up the Game. In backgammon it is **Resign…**, which asks how much the other player wins: a single game, a gammon or a backgammon |
 | **Back to the lobby** | Leaves a Game that is over |
 
@@ -94,9 +94,9 @@ The clocks are kept by the Bragd server. It counts the time you use from the mom
 
 Each move reaches the other player at once: the server tells both players' Bragd over Supabase Realtime that the Game changed, and Bragd asks it how the Game stands. The message names only the Game, and only you can listen for yours. When Realtime cannot be reached, Bragd asks the server every two seconds instead, which is slow for a 1-minute Game.
 
-A rating is Glicko-2, as [Clubs](../clubs/clubs.md) use: one for each Game family, starting at 1500, and changed after every rated Game ([ADR 0007](../adr/0007-ratings-on-the-bragd-server.md)). *Your ratings* above the seek shows yours in the Families you have on. A rating with a `?`, such as *1500?*, is still provisional: Glicko-2 is not yet sure of it, and *Your ratings* says so. It settles after about ten rated Games in that Family. A Game ended by deleting an account is not rated.
+A rating is Glicko-2, as [Clubs](../clubs/clubs.md) use: one for each Game family, starting at 1500, and changed after every rated Game ([ADR 0007](../adr/0007-ratings-on-the-bragd-server.md)). *Your ratings* above the seek shows yours in the Families you have on. A rating with a `?`, such as *1500?*, is still provisional: Glicko-2 is not yet sure of it, and *Your ratings* says so. It settles after about ten rated Games in that Family. A rated Game under way when a player deletes their account ends as that player's resignation, and is rated.
 
-During a rated Game, Analyse, Engines, book moves and tablebases are locked in every Bragd window, as on Lichess.
+During a rated Game, Analyse, Engines, book moves and tablebases are locked in every Bragd window, as on Lichess. They stay locked while you look at another Game, such as a casual one you accepted, until the rated one ends.
 
 ### Dice
 
@@ -172,7 +172,7 @@ The sound and picture go directly between your two machines, encrypted end to en
 | Control | What it does |
 |---|---|
 | **Delete my account** | Opens the form. Nothing is deleted yet |
-| **Leave my finished Games to the other players, as a deleted player** | Off: your Games go too. On: Games that ended stay with the other player, who sees *Deleted player* as their opponent. A Game under way ends as your resignation |
+| **Leave my finished Games to the other players, as a deleted player** | Off: your Games go too. On: Games that ended stay with the other player, who sees *Deleted player* as their opponent. A Game under way ends as your resignation, and a rated one is rated |
 | **Type your name** | Your name on the Bragd server, as it is. An account without a name types the word the form shows instead, such as *delete*. The button works only when it matches |
 | **Delete my account for good** | Deletes the account, signs out, and removes the sign-in from your keychain |
 
