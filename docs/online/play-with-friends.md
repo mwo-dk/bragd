@@ -165,7 +165,6 @@ The sound and picture go directly between your two machines, encrypted end to en
 
 **Delete my account**, below the Games (or below *Choose the name other players find you by*, if you have not chosen one), deletes your account on the Bragd server and everything with it, at once: your name, Friends, requests, invite codes, blocks, the reports you made, your Chat lines and your Games. A Club you made passes to another member. Reports about you stay with the operator, under the name you had, and a Chat both of you kept stays in a Game you leave to the other player ([Privacy](../reference/privacy.md#the-bragd-server) lists it all). It cannot be undone.
 
-<!-- screenshot: friends-delete-1100.png: the form's new text, saying a Club you made passes to another member and reports about you stay -->
 ![Delete my account, 1100 px wide: what is deleted, Leave my finished Games to the other players, the name typed to confirm, and Delete my account for good](../screenshots/friends-delete-1100.png)
 *Deleting the account.*
 
