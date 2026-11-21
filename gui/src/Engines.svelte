@@ -182,8 +182,9 @@
     {/if}
 
     {#if opts}
-      <section class="panel options">
-        <h2>{t("engines.options_of", { name: opts.info.name })}</h2>
+      <div class="veil" role="presentation" onclick={(ev) => ev.target === ev.currentTarget && (opts = null)} onkeydown={(ev) => ev.key === "Escape" && (opts = null)}>
+      <div class="panel consent options" role="dialog" aria-modal="true" aria-labelledby="options-title">
+        <h2 id="options-title">{t("engines.options_of", { name: opts.info.name })}</h2>
         {#each opts.info.options as o (o.name)}
           <div class="row">
             {#if o.kind === "check"}
@@ -210,7 +211,8 @@
           <button onclick={async () => opts && (opts.info = await api.engineResetOptions(opts.key))}>{t("engines.reset")}</button>
           <button onclick={() => (opts = null)}>{t("common.close")}</button>
         </div>
-      </section>
+      </div>
+      </div>
     {/if}
 
     <h2>{t("engines.add")}</h2>
