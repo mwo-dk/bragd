@@ -34,7 +34,7 @@ The page has four parts:
    | *Container images are turned off in Settings.* | **Settings → Engines** turns them back on |
    | *Its container image is a Linux image, which this system cannot run* | On FreeBSD, NetBSD and OpenBSD: install the Engine from your system's packages, or **Download page** |
 
-3. **Options.** *Options* on a ready Engine starts it and lists the options it offers: switches, lists, numbers and text. ↺ puts one back to the Engine's default, and *Reset all* puts them all back.
+3. **Options.** *Options* on a ready Engine starts it and lists the options it offers in a window over the page: switches, lists, numbers and text. *Close*, Escape or a click beside the window closes it. ↺ puts one back to the Engine's default, and *Reset all* puts them all back.
 4. **Add an engine.** **Choose the Engine's program** opens the file picker; the program you choose is added.
 
 ## What it needs
