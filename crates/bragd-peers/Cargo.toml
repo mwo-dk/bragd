@@ -27,7 +27,7 @@ if-addrs = "0.15"
 
 # Finding Peers on the home network. Its socket crate does not build on OpenBSD (`find::MDNS`).
 [target.'cfg(not(target_os = "openbsd"))'.dependencies]
-mdns-sd = { version = "0.21.6", default-features = false }
+mdns-sd = { version = "0.22.0", default-features = false }
 
 # mdns-sd's socket crate: 0.4.2 calls socket2 multicast functions that socket2 lacks on NetBSD,
 # 0.4.1 builds there. Held until a release builds on NetBSD again (#516).
