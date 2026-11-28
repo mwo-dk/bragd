@@ -1,0 +1,15 @@
+INSERT INTO "game_sources" ("game_id", "source", "source_ref", "fetched_at", "headers", "notes") VALUES (1, 'mine', 'a.pgn#1', 0, '{"Black":"Carl Dahl","Date":"1999.04.01","Event":"Club","Result":"1-0","White":"Anna Berg","WhiteElo":"2010"}', '[{"ply":0,"comment":"Opening"},{"ply":3,"comment":"The usual.","nags":[1]}]');
+INSERT INTO "game_sources" ("game_id", "source", "source_ref", "fetched_at", "headers", "notes") VALUES (1, 'twic', 'twic1500.pgn#7', 0, '{"Black":"Carl Dahl","Date":"1999.04.01","Event":"Club","Result":"1-0","White":"Anna Berg","WhiteElo":"2010"}', '[{"ply":0,"comment":"Opening"},{"ply":3,"comment":"The usual.","nags":[1]}]');
+INSERT INTO "game_sources" ("game_id", "source", "source_ref", "fetched_at", "headers", "notes") VALUES (2, 'mine', 'a.pgn#2', 0, '{"Black":"Anna Berg","Result":"0-1","White":"Dora Eng"}', NULL);
+INSERT INTO "games" ("id", "family", "variant", "headers", "white", "black", "white_elo", "black_elo", "date", "event", "site", "eco", "opening", "result", "moves", "start", "ply_count", "zobrist_final", "zobrist_chain_hash") VALUES (1, 'chess', 'chess', '{"Black":"Carl Dahl","Date":"1999.04.01","Event":"Club","Result":"1-0","White":"Anna Berg","WhiteElo":"2010"}', 'Anna Berg', 'Carl Dahl', 2010, NULL, '1999.04.01', 'Club', '', '', '', '1-0', 'e4 e5 Nf3 Nc6 Bb5', NULL, 5, 5409798013178080797, -4663017082877597011);
+INSERT INTO "games" ("id", "family", "variant", "headers", "white", "black", "white_elo", "black_elo", "date", "event", "site", "eco", "opening", "result", "moves", "start", "ply_count", "zobrist_final", "zobrist_chain_hash") VALUES (2, 'chess', 'chess', '{"Black":"Anna Berg","Result":"0-1","White":"Dora Eng"}', 'Dora Eng', 'Anna Berg', NULL, NULL, '', '', '', '', '', '0-1', 'd4 d5 c4', NULL, 3, -8482806413104302849, 2491404697428113556);
+INSERT INTO "positions" ("hash", "game_id", "ply") VALUES (-9062197578030825066, 1, 1);
+INSERT INTO "positions" ("hash", "game_id", "ply") VALUES (-9003054430788464162, 2, 1);
+INSERT INTO "positions" ("hash", "game_id", "ply") VALUES (-8482806413104302849, 2, 3);
+INSERT INTO "positions" ("hash", "game_id", "ply") VALUES (-3233443880761108323, 1, 3);
+INSERT INTO "positions" ("hash", "game_id", "ply") VALUES (460664201775194104, 2, 2);
+INSERT INTO "positions" ("hash", "game_id", "ply") VALUES (595762792459712928, 1, 2);
+INSERT INTO "positions" ("hash", "game_id", "ply") VALUES (5409798013178080797, 1, 5);
+INSERT INTO "positions" ("hash", "game_id", "ply") VALUES (8704797333742910878, 1, 4);
+INSERT INTO "slices" ("name", "query", "materialised", "path") VALUES ('Anna', '{"players":["Anna"],"eco_from":null,"eco_to":null,"date_from":null,"date_to":null,"rating_min":null,"result":null,"family":null,"variant":null,"position":null}', 0, NULL);
+INSERT INTO "player_words" ("player_words") VALUES ('rebuild');

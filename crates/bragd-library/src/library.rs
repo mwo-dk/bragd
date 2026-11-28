@@ -85,8 +85,29 @@ impl From<parquet::errors::ParquetError> for Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// SQL for the file a Source reference names: `<path>#<n>` without its `<n>`, the Game's place
+/// in the file; any other reference as it is.
+macro_rules! file_of {
+    ($r:literal) => {
+        concat!("CASE WHEN rtrim(", $r, ", '0123456789') LIKE '%#' THEN rtrim(", $r, ", '0123456789') ELSE ", $r, " END")
+    };
+}
+
 /// A Library's format (`PRAGMA user_version`).
-pub const FORMAT: bragd_core::format::Sqlite = bragd_core::format::Sqlite { file: "lib.name", first: 1, schema: SCHEMA, migrations: &[] };
+pub const FORMAT: bragd_core::format::Sqlite = bragd_core::format::Sqlite {
+    file: "lib.name",
+    first: 1,
+    schema: SCHEMA,
+    migrations: &[
+        // 2: one Source row per Game per file (#532): the newest of the rows a file fetched
+        // again with its Games moved had left.
+        concat!(
+            "DELETE FROM game_sources WHERE rowid NOT IN (SELECT rowid FROM (SELECT rowid, row_number() OVER (PARTITION BY game_id, source, ",
+            file_of!("source_ref"),
+            " ORDER BY fetched_at DESC, rowid DESC) AS n FROM game_sources) WHERE n = 1);"
+        ),
+    ],
+};
 
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS games (
@@ -1037,12 +1058,14 @@ fn add_in(tx: &Connection, priority: &[String], g: &NewGame, source: &str, sourc
         .query_row(params![hash, g.family, g.variant, moves, g.start], |r| r.get(0))
         .optional()?;
     if let Some(id) = same {
-        // The same Source and reference again (a file imported again) brings its Notes up to date.
-        tx.prepare_cached(
-            "INSERT INTO game_sources (game_id, source, source_ref, fetched_at, headers, notes) VALUES (?, ?, ?, ?, ?, ?)
-             ON CONFLICT (game_id, source, source_ref) DO UPDATE SET notes = excluded.notes",
-        )?
-        .execute(params![id, source, source_ref, fetched, own, notes])?;
+        // The same Source and file again (a file imported or fetched again, its Games maybe moved)
+        // keeps its one row, at the Game's new place, with its Notes up to date.
+        let again = tx
+            .prepare_cached(concat!("UPDATE game_sources SET source_ref = ?3, notes = ?4 WHERE game_id = ?1 AND source = ?2 AND ", file_of!("source_ref"), " = ", file_of!("?3")))?
+            .execute(params![id, source, source_ref, notes])?;
+        if again == 0 {
+            tx.prepare_cached("INSERT INTO game_sources (game_id, source, source_ref, fetched_at, headers, notes) VALUES (?, ?, ?, ?, ?, ?)")?.execute(params![id, source, source_ref, fetched, own, notes])?;
+        }
         merge_headers(tx, priority, id, &g.result)?;
         return Ok((Added::Merged(id), 0));
     }
@@ -1302,6 +1325,30 @@ pub(crate) mod tests {
         lib.import(path, source, &|| false, &mut |_| {}).unwrap()
     }
 
+    /// A file fetched again with a new Game at its top keeps one Source row per old Game, at
+    /// its new place, and none of them becomes a merged Game (#532).
+    #[test]
+    fn a_file_fetched_again_with_games_moved_keeps_one_source_row() {
+        let d = Dir::new("moved");
+        let club = d.0.join("club.pgn");
+        let a = pgn(&[("White", "Anna")], CENTURY, "0-1");
+        let b = pgn(&[("White", "Bo")], "1. e4 e5 2. Nf3 Nc6", "*");
+        let c = pgn(&[("White", "Cy")], "1. d4 d5", "*");
+        std::fs::write(&club, format!("{a}{b}")).unwrap();
+        let mut lib = Library::open(&d.0.join("lib.bragd")).unwrap();
+        assert_eq!(import(&mut lib, &club, "club").added, 2);
+        std::fs::write(&club, format!("{c}{a}{b}")).unwrap();
+        let p = import(&mut lib, &club, "club");
+        assert_eq!((p.added, p.merged), (1, 2));
+        for id in [1, 2] {
+            let s = lib.sources(id).unwrap();
+            assert_eq!(s.len(), 1, "Game {id}: {s:?}");
+            assert_eq!(s[0].1, format!("{}#{}", club.display(), id + 1), "Game {id} is at its new place");
+        }
+        assert_eq!(lib.merged_count(None).unwrap(), 0);
+        assert_eq!(lib.merged(10, None).unwrap(), Vec::<i64>::new());
+    }
+
     #[test]
     fn the_same_game_from_two_sources_is_kept_once() {
         let d = Dir::new("dupe");
@@ -1489,8 +1536,8 @@ pub(crate) mod tests {
             assert_eq!(bragd_games::Variant::from_key(&v).map(|x| bragd_games::Family::from_key(&f).is_some_and(|fam| fam.variants().any(|i| i.variant == x))), Some(true), "{name}: {v}");
             assert!(plies >= 2 && !white.is_empty(), "{name}: {plies} {white}");
         }
-        // The go file's two games are one Game with the same Source twice.
-        assert_eq!(lib.sources(1).unwrap().len(), 2);
+        // The go file's two games are one Game, with one Source row for the file: its last place.
+        assert_eq!(lib.sources(1).unwrap().into_iter().map(|s| s.1).collect::<Vec<_>>(), [format!("{}#2", d.0.join("g.sgf").display())]);
     }
 
     /// A real ChessBase database, from the fixtures: it goes in through the same table.

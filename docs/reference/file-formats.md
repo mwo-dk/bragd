@@ -20,7 +20,7 @@ Where each file lives is in [Files on disk](files.md).
 | `config.toml` | TOML | the top-level key `format` | 1 | `bragd_core::config::FORMAT` |
 | `engine-options.toml` | TOML | the top-level key `format` | 1 | `bragd_engines::options::FORMAT` |
 | `state.json` | JSON | the key `format` | 1 | `bragd_core::state::FORMAT` |
-| A Library (`.bragd`) | SQLite | `PRAGMA user_version` | 1 | `bragd_library::library::FORMAT` |
+| A Library (`.bragd`) | SQLite | `PRAGMA user_version` | 2 | `bragd_library::library::FORMAT` |
 | A Club file (`.bragd-club`), its `.lock` file, and the Tournaments and Leagues it keeps as JSON | SQLite | `PRAGMA user_version` | 1 | `bragd_clubs::club::FORMAT` |
 | `positions.sqlite`, the [Position store](../knowledge/position-store.md) | SQLite | `PRAGMA user_version` | 3 | `bragd_positions::FORMAT` |
 | A Position store export (`.parquet`) | Parquet | the file's metadata key `bragd.format` | 1 | `bragd_positions::parquet::FORMAT` and `from_parquet` |

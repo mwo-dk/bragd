@@ -23,7 +23,7 @@ Each Game gets a key made from its Family, its Variant, its starting position an
 - Go positions use a Zobrist key of their own, over the stones, the side to move and the ko point. The same position reached by another move order has the same key.
 - Headers play no part: different spellings of the players, events or dates do not stop a match.
 
-When a Duplicate arrives, the Game already stored is kept and the new Source is recorded on it. Where the headers disagree, the Source higher in the priority wins each header. Comments are not mixed: the Game shows the comments of the highest Source in the priority that has any, all of them together.
+When a Duplicate arrives, the Game already stored is kept and the new Source is recorded on it. A Game keeps one Source row per file: a file imported or fetched again only moves the row to the Game's new place in the file, so the Game is not counted as merged. Where the headers disagree, the Source higher in the priority wins each header. Comments are not mixed: the Game shows the comments of the highest Source in the priority that has any, all of them together.
 
 ## What it needs
 
@@ -72,6 +72,10 @@ Go Games got their position key in 0.4.0. Before that, a go Game's key was made 
 #### Why is a draughts Game I imported before not matched to its new copy?
 
 Draughts, xiangqi and shogi positions got a key without the move number in 0.4.0. The key of a draughts position from a file changed with it, so a draughts Game stored by an earlier build keeps its old key, and a copy imported now is not found as its Duplicate. Position search does not find it either. Make the Library again from its Sources to have every draughts Game keyed the new way. Xiangqi and shogi Games from files keep their key. Games from engine matches of all three Families keep their old key.
+
+#### Why is a Game from a club file I fetch every week not listed as merged?
+
+A Game is merged when two different files, or two Sources, brought it. A custom URL Source is downloaded whole on each fetch, and new Games are often added at the top, so the old ones move down. Bragd keeps one Source row for each Game from that file and updates where in the file it is. A Library made before 1.0.0 had a row for every place such a Game had been. When a Library is opened for the first time with 1.0.0, it removes those extra rows once and keeps the newest. Such a Game's headers are merged again from its remaining rows the next time its file is imported.
 
 #### What names go in the priority list?
 
