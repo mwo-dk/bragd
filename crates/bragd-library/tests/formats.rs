@@ -57,3 +57,24 @@ fn every_committed_version_opens_with_its_games() {
         assert_eq!(players(&lib), [("Anna Berg".into(), 2)], "v{v}");
     }
 }
+
+/// Version 2 keeps one Source row per Game per file, the newest, and a Game whose rows were all
+/// from one file is no longer merged (#532).
+#[test]
+fn v2_keeps_the_newest_source_row_of_a_file() {
+    let (_, v1) = format::versions("library").into_iter().find(|v| v.0 == 1).unwrap();
+    let p = dir("v2-dedup").join("lib.bragd");
+    format::sqlite_fixture(&v1, 1, &p).unwrap();
+    let c = rusqlite::Connection::open(&p).unwrap();
+    c.execute_batch(
+        "INSERT INTO game_sources VALUES (2, 'mine', 'a.pgn#5', 9, '{}', NULL);
+         INSERT INTO game_sources VALUES (2, 'mine', 'a.pgn#4', 7, '{}', NULL);
+         INSERT INTO game_sources VALUES (2, 'mine', 'b.pgn#2', 1, '{}', NULL);",
+    )
+    .unwrap();
+    drop(c);
+    let lib = Library::open(&p).unwrap();
+    assert_eq!(lib.sources(1).unwrap(), [("mine".into(), "a.pgn#1".into(), 0), ("twic".into(), "twic1500.pgn#7".into(), 0)]);
+    assert_eq!(lib.sources(2).unwrap(), [("mine".into(), "a.pgn#5".into(), 9), ("mine".into(), "b.pgn#2".into(), 1)]);
+    assert_eq!(lib.merged(10, None).unwrap(), [1, 2]);
+}
