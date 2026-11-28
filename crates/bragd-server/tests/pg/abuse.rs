@@ -13,6 +13,7 @@ pub const CASES: &[crate::Case] = &[
     ("no_table_is_open_beyond_its_grants", no_table_is_open_beyond_its_grants),
     ("the_one_asked_cannot_forge_another_friendship", the_one_asked_cannot_forge_another_friendship),
     ("a_player_writes_only_the_columns_granted", a_player_writes_only_the_columns_granted),
+    ("a_challenge_has_both_seats_filled", a_challenge_has_both_seats_filled),
     ("a_variant_is_a_short_key", a_variant_is_a_short_key),
     ("an_unplayable_variant_is_refused_cleanly", an_unplayable_variant_is_refused_cleanly),
     ("writes_are_capped_for_each_player", writes_are_capped_for_each_player),
@@ -74,6 +75,21 @@ fn a_player_writes_only_the_columns_granted(pg: &Pg) {
     assert_eq!(db.call(&anna, "POST", "/v1/reports", json!({ "name": "Bo", "reason": "rude" })).0, 200);
     assert_eq!(db.call(&anna, "POST", "/v1/blocks/remove", json!({ "name": "Bo" })).0, 200);
     assert_eq!(db.call(&bo, "POST", "/v1/clubs", json!({ "name": "Skakklubben" })).0, 200);
+}
+
+/// A challenge with an empty seat could never be answered, and slips past the block between the
+/// two players: `blocked_between(x, null)` is false.
+fn a_challenge_has_both_seats_filled(pg: &Pg) {
+    let db = pg.fresh();
+    let anna = db.user("Anna");
+    let bo = db.user("Bo");
+    assert_eq!(db.call(&anna, "POST", "/v1/blocks", json!({ "name": "Bo" })).0, 200);
+    for (first, second) in [(format!("'{}'", anna.id), "null".to_string()), ("null".to_string(), format!("'{}'", anna.id))] {
+        let sql = format!("insert into public.games (first, second, challenger, variant) values ({first}, {second}, '{}', 'chess')", bo.id);
+        assert!(db.sql_as(&bo, &sql).is_err(), "Bo challenged Anna with an empty seat: {first}, {second}");
+    }
+    let (_, st) = db.call(&anna, "GET", "/v1/state", json!({}));
+    assert_eq!(st["games"], json!([]));
 }
 
 fn a_variant_is_a_short_key(pg: &Pg) {
